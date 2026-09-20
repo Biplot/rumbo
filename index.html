@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rumbo · Tu vida en un solo lugar</title>
+  <meta name="description" content="Tu centro de control personal: finanzas, hábitos, metas, lecturas y bienestar en una sola app." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css?v=7" />
+</head>
+<body>
+  <!-- PORTAL DE USUARIOS -->
+  <div id="authScreen" class="auth" hidden>
+    <div class="auth__card">
+      <div class="auth__brand">
+        <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+          <rect x="1" y="1" width="30" height="30" rx="8" fill="#0E2A47" stroke="#17C3B2" stroke-width="1.2"/>
+          <polyline points="7,23 13,17 18,20 25,10" fill="none" stroke="#17C3B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="7" cy="23" r="2" fill="#17C3B2"/><circle cx="13" cy="17" r="2" fill="#17C3B2"/>
+          <circle cx="18" cy="20" r="2" fill="#17C3B2"/><circle cx="25" cy="10" r="2.6" fill="#FF6B4A"/>
+        </svg>
+        <span class="brand-name">Rumbo</span>
+      </div>
+      <p class="auth__tagline">Tu vida, en un solo lugar.</p>
+
+      <div class="auth__tabs">
+        <button class="auth__tab is-active" id="tab-login" data-action="auth-tab" data-tab="login">Iniciar sesión</button>
+        <button class="auth__tab" id="tab-register" data-action="auth-tab" data-tab="register">Crear cuenta</button>
+      </div>
+
+      <button class="btn btn--soft btn-block" data-action="auth-google">Continuar con Google</button>
+      <div class="auth__sep">o con tu correo</div>
+
+      <div id="auth-error" class="auth__error" hidden></div>
+
+      <div id="form-login" class="auth__form">
+        <div class="field"><label>Correo</label><input class="input" type="email" id="log-email" placeholder="tu@correo.com"></div>
+        <div class="field"><label>Contraseña</label><input class="input" type="password" id="log-pass" placeholder="••••••••"></div>
+        <button class="btn btn--primary btn-block" data-action="auth-login">Entrar</button>
+        <button class="linkish" data-action="auth-forgot">¿Olvidaste tu contraseña?</button>
+      </div>
+
+      <div id="form-register" class="auth__form" hidden>
+        <div class="field"><label>Nombre</label><input class="input" id="reg-name" placeholder="Tu nombre"></div>
+        <div class="field"><label>Correo</label><input class="input" type="email" id="reg-email" placeholder="tu@correo.com"></div>
+        <div class="field"><label>Contraseña</label><input class="input" type="password" id="reg-pass" placeholder="Mínimo 6 caracteres"></div>
+        <button class="btn btn--primary btn-block" data-action="auth-register">Crear mi cuenta</button>
+      </div>
+
+      <p class="auth__note">🔒 Tus datos se guardan de forma segura y privada en la nube.</p>
+    </div>
+  </div>
+
+  <div id="app" class="app" hidden>
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="30" height="30">
+            <rect x="1" y="1" width="30" height="30" rx="8" fill="#0E2A47" stroke="#17C3B2" stroke-width="1.2"/>
+            <polyline points="7,23 13,17 18,20 25,10" fill="none" stroke="#17C3B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="7" cy="23" r="2" fill="#17C3B2"/>
+            <circle cx="13" cy="17" r="2" fill="#17C3B2"/>
+            <circle cx="18" cy="20" r="2" fill="#17C3B2"/>
+            <circle cx="25" cy="10" r="2.6" fill="#FF6B4A"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name" id="brandName">Rumbo</span>
+          <span class="brand-sub">by BiPlot</span>
+        </div>
+      </div>
+
+      <nav class="nav" id="nav"><!-- items injected --></nav>
+
+      <div class="sidebar__foot">
+        <div class="account" id="accountBox"></div>
+        <button class="btn-ghost btn-block" data-action="export" title="Descargar una copia de tus datos">⭳ Respaldar datos</button>
+        <button class="btn-ghost btn-block" data-action="logout" style="margin-top:6px">↩ Cerrar sesión</button>
+        <p class="foot-note">Sincronizado con tu cuenta.</p>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar__inner">
+          <button class="hamburger" id="hamburger" aria-label="Menú">☰</button>
+          <div class="topbar__title">
+            <h1 id="pageTitle">Inicio</h1>
+            <p id="pageSubtitle" class="muted"></p>
+          </div>
+          <div class="topbar__meta">
+            <div class="pill pill--date" id="todayPill"></div>
+            <div class="pill pill--pts" id="ptsPill" title="Tus puntos">⭐ <span id="ptsVal">0</span></div>
+            <div class="pill pill--streak" id="streakPill" title="Racha de días cerrados">🔥 <span id="streakVal">0</span></div>
+          </div>
+        </div>
+      </header>
+
+      <main class="view" id="view"><!-- module injected --></main>
+    </div>
+  </div>
+
+  <!-- Modal genérico -->
+  <div class="modal-overlay" id="modalOverlay" hidden>
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <div class="modal__head">
+        <h3 id="modalTitle">Título</h3>
+        <button class="icon-btn" data-action="close-modal" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal__body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/store.js?v=8"></script>
+  <script src="js/state.js?v=7"></script>
+  <script src="js/modules.js?v=7"></script>
+  <script src="js/modules2.js?v=7"></script>
+  <script src="js/tendencias.js?v=7"></script>
+  <script src="js/recompensas.js?v=7"></script>
+  <script src="js/vida.js?v=7"></script>
+  <script src="js/app.js?v=7"></script>
+</body>
+</html>

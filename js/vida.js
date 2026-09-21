@@ -30,34 +30,7 @@ function renderDiario() {
   const S = STATE;
   const entries = S.vida.diario || [];
   const ritDias = S.ritual.dias || {};
-  const conMood = entries.filter(e => e.mood).slice(-14);
-  const strip = conMood.length ? `<div class="row-wrap" style="gap:6px">${conMood.map(e =>
-    `<span title="${fechaCorta(e.fecha)}" style="font-size:20px">${MOODS[e.mood - 1]}</span>`).join("")}</div>` : "";
   const cerrados = Object.values(ritDias).filter(d => d.cerrado).length;
-
-  const form = `
-  <div class="grid grid-2">
-    <div class="card">
-      <div class="card__title">¿Cómo estuvo tu día?</div>
-      <div class="row mt-16" id="di-moods" style="gap:8px">
-        ${MOODS.map((m, i) => `<button type="button" class="mood-btn ${i === 2 ? "is-on" : ""}" data-v="${i + 1}" onclick="moodPick(this)">${m}</button>`).join("")}
-      </div>
-      <input type="hidden" id="di-mood" value="3">
-      <textarea class="input mt-16" id="di-texto" placeholder="¿Qué pasó hoy? ¿Cómo te sentiste?"></textarea>
-      <input class="input mt-8" id="di-grat" placeholder="Algo que agradeces hoy 💛">
-      <button class="btn btn--primary btn-block mt-16" data-action="diario-save">Guardar entrada (+10 ⭐)</button>
-    </div>
-    <div class="card">
-      <div class="card__title mb-0">Tu ánimo reciente</div>
-      <div class="mt-16">${strip || '<div class="empty">Aún no registras entradas.</div>'}</div>
-      <div class="divider"></div>
-      <div class="grid grid-3" style="gap:10px;text-align:center">
-        <div><div class="big-num" style="font-size:22px">${entries.length}</div><div class="text-xs muted">entradas</div></div>
-        <div><div class="big-num" style="font-size:22px">${cerrados}</div><div class="text-xs muted">días cerrados</div></div>
-        <div><div class="big-num" style="font-size:22px">${computeClosedStreak()}</div><div class="text-xs muted">racha</div></div>
-      </div>
-    </div>
-  </div>`;
 
   // Timeline unificado: unión de fechas del diario + días de ritual
   const set = new Set();
@@ -65,9 +38,19 @@ function renderDiario() {
   Object.keys(ritDias).forEach(f => { if (ritDias[f] && ritDias[f].hecho) set.add(f); });
   const fechas = Array.from(set).sort((a, b) => (a < b ? 1 : -1));
 
+  const header = `
+  <div class="card">
+    <div class="grid grid-3" style="gap:10px;text-align:center">
+      <div><div class="big-num" style="font-size:24px">${fechas.length}</div><div class="text-xs muted">días registrados</div></div>
+      <div><div class="big-num" style="font-size:24px">${cerrados}</div><div class="text-xs muted">días cerrados</div></div>
+      <div><div class="big-num" style="font-size:24px">${computeClosedStreak()}</div><div class="text-xs muted">racha</div></div>
+    </div>
+    <div class="text-xs muted mt-16" style="text-align:center">✍️ Tu diario se llena solo al <b>cerrar tu día</b> en el Ritual — ahí registras tu ánimo, gratitud y reflexión. <a href="#ritual">Ir al ritual →</a></div>
+  </div>`;
+
   let timeline;
   if (!fechas.length) {
-    timeline = `<div class="section-title">Tu diario</div><div class="card"><div class="empty">Escribe tu primera entrada arriba, o abre y cierra tu día en el Ritual — todo aparecerá aquí.</div></div>`;
+    timeline = `<div class="section-title">Tu diario</div><div class="card"><div class="empty">Aún no hay días registrados. Abre y cierra tu día en el <b>Ritual</b> y cada jornada aparecerá aquí 📔</div></div>`;
   } else {
     const groups = []; const idx = {};
     fechas.forEach(f => {
@@ -79,7 +62,7 @@ function renderDiario() {
       <div class="bita-list">${g.items.map(diarioDayCard).join("")}</div>`).join("");
   }
 
-  return form + `<div class="mt-24">${timeline}</div>`;
+  return header + `<div class="mt-24">${timeline}</div>`;
 }
 
 function diarioDayCard(fecha) {

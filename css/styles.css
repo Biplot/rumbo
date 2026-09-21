@@ -303,6 +303,54 @@ textarea.input { resize: vertical; min-height: 84px; }
 .text-sm { font-size: 13px; } .text-xs { font-size: 12px; }
 .divider { height: 1px; background: var(--line); margin: 16px 0; }
 
+/* ============================================================
+   LECTURAS · Biblioteca personal
+   ============================================================ */
+.lect-meta { display: flex; flex-direction: column; justify-content: center; }
+.meta-input {
+  width: 48px; background: var(--surface-2); border: 1px solid var(--line-strong);
+  color: var(--text); font-family: inherit; font-size: 14px; font-weight: 700;
+  border-radius: 8px; padding: 2px 6px; text-align: center; outline: none;
+}
+.meta-input:focus { border-color: var(--cian); }
+
+.spine { border-radius: 3px 5px 5px 3px; flex-shrink: 0;
+  box-shadow: inset -3px 0 0 rgba(0,0,0,.20), inset 3px 0 0 rgba(255,255,255,.16); }
+
+.lect-now__top { display: flex; align-items: center; gap: 14px; }
+.lect-now__title { font-size: 15.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lect-now__foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.lect-page { width: 80px; padding: 7px 9px; text-align: center; }
+
+.seg-count { opacity: .55; font-size: 11px; font-weight: 600; }
+.seg button.is-active .seg-count { opacity: .9; }
+.lect-seg { display: flex; flex-wrap: wrap; }
+
+.lect-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 12px; }
+.lect-card { display: flex; gap: 12px; padding: 14px; cursor: pointer; align-items: flex-start;
+  transition: transform .1s, border-color .15s; }
+.lect-card:hover { transform: translateY(-2px); border-color: var(--cian); }
+.lect-card__body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.lect-card__title { font-size: 14px; font-weight: 600; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lect-card__chip { align-self: flex-start; margin-top: 2px; }
+.lect-mini-bar { height: 5px; background: var(--surface-3); border-radius: 999px; overflow: hidden; margin-top: 3px; }
+.lect-mini-bar > div { height: 100%; background: var(--coral); border-radius: 999px; }
+
+.stars { color: var(--coral); font-size: 13px; letter-spacing: 1px; }
+.stars__off { color: var(--line-strong); }
+
+.lect-add { display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: none; border: 1.5px dashed var(--line-strong); color: var(--text-soft);
+  border-radius: var(--r); font-size: 14px; font-weight: 600; min-height: 96px;
+  transition: .15s; font-family: inherit; cursor: pointer; }
+.lect-add:hover { border-color: var(--cian); color: var(--cian); }
+
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatch { width: 30px; height: 30px; border-radius: 8px; border: 2px solid transparent; transition: .12s; cursor: pointer; }
+.swatch:hover { transform: scale(1.08); }
+.swatch.is-on { border-color: var(--text); box-shadow: 0 0 0 2px var(--surface); }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
@@ -344,6 +392,14 @@ textarea.input { resize: vertical; min-height: 84px; }
   .badge-card { padding: 11px; }
   .badge-card .card__title { font-size: 12.5px; }
   .theme-preview { height: 78px; }
+
+  /* Biblioteca en móvil: dos columnas compactas */
+  .lect-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .lect-card { padding: 10px; gap: 9px; }
+  .lect-card__title { font-size: 12.5px; }
+  .lect-add { min-height: 68px; font-size: 13px; }
+  .lect-page { width: 68px; }
+  .lect-now__title { font-size: 14px; }
 }
 .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 55; }
 .backdrop[hidden] { display: none; }

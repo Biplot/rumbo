@@ -10,6 +10,9 @@ const DIAS_CORTO = ["D","L","M","M","J","V","S"];
 
 const YEAR = 2026;
 
+/* Colores de lomo para los libros de la biblioteca (paleta BiPlot + armónicos) */
+const LECT_COLORS = ["#17C3B2", "#FF6B4A", "#0E2A47", "#6C63FF", "#F4A63B", "#2E9E7B", "#E5527A", "#3E8BD6"];
+
 /* -------- Datos por defecto (precargados desde tu bullet journal) -------- */
 function defaultState() {
   const s = {
@@ -18,7 +21,7 @@ function defaultState() {
       birthDate: "",
       motto: "Construyendo mi mejor versión",
     },
-    settings: { appName: "Rumbo", year: YEAR, theme: "biplot", onboarded: false },
+    settings: { appName: "Rumbo", year: YEAR, theme: "biplot", onboarded: false, metaLibros: 12 },
 
     finanzas: {
       metaAnual: 0,
@@ -35,8 +38,8 @@ function defaultState() {
       mensuales: [[], [], [], [], [], [], [], [], [], [], [], []],
     },
 
-    // lecturas por mes
-    lecturas: MESES.map(() => ({ titulo: "", inicio: "", fin: "", iniciado: false, finalizado: false })),
+    // biblioteca de lecturas: lista libre de libros (no atada a meses)
+    lecturas: [],
 
     // salud por mes
     salud: {
@@ -192,11 +195,34 @@ function migrate(s) {
   if (s.ritual && !s.ritual.pilares) s.ritual.pilares = d.ritual.pilares;
   if (s.settings && !s.settings.theme) s.settings.theme = "biplot";
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
+  if (s.settings && s.settings.metaLibros == null) s.settings.metaLibros = 12;
   const g = s.gamif;
   if (g.xp == null) g.xp = g.puntos || 0;
   if (!g.badges) g.badges = [];
   if (!g.owned) g.owned = [];
   if (!g.equipped) g.equipped = { titulo: null, insignia: null, acento: null, confeti: false };
+
+  // Biblioteca de lecturas: migrar del modelo viejo (12 meses, 1 libro/mes) a lista libre
+  if (!Array.isArray(s.lecturas)) s.lecturas = [];
+  const esModeloViejo = s.lecturas.length &&
+    s.lecturas.some(l => l && l.estado === undefined && (l.iniciado !== undefined || l.finalizado !== undefined));
+  if (esModeloViejo) {
+    s.lecturas = s.lecturas
+      .filter(l => l && (l.titulo || "").trim())
+      .map((l, i) => ({
+        id: uid(),
+        titulo: l.titulo.trim(),
+        autor: "",
+        estado: l.finalizado ? "terminado" : (l.iniciado ? "leyendo" : "por-leer"),
+        paginas: 0,
+        pagina: 0,
+        valoracion: 0,
+        nota: "",
+        color: LECT_COLORS[i % LECT_COLORS.length],
+        inicio: l.inicio || "",
+        fin: l.fin || "",
+      }));
+  }
   return s;
 }
 

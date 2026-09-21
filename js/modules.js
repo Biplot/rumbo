@@ -225,37 +225,168 @@ function saveHabit() {
 }
 
 /* ============================================================
-   LECTURAS
+   LECTURAS · Biblioteca personal
    ============================================================ */
+let LECT_FILTER = "todos";
+
+const LECT_ESTADOS = {
+  "por-leer":  { label: "Por leer",  chip: "" },
+  "leyendo":   { label: "Leyendo",   chip: "chip--coral" },
+  "terminado": { label: "Terminado", chip: "chip--done" },
+};
+
+function lectPct(l) {
+  if (l.estado === "terminado") return 100;
+  if (+l.paginas > 0) return Math.min(100, Math.round((+l.pagina / +l.paginas) * 100));
+  return l.estado === "leyendo" ? 6 : 0;
+}
+function estrellas(n) {
+  n = Math.max(0, Math.min(5, Math.round(n || 0)));
+  return `<span class="stars">${"★".repeat(n)}<span class="stars__off">${"★".repeat(5 - n)}</span></span>`;
+}
+function libroSpine(l, w, h) {
+  return `<div class="spine" style="background:${l.color || "#17C3B2"};width:${w}px;height:${h}px"></div>`;
+}
+
 function renderLecturas() {
-  const cards = STATE.lecturas.map((l, i) => {
-    const pct = l.finalizado ? 100 : l.iniciado ? 50 : 0;
-    return `<div class="card">
-      <div class="card__head">
-        <div class="card__title" style="font-size:14px">${MESES[i]}</div>
-        <div class="row" style="gap:6px">
-          <span class="chip ${l.iniciado ? "chip--cian" : ""}" data-action="lect-toggle" data-idx="${i}" data-field="iniciado" style="cursor:pointer">I</span>
-          <span class="chip ${l.finalizado ? "chip--done" : ""}" data-action="lect-toggle" data-idx="${i}" data-field="finalizado" style="cursor:pointer">F</span>
-        </div>
+  const libros = STATE.lecturas;
+  const year = STATE.settings.year;
+  const terminados = libros.filter(l => l.estado === "terminado");
+  const leyendo = libros.filter(l => l.estado === "leyendo");
+  const porLeer = libros.filter(l => l.estado === "por-leer");
+  const meta = +STATE.settings.metaLibros || 12;
+  const pctMeta = meta > 0 ? Math.min(100, Math.round(terminados.length / meta * 100)) : 0;
+  const valorados = terminados.filter(l => +l.valoracion > 0);
+  const prom = valorados.length ? (valorados.reduce((a, l) => a + +l.valoracion, 0) / valorados.length).toFixed(1) : "—";
+
+  /* Encabezado: meta anual + stats */
+  const header = `
+  <div class="grid grid-4">
+    <div class="card lect-meta">
+      <div class="stat__label">🎯 Meta ${year}</div>
+      <div class="row" style="align-items:baseline;gap:8px;margin:4px 0 10px">
+        <span class="big-num">${terminados.length}</span>
+        <span class="text-sm muted">de <input class="meta-input" type="number" min="1" data-bind="settings.metaLibros" data-type="num" value="${meta}"> libros</span>
       </div>
-      <input class="input" data-bind="lecturas.${i}.titulo" placeholder="Título del libro..." value="${escapeAttr(l.titulo)}">
-      <div class="row mt-8">
-        <div style="flex:1"><label class="text-xs muted">Inicio</label>
-          <input class="input" type="date" data-bind="lecturas.${i}.inicio" data-render="no" value="${l.inicio || ""}"></div>
-        <div style="flex:1"><label class="text-xs muted">Fin</label>
-          <input class="input" type="date" data-bind="lecturas.${i}.fin" data-render="no" value="${l.fin || ""}"></div>
+      <div class="bar"><div class="bar__fill" style="width:${pctMeta}%"></div></div>
+    </div>
+    <div class="card stat"><div class="stat__label">📖 Leyendo</div><div class="stat__value">${leyendo.length}</div></div>
+    <div class="card stat"><div class="stat__label">📚 Por leer</div><div class="stat__value">${porLeer.length}</div></div>
+    <div class="card stat"><div class="stat__label">⭐ Valoración</div><div class="stat__value">${prom}</div></div>
+  </div>`;
+
+  /* Leyendo ahora */
+  const leyendoAhora = leyendo.length ? `
+    <div class="section-title">📖 Leyendo ahora</div>
+    <div class="grid grid-2">
+      ${leyendo.map(l => {
+        const idx = libros.indexOf(l);
+        const pct = lectPct(l);
+        return `<div class="card lect-now">
+          <div class="lect-now__top">
+            ${libroSpine(l, 46, 66)}
+            <div style="flex:1;min-width:0">
+              <div class="lect-now__title">${escapeHtml(l.titulo) || "Sin título"}</div>
+              <div class="text-sm muted">${escapeHtml(l.autor) || "—"}</div>
+            </div>
+            <button class="icon-btn" data-action="libro-edit" data-id="${l.id}" title="Editar">✎</button>
+          </div>
+          <div class="bar mt-8"><div class="bar__fill bar__fill--coral" style="width:${pct}%"></div></div>
+          <div class="lect-now__foot">
+            <label class="text-xs muted">Página</label>
+            <input class="input lect-page" type="number" min="0" ${l.paginas ? `max="${l.paginas}"` : ""} data-bind="lecturas.${idx}.pagina" data-type="num" value="${l.pagina || 0}">
+            <span class="text-xs muted">/ ${l.paginas || "—"} · ${pct}%</span>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>` : "";
+
+  /* Filtros */
+  const conteo = { todos: libros.length, leyendo: leyendo.length, "por-leer": porLeer.length, terminado: terminados.length };
+  const tabs = [["todos", "Todos"], ["leyendo", "Leyendo"], ["por-leer", "Por leer"], ["terminado", "Terminados"]];
+  const filtros = `<div class="seg lect-seg mt-24">${tabs.map(([k, lbl]) =>
+    `<button class="${LECT_FILTER === k ? "is-active" : ""}" data-action="lect-filter" data-f="${k}">${lbl} <span class="seg-count">${conteo[k]}</span></button>`).join("")}</div>`;
+
+  /* Grilla de libros */
+  const visibles = LECT_FILTER === "todos" ? libros : libros.filter(l => l.estado === LECT_FILTER);
+  const cards = visibles.map(l => {
+    const est = LECT_ESTADOS[l.estado] || LECT_ESTADOS["por-leer"];
+    const pct = lectPct(l);
+    return `<div class="card lect-card" data-action="libro-edit" data-id="${l.id}">
+      ${libroSpine(l, 38, 56)}
+      <div class="lect-card__body">
+        <div class="lect-card__title">${escapeHtml(l.titulo) || "Sin título"}</div>
+        <div class="text-xs muted">${escapeHtml(l.autor) || "—"}</div>
+        ${l.estado === "terminado" && l.valoracion ? estrellas(l.valoracion) : ""}
+        ${l.estado === "leyendo" && l.paginas ? `<div class="lect-mini-bar"><div style="width:${pct}%"></div></div>` : ""}
+        <span class="chip ${est.chip} lect-card__chip">${est.label}</span>
       </div>
-      <div class="bar mt-16"><div class="bar__fill ${l.finalizado ? "" : "bar__fill--coral"}" style="width:${pct}%"></div></div>
     </div>`;
   }).join("");
-  const leidos = STATE.lecturas.filter(l => l.finalizado).length;
-  return `
-  <div class="card" style="background:linear-gradient(120deg, var(--surface), var(--surface-2))">
-    <div class="flex-between"><div><div class="text-xs soft" style="text-transform:uppercase;letter-spacing:.08em">${STATE.settings.year}</div>
-      <div class="big-num">${leidos} <span class="text-sm muted">libros terminados</span></div></div>
-      <div class="stat__ico" style="width:48px;height:48px;font-size:24px">📚</div></div>
-  </div>
-  <div class="grid grid-3 mt-24">${cards}</div>`;
+  const addCard = `<button class="lect-add" data-action="libro-add">＋ Agregar libro</button>`;
+
+  const cuerpo = libros.length
+    ? `<div class="lect-grid mt-16">${cards}${addCard}</div>`
+    : `<div class="mt-16"><div class="card"><div class="empty">Tu biblioteca está vacía.<br>Agrega tu primer libro para empezar 📚</div></div>
+       <div class="lect-grid mt-16">${addCard}</div></div>`;
+
+  return header + leyendoAhora + filtros + cuerpo;
+}
+
+function openLibroModal(id) {
+  const l = id ? STATE.lecturas.find(x => x.id === id) : null;
+  const colorSel = l ? l.color : LECT_COLORS[0];
+  const colores = LECT_COLORS.map(c =>
+    `<button type="button" class="swatch ${c === colorSel ? "is-on" : ""}" data-action="libro-color" data-c="${c}" style="background:${c}"></button>`).join("");
+  const opt = (v, lbl) => `<option value="${v}" ${l && l.estado === v ? "selected" : ""}>${lbl}</option>`;
+  const optStar = n => `<option value="${n}" ${l && +l.valoracion === n ? "selected" : ""}>${n === 0 ? "Sin valorar" : "★".repeat(n) + " (" + n + ")"}</option>`;
+  openModal(id ? "Editar libro" : "Nuevo libro", `
+    <input type="hidden" id="lb-id" value="${id || ""}">
+    <input type="hidden" id="lb-color" value="${colorSel}">
+    <div class="field"><label>Título</label><input class="input" id="lb-titulo" placeholder="Ej: Hábitos atómicos" value="${l ? escapeAttr(l.titulo) : ""}"></div>
+    <div class="field"><label>Autor</label><input class="input" id="lb-autor" placeholder="Ej: James Clear" value="${l ? escapeAttr(l.autor) : ""}"></div>
+    <div class="row">
+      <div class="field" style="flex:1;margin-bottom:0"><label>Estado</label><select class="select" id="lb-estado">${opt("por-leer", "Por leer")}${opt("leyendo", "Leyendo")}${opt("terminado", "Terminado")}</select></div>
+      <div class="field" style="flex:1;margin-bottom:0"><label>Valoración</label><select class="select" id="lb-valoracion">${optStar(0)}${optStar(1)}${optStar(2)}${optStar(3)}${optStar(4)}${optStar(5)}</select></div>
+    </div>
+    <div class="row mt-16">
+      <div class="field" style="flex:1;margin-bottom:0"><label>Página actual</label><input class="input" type="number" min="0" id="lb-pagina" value="${l ? (l.pagina || 0) : 0}"></div>
+      <div class="field" style="flex:1;margin-bottom:0"><label>Páginas totales</label><input class="input" type="number" min="0" id="lb-paginas" placeholder="Ej: 296" value="${l && l.paginas ? l.paginas : ""}"></div>
+    </div>
+    <div class="field mt-16"><label>Nota o aprendizaje clave</label><textarea class="input" id="lb-nota" placeholder="Lo que te llevas del libro...">${l ? escapeHtml(l.nota) : ""}</textarea></div>
+    <div class="field"><label>Color del lomo</label><div class="swatches">${colores}</div></div>
+    <div class="row" style="margin-top:6px">
+      <button class="btn btn--primary" style="flex:1" data-action="libro-save">${id ? "Guardar cambios" : "Agregar a mi biblioteca"}</button>
+      ${id ? `<button class="btn btn--soft" data-action="libro-del" data-id="${id}" title="Eliminar">🗑</button>` : ""}
+    </div>`);
+}
+
+function saveLibro() {
+  const id = val("lb-id");
+  const titulo = val("lb-titulo");
+  if (!titulo) return toast("Ponle un título", true);
+  const estado = document.getElementById("lb-estado").value;
+  const valoracion = parseNum(document.getElementById("lb-valoracion").value);
+  const pagina = parseNum(document.getElementById("lb-pagina").value);
+  const paginas = parseNum(document.getElementById("lb-paginas").value);
+  const nota = val("lb-nota");
+  const color = document.getElementById("lb-color").value || LECT_COLORS[0];
+
+  let l = id ? STATE.lecturas.find(x => x.id === id) : null;
+  if (!l) { l = { id: uid(), inicio: "", fin: "" }; STATE.lecturas.push(l); }
+  const antes = l.estado;
+  Object.assign(l, { titulo, autor: val("lb-autor"), estado, valoracion, pagina, paginas, nota, color });
+
+  /* Fechas automáticas según el estado */
+  if (estado === "leyendo" && !l.inicio) l.inicio = todayISO();
+  if (estado === "terminado") { if (!l.inicio) l.inicio = todayISO(); if (!l.fin) l.fin = todayISO(); if (paginas) l.pagina = paginas; }
+  if (estado !== "terminado") l.fin = "";
+
+  saveState(); closeModal();
+  /* Recompensa al terminar un libro (además dispara insignias) */
+  if (estado === "terminado" && antes !== "terminado") addPoints(40);
+  if (typeof checkBadges === "function") checkBadges();
+  rerender();
 }
 
 /* ============================================================

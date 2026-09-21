@@ -91,7 +91,7 @@ function renderTendencias() {
     return sum > 0 ? +(sum / a.length).toFixed(1) : null;
   });
 
-  const libros = S.lecturas.filter(l => l.finalizado).length;
+  const libros = S.lecturas.filter(l => l.estado === "terminado").length;
   const deTot = S.salud.meses.reduce((a, m) => a + (m.diasEntren || 0), 0);
 
   return `

@@ -14,7 +14,7 @@ const ROUTES = [
   { id: "metas", label: "Objetivos y metas", icon: "🎯", render: renderMetas, subtitle: "Tus metas trimestrales y mensuales." },
   { id: "semana", label: "Planificador semanal", icon: "🗂️", render: renderSemana, subtitle: "Tus tareas de lunes a domingo." },
   { id: "habitos", label: "Hábitos", icon: "📊", render: renderHabitos, subtitle: "Marca cada día y cuida tu racha." },
-  { id: "lecturas", label: "Lecturas", icon: "📚", render: renderLecturas, subtitle: "Un libro por mes." },
+  { id: "lecturas", label: "Lecturas", icon: "📚", render: renderLecturas, subtitle: "Tu biblioteca personal de lectura." },
   { id: "calendario", label: "Calendario", icon: "🗓️", render: renderCalendario, subtitle: "Tu mes de un vistazo." },
   { grupo: "Vida" },
   { id: "diario", label: "Diario", icon: "📔", render: renderDiario, subtitle: "Registra tu día y tu estado de ánimo." },
@@ -337,14 +337,20 @@ function onClick(e) {
     /* Inicio: quick habit toggle hoy */
     case "quick-habit": toggleHabitCell(d.id, new Date().getDate()); break;
 
-    /* Lecturas toggle */
-    case "lect-toggle": {
-      const l = STATE.lecturas[+d.idx];
-      l[d.field] = !l[d.field];
-      if (d.field === "iniciado" && l.iniciado && !l.inicio) l.inicio = todayISO();
-      if (d.field === "finalizado" && l.finalizado && !l.fin) l.fin = todayISO();
-      saveState(); rerender(); break;
-    }
+    /* Lecturas · biblioteca */
+    case "lect-filter": LECT_FILTER = d.f; rerender(); break;
+    case "libro-add": openLibroModal(); break;
+    case "libro-edit": openLibroModal(d.id); break;
+    case "libro-save": saveLibro(); break;
+    case "libro-del":
+      if (confirm("¿Eliminar este libro de tu biblioteca?")) {
+        STATE.lecturas = STATE.lecturas.filter(x => x.id !== d.id);
+        saveState(); closeModal(); rerender();
+      } break;
+    case "libro-color":
+      document.getElementById("lb-color").value = d.c;
+      document.querySelectorAll(".swatches .swatch").forEach(b => b.classList.toggle("is-on", b.dataset.c === d.c));
+      break;
 
     /* Salud receta toggle */
     case "receta-toggle": {

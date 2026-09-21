@@ -82,8 +82,86 @@ function _traducir(m) {
   return m;
 }
 
+/* ============================================================
+   Fusión de estados para concurrencia multi-dispositivo.
+   Base = local (intención más reciente de ESTE dispositivo);
+   se unen aditivamente las colecciones para no perder lo del otro.
+   ============================================================ */
+function mergeStates(server, local) {
+  if (!server) return local;
+  if (!local) return server;
+  const out = JSON.parse(JSON.stringify(local));
+
+  // Une dos arrays de objetos por id (local pisa; conserva los solo-server)
+  const byId = (a, b) => {
+    const map = new Map();
+    (b || []).forEach(x => x && x.id != null && map.set(x.id, x));
+    (a || []).forEach(x => x && x.id != null && map.set(x.id, x));
+    return Array.from(map.values());
+  };
+  const buckets = (la, sa) => (la || []).map((arr, i) => byId(arr, (sa || [])[i] || []));
+
+  out.lecturas = byId(local.lecturas, server.lecturas);
+  out.aprendizajes = byId(local.aprendizajes, server.aprendizajes);
+
+  if (local.vida && server.vida) {
+    out.vida.diario = byId(local.vida.diario, server.vida.diario);
+    out.vida.ideas = byId(local.vida.ideas, server.vida.ideas);
+    out.vida.relaciones = byId(local.vida.relaciones, server.vida.relaciones);
+    out.vida.listas = byId(local.vida.listas, server.vida.listas).map(l => {
+      const sl = (server.vida.listas || []).find(x => x.id === l.id);
+      const ll = (local.vida.listas || []).find(x => x.id === l.id);
+      return (sl && ll) ? { ...l, items: byId(ll.items, sl.items) } : l;
+    });
+  }
+  if (local.finanzas && server.finanzas) out.finanzas.gastos = byId(local.finanzas.gastos, server.finanzas.gastos);
+
+  if (Array.isArray(local.notas) && Array.isArray(server.notas)) {
+    out.notas = byId(local.notas, server.notas).map(c => {
+      const sc = server.notas.find(x => x.id === c.id), lc = local.notas.find(x => x.id === c.id);
+      return (sc && lc) ? { ...c, items: byId(lc.items, sc.items) } : c;
+    });
+  }
+  if (local.metas && server.metas) {
+    out.metas.trimestres = buckets(local.metas.trimestres, server.metas.trimestres);
+    out.metas.mensuales = buckets(local.metas.mensuales, server.metas.mensuales);
+  }
+  if (local.semana && server.semana) out.semana.dias = buckets(local.semana.dias, server.semana.dias);
+
+  // ritual.dias: dict por fecha (local pisa por día; conserva días solo-server)
+  if (local.ritual && server.ritual) out.ritual.dias = { ...(server.ritual.dias || {}), ...(local.ritual.dias || {}) };
+
+  // eventos: dict por fecha -> unión de arrays de texto
+  out.eventos = {};
+  new Set([...Object.keys(server.eventos || {}), ...Object.keys(local.eventos || {})]).forEach(k => {
+    out.eventos[k] = Array.from(new Set([...((server.eventos || {})[k] || []), ...((local.eventos || {})[k] || [])]));
+  });
+
+  // habitos.log: deep-merge mes -> hábito -> día (unión de marcas); defs por id
+  if (local.habitos && server.habitos) {
+    const lg = local.habitos.log || {}, sg = server.habitos.log || {}, ml = {};
+    new Set([...Object.keys(lg), ...Object.keys(sg)]).forEach(mk => {
+      ml[mk] = {}; const lh = lg[mk] || {}, sh = sg[mk] || {};
+      new Set([...Object.keys(lh), ...Object.keys(sh)]).forEach(hid => { ml[mk][hid] = { ...(sh[hid] || {}), ...(lh[hid] || {}) }; });
+    });
+    out.habitos.log = ml;
+    out.habitos.defs = byId(local.habitos.defs, server.habitos.defs);
+  }
+
+  // gamif: no perder moneda/xp ganada -> máximo; badges/owned -> unión
+  if (local.gamif && server.gamif) {
+    out.gamif.puntos = Math.max(local.gamif.puntos || 0, server.gamif.puntos || 0);
+    out.gamif.xp = Math.max(local.gamif.xp || 0, server.gamif.xp || 0);
+    out.gamif.badges = Array.from(new Set([...(server.gamif.badges || []), ...(local.gamif.badges || [])]));
+    out.gamif.owned = Array.from(new Set([...(server.gamif.owned || []), ...(local.gamif.owned || [])]));
+  }
+  // El resto (profile, settings, salud, rueda, ritual.pilares, entrenamiento) lo gana local.
+  return out;
+}
+
 const SupabaseBackend = {
   _c: null,
+  _ver: {}, // uid -> updated_at conocido del servidor (para concurrencia optimista)
   _client() {
     if (!this._c) this._c = supabase.createClient(SUPABASE_URL, SUPABASE_KEY,
       { auth: { persistSession: true, autoRefreshToken: true } });
@@ -112,15 +190,57 @@ const SupabaseBackend = {
     if (error) return { error: _traducir(error.message) };
     return this._pub(data.user);
   },
-  async logout() { await this._client().auth.signOut(); },
+  async logout() { this._ver = {}; await this._client().auth.signOut(); },
   async loadState(uid) {
-    const { data, error } = await this._client().from("estado_usuario").select("data").eq("user_id", uid).maybeSingle();
+    const { data, error } = await this._client().from("estado_usuario").select("data, updated_at").eq("user_id", uid).maybeSingle();
     if (error) { console.warn("loadState", error.message); return null; }
+    if (data) this._ver[uid] = data.updated_at;   // recordar versión del servidor
     return data ? data.data : null;
   },
   async saveState(uid, state) {
-    const { error } = await this._client().from("estado_usuario").upsert({ user_id: uid, data: state, updated_at: new Date().toISOString() });
-    if (error) console.warn("saveState", error.message);
+    const client = this._client();
+    const now = new Date().toISOString();
+    const known = this._ver[uid];
+    // Con versión conocida: update condicional (solo si nadie escribió en el intermedio)
+    if (known) {
+      const { data, error } = await client.from("estado_usuario")
+        .update({ data: state, updated_at: now }).eq("user_id", uid).eq("updated_at", known)
+        .select("updated_at");
+      if (error) { console.warn("saveState", error.message); return; }
+      if (data && data.length) { this._ver[uid] = data[0].updated_at; return; } // guardado OK
+      return await this._saveWithMerge(uid, state); // conflicto -> fusionar
+    }
+    // Sin versión conocida (primera vez): upsert normal
+    const { data, error } = await client.from("estado_usuario")
+      .upsert({ user_id: uid, data: state, updated_at: now }).select("updated_at");
+    if (error) { console.warn("saveState", error.message); return; }
+    if (data && data.length) this._ver[uid] = data[0].updated_at;
+  },
+  async _saveWithMerge(uid, localState) {
+    const client = this._client();
+    for (let intento = 0; intento < 3; intento++) {
+      const { data: row, error: e1 } = await client.from("estado_usuario").select("data, updated_at").eq("user_id", uid).maybeSingle();
+      if (e1 || !row) { console.warn("saveState merge (lectura)", e1 && e1.message); return; }
+      const merged = mergeStates(row.data, localState);
+      const now = new Date().toISOString();
+      const { data, error } = await client.from("estado_usuario")
+        .update({ data: merged, updated_at: now }).eq("user_id", uid).eq("updated_at", row.updated_at)
+        .select("updated_at");
+      if (error) { console.warn("saveState merge", error.message); return; }
+      if (data && data.length) {
+        this._ver[uid] = data[0].updated_at;
+        // Aplicar el estado fusionado en memoria si es el usuario activo
+        if (typeof CURRENT_USER !== "undefined" && CURRENT_USER && CURRENT_USER.id === uid && typeof STATE !== "undefined") {
+          STATE = merged;
+          if (typeof updateTopbar === "function") updateTopbar();
+          if (typeof rerender === "function") rerender();
+          if (typeof toast === "function") toast("Sincronizado con otro dispositivo ✅");
+        }
+        return;
+      }
+      // Otro cambio en el intermedio: reintentar
+    }
+    console.warn("saveState merge: no se pudo tras varios intentos");
   },
   async resetPassword(email) {
     const { error } = await this._client().auth.resetPasswordForEmail((email || "").trim().toLowerCase());

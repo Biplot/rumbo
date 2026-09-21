@@ -4,6 +4,11 @@ App personal de gestión de vida: ritual diario (apertura y cierre), hábitos, f
 
 Hecha con la identidad de marca **BiPlot** (azul profundo · cian · coral).
 
+## Producción
+- **Repositorio:** organización **Biplot** (`Biplot/rumbo`).
+- **App:** desplegada con GitHub Pages en `https://biplot.github.io/rumbo/` (dominio propio en configuración).
+- **Notificaciones:** recordatorios de ritual (mañana/noche) vía GitHub Actions + Web Push (`notifier/`).
+
 ## Tecnología
 - **Frontend:** HTML, CSS y JavaScript sin frameworks (estático).
 - **Backend:** [Supabase](https://supabase.com) (Auth + Postgres). Cada usuario guarda su estado como un documento JSON, protegido por Row Level Security.

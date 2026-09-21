@@ -364,6 +364,24 @@ textarea.input { resize: vertical; min-height: 84px; }
 .bita-more { background: none; border: none; color: var(--cian); font-size: 12.5px; font-weight: 600; margin-top: 8px; padding: 4px 0; }
 .bita-more:hover { filter: brightness(1.15); }
 
+/* ============================================================
+   TUTORIAL / ONBOARDING (pasos)
+   ============================================================ */
+.onb-slide { text-align: center; padding: 10px 4px 2px; }
+.onb-ico { font-size: 46px; line-height: 1; margin-bottom: 12px; }
+.onb-title { font-size: 20px; margin-bottom: 10px; }
+.onb-body { color: var(--text-soft); font-size: 14.5px; line-height: 1.6; }
+.onb-body b { color: var(--text); }
+.onb-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+.onb-area { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 4px; font-size: 11px; color: var(--text-soft); display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.onb-area span { font-size: 20px; }
+.onb-dots { display: flex; justify-content: center; gap: 7px; margin: 22px 0 16px; }
+.onb-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--line-strong); transition: .2s; }
+.onb-dot.is-on { background: var(--cian); width: 20px; }
+.onb-nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.onb-nav .btn { min-width: 130px; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }

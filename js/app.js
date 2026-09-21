@@ -78,15 +78,48 @@ async function enterApp(user) {
   if (!STATE.settings.onboarded) setTimeout(openOnboarding, 350);
 }
 
-/* -------- Onboarding para usuarios nuevos -------- */
-function openOnboarding() {
-  openModal("¡Bienvenido a Rumbo! 🎉", `
-    <p class="soft" style="margin-bottom:16px">Tu vida en un solo lugar. Cuéntanos lo básico para personalizar tu experiencia (puedes cambiarlo cuando quieras).</p>
-    <div class="field"><label>¿Cómo te llamas?</label><input class="input" id="ob-name" value="${escapeAttr(STATE.profile.name || (CURRENT_USER && CURRENT_USER.name) || "")}" placeholder="Tu nombre"></div>
-    <div class="field"><label>Tu fecha de nacimiento</label><input class="input" type="date" id="ob-birth" value="${STATE.profile.birthDate || ""}">
-      <div class="text-xs muted mt-8">Para tu contador de vida en la portada.</div></div>
-    <div class="field"><label>¿Qué te mueve? (tu lema)</label><input class="input" id="ob-motto" value="${escapeAttr(STATE.profile.motto || "")}" placeholder="Ej: Ser mi mejor versión"></div>
-    <button class="btn btn--primary btn-block" data-action="onboarding-save">Comenzar 🚀</button>`);
+/* -------- Tutorial / onboarding para usuarios nuevos -------- */
+let ONB_STEP = 0;
+const ONB_SLIDES = [
+  { icon: "👋", titulo: "Bienvenido a Rumbo", cuerpo: "Tu vida en un solo lugar. Un centro de control personal para tu día, tus hábitos, tus finanzas, tus lecturas y tu bienestar — todo en una sola app." },
+  { icon: "🌅", titulo: "Tu día, de principio a fin", cuerpo: "El corazón de Rumbo es un ritual diario: <b>abre tu día</b> (tu misión, tu SAPO 🐸 y tu energía), vívelo, y <b>ciérralo</b> de noche con una breve reflexión y gratitud. Con solo abrir y cerrar, tu sistema sigue vivo — la idea es usar la app lo <i>menos</i> posible." },
+  { icon: "🧭", titulo: "Todo en un lugar", cuerpo: "__GRID__" },
+];
+function openOnboarding() { ONB_STEP = 0; renderOnboardingStep(); }
+function renderOnboardingStep() {
+  const total = ONB_SLIDES.length + 1; // 3 diapositivas + formulario
+  const dots = Array.from({ length: total }, (_, i) => `<span class="onb-dot ${i === ONB_STEP ? "is-on" : ""}"></span>`).join("");
+  if (ONB_STEP < ONB_SLIDES.length) {
+    const s = ONB_SLIDES[ONB_STEP];
+    let cuerpo = s.cuerpo;
+    if (cuerpo === "__GRID__") {
+      const areas = [["🌅", "Ritual"], ["📓", "Bitácora"], ["📔", "Diario"], ["📊", "Hábitos"], ["📚", "Lecturas"], ["💰", "Finanzas"], ["📈", "Tendencias"], ["🏆", "Recompensas"]];
+      cuerpo = `Rumbo reúne lo que hoy tienes disperso:
+        <div class="onb-grid">${areas.map(a => `<div class="onb-area"><span>${a[0]}</span>${a[1]}</div>`).join("")}</div>
+        <div class="text-xs muted" style="margin-top:12px">Y ganas ⭐, subes de rango y desbloqueas insignias mientras avanzas.</div>`;
+    }
+    openModal("Bienvenido 🎉", `
+      <div class="onb-slide"><div class="onb-ico">${s.icon}</div>
+        <h3 class="onb-title">${s.titulo}</h3>
+        <div class="onb-body">${cuerpo}</div></div>
+      <div class="onb-dots">${dots}</div>
+      <div class="onb-nav">
+        <button class="btn-ghost" data-action="onb-skip">Saltar</button>
+        <button class="btn btn--primary" data-action="onb-next">${ONB_STEP === ONB_SLIDES.length - 1 ? "Continuar" : "Siguiente"}</button>
+      </div>`);
+  } else {
+    openModal("Cuéntanos de ti", `
+      <p class="soft" style="margin-bottom:16px">Último paso: personaliza tu experiencia (puedes cambiarlo cuando quieras).</p>
+      <div class="field"><label>¿Cómo te llamas?</label><input class="input" id="ob-name" value="${escapeAttr(STATE.profile.name || (CURRENT_USER && CURRENT_USER.name) || "")}" placeholder="Tu nombre"></div>
+      <div class="field"><label>Tu fecha de nacimiento</label><input class="input" type="date" id="ob-birth" value="${STATE.profile.birthDate || ""}">
+        <div class="text-xs muted mt-8">Para tu contador de vida en la portada.</div></div>
+      <div class="field"><label>¿Qué te mueve? (tu lema)</label><input class="input" id="ob-motto" value="${escapeAttr(STATE.profile.motto || "")}" placeholder="Ej: Ser mi mejor versión"></div>
+      <div class="onb-dots">${dots}</div>
+      <div class="onb-nav">
+        <button class="btn-ghost" data-action="onb-prev">Atrás</button>
+        <button class="btn btn--primary" data-action="onboarding-save">Empezar 🚀</button>
+      </div>`);
+  }
 }
 function saveOnboarding() {
   STATE.profile.name = val("ob-name") || (CURRENT_USER && CURRENT_USER.name) || "Tú";
@@ -490,6 +523,10 @@ function onClick(e) {
     case "edit-profile": openProfileModal(); break;
     case "profile-save": saveProfile(); break;
     case "onboarding-save": saveOnboarding(); break;
+    case "onb-next": ONB_STEP = Math.min(ONB_SLIDES.length, ONB_STEP + 1); renderOnboardingStep(); break;
+    case "onb-prev": ONB_STEP = Math.max(0, ONB_STEP - 1); renderOnboardingStep(); break;
+    case "onb-skip": ONB_STEP = ONB_SLIDES.length; renderOnboardingStep(); break;
+    case "show-tutorial": openOnboarding(); break;
     case "reset-data":
       if (confirm("¿Borrar TODOS tus datos y empezar de cero? Esto no se puede deshacer.")) {
         const name = STATE.profile.name, birth = STATE.profile.birthDate, theme = STATE.settings.theme;
@@ -796,10 +833,11 @@ function openProfileModal() {
     <div class="field"><label>Nombre de la app</label><input class="input" id="pf-app" value="${escapeAttr(STATE.settings.appName)}"></div>
     <button class="btn btn--primary btn-block" data-action="profile-save">Guardar</button>
     <div class="divider"></div>
-    <button class="btn-ghost btn-block" data-action="reset-data" style="color:var(--coral);border-color:rgba(255,107,74,.4)">🗑 Reiniciar mis datos (empezar de cero)</button>`);
+    <button class="btn-ghost btn-block" data-action="show-tutorial">🎓 Ver el tutorial otra vez</button>
+    <button class="btn-ghost btn-block" data-action="reset-data" style="margin-top:6px;color:var(--coral);border-color:rgba(255,107,74,.4)">🗑 Reiniciar mis datos (empezar de cero)</button>`);
 }
 function saveProfile() {
-  STATE.profile.name = val("pf-name") || "Chris";
+  STATE.profile.name = val("pf-name") || STATE.profile.name || "Tú";
   STATE.profile.birthDate = val("pf-birth");
   STATE.profile.motto = val("pf-motto");
   STATE.settings.appName = val("pf-app") || "Rumbo";

@@ -178,7 +178,7 @@ function seedDemo(s) {
   // Ritual: días cerrados recientes (para la racha)
   for (let off = 1; off <= 26; off++) {
     const dt = new Date(today); dt.setDate(today.getDate() - off);
-    const iso = dt.toISOString().slice(0, 10);
+    const iso = isoLocal(dt);
     if (off <= 8 || seedRand("cl" + iso) < 0.7) s.ritual.dias[iso] = { hecho: true, cerrado: true };
   }
 
@@ -252,7 +252,11 @@ function fmtCLP(n) {
 }
 function parseNum(v) { const n = parseInt(String(v).replace(/[^\d-]/g, ""), 10); return isNaN(n) ? 0 : n; }
 
-function todayISO() { const d = new Date(); return d.toISOString().slice(0, 10); }
+/* Fecha local YYYY-MM-DD (NO usar toISOString: eso da UTC y descuadra el día en Chile) */
+function isoLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function todayISO() { return isoLocal(new Date()); }
 
 function fechaLarga(d = new Date()) {
   return d.toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" });

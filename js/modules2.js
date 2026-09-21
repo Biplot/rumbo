@@ -78,7 +78,7 @@ function openRitualModal() {
   let misionDefault = r.mision || "";
   if (!misionDefault) {
     const y = new Date(); y.setDate(y.getDate() - 1);
-    const yc = STATE.ritual.dias[y.toISOString().slice(0, 10)];
+    const yc = STATE.ritual.dias[isoLocal(y)];
     if (yc && yc.cierre && yc.cierre.manana) misionDefault = yc.cierre.manana;
   }
   const wd = (new Date().getDay() + 6) % 7;
@@ -196,7 +196,7 @@ function renderSemana() {
 
   const cols = DIAS_SEMANA.map((nombre, i) => {
     const fecha = new Date(monday); fecha.setDate(monday.getDate() + i);
-    const esHoy = fecha.toISOString().slice(0, 10) === todayISO();
+    const esHoy = isoLocal(fecha) === todayISO();
     const tareas = STATE.semana.dias[i];
     const inputId = `sem-${i}`;
     return `<div class="week-col card" style="${esHoy ? "border-color:var(--coral)" : ""}">

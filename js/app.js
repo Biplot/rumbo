@@ -206,7 +206,7 @@ function computeClosedStreak() {
   const now = new Date(); let s = 0;
   for (let b = 0; b < 366; b++) {
     const d = new Date(now); d.setDate(now.getDate() - b);
-    const iso = d.toISOString().slice(0, 10);
+    const iso = isoLocal(d);
     const r = STATE.ritual.dias[iso];
     if (r && r.cerrado) s++;
     else if (b === 0) continue;
@@ -237,7 +237,7 @@ function computeRitualStreak() {
   const now = new Date(); let streak = 0;
   for (let back = 0; back < 366; back++) {
     const d = new Date(now); d.setDate(now.getDate() - back);
-    const iso = d.toISOString().slice(0, 10);
+    const iso = isoLocal(d);
     if (STATE.ritual.dias[iso] && STATE.ritual.dias[iso].hecho) streak++;
     else if (back === 0) continue;
     else break;
@@ -692,7 +692,7 @@ function renderInicio() {
   const metaMes = s.finanzas.metaMensual || 1;
   const pctAhorro = Math.min(100, Math.round((ahorroMes / metaMes) * 100));
 
-  const libro = s.lecturas.find(l => l.iniciado && !l.finalizado) || s.lecturas.find(l => l.titulo);
+  const libro = s.lecturas.find(l => l.estado === "leyendo") || s.lecturas.find(l => l.titulo);
   const pesos = s.salud.meses.map(m => m.peso).filter(p => p != null);
   const pesoActual = pesos.length ? pesos[pesos.length - 1] : null;
 
@@ -726,7 +726,7 @@ function renderInicio() {
   <div class="grid grid-4">
     ${statCard("💰", "Ahorro de " + MESES[mIdx], fmtCLP(ahorroMes), `Meta ${fmtCLP(metaMes)} · ${pctAhorro}%`, pctAhorro)}
     ${statCard("🔥", "Racha de hábitos", computeStreak() + (computeStreak() === 1 ? " día" : " días"), doneToday + "/" + s.habitos.defs.length + " hoy")}
-    ${statCard("📚", "Leyendo ahora", libro && libro.titulo ? libro.titulo : "—", libro && libro.iniciado ? "En curso" : "Sin libro activo")}
+    ${statCard("📚", "Leyendo ahora", libro && libro.titulo ? libro.titulo : "—", libro && libro.estado === "leyendo" ? "En curso" : "Sin libro activo")}
     ${statCard("⚖️", "Peso actual", pesoActual != null ? pesoActual + " kg" : "—", "Meta " + s.salud.pesoObjetivo + " kg")}
   </div>
 

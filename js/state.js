@@ -223,6 +223,23 @@ function migrate(s) {
         fin: l.fin || "",
       }));
   }
+
+  // Corrección única (bug de fecha UTC ya resuelto): un ritual guardado con la
+  // fecha de HOY (2026-09-21) que en realidad fue la noche del 2026-09-20.
+  // Se mueve al día correcto para que el 21 quede libre y se empiece limpio.
+  // Solo mueve si el día destino está vacío (no pisa nada) y corre una sola vez.
+  if (s.settings && !s.settings.fixNoche20sep2026) {
+    const src = "2026-09-21", dst = "2026-09-20";
+    if (s.ritual && s.ritual.dias && s.ritual.dias[src] && !s.ritual.dias[dst]) {
+      s.ritual.dias[dst] = s.ritual.dias[src];
+      delete s.ritual.dias[src];
+      (s.vida && Array.isArray(s.vida.diario) ? s.vida.diario : []).forEach(e => {
+        if (e && e.fromRitual && e.fecha === src) e.fecha = dst;
+      });
+    }
+    s.settings.fixNoche20sep2026 = true;
+  }
+
   return s;
 }
 

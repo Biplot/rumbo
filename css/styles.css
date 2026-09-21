@@ -120,6 +120,14 @@ a { color: var(--cian); }
 .hamburger { display: none; background: none; border: none; color: var(--text); font-size: 22px; }
 .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(4, 14, 26, 0.55); backdrop-filter: blur(2px); z-index: 55; }
 
+/* Barra de navegación inferior (solo móvil; se activa en el breakpoint) */
+.bottombar { display: none; }
+.bottombar__item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: none; border: none; color: var(--text-muted); font-family: inherit; font-size: 10px;
+  font-weight: 600; padding: 5px 2px; letter-spacing: .01em; transition: color .15s; }
+.bottombar__item .bico { font-size: 20px; line-height: 1; }
+.bottombar__item.is-active { color: var(--cian); }
+
 .pill { padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 500;
   background: var(--surface-2); border: 1px solid var(--line); white-space: nowrap; }
 .pill--streak { color: var(--coral); }
@@ -394,11 +402,17 @@ textarea.input { resize: vertical; min-height: 84px; }
   .sidebar-backdrop.is-visible { display: block; }
   .hamburger { display: block; }
 
+  /* Barra de navegación inferior */
+  .bottombar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 58;
+    background: var(--surface); border-top: 1px solid var(--line-strong);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around; box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.28); }
+
   /* Evita el zoom de iOS al enfocar inputs: fuente ≥16px */
   .input, .select, textarea.input, .meta-input, .lect-page { font-size: 16px; }
 
   /* Móvil compacto: más contenido, menos espacio */
-  .view { padding: 12px 12px 44px; }
+  .view { padding: 12px 12px calc(80px + env(safe-area-inset-bottom, 0px)); }
   .topbar__inner { padding: 11px 12px; }
   .topbar__title h1 { font-size: 18px; }
   .topbar__title p { display: none; }

@@ -202,13 +202,28 @@ function buildNav() {
       <span class="nav__ico">${r.icon}</span><span>${r.label}</span></button>`;
   }).join("");
   document.getElementById("brandName").innerHTML = `${STATE.settings.appName.replace("i","<em>i</em>")}`;
+  buildBottomNav();
+}
+
+/* Barra inferior en móvil: accesos directos + Menú (abre el lateral) */
+const BOTTOM_NAV = ["inicio", "ritual", "habitos", "bitacora"];
+function buildBottomNav() {
+  const bar = document.getElementById("bottombar");
+  if (!bar) return;
+  const items = BOTTOM_NAV.map(id => {
+    const r = ROUTE_MAP[id]; if (!r) return "";
+    return `<button class="bottombar__item" data-route="${id}">
+      <span class="bico">${r.icon}</span>${r.label.split(" ")[0]}</button>`;
+  }).join("");
+  bar.innerHTML = items + `<button class="bottombar__item" data-action="open-menu">
+    <span class="bico">☰</span>Menú</button>`;
 }
 
 function onRoute() {
   if (!CURRENT_USER) return;
   const hash = location.hash.replace("#", "") || "inicio";
   CURRENT = ROUTE_MAP[hash] ? hash : "inicio";
-  document.querySelectorAll(".nav__item").forEach(el =>
+  document.querySelectorAll(".nav__item, .bottombar__item").forEach(el =>
     el.classList.toggle("is-active", el.dataset.route === CURRENT));
   updateTopbar();
   rerender();
@@ -339,6 +354,7 @@ function onClick(e) {
   switch (a) {
     case "close-modal": closeModal(); break;
     case "export": exportData(); break;
+    case "open-menu": setSidebar(true); break;
 
     /* Portal de usuarios */
     case "auth-tab": switchAuthTab(d.tab); break;

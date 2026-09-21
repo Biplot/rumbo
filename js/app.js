@@ -55,6 +55,7 @@ async function boot() {
     setSidebar(!document.getElementById("sidebar").classList.contains("is-open")));
   document.getElementById("sidebarBackdrop").addEventListener("click", () => setSidebar(false));
   initGestures();
+  window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
   window.addEventListener("hashchange", onRoute);
   document.getElementById("authScreen").addEventListener("keydown", e => {
     if (e.key === "Enter") { e.preventDefault(); (document.getElementById("form-register").hidden ? doLogin : doRegister)(); }
@@ -148,7 +149,20 @@ async function loadUserState(user) {
 let _cloudTimer = null;
 function scheduleCloudSave() {
   clearTimeout(_cloudTimer);
-  _cloudTimer = setTimeout(() => { if (CURRENT_USER) BACKEND.saveState(CURRENT_USER.id, STATE); }, 800);
+  setSaveStatus("saving");
+  _cloudTimer = setTimeout(async () => {
+    if (!CURRENT_USER) return;
+    const res = await BACKEND.saveState(CURRENT_USER.id, STATE);
+    setSaveStatus(res && res.error ? "offline" : "saved");
+  }, 800);
+}
+/* Indicador de guardado en la topbar: guardando / guardado / sin conexión */
+function setSaveStatus(s) {
+  const el = document.getElementById("saveStatus"); if (!el) return;
+  el.hidden = false; el.className = "save-status is-" + s;
+  if (s === "saving") { el.innerHTML = `<span class="ss-dot"></span><span class="ss-txt">Guardando…</span>`; el.title = ""; }
+  else if (s === "offline") { el.innerHTML = `<span class="ss-ico">⚠</span><span class="ss-txt">Sin conexión</span>`; el.title = "Tus cambios están guardados en este dispositivo y se subirán cuando vuelva la conexión."; }
+  else { el.innerHTML = `<span class="ss-ico">✓</span><span class="ss-txt">Guardado</span>`; el.title = "Sincronizado con tu cuenta."; }
 }
 
 function renderAccountBox() {

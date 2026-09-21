@@ -58,7 +58,8 @@ const LocalBackend = {
     catch { return null; }
   },
   async saveState(uid, state) {
-    try { localStorage.setItem("rumbo_cloud_" + uid, JSON.stringify(state)); } catch {}
+    try { localStorage.setItem("rumbo_cloud_" + uid, JSON.stringify(state)); return { ok: true }; }
+    catch (e) { return { error: "local" }; }
   },
   async resetPassword() { return { ok: true }; },
   async updatePassword(newPass) {
@@ -226,27 +227,28 @@ const SupabaseBackend = {
       const { data, error } = await client.from("estado_usuario")
         .update({ data: state, updated_at: now }).eq("user_id", uid).eq("updated_at", known)
         .select("updated_at");
-      if (error) { console.warn("saveState", error.message); return; }
-      if (data && data.length) { this._ver[uid] = data[0].updated_at; return; } // guardado OK
+      if (error) { console.warn("saveState", error.message); return { error: error.message }; }
+      if (data && data.length) { this._ver[uid] = data[0].updated_at; return { ok: true }; } // guardado OK
       return await this._saveWithMerge(uid, state); // conflicto -> fusionar
     }
     // Sin versión conocida (primera vez): upsert normal
     const { data, error } = await client.from("estado_usuario")
       .upsert({ user_id: uid, data: state, updated_at: now }).select("updated_at");
-    if (error) { console.warn("saveState", error.message); return; }
+    if (error) { console.warn("saveState", error.message); return { error: error.message }; }
     if (data && data.length) this._ver[uid] = data[0].updated_at;
+    return { ok: true };
   },
   async _saveWithMerge(uid, localState) {
     const client = this._client();
     for (let intento = 0; intento < 3; intento++) {
       const { data: row, error: e1 } = await client.from("estado_usuario").select("data, updated_at").eq("user_id", uid).maybeSingle();
-      if (e1 || !row) { console.warn("saveState merge (lectura)", e1 && e1.message); return; }
+      if (e1 || !row) { console.warn("saveState merge (lectura)", e1 && e1.message); return { error: e1 ? e1.message : "sin fila" }; }
       const merged = mergeStates(row.data, localState);
       const now = new Date().toISOString();
       const { data, error } = await client.from("estado_usuario")
         .update({ data: merged, updated_at: now }).eq("user_id", uid).eq("updated_at", row.updated_at)
         .select("updated_at");
-      if (error) { console.warn("saveState merge", error.message); return; }
+      if (error) { console.warn("saveState merge", error.message); return { error: error.message }; }
       if (data && data.length) {
         this._ver[uid] = data[0].updated_at;
         // Aplicar el estado fusionado en memoria si es el usuario activo
@@ -256,11 +258,12 @@ const SupabaseBackend = {
           if (typeof rerender === "function") rerender();
           if (typeof toast === "function") toast("Sincronizado con otro dispositivo ✅");
         }
-        return;
+        return { ok: true };
       }
       // Otro cambio en el intermedio: reintentar
     }
     console.warn("saveState merge: no se pudo tras varios intentos");
+    return { error: "conflicto" };
   },
   async resetPassword(email) {
     const { error } = await this._client().auth.resetPasswordForEmail((email || "").trim().toLowerCase());

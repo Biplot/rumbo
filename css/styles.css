@@ -120,6 +120,16 @@ a { color: var(--cian); }
 .hamburger { display: none; background: none; border: none; color: var(--text); font-size: 22px; }
 .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(4, 14, 26, 0.55); backdrop-filter: blur(2px); z-index: 55; }
 
+/* Indicador de guardado (topbar) */
+.save-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500;
+  color: var(--text-muted); padding: 4px 8px; border-radius: 999px; white-space: nowrap; transition: color .2s; }
+.save-status[hidden] { display: none; }
+.save-status.is-saved { color: var(--text-soft); }
+.save-status.is-offline { color: var(--coral); background: var(--coral-soft); }
+.save-status .ss-ico { font-size: 12px; }
+.save-status .ss-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cian); animation: sspulse 1s infinite; }
+@keyframes sspulse { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+
 /* Banner de estado de notificaciones */
 .notif-banner { padding: 11px 14px; border-radius: var(--r-sm); font-size: 13px; line-height: 1.5;
   background: var(--surface-2); color: var(--text-soft); border: 1px solid var(--line); }
@@ -442,6 +452,8 @@ textarea.input { resize: vertical; min-height: 84px; }
   .topbar__title p { display: none; }
   .topbar__meta { gap: 6px; }
   .topbar__meta .pill--date { display: none; }
+  .save-status { padding: 4px 6px; }
+  .save-status .ss-txt { display: none; }  /* solo icono en móvil */
   .pill { padding: 5px 10px; font-size: 12px; }
 
   .grid { gap: 10px; }

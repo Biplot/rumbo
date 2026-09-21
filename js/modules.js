@@ -526,23 +526,25 @@ function drawRadar() {
 function renderAprendizajes() {
   const prof = STATE.aprendizajes.filter(a => a.tipo === "prof");
   const inter = STATE.aprendizajes.filter(a => a.tipo === "interes");
-  const list = (arr, tipo) => arr.length ? arr.map(a => `
+  const list = arr => arr.length ? arr.map(a => `
     <div class="item-row">
-      <div class="item-row__main"><div class="item-row__title">${escapeHtml(a.tema)}</div>
-        <div class="item-row__sub">${escapeHtml(a.objetivo)}</div></div>
+      <span class="check ${a.done ? "is-on" : ""}" data-action="apr-toggle" data-id="${a.id}">${a.done ? "✓" : ""}</span>
+      <div class="item-row__main"><div class="item-row__title ${a.done ? "strike" : ""}">${escapeHtml(a.tema)}</div>
+        ${a.objetivo ? `<div class="item-row__sub">${escapeHtml(a.objetivo)}</div>` : ""}</div>
       <button class="icon-btn" data-action="apr-del" data-id="${a.id}">🗑</button>
     </div>`).join("") : '<div class="empty">Nada aún.</div>';
+  const chip = arr => `<span class="chip">${arr.filter(a => a.done).length}/${arr.length}</span>`;
   return `
   <div class="grid grid-2">
     <div class="card">
       <div class="card__head"><div class="card__title">🧠 Aprendizajes profesionales</div>
-        <button class="btn-ghost" data-action="apr-add" data-tipo="prof">+ Agregar</button></div>
-      ${list(prof, "prof")}
+        <div class="row" style="gap:6px">${chip(prof)}<button class="btn-ghost" data-action="apr-add" data-tipo="prof">+ Agregar</button></div></div>
+      ${list(prof)}
     </div>
     <div class="card">
       <div class="card__head"><div class="card__title">💡 Temas de interés</div>
-        <button class="btn-ghost" data-action="apr-add" data-tipo="interes">+ Agregar</button></div>
-      ${list(inter, "interes")}
+        <div class="row" style="gap:6px">${chip(inter)}<button class="btn-ghost" data-action="apr-add" data-tipo="interes">+ Agregar</button></div></div>
+      ${list(inter)}
     </div>
   </div>`;
 }
@@ -556,7 +558,7 @@ function openAprModal(tipo) {
 }
 function saveApr() {
   const tema = val("ap-tema"); if (!tema) return toast("Falta el tema", true);
-  STATE.aprendizajes.push({ id: uid(), tema, objetivo: val("ap-obj"), tipo: APR_TIPO });
+  STATE.aprendizajes.push({ id: uid(), tema, objetivo: val("ap-obj"), tipo: APR_TIPO, done: false });
   saveState(); closeModal(); rerender(); toast("Agregado");
 }
 

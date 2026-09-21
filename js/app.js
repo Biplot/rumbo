@@ -566,6 +566,7 @@ function onClick(e) {
     case "apr-add": openAprModal(d.tipo); break;
     case "apr-del": STATE.aprendizajes = STATE.aprendizajes.filter(x => x.id !== d.id); saveState(); rerender(); break;
     case "apr-save": saveApr(); break;
+    case "apr-toggle": { const a = STATE.aprendizajes.find(x => x.id === d.id); if (a) { a.done = !a.done; addPoints(a.done ? 10 : -10); } saveState(); rerender(); break; }
 
     /* Notas */
     case "nota-add-cat": openNotaCatModal(); break;
@@ -684,6 +685,13 @@ function onClick(e) {
     case "lista-item-add": {
       const input = document.getElementById(d.input); const t = input.value.trim(); if (!t) return;
       const l = STATE.vida.listas.find(x => x.id === d.lista); l.items.push({ id: uid(), txt: t, done: false }); saveState(); rerender(); break;
+    }
+    case "lista-deseo-add": {
+      const nom = document.getElementById("lid-" + d.lista); const cos = document.getElementById("lic-" + d.lista);
+      const t = nom ? nom.value.trim() : ""; if (!t) return;
+      const l = STATE.vida.listas.find(x => x.id === d.lista);
+      l.items.push({ id: uid(), txt: t, costo: parseNum(cos ? cos.value : 0), done: false });
+      saveState(); rerender(); break;
     }
     case "lista-item-toggle": { const l = STATE.vida.listas.find(x => x.id === d.lista); const it = l.items.find(i => i.id === d.id); it.done = !it.done; saveState(); rerender(); break; }
     case "lista-item-del": { const l = STATE.vida.listas.find(x => x.id === d.lista); l.items = l.items.filter(i => i.id !== d.id); saveState(); rerender(); break; }

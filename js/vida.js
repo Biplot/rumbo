@@ -185,31 +185,67 @@ function renderListas() {
   <div class="flex-between"><div class="card__title" style="margin:0">Tus listas</div>
     <button class="btn btn--primary" data-action="lista-add">+ Nueva lista</button></div>
   <div class="grid grid-3 mt-16">
-    ${listas.length ? listas.map(l => {
-      const done = l.items.filter(i => i.done).length;
-      const inputId = "li-" + l.id;
-      return `<div class="card">
-        <div class="card__head"><div class="card__title" style="font-size:15px">${l.icon || "📄"} ${escapeHtml(l.nombre)}</div>
-          <div class="row" style="gap:6px"><span class="chip">${done}/${l.items.length}</span>
-            <button class="icon-btn" data-action="lista-del" data-id="${l.id}">🗑</button></div></div>
-        ${l.items.map(it => `<div class="item-row" style="padding:8px 10px">
-          <span class="check ${it.done ? "is-on" : ""}" data-action="lista-item-toggle" data-lista="${l.id}" data-id="${it.id}">${it.done ? "✓" : ""}</span>
-          <div class="item-row__main"><div class="item-row__title text-sm ${it.done ? "strike" : ""}">${escapeHtml(it.txt)}</div></div>
-          <button class="icon-btn" data-action="lista-item-del" data-lista="${l.id}" data-id="${it.id}">✕</button></div>`).join("")}
-        <div class="row mt-8"><input class="input" id="${inputId}" placeholder="Agregar ítem..." style="padding:8px 10px">
-          <button class="btn btn--cian" data-action="lista-item-add" data-lista="${l.id}" data-input="${inputId}" style="padding:8px 12px">+</button></div>
-      </div>`;
-    }).join("") : '<div class="card"><div class="empty">Crea tu primera lista.</div></div>'}
+    ${listas.length ? listas.map(l => l.tipo === "deseos" ? listaDeseosCard(l) : listaNormalCard(l)).join("")
+      : '<div class="card"><div class="empty">Crea tu primera lista. También puedes crear una <b>Lista de deseos</b> que suma los montos.</div></div>'}
+  </div>`;
+}
+function listaNormalCard(l) {
+  const done = l.items.filter(i => i.done).length;
+  const inputId = "li-" + l.id;
+  return `<div class="card">
+    <div class="card__head"><div class="card__title" style="font-size:15px">${l.icon || "📄"} ${escapeHtml(l.nombre)}</div>
+      <div class="row" style="gap:6px"><span class="chip">${done}/${l.items.length}</span>
+        <button class="icon-btn" data-action="lista-del" data-id="${l.id}">🗑</button></div></div>
+    ${l.items.map(it => `<div class="item-row" style="padding:8px 10px">
+      <span class="check ${it.done ? "is-on" : ""}" data-action="lista-item-toggle" data-lista="${l.id}" data-id="${it.id}">${it.done ? "✓" : ""}</span>
+      <div class="item-row__main"><div class="item-row__title text-sm ${it.done ? "strike" : ""}">${escapeHtml(it.txt)}</div></div>
+      <button class="icon-btn" data-action="lista-item-del" data-lista="${l.id}" data-id="${it.id}">✕</button></div>`).join("")}
+    <div class="row mt-8"><input class="input" id="${inputId}" placeholder="Agregar ítem..." style="padding:8px 10px">
+      <button class="btn btn--cian" data-action="lista-item-add" data-lista="${l.id}" data-input="${inputId}" style="padding:8px 12px">+</button></div>
+  </div>`;
+}
+function listaDeseosCard(l) {
+  const total = l.items.reduce((a, i) => a + (+i.costo || 0), 0);
+  const conseguido = l.items.filter(i => i.done).reduce((a, i) => a + (+i.costo || 0), 0);
+  return `<div class="card">
+    <div class="card__head"><div class="card__title" style="font-size:15px">💎 ${escapeHtml(l.nombre)}</div>
+      <button class="icon-btn" data-action="lista-del" data-id="${l.id}">🗑</button></div>
+    ${l.items.map(it => `<div class="item-row" style="padding:8px 10px">
+      <span class="check ${it.done ? "is-on" : ""}" data-action="lista-item-toggle" data-lista="${l.id}" data-id="${it.id}" title="Marcar como conseguido">${it.done ? "✓" : ""}</span>
+      <div class="item-row__main"><div class="item-row__title text-sm ${it.done ? "strike" : ""}">${escapeHtml(it.txt)}</div></div>
+      <span class="text-sm ${it.done ? "muted" : "hl-coral"}" style="white-space:nowrap">${fmtCLP(it.costo || 0)}</span>
+      <button class="icon-btn" data-action="lista-item-del" data-lista="${l.id}" data-id="${it.id}">✕</button></div>`).join("")}
+    <div class="row mt-8">
+      <input class="input" id="lid-${l.id}" placeholder="Deseo..." style="padding:8px 10px;flex:2">
+      <input class="input" id="lic-${l.id}" type="text" inputmode="numeric" placeholder="$" style="padding:8px 10px;flex:1">
+      <button class="btn btn--cian" data-action="lista-deseo-add" data-lista="${l.id}" style="padding:8px 12px">+</button></div>
+    <div class="divider"></div>
+    <div class="flex-between text-sm"><span class="soft">Total deseado</span><span class="hl-coral">${fmtCLP(total)}</span></div>
+    <div class="flex-between text-sm mt-8"><span class="soft">Ya conseguido</span><span class="hl-cian">${fmtCLP(conseguido)}</span></div>
   </div>`;
 }
 function openListaModal() {
   const iconos = ["🛒", "🎬", "✈️", "📚", "🎵", "🎁", "🍽️", "🏋️", "💡", "✅"];
   openModal("Nueva lista", `
+    <div class="field"><label>Tipo</label>
+      <div class="seg" id="lst-tipos" style="width:100%">
+        <button type="button" class="is-active" data-t="normal" onclick="listaTipoPick(this)" style="flex:1">Normal</button>
+        <button type="button" data-t="deseos" onclick="listaTipoPick(this)" style="flex:1">💎 Lista de deseos</button>
+      </div><input type="hidden" id="lst-tipo" value="normal"></div>
     <div class="field"><label>Nombre</label><input class="input" id="lst-nombre" placeholder="Ej: Compras"></div>
-    <div class="field"><label>Ícono</label><div class="row-wrap" id="lst-iconos">${iconos.map(ic =>
+    <div class="field" id="lst-icon-field"><label>Ícono</label><div class="row-wrap" id="lst-iconos">${iconos.map(ic =>
       `<button type="button" class="btn btn--soft" style="padding:8px 12px" data-ic="${ic}" onclick="listaIconPick(this)">${ic}</button>`).join("")}</div>
       <input type="hidden" id="lst-icon" value="🛒"></div>
+    <p class="text-xs muted" style="margin:-4px 0 12px" id="lst-deseo-hint" hidden>💎 En una lista de deseos cada ítem lleva un monto y verás el total (para cuantificar tus gastos lujosos).</p>
     <button class="btn btn--primary btn-block" data-action="lista-save">Crear lista</button>`);
+}
+function listaTipoPick(btn) {
+  document.getElementById("lst-tipo").value = btn.dataset.t;
+  document.querySelectorAll("#lst-tipos button").forEach(b => b.classList.remove("is-active"));
+  btn.classList.add("is-active");
+  const esDeseos = btn.dataset.t === "deseos";
+  document.getElementById("lst-icon-field").hidden = esDeseos;
+  document.getElementById("lst-deseo-hint").hidden = !esDeseos;
 }
 function listaIconPick(btn) {
   document.getElementById("lst-icon").value = btn.dataset.ic;
@@ -218,6 +254,7 @@ function listaIconPick(btn) {
 }
 function saveLista() {
   const nombre = val("lst-nombre"); if (!nombre) return toast("Ponle un nombre", true);
-  STATE.vida.listas.push({ id: uid(), nombre, icon: val("lst-icon") || "📄", items: [] });
+  const tipo = (document.getElementById("lst-tipo") || {}).value || "normal";
+  STATE.vida.listas.push({ id: uid(), nombre, tipo, icon: tipo === "deseos" ? "💎" : (val("lst-icon") || "📄"), items: [] });
   saveState(); closeModal(); rerender();
 }

@@ -10,17 +10,30 @@
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
 
-const {
-  SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
-  VAPID_PUBLIC, VAPID_PRIVATE, VAPID_SUBJECT,
-} = process.env;
+const trim = v => (v == null ? "" : String(v).trim());
+const SUPABASE_URL = trim(process.env.SUPABASE_URL);
+const SUPABASE_SERVICE_ROLE_KEY = trim(process.env.SUPABASE_SERVICE_ROLE_KEY);
+const VAPID_PUBLIC = trim(process.env.VAPID_PUBLIC);
+const VAPID_PRIVATE = trim(process.env.VAPID_PRIVATE);
+let VAPID_SUBJECT = trim(process.env.VAPID_SUBJECT) || "mailto:cmaulenb@outlook.com";
+if (!/^mailto:|^https?:/i.test(VAPID_SUBJECT)) VAPID_SUBJECT = "mailto:" + VAPID_SUBJECT;
+
+// Diagnóstico (sin exponer valores): qué secrets llegaron
+console.log("Secrets presentes:",
+  { SUPABASE_URL: !!SUPABASE_URL, SERVICE_ROLE: !!SUPABASE_SERVICE_ROLE_KEY, VAPID_PUBLIC: !!VAPID_PUBLIC, VAPID_PRIVATE: !!VAPID_PRIVATE, VAPID_SUBJECT: VAPID_SUBJECT });
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !VAPID_PUBLIC || !VAPID_PRIVATE) {
   console.log("Faltan secrets; no hay nada que hacer (no-op).");
   process.exit(0);
 }
+console.log("Longitudes:", { publicLen: VAPID_PUBLIC.length, privateLen: VAPID_PRIVATE.length });
 
-webpush.setVapidDetails(VAPID_SUBJECT || "mailto:cmaulenb@outlook.com", VAPID_PUBLIC, VAPID_PRIVATE);
+try {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+} catch (e) {
+  console.error("VAPID inválido (revisa VAPID_PUBLIC / VAPID_PRIVATE / VAPID_SUBJECT):", e.message);
+  process.exit(1);
+}
 const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 const WINDOW_MIN = 30; // tolerancia en minutos DESPUÉS de la hora objetivo

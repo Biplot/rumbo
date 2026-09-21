@@ -338,6 +338,25 @@ function rerender() {
   const route = ROUTE_MAP[CURRENT];
   document.getElementById("view").innerHTML = route.render();
   mountAfterRender();
+  updateFab();
+}
+
+/* Botón flotante (móvil): la acción del día, siempre a un toque.
+   Se oculta en Inicio y Ritual (ahí la acción ya está visible) y al cerrar el día. */
+function updateFab() {
+  const fab = document.getElementById("dayFab");
+  if (!fab) return;
+  if (!STATE || CURRENT === "inicio" || CURRENT === "ritual") { fab.hidden = true; return; }
+  const st = dayState();
+  if (st === "por-abrir") {
+    fab.hidden = false; fab.className = "day-fab day-fab--open";
+    fab.dataset.action = "day-open"; fab.innerHTML = `<span class="day-fab__ico">🌅</span> Abre tu día`;
+  } else if (st === "en-curso" || st === "por-cerrar") {
+    fab.hidden = false; fab.className = "day-fab day-fab--close";
+    fab.dataset.action = "day-close"; fab.innerHTML = `<span class="day-fab__ico">🌙</span> Cierra tu día`;
+  } else {
+    fab.hidden = true; // día cerrado
+  }
 }
 
 function updateTopbar() {

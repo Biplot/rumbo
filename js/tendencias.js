@@ -94,6 +94,13 @@ function renderTendencias() {
   const libros = S.lecturas.filter(l => l.estado === "terminado").length;
   const deTot = S.salud.meses.reduce((a, m) => a + (m.diasEntren || 0), 0);
 
+  /* Libros terminados por mes (según fecha de término) */
+  const librosMes = MESES.map((_, m) => S.lecturas.filter(l => {
+    if (l.estado !== "terminado" || !l.fin) return false;
+    const d = new Date(l.fin + "T00:00:00");
+    return d.getFullYear() === S.settings.year && d.getMonth() === m;
+  }).length);
+
   /* Estado de ánimo por mes (desde el Diario de vida) */
   const diario = S.vida.diario || [];
   const moodByMonth = MESES.map((_, m) => {
@@ -169,9 +176,15 @@ function renderTendencias() {
       ${svgLine(ruedaAvg, { color: "var(--cian)", fmt: v => v })}
     </div>
   </div>
-  <div class="card mt-24">
-    <div class="card__head"><div class="card__title">😊 Estado de ánimo por mes</div><span class="card__hint">promedio 1–5 · desde tu Diario</span></div>
-    ${svgLine(moodByMonth, { color: "var(--coral)", fmt: v => v })}
+  <div class="grid grid-2 mt-24">
+    <div class="card">
+      <div class="card__head"><div class="card__title">😊 Estado de ánimo por mes</div><span class="card__hint">promedio 1–5 · desde tu Diario</span></div>
+      ${svgLine(moodByMonth, { color: "var(--coral)", fmt: v => v })}
+    </div>
+    <div class="card">
+      <div class="card__head"><div class="card__title">📚 Libros terminados por mes</div><span class="card__hint">${libros} en el año</span></div>
+      ${svgBar(librosMes, { color: "var(--cian)", fmt: v => v })}
+    </div>
   </div>
   <p class="text-xs muted mt-24">Los datos incluyen ejemplos precargados para que veas el panel funcionando. Edítalos o bórralos cuando quieras desde cada módulo.</p>`;
 }

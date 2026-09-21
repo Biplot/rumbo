@@ -560,26 +560,43 @@ function saveApr() {
    ANOTACIONES
    ============================================================ */
 function renderNotas() {
-  if (!STATE.notas.length)
-    return `<div class="flex-between"><div class="card__title">Tus categorías y notas</div>
-      <button class="btn btn--primary" data-action="nota-add-cat">+ Nueva categoría</button></div>
-      <div class="card mt-16"><div class="empty">Todavía no creas ninguna categoría. Empieza con la primera.</div></div>`;
-  return `
-  <div class="flex-between"><div class="card__title">Tus categorías y notas</div>
-    <button class="btn btn--primary" data-action="nota-add-cat">+ Nueva categoría</button></div>
-  <div class="grid grid-2 mt-16">
-    ${STATE.notas.map(c => `<div class="card">
-      <div class="card__head"><div class="card__title">${escapeHtml(c.nombre)}</div>
-        <div class="row" style="gap:4px">
-          <button class="btn-ghost" data-action="nota-add" data-cat="${c.id}">+ Nota</button>
-          <button class="icon-btn" data-action="cat-del" data-cat="${c.id}">🗑</button></div></div>
-      ${c.items.length ? c.items.map(n => `<div class="item-row">
-        <div class="item-row__main"><div class="item-row__title">${escapeHtml(n.titulo)}</div>
-          ${n.texto ? `<div class="item-row__sub">${escapeHtml(n.texto)}</div>` : ""}</div>
-        <button class="icon-btn" data-action="nota-del" data-cat="${c.id}" data-id="${n.id}">🗑</button></div>`).join("")
-      : '<div class="empty" style="padding:14px">Sin notas.</div>'}
-    </div>`).join("")}
+  /* Captura rápida (bandeja de ideas) */
+  const ideas = STATE.vida.ideas || [];
+  const pend = ideas.filter(i => !i.hecha);
+  const done = ideas.filter(i => i.hecha);
+  const ideaRow = i => `<div class="item-row">
+    <span class="check ${i.hecha ? "is-on" : ""}" data-action="idea-toggle" data-id="${i.id}">${i.hecha ? "✓" : ""}</span>
+    <div class="item-row__main"><div class="item-row__title ${i.hecha ? "strike" : ""}">${escapeHtml(i.texto)}</div></div>
+    <button class="icon-btn" data-action="idea-del" data-id="${i.id}">🗑</button></div>`;
+  const captura = `
+  <div class="card">
+    <div class="card__head"><div class="card__title">💡 Captura rápida</div><span class="chip">${pend.length} pendientes</span></div>
+    <div class="row"><input class="input" id="idea-input" placeholder="Anota una idea o pendiente y suéltalo aquí...">
+      <button class="btn btn--cian" data-action="idea-add" data-input="idea-input">+</button></div>
+    <div class="mt-16">${pend.length ? pend.map(ideaRow).join("") : '<div class="empty">Bandeja vacía. ✨</div>'}</div>
+    ${done.length ? `<div class="divider"></div><div class="text-xs muted" style="margin-bottom:8px">Procesadas</div>${done.map(ideaRow).join("")}` : ""}
   </div>`;
+
+  /* Categorías (notas organizadas) */
+  const cats = STATE.notas.length
+    ? `<div class="grid grid-2 mt-16">${STATE.notas.map(c => `<div class="card">
+        <div class="card__head"><div class="card__title">${escapeHtml(c.nombre)}</div>
+          <div class="row" style="gap:4px">
+            <button class="btn-ghost" data-action="nota-add" data-cat="${c.id}">+ Nota</button>
+            <button class="icon-btn" data-action="cat-del" data-cat="${c.id}">🗑</button></div></div>
+        ${c.items.length ? c.items.map(n => `<div class="item-row">
+          <div class="item-row__main"><div class="item-row__title">${escapeHtml(n.titulo)}</div>
+            ${n.texto ? `<div class="item-row__sub">${escapeHtml(n.texto)}</div>` : ""}</div>
+          <button class="icon-btn" data-action="nota-del" data-cat="${c.id}" data-id="${n.id}">🗑</button></div>`).join("")
+        : '<div class="empty" style="padding:14px">Sin notas.</div>'}
+      </div>`).join("")}</div>`
+    : `<div class="card mt-16"><div class="empty">Crea una categoría para organizar lo que quieras guardar (ej. "Ideas de negocio", "Aprendizajes").</div></div>`;
+
+  return `
+  ${captura}
+  <div class="flex-between mt-24"><div class="section-title" style="margin:0">🗂️ Categorías</div>
+    <button class="btn btn--primary" data-action="nota-add-cat">+ Nueva categoría</button></div>
+  ${cats}`;
 }
 function openNotaCatModal() {
   openModal("Nueva categoría", `

@@ -1,0 +1,11 @@
+{
+  "name": "rumbo-notifier",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Envío de recordatorios de ritual (mañana/noche) por Web Push. Corre en GitHub Actions.",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "web-push": "^3.6.7"
+  }
+}

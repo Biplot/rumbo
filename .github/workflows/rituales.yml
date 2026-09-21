@@ -1,0 +1,27 @@
+name: Recordatorios de ritual
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # cada ~15 min (GitHub puede retrasarlo unos minutos)
+  workflow_dispatch: {}       # permite correrlo a mano para probar
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Instalar dependencias
+        working-directory: notifier
+        run: npm install --no-audit --no-fund
+      - name: Enviar recordatorios
+        working-directory: notifier
+        run: node send-rituals.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VAPID_PUBLIC: ${{ secrets.VAPID_PUBLIC }}
+          VAPID_PRIVATE: ${{ secrets.VAPID_PRIVATE }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}

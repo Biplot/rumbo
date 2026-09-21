@@ -27,12 +27,15 @@ function diasHastaCumple(iso) {
    DIARIO + estado de ánimo
    ============================================================ */
 function renderDiario() {
-  const entries = STATE.vida.diario;
-  const ultimos = entries.slice(-14);
-  const strip = ultimos.length ? `<div class="row-wrap" style="gap:6px">${ultimos.map(e =>
+  const S = STATE;
+  const entries = S.vida.diario || [];
+  const ritDias = S.ritual.dias || {};
+  const conMood = entries.filter(e => e.mood).slice(-14);
+  const strip = conMood.length ? `<div class="row-wrap" style="gap:6px">${conMood.map(e =>
     `<span title="${fechaCorta(e.fecha)}" style="font-size:20px">${MOODS[e.mood - 1]}</span>`).join("")}</div>` : "";
+  const cerrados = Object.values(ritDias).filter(d => d.cerrado).length;
 
-  return `
+  const form = `
   <div class="grid grid-2">
     <div class="card">
       <div class="card__title">¿Cómo estuvo tu día?</div>
@@ -47,23 +50,83 @@ function renderDiario() {
     <div class="card">
       <div class="card__title mb-0">Tu ánimo reciente</div>
       <div class="mt-16">${strip || '<div class="empty">Aún no registras entradas.</div>'}</div>
-      ${entries.length ? `<div class="divider"></div><div class="flex-between"><span class="soft text-sm">Entradas escritas</span><span class="big-num" style="font-size:22px">${entries.length}</span></div>` : ""}
+      <div class="divider"></div>
+      <div class="grid grid-3" style="gap:10px;text-align:center">
+        <div><div class="big-num" style="font-size:22px">${entries.length}</div><div class="text-xs muted">entradas</div></div>
+        <div><div class="big-num" style="font-size:22px">${cerrados}</div><div class="text-xs muted">días cerrados</div></div>
+        <div><div class="big-num" style="font-size:22px">${computeClosedStreak()}</div><div class="text-xs muted">racha</div></div>
+      </div>
     </div>
-  </div>
-
-  <div class="section-title">Entradas</div>
-  ${entries.length ? entries.slice().reverse().map(e => {
-    const rit = STATE.ritual.dias[e.fecha];
-    return `<div class="card" style="margin-bottom:12px">
-    <div class="flex-between"><div class="row" style="gap:10px"><span style="font-size:24px">${MOODS[e.mood - 1]}</span>
-      <div><div class="text-sm soft">${fechaCorta(e.fecha)}</div>
-        ${e.fromRitual ? `<span class="chip chip--cian" style="margin-top:3px">🌙 desde tu ritual</span>` : ""}</div></div>
-      <button class="icon-btn" data-action="diario-del" data-id="${e.id}">🗑</button></div>
-    ${e.fromRitual && rit && rit.mision ? `<div class="text-xs muted mt-8">🎯 ${escapeHtml(rit.mision)}${rit.pilar ? " · " + escapeHtml(rit.pilar) : ""}</div>` : ""}
-    ${e.texto ? `<div class="mt-8">${escapeHtml(e.texto)}</div>` : ""}
-    ${e.gratitud ? `<div class="chip chip--coral mt-8">💛 ${escapeHtml(e.gratitud)}</div>` : ""}
   </div>`;
-  }).join("") : '<div class="card"><div class="empty">Escribe tu primera entrada arriba.</div></div>'}`;
+
+  // Timeline unificado: unión de fechas del diario + días de ritual
+  const set = new Set();
+  entries.forEach(e => e.fecha && set.add(e.fecha));
+  Object.keys(ritDias).forEach(f => { if (ritDias[f] && ritDias[f].hecho) set.add(f); });
+  const fechas = Array.from(set).sort((a, b) => (a < b ? 1 : -1));
+
+  let timeline;
+  if (!fechas.length) {
+    timeline = `<div class="section-title">Tu diario</div><div class="card"><div class="empty">Escribe tu primera entrada arriba, o abre y cierra tu día en el Ritual — todo aparecerá aquí.</div></div>`;
+  } else {
+    const groups = []; const idx = {};
+    fechas.forEach(f => {
+      const d = new Date(f + "T00:00:00"); const k = `${d.getFullYear()}-${d.getMonth()}`;
+      if (idx[k] === undefined) { idx[k] = groups.length; groups.push({ y: d.getFullYear(), m: d.getMonth(), items: [] }); }
+      groups[idx[k]].items.push(f);
+    });
+    timeline = groups.map(g => `<div class="section-title">${MESES[g.m]} ${g.y}</div>
+      <div class="bita-list">${g.items.map(diarioDayCard).join("")}</div>`).join("");
+  }
+
+  return form + `<div class="mt-24">${timeline}</div>`;
+}
+
+function diarioDayCard(fecha) {
+  const S = STATE;
+  const r = S.ritual.dias[fecha];
+  const es = (S.vida.diario || []).filter(e => e.fecha === fecha);
+  const moodE = es.find(e => e.mood);
+  const mood = moodE ? moodE.mood : null;
+  const c = (r && r.cierre) || {};
+  const d = new Date(fecha + "T00:00:00");
+  const dow = DIAS_SEMANA[(d.getDay() + 6) % 7].slice(0, 3);
+  const fechaTxt = `${dow} ${d.getDate()} · ${MESES_CORTO[d.getMonth()]}`;
+  const open = !!BITA_OPEN[fecha];
+  const dash = "<span class='muted'>—</span>";
+
+  const chip = r ? (r.cerrado ? `<span class="chip chip--done">🌙 Cerrado</span>` : `<span class="chip chip--coral">🌅 Abierto</span>`) : "";
+  const manual = es.find(e => !e.fromRitual);
+  const gratitud = (r ? c.mejor : "") || (es.find(e => e.gratitud) || {}).gratitud || "";
+  const nota = (r ? c.nota : "") || (manual && manual.texto) || "";
+
+  const rows = [];
+  if (r) {
+    rows.push(`<div class="bita-row"><span class="bita-k">🎯 Misión</span><span class="bita-v">${r.mision ? escapeHtml(r.mision) : dash} ${r.cerrado ? cumpliChip(c.mision) : ""}</span></div>`);
+    rows.push(`<div class="bita-row"><span class="bita-k">🐸 SAPO</span><span class="bita-v">${r.sapo ? escapeHtml(r.sapo) : dash} ${r.cerrado ? (c.sapo ? "<span class='chip chip--done'>hecho</span>" : "<span class='chip'>pendiente</span>") : ""}</span></div>`);
+    const energia = r.cerrado ? `${r.energia || "—"} → ${c.energia || "—"}` : `${r.energia || "—"}`;
+    rows.push(`<div class="bita-row"><span class="bita-k">⚡ Energía</span><span class="bita-v">${energia} <span class="muted text-xs">/ 5</span> ${r.pilar ? `<span class="chip chip--cian">${escapeHtml(r.pilar)}</span>` : ""}</span></div>`);
+  }
+  if (nota) rows.push(`<div class="bita-row"><span class="bita-k">📝 Nota</span><span class="bita-v">${escapeHtml(nota)}</span></div>`);
+  if (gratitud) rows.push(`<div class="bita-row"><span class="bita-k">🙏 Gratitud</span><span class="bita-v">${escapeHtml(gratitud)}</span></div>`);
+
+  const extras = [];
+  if (r) {
+    if (c.manana) extras.push(`<div class="bita-row"><span class="bita-k">🌱 Para mañana</span><span class="bita-v">${escapeHtml(c.manana)}</span></div>`);
+    if (r.servir) extras.push(`<div class="bita-row"><span class="bita-k">🙌 Serví a</span><span class="bita-v">${escapeHtml(r.servir)}</span></div>`);
+    if (r.proyectos && r.proyectos.length) extras.push(`<div class="bita-row"><span class="bita-k">📂 Proyectos</span><span class="bita-v">${r.proyectos.map(p => `<span class="chip">${escapeHtml(p)}</span>`).join(" ")}</span></div>`);
+  }
+  const delBtn = (!r && manual) ? `<button class="icon-btn" data-action="diario-del" data-id="${manual.id}">🗑</button>` : "";
+
+  return `<div class="card bita-day">
+    <div class="bita-day__head">
+      <div class="row" style="gap:10px">${mood ? `<span style="font-size:22px">${MOODS[mood - 1]}</span>` : ""}<div class="bita-date">${fechaTxt}</div></div>
+      <div class="row" style="gap:8px">${chip}${delBtn}</div>
+    </div>
+    ${rows.join("")}
+    ${open ? extras.join("") : ""}
+    ${extras.length ? `<button class="bita-more" data-action="bita-toggle" data-iso="${fecha}">${open ? "▲ Ver menos" : "▼ Ver más"}</button>` : ""}
+  </div>`;
 }
 function moodPick(btn) {
   document.getElementById("di-mood").value = btn.dataset.v;

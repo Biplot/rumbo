@@ -7,7 +7,7 @@ const ROUTES = [
   { grupo: "Principal" },
   { id: "inicio", label: "Inicio", icon: "🏠", render: renderInicio, subtitle: "Tu centro de control diario." },
   { id: "ritual", label: "Ritual Matutino", icon: "🌅", render: renderRitual, subtitle: "Empieza el día con intención y foco." },
-  { id: "bitacora", label: "Bitácora", icon: "📓", render: renderBitacora, subtitle: "Tu historial de rituales, día a día." },
+  { id: "diario", label: "Diario", icon: "📔", render: renderDiario, subtitle: "Tu día a día: ánimo, reflexión e historial del ritual." },
   { grupo: "Análisis" },
   { id: "tendencias", label: "Tendencias", icon: "📈", render: renderTendencias, subtitle: "Tu evolución del año en gráficos." },
   { id: "recompensas", label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus insignias y la tienda de cosméticos." },
@@ -18,7 +18,6 @@ const ROUTES = [
   { id: "lecturas", label: "Lecturas", icon: "📚", render: renderLecturas, subtitle: "Tu biblioteca personal de lectura." },
   { id: "calendario", label: "Calendario", icon: "🗓️", render: renderCalendario, subtitle: "Tu mes de un vistazo." },
   { grupo: "Vida" },
-  { id: "diario", label: "Diario", icon: "📔", render: renderDiario, subtitle: "Registra tu día y tu estado de ánimo." },
   { id: "relaciones", label: "Relaciones", icon: "👥", render: renderRelaciones, subtitle: "Cumpleaños y con quién no hablas hace rato." },
   { id: "listas", label: "Listas", icon: "🧾", render: renderListas, subtitle: "Compras, películas, viajes y más." },
   { grupo: "Bienestar" },
@@ -225,7 +224,7 @@ function buildNav() {
 }
 
 /* Barra inferior en móvil: accesos directos + Menú (abre el lateral) */
-const BOTTOM_NAV = ["inicio", "ritual", "habitos", "bitacora"];
+const BOTTOM_NAV = ["inicio", "ritual", "habitos", "diario"];
 function buildBottomNav() {
   const bar = document.getElementById("bottombar");
   if (!bar) return;

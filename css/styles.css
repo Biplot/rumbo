@@ -125,6 +125,9 @@ a { color: var(--cian); }
   background: var(--surface-2); color: var(--text-soft); border: 1px solid var(--line); }
 .notif-banner.is-ok { background: var(--cian-soft); color: var(--cian); border-color: transparent; }
 .notif-banner.is-warn { background: var(--coral-soft); color: var(--coral); border-color: transparent; }
+.notif-horas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.notif-hora label { display: block; margin-bottom: 8px; }
+.notif-hora .input { width: 100%; text-align: center; font-size: 17px; font-weight: 600; padding: 13px; }
 
 /* Botón flotante de acción del día (solo móvil; se activa en el breakpoint) */
 .day-fab { display: none; }
@@ -463,6 +466,9 @@ textarea.input { resize: vertical; min-height: 84px; }
   .badge-card { padding: 11px; }
   .badge-card .card__title { font-size: 12.5px; }
   .theme-preview { height: 78px; }
+
+  /* Horarios de notificación: apilados en móvil para que respiren */
+  .notif-horas { grid-template-columns: 1fr; gap: 12px; }
 
   /* Biblioteca en móvil: dos columnas compactas */
   .lect-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }

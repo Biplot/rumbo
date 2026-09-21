@@ -43,10 +43,10 @@ function renderNotificaciones() {
 
   <div class="card mt-16">
     <div class="card__title" style="font-size:15px">Horarios</div>
-    <div class="row mt-16">
-      <div style="flex:1"><label class="text-xs muted">🌅 Mañana (iniciar)</label>
+    <div class="notif-horas mt-16">
+      <div class="notif-hora"><label class="text-xs muted">🌅 Mañana · iniciar</label>
         <input class="input" type="time" id="notif-manana" value="${n.manana || "08:00"}"></div>
-      <div style="flex:1"><label class="text-xs muted">🌙 Noche (cerrar)</label>
+      <div class="notif-hora"><label class="text-xs muted">🌙 Noche · cerrar</label>
         <input class="input" type="time" id="notif-noche" value="${n.noche || "21:00"}"></div>
     </div>
     <button class="btn btn--cian btn-block mt-16" data-action="notif-times">Guardar horarios</button>

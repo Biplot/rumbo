@@ -141,6 +141,7 @@ async function loadUserState(user) {
   if (!data) { try { const raw = localStorage.getItem("rumbo_state_" + user.id); if (raw) data = JSON.parse(raw); } catch (e) {} }
   STATE = data ? migrate(data) : defaultState();
   if (!STATE.profile.name || STATE.profile.name === "Chris") STATE.profile.name = user.name || STATE.profile.name;
+  ensureCurrentWeek();   // limpia el planificador si cambió la semana
   saveState();
 }
 
@@ -942,6 +943,7 @@ function segPick(btn, hiddenId) {
    ============================================================ */
 function renderInicio() {
   const s = STATE;
+  ensureCurrentWeek();
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
   const mIdx = new Date().getMonth();

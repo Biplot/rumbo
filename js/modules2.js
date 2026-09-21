@@ -306,6 +306,7 @@ function renderBitacora() {
    PLANIFICADOR SEMANAL
    ============================================================ */
 function renderSemana() {
+  ensureCurrentWeek();
   const now = new Date();
   const dow = (now.getDay() + 6) % 7;
   const monday = new Date(now); monday.setDate(now.getDate() - dow);

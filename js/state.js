@@ -105,6 +105,7 @@ function defaultState() {
     // planificador semanal: 7 días (Lun..Dom) + premio
     semana: {
       premio: "",
+      weekOf: "",           // lunes ISO de la semana actual (para limpiar al cambiar de semana)
       dias: [[], [], [], [], [], [], []],
     },
 
@@ -279,6 +280,25 @@ function isoLocal(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 function todayISO() { return isoLocal(new Date()); }
+
+/* Lunes (ISO) de la semana actual */
+function currentMondayISO() {
+  const now = new Date();
+  const dow = (now.getDay() + 6) % 7;
+  const monday = new Date(now); monday.setDate(now.getDate() - dow);
+  return isoLocal(monday);
+}
+/* Si cambió la semana, limpia el planificador. Devuelve true si limpió. */
+function ensureCurrentWeek() {
+  if (typeof STATE === "undefined" || !STATE || !STATE.semana) return false;
+  const wk = currentMondayISO();
+  if (STATE.semana.weekOf !== wk) {
+    STATE.semana.dias = [[], [], [], [], [], [], []];
+    STATE.semana.weekOf = wk;
+    return true;
+  }
+  return false;
+}
 
 function fechaLarga(d = new Date()) {
   return d.toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" });

@@ -113,8 +113,11 @@ function renderMetas() {
   const totalT = tri.flat().length;
   const doneT = tri.flat().filter(m => m.done).length;
   const pct = totalT ? Math.round((doneT / totalT) * 100) : 0;
+  const curM = new Date().getMonth();
+  const curTri = Math.floor(curM / 3);
 
   const triCards = tri.map((list, i) => {
+    if (i < curTri && list.length === 0) return ""; // ocultar trimestres pasados vacíos
     const inputId = `mt-tri-${i}`;
     const done = list.filter(m => m.done).length;
     return `<div class="card">
@@ -129,6 +132,7 @@ function renderMetas() {
   }).join("");
 
   const mesCards = STATE.metas.mensuales.map((list, i) => {
+    if (i < curM && list.length === 0) return ""; // ocultar meses pasados vacíos
     const inputId = `mt-mes-${i}`;
     return `<div class="card">
       <div class="card__head"><div class="card__title" style="font-size:14px">${MESES[i]}</div>

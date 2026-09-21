@@ -62,6 +62,78 @@ function svgBar(values, opts = {}) {
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${grid}${bars}${xl}</svg>`;
 }
 
+/* ============================================================
+   DESCUBRIMIENTOS · patrones y correlaciones desde tus datos
+   ============================================================ */
+function computeInsights() {
+  const S = STATE;
+  const out = [];
+  const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const pctMejor = (a, b) => Math.round((a / b - 1) * 100);
+
+  // Ánimo por fecha (promedio si hay varias entradas ese día)
+  const moodMap = {};
+  (S.vida.diario || []).forEach(e => { if (e && e.mood && e.fecha) (moodMap[e.fecha] = moodMap[e.fecha] || []).push(e.mood); });
+  const moodDates = Object.keys(moodMap);
+  const moodAt = f => avg(moodMap[f]);
+
+  const habitDoneAt = (habId, f) => {
+    const d = new Date(f + "T00:00:00");
+    const log = S.habitos.log[`${d.getFullYear()}-${d.getMonth() + 1}`];
+    return !!(log && log[habId] && log[habId][d.getDate()]);
+  };
+
+  // 1) Ánimo vs cada hábito → el de mayor efecto positivo
+  let best = null;
+  (S.habitos.defs || []).forEach(h => {
+    const con = [], sin = [];
+    moodDates.forEach(f => (habitDoneAt(h.id, f) ? con : sin).push(moodAt(f)));
+    if (con.length >= 4 && sin.length >= 4) {
+      const d = avg(con) - avg(sin);
+      if (d >= 0.4 && (!best || d > best.d)) best = { h, d, con: avg(con), sin: avg(sin) };
+    }
+  });
+  if (best) out.push({ icon: best.h.icon || "✨", strength: best.d, text: `Tu ánimo es <b>${pctMejor(best.con, best.sin)}% mejor</b> los días que haces <b>${escapeHtml(best.h.nombre)}</b>.` });
+
+  // 2) Ánimo los días que cierras tu ritual
+  { const con = [], sin = [];
+    moodDates.forEach(f => { const r = S.ritual.dias[f]; (r && r.cerrado ? con : sin).push(moodAt(f)); });
+    if (con.length >= 4 && sin.length >= 4) { const d = avg(con) - avg(sin);
+      if (d >= 0.4) out.push({ icon: "🌙", strength: d, text: `Tu ánimo es <b>${pctMejor(avg(con), avg(sin))}% mejor</b> los días que <b>cierras tu ritual</b>.` }); } }
+
+  // 3) Fin de semana vs semana
+  { const wk = [], we = [];
+    moodDates.forEach(f => { const dow = new Date(f + "T00:00:00").getDay(); (dow === 0 || dow === 6 ? we : wk).push(moodAt(f)); });
+    if (wk.length >= 3 && we.length >= 3) { const d = avg(we) - avg(wk);
+      if (Math.abs(d) >= 0.4) out.push({ icon: d > 0 ? "🎉" : "📅", strength: Math.abs(d),
+        text: d > 0 ? `Tu ánimo es mejor los <b>fines de semana</b>.` : `Tu ánimo <b>baja los fines de semana</b> — cuidar el descanso ahí podría ayudar.` }); } }
+
+  // 4) Los días que te comes tu SAPO
+  { const con = [], sin = [];
+    moodDates.forEach(f => { const r = S.ritual.dias[f]; if (r && r.cerrado && r.cierre) (r.cierre.sapo ? con : sin).push(moodAt(f)); });
+    if (con.length >= 4 && sin.length >= 4) { const d = avg(con) - avg(sin);
+      if (d >= 0.4) out.push({ icon: "🐸", strength: d, text: `Los días que te <b>comes tu SAPO</b>, tu ánimo es <b>${pctMejor(avg(con), avg(sin))}% mejor</b>.` }); } }
+
+  // 5) Racha de cierre
+  { const streak = computeClosedStreak();
+    if (streak >= 3) out.push({ icon: "🔥", strength: 0.3 + Math.min(streak, 30) / 30, text: `Llevas <b>${streak} días</b> cerrando tu día seguidos. ¡No rompas la cadena!` }); }
+
+  // 6) Constancia de gratitud (últimos 14 días)
+  { const hoy = new Date(); let con = 0;
+    for (let i = 0; i < 14; i++) { const d = new Date(hoy); d.setDate(hoy.getDate() - i); const f = isoLocal(d); if ((S.vida.diario || []).some(e => e.fecha === f && e.gratitud)) con++; }
+    if (con >= 5) out.push({ icon: "🙏", strength: 0.2 + con / 28, text: `Anotaste algo que agradeces <b>${con} de los últimos 14 días</b>.` }); }
+
+  return out.sort((a, b) => b.strength - a.strength);
+}
+
+function renderDescubrimientos() {
+  const ins = computeInsights().slice(0, 4);
+  const cuerpo = ins.length
+    ? `<div class="grid grid-2">${ins.map(i => `<div class="card insight-card"><div class="insight-ico">${i.icon}</div><div class="insight-txt">${i.text}</div></div>`).join("")}</div>`
+    : `<div class="card"><div class="empty">Registra tu ánimo (en el cierre del ritual) y tus hábitos unos días. Cuando haya suficiente, aquí verás <b>qué te hace bien</b> — correlaciones entre tu día y cómo te sientes. 🔍</div></div>`;
+  return `<div class="section-title">💡 Tus descubrimientos</div>${cuerpo}`;
+}
+
 function renderTendencias() {
   const S = STATE;
   const now = new Date();
@@ -146,7 +218,9 @@ function renderTendencias() {
   </div>`;
 
   return `
-  <div class="grid grid-4">
+  ${renderDescubrimientos()}
+
+  <div class="grid grid-4 mt-24">
     ${statCard("💰", "Ahorro acumulado", fmtCLP(ahorroAcum), "Meta " + fmtCLP(S.finanzas.metaAnual), pctAnual)}
     ${statCard("⚖️", "Peso actual", (pesoActual != null ? pesoActual + " kg" : "—"), "Meta " + S.salud.pesoObjetivo + " kg")}
     ${statCard("🏋️", "Días entrenados", deTot, "en el año")}

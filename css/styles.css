@@ -120,6 +120,12 @@ a { color: var(--cian); }
 .hamburger { display: none; background: none; border: none; color: var(--text); font-size: 22px; }
 .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(4, 14, 26, 0.55); backdrop-filter: blur(2px); z-index: 55; }
 
+/* Descubrimientos (Tendencias) */
+.insight-card { display: flex; gap: 14px; align-items: center; }
+.insight-ico { font-size: 30px; line-height: 1; flex-shrink: 0; }
+.insight-txt { font-size: 14.5px; line-height: 1.55; }
+.insight-txt b { color: var(--cian); font-weight: 700; }
+
 /* Indicador de guardado (topbar) */
 .save-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500;
   color: var(--text-muted); padding: 4px 8px; border-radius: 999px; white-space: nowrap; transition: color .2s; }

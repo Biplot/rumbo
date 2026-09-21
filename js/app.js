@@ -35,6 +35,8 @@ const ROUTES = [
 ];
 const ROUTE_MAP = {};
 ROUTES.forEach(r => { if (r.id) ROUTE_MAP[r.id] = r; });
+/* Orden de secciones para el gesto de deslizar (mismo orden del menú) */
+const SECTION_ORDER = ROUTES.filter(r => r.id).map(r => r.id);
 
 let CURRENT = "inicio";
 let CURRENT_USER = null;
@@ -50,6 +52,7 @@ async function boot() {
   document.getElementById("hamburger").addEventListener("click", () =>
     setSidebar(!document.getElementById("sidebar").classList.contains("is-open")));
   document.getElementById("sidebarBackdrop").addEventListener("click", () => setSidebar(false));
+  initGestures();
   window.addEventListener("hashchange", onRoute);
   document.getElementById("authScreen").addEventListener("keydown", e => {
     if (e.key === "Enter") { e.preventDefault(); (document.getElementById("form-register").hidden ? doLogin : doRegister)(); }
@@ -241,6 +244,93 @@ function setSidebar(open) {
   if (sb) sb.classList.toggle("is-open", open);
   if (bd) bd.classList.toggle("is-visible", open);
   document.body.classList.toggle("nav-open", open);
+}
+
+/* ============================================================
+   GESTOS TÁCTILES (móvil)
+   1) Deslizar para cerrar el menú
+   2) Deslizar entre secciones
+   4) Deslizar el modal hacia abajo para cerrarlo
+   ============================================================ */
+function isMobileView() { return window.matchMedia("(max-width: 760px)").matches; }
+function isFormEl(el) { return !!(el && el.closest && el.closest("input, textarea, select, [contenteditable], .swatch, .mood-btn")); }
+function startsInScrollableX(el) {
+  let n = el;
+  while (n && n !== document.body) {
+    if (n.scrollWidth - n.clientWidth > 6) {
+      const ox = getComputedStyle(n).overflowX;
+      if (ox === "auto" || ox === "scroll") return true;
+    }
+    n = n.parentElement;
+  }
+  return false;
+}
+function navigateSection(dir) {
+  const i = SECTION_ORDER.indexOf(CURRENT);
+  if (i === -1) return;
+  const j = i + dir;
+  if (j < 0 || j >= SECTION_ORDER.length) return; // sin dar la vuelta en los extremos
+  go(SECTION_ORDER[j]);
+}
+function attachSwipe(el, onSwipe) {
+  if (!el) return;
+  let x = 0, y = 0, ok = false;
+  el.addEventListener("touchstart", e => { if (e.touches.length !== 1) { ok = false; return; } x = e.touches[0].clientX; y = e.touches[0].clientY; ok = true; }, { passive: true });
+  el.addEventListener("touchend", e => { if (!ok) return; ok = false; const t = e.changedTouches[0]; onSwipe(t.clientX - x, t.clientY - y); }, { passive: true });
+}
+function initGestures() {
+  // (1) Cerrar el menú deslizando hacia la izquierda
+  attachSwipe(document.getElementById("sidebar"), (dx, dy) => { if (dx < -45 && Math.abs(dx) > Math.abs(dy)) setSidebar(false); });
+  attachSwipe(document.getElementById("sidebarBackdrop"), (dx) => { if (dx < -30) setSidebar(false); });
+
+  // (2) Deslizar entre secciones (sobre el contenido)
+  const view = document.getElementById("view");
+  let sx = 0, sy = 0, st = 0, valid = false;
+  view.addEventListener("touchstart", e => {
+    valid = false;
+    if (e.touches.length !== 1 || !isMobileView()) return;
+    if (!document.getElementById("modalOverlay").hidden) return;
+    if (document.getElementById("sidebar").classList.contains("is-open")) return;
+    if (startsInScrollableX(e.target) || isFormEl(e.target)) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); valid = true;
+  }, { passive: true });
+  view.addEventListener("touchend", e => {
+    if (!valid) return; valid = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy, dt = Date.now() - st;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2 && dt < 600) navigateSection(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  // (4) Deslizar el modal hacia abajo para cerrarlo
+  const overlay = document.getElementById("modalOverlay");
+  const modal = document.getElementById("modal");
+  let my = 0, moved = 0, dragging = false;
+  modal.addEventListener("touchstart", e => {
+    dragging = false;
+    if (e.touches.length !== 1 || modal.scrollTop > 0) return;
+    if (isFormEl(e.target)) return;
+    my = e.touches[0].clientY; moved = 0; dragging = true;
+    modal.style.transition = "none";
+  }, { passive: true });
+  modal.addEventListener("touchmove", e => {
+    if (!dragging) return;
+    const dy = e.touches[0].clientY - my;
+    if (dy <= 0) { moved = 0; modal.style.transform = ""; return; } // subiendo: scroll normal
+    if (modal.scrollTop > 0) { dragging = false; modal.style.transform = ""; return; }
+    moved = dy;
+    e.preventDefault(); // arrastrando hacia abajo desde el tope: descartar
+    modal.style.transform = `translateY(${(dy * 0.7).toFixed(0)}px)`;
+    overlay.style.background = `rgba(4,14,26,${Math.max(0.25, 0.7 - dy / 700).toFixed(2)})`;
+  }, { passive: false });
+  const endModal = () => {
+    if (!dragging) return; dragging = false;
+    modal.style.transition = "transform .2s ease";
+    overlay.style.background = "";
+    modal.style.transform = "";
+    if (moved > 110) closeModal();
+  };
+  modal.addEventListener("touchend", endModal, { passive: true });
+  modal.addEventListener("touchcancel", endModal, { passive: true });
 }
 
 function rerender() {

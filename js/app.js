@@ -48,7 +48,8 @@ async function boot() {
   document.getElementById("view").addEventListener("change", onBind);
   document.getElementById("view").addEventListener("input", onBindLive);
   document.getElementById("hamburger").addEventListener("click", () =>
-    document.getElementById("sidebar").classList.toggle("is-open"));
+    setSidebar(!document.getElementById("sidebar").classList.contains("is-open")));
+  document.getElementById("sidebarBackdrop").addEventListener("click", () => setSidebar(false));
   window.addEventListener("hashchange", onRoute);
   document.getElementById("authScreen").addEventListener("keydown", e => {
     if (e.key === "Enter") { e.preventDefault(); (document.getElementById("form-register").hidden ? doLogin : doRegister)(); }
@@ -163,11 +164,16 @@ function switchAuthTab(tab) {
 }
 function authError(msg) {
   const el = document.getElementById("auth-error");
-  el.textContent = msg || ""; el.hidden = !msg;
+  el.textContent = msg || ""; el.hidden = !msg; el.classList.remove("auth__error--ok");
+}
+function authInfo(msg) {
+  const el = document.getElementById("auth-error");
+  el.textContent = msg || ""; el.hidden = !msg; el.classList.add("auth__error--ok");
 }
 async function doRegister() {
   const res = await BACKEND.register({ name: val("reg-name"), email: val("reg-email"), password: document.getElementById("reg-pass").value });
   if (res.error) return authError(res.error);
+  if (res.info) { switchAuthTab("login"); return authInfo(res.info); }
   await enterApp(res); toast("¡Bienvenido, " + res.name + "! 🎉");
 }
 async function doLogin() {
@@ -206,12 +212,21 @@ function onRoute() {
     el.classList.toggle("is-active", el.dataset.route === CURRENT));
   updateTopbar();
   rerender();
-  document.getElementById("sidebar").classList.remove("is-open");
+  setSidebar(false);
   document.querySelector(".main").scrollTo?.(0, 0);
   window.scrollTo(0, 0);
 }
 
 function go(id) { location.hash = id; }
+
+/* Menú lateral en móvil: abrir/cerrar con fondo oscuro */
+function setSidebar(open) {
+  const sb = document.getElementById("sidebar");
+  const bd = document.getElementById("sidebarBackdrop");
+  if (sb) sb.classList.toggle("is-open", open);
+  if (bd) bd.classList.toggle("is-visible", open);
+  document.body.classList.toggle("nav-open", open);
+}
 
 function rerender() {
   if (typeof checkBadges === "function") checkBadges();

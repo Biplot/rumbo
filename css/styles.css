@@ -118,6 +118,7 @@ a { color: var(--cian); }
 .topbar__title p { font-size: 13px; }
 .topbar__meta { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .hamburger { display: none; background: none; border: none; color: var(--text); font-size: 22px; }
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(4, 14, 26, 0.55); backdrop-filter: blur(2px); z-index: 55; }
 
 .pill { padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 500;
   background: var(--surface-2); border: 1px solid var(--line); white-space: nowrap; }
@@ -388,9 +389,13 @@ textarea.input { resize: vertical; min-height: 84px; }
   .grid-3 { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 760px) {
-  .sidebar { position: fixed; z-index: 60; left: 0; top: 0; transform: translateX(-100%); transition: transform .2s; box-shadow: var(--shadow); }
+  .sidebar { position: fixed; z-index: 60; left: 0; top: 0; height: 100%; overflow-y: auto; transform: translateX(-100%); transition: transform .2s; box-shadow: var(--shadow); }
   .sidebar.is-open { transform: translateX(0); }
+  .sidebar-backdrop.is-visible { display: block; }
   .hamburger { display: block; }
+
+  /* Evita el zoom de iOS al enfocar inputs: fuente ≥16px */
+  .input, .select, textarea.input, .meta-input, .lect-page { font-size: 16px; }
 
   /* Móvil compacto: más contenido, menos espacio */
   .view { padding: 12px 12px 44px; }
@@ -607,6 +612,7 @@ html[data-theme="papel"] .nav__item.is-active { color: #2E2A22; }
 .auth__sep::before, .auth__sep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .auth__error { background: var(--coral-soft); color: var(--coral); padding: 10px 12px; border-radius: var(--r-sm); font-size: 13px; margin-bottom: 14px; }
 .auth__error[hidden] { display: none; }
+.auth__error--ok { background: var(--cian-soft); color: var(--cian); }
 .auth__form[hidden] { display: none; }
 .auth__note { text-align: center; color: var(--text-muted); font-size: 11.5px; margin-top: 18px; }
 .linkish { background: none; border: none; color: var(--cian); font-size: 13px; margin-top: 12px; width: 100%; text-align: center; }

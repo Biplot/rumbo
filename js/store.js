@@ -71,10 +71,14 @@ const SUPABASE_KEY = "sb_publishable_HQfNYK25HuN1cI9KgrKiyw_cJ6_osLk";
 
 function _traducir(m) {
   m = m || "";
-  if (/already registered|already exists|User already/i.test(m)) return "Ya existe una cuenta con ese correo.";
+  if (/already registered|already exists|User already/i.test(m)) return "Ya existe una cuenta con ese correo. Inicia sesión.";
   if (/Invalid login credentials/i.test(m)) return "Correo o contraseña incorrectos.";
   if (/Email not confirmed/i.test(m)) return "Confirma tu correo antes de entrar (revisa tu bandeja).";
-  if (/rate limit|too many/i.test(m)) return "Demasiados intentos. Espera un momento.";
+  if (/email rate limit exceeded/i.test(m)) return "Se alcanzó el límite de correos por ahora. Intenta de nuevo en un rato.";
+  if (/rate limit|too many|429/i.test(m)) return "Demasiados intentos. Espera un momento e intenta otra vez.";
+  if (/signups?.*(disabled|not allowed)/i.test(m)) return "El registro está desactivado temporalmente.";
+  if (/password/i.test(m) && /(6|characters|short|weak)/i.test(m)) return "La contraseña debe tener al menos 6 caracteres.";
+  if (/unable to validate email|invalid.*email|email.*invalid/i.test(m)) return "El correo no parece válido.";
   return m;
 }
 
@@ -100,7 +104,7 @@ const SupabaseBackend = {
     if (!password || password.length < 6) return { error: "La contraseña debe tener al menos 6 caracteres." };
     const { data, error } = await this._client().auth.signUp({ email, password, options: { data: { name: (name || "").trim() } } });
     if (error) return { error: _traducir(error.message) };
-    if (!data.session) return { error: "Cuenta creada ✅. Revisa tu correo para confirmarla y luego inicia sesión." };
+    if (!data.session) return { info: "Cuenta creada ✅ Revisa tu correo para confirmarla y luego inicia sesión." };
     return this._pub(data.user);
   },
   async login({ email, password }) {

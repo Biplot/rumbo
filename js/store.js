@@ -155,6 +155,14 @@ function mergeStates(server, local) {
     out.gamif.badges = Array.from(new Set([...(server.gamif.badges || []), ...(local.gamif.badges || [])]));
     out.gamif.owned = Array.from(new Set([...(server.gamif.owned || []), ...(local.gamif.owned || [])]));
   }
+  // Suscripciones push: unir por endpoint (cada dispositivo tiene la suya)
+  const ln = local.settings && local.settings.notif, sn = server.settings && server.settings.notif;
+  if (ln && sn && out.settings && out.settings.notif) {
+    const map = new Map();
+    (sn.subs || []).forEach(x => x && x.endpoint && map.set(x.endpoint, x));
+    (ln.subs || []).forEach(x => x && x.endpoint && map.set(x.endpoint, x));
+    out.settings.notif.subs = Array.from(map.values());
+  }
   // El resto (profile, settings, salud, rueda, ritual.pilares, entrenamiento) lo gana local.
   return out;
 }

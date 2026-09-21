@@ -21,7 +21,10 @@ function defaultState() {
       birthDate: "",
       motto: "Construyendo mi mejor versión",
     },
-    settings: { appName: "Rumbo", year: YEAR, theme: "biplot", onboarded: false, metaLibros: 12 },
+    settings: {
+      appName: "Rumbo", year: YEAR, theme: "biplot", onboarded: false, metaLibros: 12,
+      notif: { enabled: false, manana: "08:00", noche: "21:00", subs: [] },
+    },
 
     finanzas: {
       metaAnual: 0,
@@ -196,6 +199,8 @@ function migrate(s) {
   if (s.settings && !s.settings.theme) s.settings.theme = "biplot";
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
   if (s.settings && s.settings.metaLibros == null) s.settings.metaLibros = 12;
+  if (s.settings && !s.settings.notif) s.settings.notif = { enabled: false, manana: "08:00", noche: "21:00", subs: [] };
+  if (s.settings && s.settings.notif && !Array.isArray(s.settings.notif.subs)) s.settings.notif.subs = [];
   const g = s.gamif;
   if (g.xp == null) g.xp = g.puntos || 0;
   if (!g.badges) g.badges = [];

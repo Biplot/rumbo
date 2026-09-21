@@ -6,6 +6,33 @@ const CACHE = "rumbo-cache-v1";
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
+/* Web Push: mostrar el aviso que manda el servidor (Parte B) */
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { title: "Rumbo", body: e.data ? e.data.text() : "" }; }
+  const title = d.title || "Rumbo";
+  const opts = {
+    body: d.body || "",
+    icon: d.icon || "assets/icon-192.png",
+    badge: "assets/icon-192.png",
+    tag: d.tag || "rumbo",
+    data: { url: d.url || "./" },
+  };
+  e.waitUntil(self.registration.showNotification(title, opts));
+});
+
+/* Al tocar la notificación: enfocar la app (o abrirla) en la ruta indicada */
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || "./";
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) { if ("focus" in c) { try { c.navigate(url); } catch (_) {} return c.focus(); } }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
+});
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;                 // no cachear POST (escrituras a la nube)

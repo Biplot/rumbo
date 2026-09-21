@@ -31,6 +31,7 @@ const ROUTES = [
   { id: "aprendizajes", label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
   { id: "notas", label: "Anotaciones", icon: "📝", render: renderNotas, subtitle: "Tus categorías y notas." },
   { grupo: "Personalización" },
+  { id: "notif", label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
   { id: "temas", label: "Temas", icon: "🎨", render: renderTemas, subtitle: "Cambia el estilo de la app (misma marca, otro concepto)." },
 ];
 const ROUTE_MAP = {};
@@ -132,6 +133,7 @@ function saveOnboarding() {
   STATE.settings.onboarded = true;
   saveState(); closeModal(); updateTopbar(); rerender();
   toast("¡Listo! Bienvenido a Rumbo 🎉");
+  if (typeof maybePromptNotif === "function") setTimeout(maybePromptNotif, 500);
 }
 
 async function loadUserState(user) {
@@ -464,6 +466,12 @@ function onClick(e) {
     case "close-modal": closeModal(); break;
     case "export": exportData(); break;
     case "open-menu": setSidebar(true); break;
+
+    /* Notificaciones */
+    case "notif-enable": enableNotifications(); break;
+    case "notif-disable": disableNotifications(); break;
+    case "notif-times": saveNotifTimes(); break;
+    case "notif-test": testNotification(); break;
 
     /* Portal de usuarios */
     case "auth-tab": switchAuthTab(d.tab); break;

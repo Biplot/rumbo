@@ -120,6 +120,12 @@ a { color: var(--cian); }
 .hamburger { display: none; background: none; border: none; color: var(--text); font-size: 22px; }
 .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(4, 14, 26, 0.55); backdrop-filter: blur(2px); z-index: 55; }
 
+/* Banner de estado de notificaciones */
+.notif-banner { padding: 11px 14px; border-radius: var(--r-sm); font-size: 13px; line-height: 1.5;
+  background: var(--surface-2); color: var(--text-soft); border: 1px solid var(--line); }
+.notif-banner.is-ok { background: var(--cian-soft); color: var(--cian); border-color: transparent; }
+.notif-banner.is-warn { background: var(--coral-soft); color: var(--coral); border-color: transparent; }
+
 /* Botón flotante de acción del día (solo móvil; se activa en el breakpoint) */
 .day-fab { display: none; }
 

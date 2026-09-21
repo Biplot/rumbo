@@ -137,5 +137,10 @@
   <script src="js/recompensas.js?v=7"></script>
   <script src="js/vida.js?v=7"></script>
   <script src="js/app.js?v=7"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    }
+  </script>
 </body>
 </html>

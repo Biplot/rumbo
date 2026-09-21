@@ -52,13 +52,18 @@ function renderDiario() {
   </div>
 
   <div class="section-title">Entradas</div>
-  ${entries.length ? entries.slice().reverse().map(e => `<div class="card" style="margin-bottom:12px">
+  ${entries.length ? entries.slice().reverse().map(e => {
+    const rit = STATE.ritual.dias[e.fecha];
+    return `<div class="card" style="margin-bottom:12px">
     <div class="flex-between"><div class="row" style="gap:10px"><span style="font-size:24px">${MOODS[e.mood - 1]}</span>
-      <div class="text-sm soft">${fechaCorta(e.fecha)}</div></div>
+      <div><div class="text-sm soft">${fechaCorta(e.fecha)}</div>
+        ${e.fromRitual ? `<span class="chip chip--cian" style="margin-top:3px">🌙 desde tu ritual</span>` : ""}</div></div>
       <button class="icon-btn" data-action="diario-del" data-id="${e.id}">🗑</button></div>
+    ${e.fromRitual && rit && rit.mision ? `<div class="text-xs muted mt-8">🎯 ${escapeHtml(rit.mision)}${rit.pilar ? " · " + escapeHtml(rit.pilar) : ""}</div>` : ""}
     ${e.texto ? `<div class="mt-8">${escapeHtml(e.texto)}</div>` : ""}
     ${e.gratitud ? `<div class="chip chip--coral mt-8">💛 ${escapeHtml(e.gratitud)}</div>` : ""}
-  </div>`).join("") : '<div class="card"><div class="empty">Escribe tu primera entrada arriba.</div></div>'}`;
+  </div>`;
+  }).join("") : '<div class="card"><div class="empty">Escribe tu primera entrada arriba.</div></div>'}`;
 }
 function moodPick(btn) {
   document.getElementById("di-mood").value = btn.dataset.v;

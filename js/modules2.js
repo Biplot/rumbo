@@ -139,9 +139,12 @@ function saveRitual() {
 }
 
 function openCierreModal() {
-  const r = STATE.ritual.dias[todayISO()];
+  const iso = todayISO();
+  const r = STATE.ritual.dias[iso];
   if (!r || !r.hecho) return toast("Primero abre tu día 🌅", true);
   const c = r.cierre || {};
+  const dEntry = (STATE.vida.diario || []).find(e => e.fecha === iso && e.fromRitual);
+  const moodCur = dEntry ? dEntry.mood : 3;
   const wd = (new Date().getDay() + 6) % 7;
   const sapoTask = (STATE.semana.dias[wd] || []).find(t => t.esSapo);
   const sapoDone = c.sapo !== undefined ? c.sapo : (sapoTask ? sapoTask.done : false);
@@ -149,6 +152,10 @@ function openCierreModal() {
   const segBtn = (grupo, v, label, cur) =>
     `<button type="button" class="${cur === v ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'${grupo}-v')">${label}</button>`;
   openModal("Ritual de cierre", `
+    <div class="field"><label>¿Cómo te sentiste hoy?</label>
+      <div class="row mt-8" id="c-moods" style="gap:8px">
+        ${MOODS.map((m, i) => `<button type="button" class="mood-btn ${i + 1 === moodCur ? "is-on" : ""}" data-v="${i + 1}" onclick="cierreMoodPick(this)">${m}</button>`).join("")}
+      </div><input type="hidden" id="c-mood" value="${moodCur}"></div>
     <div class="field"><label>¿Cumpliste tu misión?</label>
       <div class="seg" id="c-mision">
         ${segBtn("c-mision", "si", "Sí", c.mision || "si")}
@@ -166,7 +173,13 @@ function openCierreModal() {
     <div class="field"><label>Lo mejor del día / gratitud</label><textarea class="input" id="c-mejor" placeholder="¿Qué agradeces de hoy?">${escapeHtml(c.mejor || "")}</textarea></div>
     <div class="field"><label>Una cosa para mañana</label><input class="input" id="c-manana" value="${escapeAttr(c.manana || "")}" placeholder="Se sembrará como tu misión de mañana"></div>
     <div class="field"><label>Nota de cierre (libre)</label><textarea class="input" id="c-nota" placeholder="¿Cómo estuvo el día?">${escapeHtml(c.nota || "")}</textarea></div>
+    <p class="text-xs muted" style="margin:-4px 0 12px">📔 Tu ánimo, esta nota y tu gratitud se guardan en tu <b>Diario de vida</b>.</p>
     <button class="btn btn--primary btn-block" data-action="cierre-save">Cerrar el día (+40 ⭐)</button>`);
+}
+function cierreMoodPick(btn) {
+  document.getElementById("c-mood").value = btn.dataset.v;
+  document.querySelectorAll("#c-moods .mood-btn").forEach(b => b.classList.remove("is-on"));
+  btn.classList.add("is-on");
 }
 function saveCierre() {
   const iso = todayISO();
@@ -180,6 +193,16 @@ function saveCierre() {
     mejor: val("c-mejor"), manana: val("c-manana"), nota: val("c-nota"),
   };
   r.cerrado = true;
+
+  // Conecta el cierre con el Diario de vida: una entrada por día, actualizable
+  const mood = parseNum(document.getElementById("c-mood").value) || 3;
+  STATE.vida.diario = STATE.vida.diario || [];
+  let dEntry = STATE.vida.diario.find(e => e.fecha === iso && e.fromRitual);
+  if (!dEntry) { dEntry = { id: uid(), fecha: iso, fromRitual: true }; STATE.vida.diario.push(dEntry); }
+  dEntry.mood = mood;
+  dEntry.texto = r.cierre.nota || "";
+  dEntry.gratitud = r.cierre.mejor || "";
+
   if (!yaCerrado) addPoints(40);
   saveState(); closeModal(); updateTopbar(); rerender();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();

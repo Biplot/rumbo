@@ -594,6 +594,7 @@ function onClick(e) {
     /* Ritual matutino */
     case "ritual-start": openRitualModal(); break;
     case "ritual-save": saveRitual(); break;
+    case "pilares-info": openPilaresInfo(); break;
 
     /* Bitácora */
     case "bita-toggle": BITA_OPEN[d.iso] = !BITA_OPEN[d.iso]; rerender(); break;

@@ -196,17 +196,12 @@ function renderRecompensas() {
   }).join("");
   const ganadas = g.badges.length;
 
-  // Escalera de rangos (aspiracional)
+  // Escalera de rangos (aspiracional, compacta)
   const escalera = RANGOS.map((r, i) => {
     const estado = i < idx ? "logrado" : (i === idx ? "actual" : "bloqueado");
-    const marca = estado === "logrado" ? "✓" : estado === "actual" ? "Estás aquí" : `${r.min.toLocaleString("es-CL")} XP`;
-    return `<div class="rank-row ${estado === "actual" ? "is-current" : ""} ${estado === "bloqueado" ? "is-locked" : ""}">
-      <span class="rank-ico">${r.icon}</span>
-      <div class="rank-main">
-        <div class="rank-name" style="color:${estado === "bloqueado" ? "var(--text-muted)" : r.color}">${r.nombre}</div>
-        <div class="text-xs muted">${r.min.toLocaleString("es-CL")} XP${i > idx ? ` · faltan ${(r.min - (g.xp || 0)).toLocaleString("es-CL")}` : ""}</div>
-      </div>
-      <span class="rank-mark ${estado}">${marca}</span>
+    return `<div class="rank-pill ${estado}" title="${r.nombre} · ${r.min.toLocaleString("es-CL")} XP">
+      <span class="rank-pill__ico">${r.icon}</span>
+      <div class="rank-pill__txt"><span class="rank-pill__name">${r.nombre}</span><span class="rank-pill__xp">${r.min >= 1000 ? (r.min / 1000) + "k" : r.min} XP</span></div>
     </div>`;
   }).join("");
 

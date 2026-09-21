@@ -125,16 +125,18 @@ a { color: var(--cian); }
 .theme-preview__eye { position: absolute; bottom: 8px; right: 10px; font-size: 11px;
   background: rgba(0,0,0,.45); color: #fff; padding: 2px 8px; border-radius: 999px; }
 
-/* Escalera de rangos (Recompensas) */
-.rank-ladder { display: flex; flex-direction: column; gap: 2px; }
-.rank-row { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 10px; }
-.rank-row.is-current { background: var(--cian-soft); }
-.rank-row.is-locked { opacity: .55; }
-.rank-ico { font-size: 22px; width: 30px; text-align: center; flex-shrink: 0; }
-.rank-main { flex: 1; min-width: 0; }
-.rank-name { font-weight: 600; font-size: 14.5px; }
-.rank-mark { font-size: 12px; font-weight: 600; color: var(--text-muted); flex-shrink: 0; white-space: nowrap; }
-.rank-mark.actual, .rank-mark.logrado { color: var(--cian); }
+/* Escalera de rangos (compacta) */
+.rank-ladder { display: flex; flex-wrap: wrap; gap: 8px; }
+.rank-pill { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--line); }
+.rank-pill__ico { font-size: 18px; line-height: 1; }
+.rank-pill__txt { display: flex; flex-direction: column; line-height: 1.1; }
+.rank-pill__name { font-size: 13px; font-weight: 600; }
+.rank-pill__xp { font-size: 10.5px; color: var(--text-muted); }
+.rank-pill.logrado { opacity: .7; }
+.rank-pill.logrado .rank-pill__ico::after { content: " ✓"; color: var(--cian); font-size: 11px; }
+.rank-pill.actual { background: var(--cian-soft); border-color: var(--cian); }
+.rank-pill.bloqueado { opacity: .5; }
 
 /* Descubrimientos (Tendencias) */
 .insight-card { display: flex; gap: 14px; align-items: center; }

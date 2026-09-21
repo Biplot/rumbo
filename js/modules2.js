@@ -5,6 +5,22 @@
 
 const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const PILARES = ["Psicología", "Fisiología", "Productividad", "Magnetismo", "Presencia", "Propósito"];
+const PILARES_INFO = {
+  "Psicología": { icon: "🧠", desc: "Tu mentalidad y claridad: cómo te hablas, tu actitud y dónde pones el foco mental." },
+  "Fisiología": { icon: "⚡", desc: "Tu energía física: sueño, movimiento, alimentación e hidratación." },
+  "Productividad": { icon: "🎯", desc: "Enfocarte en lo que de verdad mueve la aguja y ejecutarlo, no en lo urgente-trivial." },
+  "Magnetismo": { icon: "🧲", desc: "Cómo te conectas e influyes en otros: tu carisma, generosidad y relaciones." },
+  "Presencia": { icon: "🧘", desc: "Estar plenamente en el momento, sin distracción ni piloto automático." },
+  "Propósito": { icon: "🌟", desc: "Tu porqué: el sentido y la dirección detrás de lo que haces." },
+};
+function openPilaresInfo() {
+  openModal("Los 6 pilares del Alto Rendimiento", `
+    <p class="text-sm muted" style="margin-bottom:14px">Cada vez que abres tu ritual eliges el pilar en el que quieres enfocarte ese día. Con el tiempo ves cuáles cultivas más.</p>
+    ${PILARES.map(p => `<div class="row" style="gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)">
+      <span style="font-size:22px;line-height:1">${PILARES_INFO[p].icon}</span>
+      <div><div class="card__title" style="font-size:14.5px">${p}</div>
+        <div class="text-xs muted mt-8">${PILARES_INFO[p].desc}</div></div></div>`).join("")}`);
+}
 
 /* ============================================================
    RITUAL MATUTINO
@@ -61,7 +77,8 @@ function renderRitual() {
   </div>
 
   <div class="card mt-24">
-    <div class="card__title">Los 6 pilares del Alto Rendimiento</div>
+    <div class="card__head"><div class="card__title">Los 6 pilares del Alto Rendimiento</div>
+      <button class="icon-btn" data-action="pilares-info" title="¿Qué son?" aria-label="Explicación" style="font-size:18px">❔</button></div>
     <div class="mt-16">
       ${PILARES.map(p => {
         const v = STATE.ritual.pilares[p] || 0;

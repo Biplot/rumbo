@@ -120,6 +120,22 @@ a { color: var(--cian); }
 .hamburger { display: none; background: none; border: none; color: var(--text); font-size: 22px; }
 .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(4, 14, 26, 0.55); backdrop-filter: blur(2px); z-index: 55; }
 
+/* Vista previa de temas (Tienda) */
+.theme-preview { position: relative; }
+.theme-preview__eye { position: absolute; bottom: 8px; right: 10px; font-size: 11px;
+  background: rgba(0,0,0,.45); color: #fff; padding: 2px 8px; border-radius: 999px; }
+
+/* Escalera de rangos (Recompensas) */
+.rank-ladder { display: flex; flex-direction: column; gap: 2px; }
+.rank-row { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 10px; }
+.rank-row.is-current { background: var(--cian-soft); }
+.rank-row.is-locked { opacity: .55; }
+.rank-ico { font-size: 22px; width: 30px; text-align: center; flex-shrink: 0; }
+.rank-main { flex: 1; min-width: 0; }
+.rank-name { font-weight: 600; font-size: 14.5px; }
+.rank-mark { font-size: 12px; font-weight: 600; color: var(--text-muted); flex-shrink: 0; white-space: nowrap; }
+.rank-mark.actual, .rank-mark.logrado { color: var(--cian); }
+
 /* Descubrimientos (Tendencias) */
 .insight-card { display: flex; gap: 14px; align-items: center; }
 .insight-ico { font-size: 30px; line-height: 1; flex-shrink: 0; }

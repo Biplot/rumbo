@@ -31,9 +31,9 @@ const ROUTES = [
   { id: "aprendizajes", label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
   { id: "notas", label: "Anotaciones", icon: "📝", render: renderNotas, subtitle: "Tus categorías y notas." },
   { grupo: "Personalización" },
+  { id: "tienda", label: "Tienda", icon: "🛒", render: renderTienda, subtitle: "Desbloquea temas, títulos y detalles con tus ⭐." },
   { id: "cuenta", label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
   { id: "notif", label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
-  { id: "temas", label: "Temas", icon: "🎨", render: renderTemas, subtitle: "Cambia el estilo de la app (misma marca, otro concepto)." },
 ];
 const ROUTE_MAP = {};
 ROUTES.forEach(r => { if (r.id) ROUTE_MAP[r.id] = r; });
@@ -627,10 +627,11 @@ function onClick(e) {
       dia.bloques = dia.bloques.filter(b => b.id !== d.id); saveState(); rerender(); break;
     }
 
-    /* Temas */
+    /* Tienda · temas */
+    case "tema-preview": openThemePreview(d.theme); break;
     case "set-theme": {
       if (!themeOwned(d.theme)) break;
-      STATE.settings.theme = d.theme; saveState(); applyTheme(d.theme); rerender();
+      STATE.settings.theme = d.theme; saveState(); applyTheme(d.theme); closeModal(); rerender();
       toast("Tema aplicado: " + (THEMES.find(t => t.id === d.theme) || {}).nombre);
       break;
     }
@@ -638,9 +639,10 @@ function onClick(e) {
       const th = THEMES.find(t => t.id === d.theme) || {};
       if (themeOwned(d.theme)) break;
       if (STATE.gamif.puntos < th.costo) { toast("Te faltan " + (th.costo - STATE.gamif.puntos) + " ⭐", true); break; }
+      if (!confirm(`¿Desbloquear el tema "${th.nombre}" por ${th.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - th.costo} ⭐.`)) break;
       STATE.gamif.puntos -= th.costo; STATE.gamif.owned.push("tema-" + d.theme);
-      STATE.settings.theme = d.theme; saveState(); applyTheme(d.theme); updateTopbar(); rerender();
-      toast("🛍️ Tema " + th.nombre + " desbloqueado");
+      STATE.settings.theme = d.theme; saveState(); applyTheme(d.theme); updateTopbar(); closeModal(); rerender();
+      toast("🛍️ Tema " + th.nombre + " desbloqueado y aplicado");
       break;
     }
 
@@ -731,32 +733,84 @@ const THEMES = [
     bg: "#F3EEE3", card: "#FBF8F1", accent: "#17877A", cta: "#E0603A", text: "#2E2A22", font: "'Space Grotesk',sans-serif", radius: "10px" },
 ];
 
-function renderTemas() {
+function renderTienda() {
   const actual = STATE.settings.theme;
+  const saldo = STATE.gamif.puntos;
+
+  const themeCards = THEMES.map(t => {
+    const active = t.id === actual;
+    const owned = themeOwned(t.id);
+    let badge;
+    if (active) badge = '<span class="chip chip--cian">✓ Activo</span>';
+    else if (owned) badge = '<span class="chip">Desbloqueado</span>';
+    else badge = `<span class="chip chip--coral">🔒 ${t.costo} ⭐</span>`;
+    const mainAction = owned
+      ? `<button class="btn ${active ? "btn--soft" : "btn--cian"} btn-block mt-8" data-action="set-theme" data-theme="${t.id}">${active ? "✓ Aplicado" : "Aplicar"}</button>`
+      : `<button class="btn btn--primary btn-block mt-8" data-action="tema-buy" data-theme="${t.id}">Desbloquear · ${t.costo} ⭐</button>`;
+    return `<div class="card theme-card ${active ? "is-active" : ""}">
+      <button class="theme-preview" data-action="tema-preview" data-theme="${t.id}" style="background:${t.bg};width:100%;border:none;cursor:pointer;${owned ? "" : "opacity:.9"}">
+        <div class="theme-preview__card" style="background:${t.card};border-radius:${t.radius};color:${t.text};font-family:${t.font}">Aa</div>
+        <div class="theme-preview__btn" style="background:${t.cta};border-radius:${t.radius}"></div>
+        <span class="theme-preview__dot" style="background:${t.accent}"></span>
+        <span class="theme-preview__eye">👁 Vista previa</span>
+      </button>
+      <div class="flex-between mt-16"><div class="card__title">${t.nombre}</div>${badge}</div>
+      <div class="text-xs muted mt-8">${t.concepto}</div>
+      ${mainAction}
+    </div>`;
+  }).join("");
+
   return `
-  <p class="soft" style="max-width:660px">Elige el estilo de tu app. Todos mantienen la <strong>línea de marca BiPlot</strong>; lo que cambia es el <em>concepto</em>. Los que tienen 🔒 se desbloquean con tus ⭐ (saldo: <strong class="hl-coral">${STATE.gamif.puntos} ⭐</strong>).</p>
-  <div class="grid grid-3 mt-24">
-    ${THEMES.map(t => {
-      const active = t.id === actual;
-      const owned = themeOwned(t.id);
-      const action = owned ? "set-theme" : "tema-buy";
-      let badge;
-      if (active) badge = '<span class="chip chip--cian">✓ Activo</span>';
-      else if (owned) badge = '<span class="chip">Usar</span>';
-      else badge = `<span class="chip chip--coral">🔒 ${t.costo} ⭐</span>`;
-      return `<button class="card theme-card ${active ? "is-active" : ""}" data-action="${action}" data-theme="${t.id}">
-        <div class="theme-preview" style="background:${t.bg};${owned ? "" : "opacity:.85"}">
-          <div class="theme-preview__card" style="background:${t.card};border-radius:${t.radius};color:${t.text};font-family:${t.font}">Aa</div>
-          <div class="theme-preview__btn" style="background:${t.cta};border-radius:${t.radius}"></div>
-          <span class="theme-preview__dot" style="background:${t.accent}"></span>
-          ${owned ? "" : '<span style="position:absolute;bottom:10px;right:12px;font-size:20px">🔒</span>'}
-        </div>
-        <div class="flex-between mt-16"><div class="card__title">${t.nombre}</div>${badge}</div>
-        <div class="text-xs muted mt-8">${t.concepto}</div>
-      </button>`;
-    }).join("")}
+  <div class="card">
+    <div class="flex-between" style="flex-wrap:wrap;gap:10px">
+      <div><div class="card__title">🛒 Tienda</div>
+        <div class="text-sm muted mt-8">Gasta tus ⭐ en personalizar tu app. Todo mantiene la línea de marca BiPlot.</div></div>
+      <div class="pill pill--pts" style="font-size:16px">⭐ ${saldo}</div>
+    </div>
   </div>
-  <p class="text-xs muted mt-24">Ganas ⭐ usando la app (cerrar el día, hábitos, rituales…). Consíguelos y desbloquea skins.</p>`;
+
+  <div class="section-title">🎨 Temas <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· toca la miniatura para la vista previa</span></div>
+  <div class="grid grid-3">${themeCards}</div>
+
+  <div class="section-title">🏷️ Títulos <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· aparecen junto a tu nombre en Inicio</span></div>
+  <div class="grid grid-4">${TITULOS.map(cosmeticCard).join("")}</div>
+
+  <div class="section-title">✨ Detalles</div>
+  <div class="grid grid-4">${DETALLES.map(cosmeticCard).join("")}</div>
+
+  <p class="text-xs muted mt-24">Ganas ⭐ usando la app (cerrar el día, hábitos, rituales…).</p>`;
+}
+
+function openThemePreview(themeId) {
+  const t = THEMES.find(x => x.id === themeId); if (!t) return;
+  const owned = themeOwned(t.id);
+  const active = STATE.settings.theme === t.id;
+  const mock = `
+    <div style="background:${t.bg};border-radius:14px;padding:14px;font-family:${t.font};color:${t.text}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-weight:700;font-size:15px">Rumbo</div>
+        <div style="background:${t.card};border-radius:${t.radius};padding:4px 10px;font-size:11px">⭐ 320</div>
+      </div>
+      <div style="background:${t.card};border-radius:${t.radius};padding:14px;margin-bottom:10px">
+        <div style="font-size:11px;opacity:.7">Ahorro del mes</div>
+        <div style="font-size:24px;font-weight:700">$540.000</div>
+        <div style="height:8px;background:rgba(128,128,128,.25);border-radius:99px;margin-top:8px;overflow:hidden"><div style="width:66%;height:100%;background:${t.accent};border-radius:99px"></div></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="background:${t.accent};color:${t.bg};border-radius:${t.radius};padding:4px 10px;font-size:11px;font-weight:600">🎯 Misión</span>
+        <span style="background:${t.card};border-radius:${t.radius};padding:4px 10px;font-size:11px">🐸 SAPO</span>
+        <button style="margin-left:auto;background:${t.cta};color:#fff;border:none;border-radius:${t.radius};padding:8px 16px;font-size:12px;font-weight:700;font-family:${t.font}">Abre tu día</button>
+      </div>
+    </div>`;
+  const cta = active
+    ? `<button class="btn btn--soft btn-block" data-action="close-modal">Ya es tu tema actual</button>`
+    : owned
+      ? `<button class="btn btn--cian btn-block" data-action="set-theme" data-theme="${t.id}">Aplicar este tema</button>`
+      : `<button class="btn btn--primary btn-block" data-action="tema-buy" data-theme="${t.id}">Desbloquear · ${t.costo} ⭐</button>`;
+  openModal("Vista previa · " + t.nombre, `
+    <p class="text-sm muted" style="margin-bottom:14px">${escapeHtml(t.concepto)}</p>
+    ${mock}
+    <div class="mt-16">${cta}</div>`);
 }
 
 function toggleBloque(diaId, bloqueId) {

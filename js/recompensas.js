@@ -93,10 +93,24 @@ function isOwned(id) { return (STATE.gamif.owned || []).includes(id); }
 function buyItem(id) {
   const it = findCosmetic(id); if (!it || isOwned(id)) return;
   if (STATE.gamif.puntos < it.costo) return toast("Te faltan " + (it.costo - STATE.gamif.puntos) + " ⭐", true);
+  if (!confirm(`¿Comprar "${it.nombre}" por ${it.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - it.costo} ⭐.`)) return;
   STATE.gamif.puntos -= it.costo;
   STATE.gamif.owned.push(id);
   saveState(); updateTopbar(); rerender();
   toast("🛍️ " + it.nombre + " desbloqueado");
+}
+
+/* Tarjeta de cosmético (usada en la Tienda) */
+function cosmeticCard(it) {
+  const owned = isOwned(it.id), eq = isEquipped(it);
+  return `<div class="card">
+    <div class="row" style="gap:10px"><span style="font-size:24px">${it.icon}</span>
+      <div style="flex:1"><div class="card__title" style="font-size:14px">${it.nombre}</div>
+        <div class="text-xs muted">${owned ? "Desbloqueado" : it.costo + " ⭐"}</div></div></div>
+    <div class="mt-8">${owned
+      ? `<button class="btn ${eq ? "btn--soft" : "btn--cian"} btn-block" data-action="cos-equip" data-id="${it.id}">${eq ? "✓ Equipado — quitar" : "Equipar"}</button>`
+      : `<button class="btn btn--primary btn-block" data-action="cos-buy" data-id="${it.id}">Comprar · ${it.costo} ⭐</button>`}</div>
+  </div>`;
 }
 function equipItem(id) {
   const it = findCosmetic(id); if (!it || !isOwned(id)) return;
@@ -182,40 +196,36 @@ function renderRecompensas() {
   }).join("");
   const ganadas = g.badges.length;
 
-  // Tienda: títulos + detalles
-  const storeItem = it => {
-    const owned = isOwned(it.id), eq = isEquipped(it);
-    return `<div class="card">
-      <div class="row" style="gap:10px"><span style="font-size:24px">${it.icon}</span>
-        <div style="flex:1"><div class="card__title" style="font-size:14px">${it.nombre}</div>
-          <div class="text-xs muted">${owned ? "Desbloqueado" : it.costo + " ⭐"}</div></div></div>
-      <div class="mt-8">${owned
-        ? `<button class="btn ${eq ? "btn--soft" : "btn--cian"} btn-block" data-action="cos-equip" data-id="${it.id}">${eq ? "✓ Equipado — quitar" : "Equipar"}</button>`
-        : `<button class="btn btn--primary btn-block" data-action="cos-buy" data-id="${it.id}">Comprar</button>`}</div>
+  // Escalera de rangos (aspiracional)
+  const escalera = RANGOS.map((r, i) => {
+    const estado = i < idx ? "logrado" : (i === idx ? "actual" : "bloqueado");
+    const marca = estado === "logrado" ? "✓" : estado === "actual" ? "Estás aquí" : `${r.min.toLocaleString("es-CL")} XP`;
+    return `<div class="rank-row ${estado === "actual" ? "is-current" : ""} ${estado === "bloqueado" ? "is-locked" : ""}">
+      <span class="rank-ico">${r.icon}</span>
+      <div class="rank-main">
+        <div class="rank-name" style="color:${estado === "bloqueado" ? "var(--text-muted)" : r.color}">${r.nombre}</div>
+        <div class="text-xs muted">${r.min.toLocaleString("es-CL")} XP${i > idx ? ` · faltan ${(r.min - (g.xp || 0)).toLocaleString("es-CL")}` : ""}</div>
+      </div>
+      <span class="rank-mark ${estado}">${marca}</span>
     </div>`;
-  };
+  }).join("");
 
   return `
   ${heroRank}
 
+  <div class="section-title">🏔️ Escalera de rangos</div>
+  <div class="card"><div class="rank-ladder">${escalera}</div></div>
+
   <div class="flex-between mt-24"><div class="section-title" style="margin:0">🏅 Insignias · ${ganadas}/${BADGES.length}</div></div>
   <div class="grid grid-auto mt-16">${badges}</div>
 
-  <div class="section-title">🎨 Tienda · Temas y skins</div>
-  <div class="card">
+  <div class="card mt-24">
     <div class="flex-between" style="flex-wrap:wrap;gap:10px">
-      <div><div class="card__title">Desbloquea temas con tus ⭐</div>
-        <div class="text-sm muted mt-8">8-Bit, Terminal, Neón, Matrix y Papel te esperan en la galería de temas.</div></div>
-      <a class="btn btn--cian" href="#temas">Ir a Temas →</a>
+      <div><div class="card__title">🛒 ¿Quieres gastar tus ⭐?</div>
+        <div class="text-sm muted mt-8">Desbloquea temas, títulos y detalles en la Tienda.</div></div>
+      <a class="btn btn--cian" href="#tienda">Ir a la Tienda →</a>
     </div>
-  </div>
-
-  <div class="section-title">🏷️ Tienda · Títulos equipables</div>
-  <div class="text-xs muted" style="margin:-6px 0 12px">Aparecen junto a tu nombre en Inicio.</div>
-  <div class="grid grid-4">${TITULOS.map(storeItem).join("")}</div>
-
-  <div class="section-title">✨ Tienda · Detalles</div>
-  <div class="grid grid-4">${DETALLES.map(storeItem).join("")}</div>`;
+  </div>`;
 }
 
 /* Helpers para mostrar lo equipado en Inicio */

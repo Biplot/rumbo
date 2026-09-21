@@ -94,6 +94,50 @@ function renderTendencias() {
   const libros = S.lecturas.filter(l => l.estado === "terminado").length;
   const deTot = S.salud.meses.reduce((a, m) => a + (m.diasEntren || 0), 0);
 
+  /* Estado de ánimo por mes (desde el Diario de vida) */
+  const diario = S.vida.diario || [];
+  const moodByMonth = MESES.map((_, m) => {
+    const es = diario.filter(e => {
+      if (!e.mood || !e.fecha) return false;
+      const d = new Date(e.fecha + "T00:00:00");
+      return d.getFullYear() === S.settings.year && d.getMonth() === m;
+    });
+    return es.length ? +(es.reduce((a, e) => a + e.mood, 0) / es.length).toFixed(1) : null;
+  });
+
+  /* Resumen de los últimos 7 días */
+  const hoy = new Date();
+  const semanaISO = [];
+  for (let i = 6; i >= 0; i--) { const d = new Date(hoy); d.setDate(hoy.getDate() - i); semanaISO.push(isoLocal(d)); }
+  const setSemana = new Set(semanaISO);
+  const moodsSem = diario.filter(e => e.mood && setSemana.has(e.fecha)).map(e => e.mood);
+  const moodAvgSem = moodsSem.length ? moodsSem.reduce((a, b) => a + b, 0) / moodsSem.length : null;
+  const moodEmojiSem = moodAvgSem != null ? MOODS[Math.round(moodAvgSem) - 1] : "—";
+  const cerradosSem = semanaISO.filter(iso => S.ritual.dias[iso] && S.ritual.dias[iso].cerrado).length;
+  let habMarc = 0, habPos = 0;
+  semanaISO.forEach(iso => {
+    const d = new Date(iso + "T00:00:00");
+    S.habitos.defs.forEach(h => { habPos++; if (habitDone(h.id, d.getMonth(), d.getDate())) habMarc++; });
+  });
+  const habPctSem = habPos ? Math.round((habMarc / habPos) * 100) : 0;
+  const tareasSem = (S.semana.dias || []).flat();
+  const tareasDoneSem = tareasSem.filter(t => t.done).length;
+  const gratisSem = diario.filter(e => e.gratitud && setSemana.has(e.fecha));
+
+  const resumenSemana = `
+  <div class="section-title">Resumen de la semana</div>
+  <div class="card">
+    <div class="grid grid-4">
+      <div class="stat"><div class="stat__label">😊 Ánimo</div><div class="stat__value">${moodEmojiSem} <small>${moodAvgSem != null ? moodAvgSem.toFixed(1) : "—"}</small></div></div>
+      <div class="stat"><div class="stat__label">🌙 Días cerrados</div><div class="stat__value">${cerradosSem}<small>/7</small></div></div>
+      <div class="stat"><div class="stat__label">📊 Hábitos</div><div class="stat__value">${habPctSem}%</div></div>
+      <div class="stat"><div class="stat__label">📋 Tareas hechas</div><div class="stat__value">${tareasDoneSem}<small>/${tareasSem.length}</small></div></div>
+    </div>
+    ${gratisSem.length ? `<div class="divider"></div>
+      <div class="text-xs muted" style="margin-bottom:8px">💛 Gratitudes de la semana</div>
+      <div class="row-wrap" style="gap:8px">${gratisSem.map(e => `<span class="chip chip--coral">${escapeHtml(e.gratitud)}</span>`).join("")}</div>` : ""}
+  </div>`;
+
   return `
   <div class="grid grid-4">
     ${statCard("💰", "Ahorro acumulado", fmtCLP(ahorroAcum), "Meta " + fmtCLP(S.finanzas.metaAnual), pctAnual)}
@@ -101,6 +145,8 @@ function renderTendencias() {
     ${statCard("🏋️", "Días entrenados", deTot, "en el año")}
     ${statCard("🔥", "Racha de días", computeClosedStreak() + " días", "cerrados seguidos")}
   </div>
+
+  ${resumenSemana}
 
   <div class="section-title">Tu evolución ${S.settings.year}</div>
   <div class="grid grid-2">
@@ -122,6 +168,10 @@ function renderTendencias() {
       <div class="card__head"><div class="card__title">🧭 Rueda de la vida</div><span class="card__hint">promedio mensual</span></div>
       ${svgLine(ruedaAvg, { color: "var(--cian)", fmt: v => v })}
     </div>
+  </div>
+  <div class="card mt-24">
+    <div class="card__head"><div class="card__title">😊 Estado de ánimo por mes</div><span class="card__hint">promedio 1–5 · desde tu Diario</span></div>
+    ${svgLine(moodByMonth, { color: "var(--coral)", fmt: v => v })}
   </div>
   <p class="text-xs muted mt-24">Los datos incluyen ejemplos precargados para que veas el panel funcionando. Edítalos o bórralos cuando quieras desde cada módulo.</p>`;
 }

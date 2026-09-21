@@ -61,6 +61,18 @@ const LocalBackend = {
     try { localStorage.setItem("rumbo_cloud_" + uid, JSON.stringify(state)); } catch {}
   },
   async resetPassword() { return { ok: true }; },
+  async updatePassword(newPass) {
+    const id = localStorage.getItem("rumbo_session"); if (!id) return { error: "No hay sesión." };
+    const users = this._users(); if (users[id]) { users[id].pass = _hash(newPass); this._saveUsers(users); }
+    return { ok: true };
+  },
+  async deleteAccount() {
+    const id = localStorage.getItem("rumbo_session"); if (!id) return { error: "No hay sesión." };
+    const users = this._users(); delete users[id]; this._saveUsers(users);
+    try { localStorage.removeItem("rumbo_cloud_" + id); localStorage.removeItem("rumbo_state_" + id); } catch {}
+    localStorage.removeItem("rumbo_session");
+    return { ok: true };
+  },
 };
 
 /* ============================================================
@@ -253,6 +265,17 @@ const SupabaseBackend = {
   async resetPassword(email) {
     const { error } = await this._client().auth.resetPasswordForEmail((email || "").trim().toLowerCase());
     return error ? { error: _traducir(error.message) } : { ok: true };
+  },
+  async updatePassword(newPass) {
+    const { error } = await this._client().auth.updateUser({ password: newPass });
+    return error ? { error: _traducir(error.message) } : { ok: true };
+  },
+  async deleteAccount() {
+    const { error } = await this._client().rpc("delete_user");
+    if (error) return { error: _traducir(error.message) };
+    this._ver = {};
+    await this._client().auth.signOut();
+    return { ok: true };
   },
 };
 

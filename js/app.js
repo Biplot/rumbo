@@ -31,6 +31,7 @@ const ROUTES = [
   { id: "aprendizajes", label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
   { id: "notas", label: "Anotaciones", icon: "📝", render: renderNotas, subtitle: "Tus categorías y notas." },
   { grupo: "Personalización" },
+  { id: "cuenta", label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
   { id: "notif", label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
   { id: "temas", label: "Temas", icon: "🎨", render: renderTemas, subtitle: "Cambia el estilo de la app (misma marca, otro concepto)." },
 ];
@@ -478,8 +479,12 @@ function onClick(e) {
     case "auth-login": doLogin(); break;
     case "auth-register": doRegister(); break;
     case "auth-forgot": doForgot(); break;
-    case "auth-google": toast("Google se activa al conectar Supabase 🙂"); break;
     case "logout": if (confirm("¿Cerrar sesión?")) doLogout(); break;
+
+    /* Cuenta */
+    case "acc-change-pass": doChangePass(); break;
+    case "acc-import": { const el = document.getElementById("acc-file"); if (el) el.click(); break; }
+    case "acc-delete": doDeleteAccount(); break;
 
     /* Metas */
     case "meta-add": {
@@ -992,6 +997,80 @@ function saveProfile() {
   document.getElementById("brandName").innerHTML = STATE.settings.appName.replace("i", "<em>i</em>");
   document.title = STATE.settings.appName + " · Tu vida en un solo lugar";
   saveState(); closeModal(); rerender(); toast("Perfil actualizado");
+}
+
+/* ============================================================
+   CUENTA · seguridad, datos y sesión
+   ============================================================ */
+function renderCuenta() {
+  const email = (CURRENT_USER && CURRENT_USER.email) || "";
+  return `
+  <div class="card">
+    <div class="card__title">👤 Tu cuenta</div>
+    <div class="mt-8 text-sm soft">Sesión iniciada como <b>${escapeHtml(email)}</b></div>
+  </div>
+
+  <div class="card mt-16">
+    <div class="card__title" style="font-size:15px">🔑 Contraseña</div>
+    <div class="field mt-16"><label>Nueva contraseña</label>
+      <input class="input" type="password" id="acc-pass" placeholder="Mínimo 6 caracteres"></div>
+    <button class="btn btn--primary btn-block" data-action="acc-change-pass">Actualizar contraseña</button>
+  </div>
+
+  <div class="card mt-16">
+    <div class="card__title" style="font-size:15px">💾 Tus datos</div>
+    <p class="soft mt-8 text-sm">Descarga una copia de todo, o restaura desde un respaldo.</p>
+    <div class="row-wrap mt-16">
+      <button class="btn btn--soft" data-action="export">⭳ Respaldar (descargar)</button>
+      <button class="btn btn--soft" data-action="acc-import">⭱ Importar respaldo</button>
+    </div>
+    <input type="file" id="acc-file" accept="application/json,.json" hidden onchange="importBackup(this)">
+  </div>
+
+  <div class="card mt-16" style="border-color:rgba(255,107,74,.35)">
+    <div class="card__title" style="font-size:15px">⚠️ Zona sensible</div>
+    <div class="row-wrap mt-16">
+      <button class="btn-ghost" data-action="reset-data" style="color:var(--coral);border-color:rgba(255,107,74,.4)">🗑 Reiniciar mis datos</button>
+      <button class="btn-ghost" data-action="acc-delete" style="color:var(--coral);border-color:rgba(255,107,74,.4)">✕ Eliminar mi cuenta</button>
+    </div>
+    <p class="text-xs muted mt-8">Reiniciar borra tus datos pero conserva tu cuenta. Eliminar borra todo y cierra tu cuenta para siempre.</p>
+  </div>`;
+}
+
+async function doChangePass() {
+  const p = document.getElementById("acc-pass").value;
+  if (!p || p.length < 6) return toast("Mínimo 6 caracteres", true);
+  const res = await BACKEND.updatePassword(p);
+  if (res.error) return toast(res.error, true);
+  document.getElementById("acc-pass").value = "";
+  toast("Contraseña actualizada ✅");
+}
+
+function importBackup(input) {
+  const f = input.files && input.files[0];
+  input.value = "";
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try { data = JSON.parse(reader.result); } catch (e) { return toast("El archivo no es un respaldo válido", true); }
+    if (!data || typeof data !== "object" || !data.settings || !data.profile) return toast("Ese archivo no parece un respaldo de Rumbo", true);
+    if (!confirm("Esto REEMPLAZARÁ tus datos actuales con los del respaldo. ¿Continuar?")) return;
+    STATE = migrate(data);
+    applyTheme(STATE.settings.theme); applyCosmetics();
+    saveState(); updateTopbar(); rerender();
+    toast("Datos importados ✅");
+  };
+  reader.readAsText(f);
+}
+
+async function doDeleteAccount() {
+  if (!confirm("¿Eliminar tu cuenta y TODOS tus datos para siempre? Esto no se puede deshacer.")) return;
+  if (!confirm("Última confirmación: se borrará todo y no podrás recuperarlo. ¿Seguro?")) return;
+  const res = await BACKEND.deleteAccount();
+  if (res.error) return toast(res.error, true);
+  CURRENT_USER = null; STATE = null; location.hash = "";
+  showAuth(); toast("Cuenta eliminada");
 }
 
 /* ============================================================

@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=23" />
+  <link rel="stylesheet" href="css/styles.css?v=24" />
 </head>
 <body>
   <!-- PORTAL DE USUARIOS -->
@@ -39,9 +39,6 @@
         <button class="auth__tab is-active" id="tab-login" data-action="auth-tab" data-tab="login">Iniciar sesión</button>
         <button class="auth__tab" id="tab-register" data-action="auth-tab" data-tab="register">Crear cuenta</button>
       </div>
-
-      <button class="btn btn--soft btn-block" data-action="auth-google">Continuar con Google</button>
-      <div class="auth__sep">o con tu correo</div>
 
       <div id="auth-error" class="auth__error" hidden></div>
 
@@ -138,15 +135,15 @@
   <div class="toast" id="toast" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/store.js?v=22"></script>
-  <script src="js/state.js?v=22"></script>
-  <script src="js/modules.js?v=22"></script>
-  <script src="js/modules2.js?v=22"></script>
-  <script src="js/tendencias.js?v=22"></script>
-  <script src="js/recompensas.js?v=22"></script>
-  <script src="js/vida.js?v=23"></script>
-  <script src="js/notifs.js?v=23"></script>
-  <script src="js/app.js?v=23"></script>
+  <script src="js/store.js?v=24"></script>
+  <script src="js/state.js?v=24"></script>
+  <script src="js/modules.js?v=24"></script>
+  <script src="js/modules2.js?v=24"></script>
+  <script src="js/tendencias.js?v=24"></script>
+  <script src="js/recompensas.js?v=24"></script>
+  <script src="js/vida.js?v=24"></script>
+  <script src="js/notifs.js?v=24"></script>
+  <script src="js/app.js?v=24"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));

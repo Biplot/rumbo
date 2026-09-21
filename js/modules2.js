@@ -187,6 +187,82 @@ function saveCierre() {
 }
 
 /* ============================================================
+   BITÁCORA · historial de rituales (estilo bullet journal)
+   ============================================================ */
+let BITA_OPEN = {};
+
+function bitaCard(iso, r) {
+  const d = new Date(iso + "T00:00:00");
+  const dow = DIAS_SEMANA[(d.getDay() + 6) % 7].slice(0, 3);
+  const fecha = `${dow} ${d.getDate()} · ${MESES_CORTO[d.getMonth()]}`;
+  const c = r.cierre || {};
+  const estadoChip = r.cerrado
+    ? `<span class="chip chip--done">🌙 Cerrado</span>`
+    : `<span class="chip chip--coral">🌅 Abierto</span>`;
+  const energia = r.cerrado ? `${r.energia || "—"} → ${c.energia || "—"}` : `${r.energia || "—"}`;
+  const hayExtras = c.mejor || c.nota || c.manana || r.servir || (r.proyectos && r.proyectos.length);
+  const open = !!BITA_OPEN[iso];
+  const dash = "<span class='muted'>—</span>";
+  return `<div class="card bita-day">
+    <div class="bita-day__head"><div class="bita-date">${fecha}</div>${estadoChip}</div>
+    <div class="bita-row"><span class="bita-k">🎯 Misión</span>
+      <span class="bita-v">${r.mision ? escapeHtml(r.mision) : dash} ${r.cerrado ? cumpliChip(c.mision) : ""}</span></div>
+    <div class="bita-row"><span class="bita-k">🐸 SAPO</span>
+      <span class="bita-v">${r.sapo ? escapeHtml(r.sapo) : dash} ${r.cerrado ? (c.sapo ? "<span class='chip chip--done'>hecho</span>" : "<span class='chip'>pendiente</span>") : ""}</span></div>
+    <div class="bita-row"><span class="bita-k">⚡ Energía</span>
+      <span class="bita-v">${energia} <span class="muted text-xs">/ 5</span> ${r.pilar ? `<span class="chip chip--cian">${escapeHtml(r.pilar)}</span>` : ""}</span></div>
+    ${open ? `
+      ${c.mejor ? `<div class="bita-row"><span class="bita-k">🙏 Gratitud</span><span class="bita-v">${escapeHtml(c.mejor)}</span></div>` : ""}
+      ${c.nota ? `<div class="bita-row"><span class="bita-k">📝 Nota</span><span class="bita-v">${escapeHtml(c.nota)}</span></div>` : ""}
+      ${c.manana ? `<div class="bita-row"><span class="bita-k">🌱 Para mañana</span><span class="bita-v">${escapeHtml(c.manana)}</span></div>` : ""}
+      ${r.servir ? `<div class="bita-row"><span class="bita-k">🙌 Serví a</span><span class="bita-v">${escapeHtml(r.servir)}</span></div>` : ""}
+      ${r.proyectos && r.proyectos.length ? `<div class="bita-row"><span class="bita-k">📂 Proyectos</span><span class="bita-v">${r.proyectos.map(p => `<span class="chip">${escapeHtml(p)}</span>`).join(" ")}</span></div>` : ""}
+    ` : ""}
+    ${hayExtras ? `<button class="bita-more" data-action="bita-toggle" data-iso="${iso}">${open ? "▲ Ver menos" : "▼ Ver más"}</button>` : ""}
+  </div>`;
+}
+
+function renderBitacora() {
+  const dias = STATE.ritual.dias || {};
+  const entries = Object.entries(dias)
+    .filter(([, r]) => r && r.hecho)
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1)); // más reciente arriba
+
+  const total = entries.length;
+  const cerrados = entries.filter(([, r]) => r.cerrado).length;
+
+  const header = `
+  <div class="grid grid-3">
+    <div class="card stat"><div class="stat__label">📓 Días registrados</div><div class="stat__value">${total}</div></div>
+    <div class="card stat"><div class="stat__label">🌙 Días cerrados</div><div class="stat__value">${cerrados}</div></div>
+    <div class="card stat"><div class="stat__label">🔥 Racha actual</div><div class="stat__value">${computeClosedStreak()}</div></div>
+  </div>`;
+
+  if (!total) {
+    return header + `<div class="mt-24"><div class="card"><div class="empty">
+      Tu bitácora está vacía por ahora.<br>Abre y cierra tu día en el <b>Ritual Matutino</b> y cada jornada quedará guardada aquí 📓
+      <div class="mt-16"><button class="btn btn--primary" data-action="day-open">🌅 Abrir mi día</button></div>
+    </div></div></div>`;
+  }
+
+  // Agrupar por mes (respetando el orden descendente)
+  const groups = []; const idx = {};
+  entries.forEach(e => {
+    const d = new Date(e[0] + "T00:00:00");
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if (idx[key] === undefined) { idx[key] = groups.length; groups.push({ y: d.getFullYear(), m: d.getMonth(), items: [] }); }
+    groups[idx[key]].items.push(e);
+  });
+
+  const body = groups.map(g =>
+    `<div class="section-title">${MESES[g.m]} ${g.y}</div>
+     <div class="bita-list">${g.items.map(([iso, r]) => bitaCard(iso, r)).join("")}</div>`
+  ).join("");
+
+  return header + `<div class="mt-24">${body}</div>`;
+}
+
+/* ============================================================
    PLANIFICADOR SEMANAL
    ============================================================ */
 function renderSemana() {

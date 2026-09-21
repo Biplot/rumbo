@@ -7,6 +7,7 @@ const ROUTES = [
   { grupo: "Principal" },
   { id: "inicio", label: "Inicio", icon: "🏠", render: renderInicio, subtitle: "Tu centro de control diario." },
   { id: "ritual", label: "Ritual Matutino", icon: "🌅", render: renderRitual, subtitle: "Empieza el día con intención y foco." },
+  { id: "bitacora", label: "Bitácora", icon: "📓", render: renderBitacora, subtitle: "Tu historial de rituales, día a día." },
   { grupo: "Análisis" },
   { id: "tendencias", label: "Tendencias", icon: "📈", render: renderTendencias, subtitle: "Tu evolución del año en gráficos." },
   { id: "recompensas", label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus insignias y la tienda de cosméticos." },
@@ -395,6 +396,9 @@ function onClick(e) {
     /* Ritual matutino */
     case "ritual-start": openRitualModal(); break;
     case "ritual-save": saveRitual(); break;
+
+    /* Bitácora */
+    case "bita-toggle": BITA_OPEN[d.iso] = !BITA_OPEN[d.iso]; rerender(); break;
 
     /* Planificador semanal */
     case "sem-add": {

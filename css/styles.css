@@ -351,6 +351,19 @@ textarea.input { resize: vertical; min-height: 84px; }
 .swatch:hover { transform: scale(1.08); }
 .swatch.is-on { border-color: var(--text); box-shadow: 0 0 0 2px var(--surface); }
 
+/* ============================================================
+   BITÁCORA · historial de rituales
+   ============================================================ */
+.bita-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+.bita-day { padding: 16px 18px; }
+.bita-day__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.bita-date { font-weight: 700; font-size: 14.5px; letter-spacing: -0.01em; }
+.bita-row { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; align-items: baseline; }
+.bita-k { color: var(--text-muted); min-width: 92px; flex-shrink: 0; }
+.bita-v { flex: 1; min-width: 0; word-break: break-word; }
+.bita-more { background: none; border: none; color: var(--cian); font-size: 12.5px; font-weight: 600; margin-top: 8px; padding: 4px 0; }
+.bita-more:hover { filter: brightness(1.15); }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
@@ -400,6 +413,12 @@ textarea.input { resize: vertical; min-height: 84px; }
   .lect-add { min-height: 68px; font-size: 13px; }
   .lect-page { width: 68px; }
   .lect-now__title { font-size: 14px; }
+
+  /* Bitácora en móvil: una columna, etiquetas más angostas */
+  .bita-list { grid-template-columns: 1fr; gap: 10px; }
+  .bita-day { padding: 13px 14px; }
+  .bita-k { min-width: 78px; }
+  .bita-row { font-size: 13px; }
 }
 .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 55; }
 .backdrop[hidden] { display: none; }

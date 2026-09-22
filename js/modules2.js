@@ -65,7 +65,7 @@ function renderRitual() {
     <div class="pill pill--streak">🔥 Racha de ritual: ${computeRitualStreak()} días</div>
     <div class="pill pill--pts">🏆 ${logros} rituales completados</div>
   </div>
-  <div class="mt-16">${banner}</div>
+  <div class="mt-16">${renderPendingYesterday()}${banner}</div>
 
   <div class="grid grid-3 mt-24">
     ${box("Misión de hoy", r && escapeHtml(r.mision), "Todavía no defines tu misión.")}
@@ -158,20 +158,26 @@ function saveRitual() {
   saveState(); closeModal(); updateTopbar(); rerender();
 }
 
-function openCierreModal() {
-  const iso = todayISO();
+let CIERRE_DATE = null;
+function openCierreModal(date) {
+  const iso = date || todayISO();
+  CIERRE_DATE = iso;
   const r = STATE.ritual.dias[iso];
   if (!r || !r.hecho) return toast("Primero abre tu día 🌅", true);
+  const esHoy = iso === todayISO();
   const c = r.cierre || {};
   const dEntry = (STATE.vida.diario || []).find(e => e.fecha === iso && e.fromRitual);
   const moodCur = dEntry ? dEntry.mood : 3;
-  const wd = (new Date().getDay() + 6) % 7;
+  const dObj = new Date(iso + "T12:00:00");
+  const wd = (dObj.getDay() + 6) % 7;
   const sapoTask = (STATE.semana.dias[wd] || []).find(t => t.esSapo);
   const sapoDone = c.sapo !== undefined ? c.sapo : (sapoTask ? sapoTask.done : false);
   const sapoCur = sapoDone ? "1" : "0";
+  const titulo = esHoy ? "Ritual de cierre" : "Cerrar el " + dObj.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+  const mananaLabel = esHoy ? "Una cosa para mañana" : "Una cosa para el día siguiente";
   const segBtn = (grupo, v, label, cur) =>
     `<button type="button" class="${cur === v ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'${grupo}-v')">${label}</button>`;
-  openModal("Ritual de cierre", `
+  openModal(titulo, `
     <div class="field"><label>¿Cómo te sentiste hoy?</label>
       <div class="row mt-8" id="c-moods" style="gap:8px">
         ${MOODS.map((m, i) => `<button type="button" class="mood-btn ${i + 1 === moodCur ? "is-on" : ""}" data-v="${i + 1}" onclick="cierreMoodPick(this)">${m}</button>`).join("")}
@@ -191,7 +197,7 @@ function openCierreModal() {
       <input type="range" min="1" max="5" step="1" id="c-energia" value="${c.energia || 3}" style="width:100%;accent-color:var(--cian)"
         oninput="document.getElementById('c-elabel').textContent=this.value"></div>
     <div class="field"><label>Lo mejor del día / gratitud</label><textarea class="input" id="c-mejor" placeholder="¿Qué agradeces de hoy?">${escapeHtml(c.mejor || "")}</textarea></div>
-    <div class="field"><label>Una cosa para mañana</label><input class="input" id="c-manana" value="${escapeAttr(c.manana || "")}" placeholder="Se sembrará como tu misión de mañana"></div>
+    <div class="field"><label>${mananaLabel}</label><input class="input" id="c-manana" value="${escapeAttr(c.manana || "")}" placeholder="Se sembrará como tu misión del día siguiente"></div>
     <div class="field"><label>Nota de cierre (libre)</label><textarea class="input" id="c-nota" placeholder="¿Cómo estuvo el día?">${escapeHtml(c.nota || "")}</textarea></div>
     <p class="text-xs muted" style="margin:-4px 0 12px">📔 Tu ánimo, esta nota y tu gratitud se guardan en tu <b>Diario de vida</b>.</p>
     <button class="btn btn--primary btn-block" data-action="cierre-save">Cerrar el día (+40 ⭐)</button>`);
@@ -202,7 +208,7 @@ function cierreMoodPick(btn) {
   btn.classList.add("is-on");
 }
 function saveCierre() {
-  const iso = todayISO();
+  const iso = CIERRE_DATE || todayISO();
   const r = STATE.ritual.dias[iso];
   if (!r || !r.hecho) return toast("Primero abre tu día 🌅", true);
   const yaCerrado = r.cerrado;

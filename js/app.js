@@ -419,6 +419,27 @@ function dayState() {
   if (r.cerrado) return "cerrado";
   return new Date().getHours() >= 18 ? "por-cerrar" : "en-curso";
 }
+/* Si olvidaste cerrar ayer, permite cerrarlo SOLO durante la mañana (antes de las 12).
+   Devuelve la fecha (ISO) del día anterior pendiente de cierre, o null. */
+function pendingCierreDate() {
+  if (new Date().getHours() >= 12) return null;           // solo en la mañana
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const iso = isoLocal(y);
+  const r = STATE.ritual.dias[iso];
+  return (r && r.hecho && !r.cerrado) ? iso : null;
+}
+function renderPendingYesterday() {
+  const iso = pendingCierreDate();
+  if (!iso) return "";
+  const d = new Date(iso + "T12:00:00");
+  const fecha = d.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+  return `<div class="card" style="margin-bottom:16px;border:1px solid var(--coral);background:var(--coral-soft)">
+    <div class="flex-between" style="flex-wrap:wrap;gap:12px">
+      <div><div class="card__title">🌙 Te quedó un día por cerrar</div>
+        <div class="text-sm soft mt-8">Olvidaste cerrar el <b>${escapeHtml(fecha)}</b>. Ciérralo antes de arrancar hoy.</div></div>
+      <button class="btn btn--primary" data-action="day-close" data-date="${iso}">Cerrar ${escapeHtml(d.toLocaleDateString("es-CL", { weekday: "long" }))}</button>
+    </div></div>`;
+}
 function computeClosedStreak() {
   const now = new Date(); let s = 0;
   for (let b = 0; b < 366; b++) {
@@ -625,7 +646,7 @@ function onClick(e) {
 
     /* Ciclo del día */
     case "day-open": openRitualModal(); break;
-    case "day-close": openCierreModal(); break;
+    case "day-close": openCierreModal(d.date); break;
     case "cierre-save": saveCierre(); break;
 
     /* Ritual matutino */
@@ -1043,6 +1064,7 @@ function renderInicio() {
   </div>`;
 
   return `
+  ${renderPendingYesterday()}
   ${renderDayHero()}
   <div class="grid grid-4">
     ${statCard("💰", "Ahorro de " + MESES[mIdx], fmtCLP(ahorroMes), `Meta ${fmtCLP(metaMes)} · ${pctAhorro}%`, pctAhorro)}

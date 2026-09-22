@@ -170,20 +170,83 @@ function metaRow(m, bucket, idx) {
 }
 
 /* ============================================================
-   HÁBITOS
+   HÁBITOS · Panel con vistas Diario / Mensual / Anual
    ============================================================ */
+let HABIT_VIEW = "diario";   // diario | mensual | anual
+let HABIT_LAYOUT = "hoy";    // hoy | semana  (dentro de Diario)
+
+function habitDoneDate(id, dObj) {
+  const log = STATE.habitos.log[`${dObj.getFullYear()}-${dObj.getMonth() + 1}`];
+  return !!(log && log[id] && log[id][dObj.getDate()]);
+}
+function donutSvg(pct, color = "var(--cian)") {
+  const r = 26, c = 2 * Math.PI * r, off = c * (1 - pct / 100);
+  return `<svg width="72" height="72" viewBox="0 0 72 72" style="flex-shrink:0">
+    <circle cx="36" cy="36" r="${r}" fill="none" stroke="var(--surface-3)" stroke-width="8"/>
+    <circle cx="36" cy="36" r="${r}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round"
+      stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 36 36)"/>
+    <text x="36" y="41" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">${pct}%</text></svg>`;
+}
+
 function renderHabitos() {
-  const m = HABIT_MONTH;
+  const defs = STATE.habitos.defs;
+  const tabs = [["diario", "Diario"], ["mensual", "Mensual"], ["anual", "Anual"]];
+  const head = `
+  <div class="flex-between" style="flex-wrap:wrap;gap:12px">
+    <div class="pill pill--streak">🔥 Racha: ${computeStreak()} días</div>
+    <div class="row" style="gap:10px;flex-wrap:wrap">
+      <div class="seg">${tabs.map(([k, l]) => `<button class="${HABIT_VIEW === k ? "is-active" : ""}" data-action="habit-view" data-v="${k}">${l}</button>`).join("")}</div>
+      <button class="btn btn--primary" data-action="habit-add">+ Nuevo hábito</button>
+    </div>
+  </div>`;
+  if (!defs.length) return head + `<div class="card mt-16"><div class="empty">Aún no tienes hábitos. Crea el primero con “+ Nuevo hábito”.</div></div>`;
+  const body = HABIT_VIEW === "mensual" ? habitViewMensual() : HABIT_VIEW === "anual" ? habitViewAnual() : habitViewDiario();
+  return head + `<div class="mt-16">${body}</div>`;
+}
+
+function habitViewDiario() {
+  const defs = STATE.habitos.defs;
+  const now = new Date();
+  const subs = [["hoy", "Hoy"], ["semana", "Semana"]];
+  const sub = `<div class="seg" style="margin-bottom:16px">${subs.map(([k, l]) => `<button class="${HABIT_LAYOUT === k ? "is-active" : ""}" data-action="habit-layout" data-v="${k}">${l}</button>`).join("")}</div>`;
+
+  if (HABIT_LAYOUT === "semana") {
+    const dow = (now.getDay() + 6) % 7;
+    const monday = new Date(now); monday.setDate(now.getDate() - dow);
+    const dias = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
+    const rows = defs.map(h => {
+      const cells = dias.map(d => {
+        const on = habitDoneDate(h.id, d);
+        const isT = isoLocal(d) === todayISO();
+        return `<button class="hb-day ${on ? "on" : ""} ${isT ? "today" : ""}" data-action="habit-daycell" data-id="${h.id}" data-y="${d.getFullYear()}" data-m="${d.getMonth()}" data-d="${d.getDate()}">
+          <span class="hb-day__dow">${DIAS_CORTO[d.getDay()]}</span><span class="hb-day__n">${d.getDate()}</span></button>`;
+      }).join("");
+      return `<div class="card hb-week"><div class="hb-week__name">${h.icon} ${escapeHtml(h.nombre)}
+        <button class="icon-btn" data-action="habit-del" data-id="${h.id}">🗑</button></div><div class="hb-week__days">${cells}</div></div>`;
+    }).join("");
+    return sub + rows;
+  }
+
+  // Hoy (grilla de toggles)
+  const done = defs.filter(h => habitDoneDate(h.id, now)).length;
+  const cards = defs.map(h => {
+    const on = habitDoneDate(h.id, now);
+    return `<button class="card hb-today ${on ? "is-on" : ""}" data-action="habit-today" data-id="${h.id}">
+      <div class="hb-today__ico">${h.icon}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
+      <div class="hb-today__check">${on ? "✓" : ""}</div></button>`;
+  }).join("");
+  return sub + `<div class="text-sm muted" style="margin-bottom:12px">Hoy llevas <b>${done}/${defs.length}</b> hábitos</div><div class="hb-grid">${cards}</div>`;
+}
+
+function habitGrid(m) {
   const year = STATE.settings.year;
   const nDays = daysInMonth(year, m);
   const defs = STATE.habitos.defs;
   const todayD = (new Date().getMonth() === m && new Date().getFullYear() === year) ? new Date().getDate() : -1;
-
   const header = `<tr><th class="name">Hábito</th>${Array.from({ length: nDays }, (_, k) => {
     const d = k + 1; const wd = new Date(year, m, d).getDay();
     return `<th class="${d === todayD ? "today" : ""}">${DIAS_CORTO[wd]}<br>${d}</th>`;
   }).join("")}<th>%</th></tr>`;
-
   const rows = defs.map(h => {
     let count = 0;
     const cells = Array.from({ length: nDays }, (_, k) => {
@@ -195,16 +258,48 @@ function renderHabitos() {
       <button class="icon-btn" data-action="habit-del" data-id="${h.id}" style="margin-left:4px">🗑</button></td>
       ${cells}<td style="font-weight:600;color:var(--cian)">${pct}%</td></tr>`;
   }).join("");
+  return `<table><thead>${header}</thead><tbody>${rows}</tbody></table>`;
+}
 
-  return `
-  <div class="flex-between" style="flex-wrap:wrap;gap:12px">
-    <div class="pill pill--streak">🔥 Racha: ${computeStreak()} días</div>
-    <button class="btn btn--primary" data-action="habit-add">+ Nuevo hábito</button>
+function habitViewMensual() {
+  const m = HABIT_MONTH, year = STATE.settings.year, defs = STATE.habitos.defs;
+  const nDays = daysInMonth(year, m);
+  const now = new Date();
+  const isCur = now.getMonth() === m && now.getFullYear() === year;
+  const elapsed = isCur ? now.getDate() : nDays;
+  let marks = 0; defs.forEach(h => { for (let d = 1; d <= elapsed; d++) if (habitDone(h.id, m, d)) marks++; });
+  const posibles = defs.length * elapsed;
+  const pct = posibles ? Math.round((marks / posibles) * 100) : 0;
+  const ranking = defs.map(h => { let c = 0; for (let d = 1; d <= nDays; d++) if (habitDone(h.id, m, d)) c++; return { h, pct: Math.round((c / nDays) * 100) }; }).sort((a, b) => b.pct - a.pct);
+
+  return `${monthsSelector(m, "habit-month")}
+  <div class="grid grid-2">
+    <div class="card"><div class="card__title">Progreso de ${MESES[m]}</div>
+      <div class="row" style="gap:16px;align-items:center;margin-top:14px">${donutSvg(pct)}
+        <div><div class="text-sm muted">Cumplimiento</div><div class="text-sm muted mt-8">${marks} de ${posibles} marcas posibles</div></div></div></div>
+    <div class="card"><div class="card__title">Mejores hábitos del mes</div>
+      <div class="mt-16">${ranking.map((r, i) => `<div class="flex-between" style="padding:6px 0"><span class="text-sm">${i + 1}. ${r.h.icon} ${escapeHtml(r.h.nombre)}</span><span class="hl-cian">${r.pct}%</span></div>`).join("")}</div></div>
   </div>
-  ${monthsSelector(m, "habit-month")}
-  <div class="card habit-grid">
-    ${defs.length ? `<table><thead>${header}</thead><tbody>${rows}</tbody></table>`
-      : '<div class="empty">Aún no tienes hábitos. Crea el primero con “+ Nuevo hábito”.</div>'}
+  <div class="section-title">Calendario del mes</div>
+  <div class="card habit-grid">${habitGrid(m)}</div>`;
+}
+
+function habitViewAnual() {
+  const year = STATE.settings.year, defs = STATE.habitos.defs;
+  const porMes = MESES.map((_, m) => { let c = 0; const nd = daysInMonth(year, m); defs.forEach(h => { for (let d = 1; d <= nd; d++) if (habitDone(h.id, m, d)) c++; }); return c; });
+  const total = porMes.reduce((a, b) => a + b, 0);
+  const prom = Math.round(total / 12);
+  const ranking = defs.map(h => { let c = 0; MESES.forEach((_, m) => { const nd = daysInMonth(year, m); for (let d = 1; d <= nd; d++) if (habitDone(h.id, m, d)) c++; }); return { h, c }; }).sort((a, b) => b.c - a.c);
+  return `
+  <div class="grid grid-3">
+    ${statCard("✅", "Marcas del año", total, "en " + year)}
+    ${statCard("📅", "Promedio / mes", prom, "marcas")}
+    ${statCard("🔥", "Racha actual", computeStreak() + " días", "seguidos")}
+  </div>
+  <div class="grid grid-2 mt-24">
+    <div class="card"><div class="card__head"><div class="card__title">Por mes</div><span class="card__hint">marcas</span></div>${svgBar(porMes, { color: "var(--cian)", fmt: v => v })}</div>
+    <div class="card"><div class="card__title">Top del año</div>
+      <div class="mt-16">${ranking.map((r, i) => `<div class="flex-between" style="padding:6px 0"><span class="text-sm">${i + 1}. ${r.h.icon} ${escapeHtml(r.h.nombre)}</span><span class="hl-cian">${r.c}</span></div>`).join("")}</div></div>
   </div>`;
 }
 function openHabitModal() {

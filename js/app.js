@@ -533,9 +533,13 @@ function onClick(e) {
     case "habit-save": saveHabit(); break;
     case "habit-cell": toggleHabitCell(d.id, +d.day); break;
     case "habit-month": HABIT_MONTH = +d.m; rerender(); break;
+    case "habit-view": HABIT_VIEW = d.v; rerender(); break;
+    case "habit-layout": HABIT_LAYOUT = d.v; rerender(); break;
+    case "habit-today": toggleHabitToday(d.id); break;
+    case "habit-daycell": toggleHabitDate(d.id, +d.y, +d.m, +d.d); break;
 
     /* Inicio: quick habit toggle hoy */
-    case "quick-habit": toggleHabitCell(d.id, new Date().getDate()); break;
+    case "quick-habit": toggleHabitToday(d.id); break;
 
     /* Lecturas · biblioteca */
     case "lect-filter": LECT_FILTER = d.f; rerender(); break;
@@ -833,8 +837,8 @@ function toggleBloque(diaId, bloqueId) {
 
 /* -------- Hábitos: toggle celda -------- */
 let HABIT_MONTH = new Date().getMonth();
-function toggleHabitCell(habitId, day) {
-  const key = monthKey(STATE.settings.year, HABIT_MONTH);
+function toggleHabitDate(habitId, year, monthIdx, day) {
+  const key = monthKey(year, monthIdx);
   STATE.habitos.log[key] = STATE.habitos.log[key] || {};
   STATE.habitos.log[key][habitId] = STATE.habitos.log[key][habitId] || {};
   const cur = STATE.habitos.log[key][habitId][day];
@@ -844,6 +848,10 @@ function toggleHabitCell(habitId, day) {
   updateTopbar();
   rerender();
 }
+// Grilla mensual: usa el mes seleccionado
+function toggleHabitCell(habitId, day) { toggleHabitDate(habitId, STATE.settings.year, HABIT_MONTH, day); }
+// Toggle del día de hoy (vista Diario e Inicio)
+function toggleHabitToday(habitId) { const n = new Date(); toggleHabitDate(habitId, n.getFullYear(), n.getMonth(), n.getDate()); }
 function habitDone(habitId, monthIdx, day) {
   const key = monthKey(STATE.settings.year, monthIdx);
   return !!(STATE.habitos.log[key] && STATE.habitos.log[key][habitId] && STATE.habitos.log[key][habitId][day]);

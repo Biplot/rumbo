@@ -329,6 +329,33 @@ textarea.input { resize: vertical; min-height: 84px; }
 .cell.on { background: var(--cian); border-color: var(--cian); }
 .cell.today { box-shadow: 0 0 0 2px var(--coral-soft); }
 
+/* Hábitos · vista Diario (Hoy = grilla de toggles) */
+.hb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.hb-today { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 12px;
+  cursor: pointer; text-align: center; transition: .14s; position: relative; }
+.hb-today:hover { border-color: var(--cian); transform: translateY(-2px); }
+.hb-today__ico { font-size: 30px; line-height: 1; filter: grayscale(.5); opacity: .7; transition: .14s; }
+.hb-today__name { font-size: 13.5px; font-weight: 500; color: var(--text-soft); }
+.hb-today__check { position: absolute; top: 10px; right: 12px; width: 22px; height: 22px; border-radius: 999px;
+  border: 1.5px solid var(--line-strong); display: grid; place-items: center; font-size: 13px; color: #fff; }
+.hb-today.is-on { border-color: var(--cian); background: var(--cian-soft, rgba(23,195,178,.08)); }
+.hb-today.is-on .hb-today__ico { filter: none; opacity: 1; }
+.hb-today.is-on .hb-today__name { color: var(--text); font-weight: 600; }
+.hb-today.is-on .hb-today__check { background: var(--cian); border-color: var(--cian); }
+
+/* Hábitos · vista Diario (Semana) */
+.hb-week { margin-bottom: 12px; }
+.hb-week__name { font-weight: 600; font-size: 14.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.hb-week__days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.hb-day { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0; border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--line); cursor: pointer; transition: .12s; }
+.hb-day:hover { border-color: var(--cian); }
+.hb-day__dow { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+.hb-day__n { font-size: 15px; font-weight: 600; color: var(--text-soft); }
+.hb-day.on { background: var(--cian); border-color: var(--cian); }
+.hb-day.on .hb-day__dow, .hb-day.on .hb-day__n { color: #06231f; }
+.hb-day.today { box-shadow: 0 0 0 2px var(--coral-soft); }
+
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; background: rgba(4, 14, 26, 0.7); backdrop-filter: blur(4px);
   display: grid; place-items: center; z-index: 100; padding: 20px; }

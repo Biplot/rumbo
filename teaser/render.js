@@ -61,6 +61,7 @@ async function main() {
     "-c:v", "libx264", "-preset", "slow", "-crf", "18",
     "-pix_fmt", "yuv420p", "-movflags", "+faststart",
     ...(conAudio ? ["-c:a", "aac", "-b:a", "192k", "-shortest"] : []),
+    "-f", "mp4",              // el temporal no termina en .mp4: hay que decirle el contenedor
     parcial,
   ]);
   ff.stderr.on("data", d => process.stderr.write("  [ffmpeg] " + d));

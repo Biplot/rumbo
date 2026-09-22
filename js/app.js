@@ -54,6 +54,9 @@ async function boot() {
   document.getElementById("sidebarBackdrop").addEventListener("click", () => setSidebar(false));
   initGestures();
   window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
+  // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) syncFromCloud(); });
+  window.addEventListener("focus", () => syncFromCloud());
   window.addEventListener("hashchange", onRoute);
   document.getElementById("authScreen").addEventListener("keydown", e => {
     if (e.key === "Enter") { e.preventDefault(); (document.getElementById("form-register").hidden ? doLogin : doRegister)(); }
@@ -146,14 +149,39 @@ async function loadUserState(user) {
 }
 
 let _cloudTimer = null;
+let _dirty = false;        // hay cambios locales sin confirmar en la nube
 function scheduleCloudSave() {
   clearTimeout(_cloudTimer);
+  _dirty = true;
   setSaveStatus("saving");
   _cloudTimer = setTimeout(async () => {
     if (!CURRENT_USER) return;
     const res = await BACKEND.saveState(CURRENT_USER.id, STATE);
-    setSaveStatus(res && res.error ? "offline" : "saved");
+    if (res && res.error) { setSaveStatus("offline"); }
+    else { _dirty = false; setSaveStatus("saved"); }
   }, 800);
+}
+
+/* Trae el estado más reciente de la nube al volver a un dispositivo que estuvo
+   abierto (evita pisar con datos viejos lo que editaste en otro equipo).
+   Solo actúa si no hay cambios locales pendientes ni un modal abierto. */
+let _syncing = false;
+async function syncFromCloud() {
+  if (!CURRENT_USER || _dirty || _syncing) return;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  const modal = document.getElementById("modalOverlay");
+  if (modal && !modal.hidden) return;           // no interrumpir una edición en curso
+  _syncing = true;
+  try {
+    const data = await BACKEND.loadState(CURRENT_USER.id);   // también actualiza la versión conocida
+    if (data && !_dirty) {
+      STATE = migrate(data);
+      ensureCurrentWeek();
+      updateTopbar();
+      rerender();
+    }
+  } catch (e) { /* silencioso */ }
+  finally { _syncing = false; }
 }
 /* Indicador de guardado en la topbar: guardando / guardado / sin conexión */
 function setSaveStatus(s) {
@@ -834,8 +862,9 @@ function toggleBloque(diaId, bloqueId) {
   const b = dia.bloques.find(b => b.id === bloqueId);
   b.done = !b.done;
   const allDone = dia.bloques.length && dia.bloques.every(x => x.done);
+  // Premio de una sola vez: se otorga la primera vez que completas el día y nunca se
+  // vuelve a dar (aunque desmarques y vuelvas a marcar). Evita farmear monedas.
   if (allDone && !dia.premiado) { dia.premiado = true; addPoints(30); }
-  if (!allDone && dia.premiado) { dia.premiado = false; }
   saveState(); rerender();
 }
 

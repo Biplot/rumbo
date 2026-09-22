@@ -126,12 +126,15 @@ function saveRitual() {
   const prev = STATE.ritual.dias[iso];
   const yaHecho = prev && prev.hecho;
   const pilar = document.getElementById("r-pilar").value;
+  // ...prev conserva el cierre/estado del día si ya estaba cerrado (no borrar historial)
   STATE.ritual.dias[iso] = {
+    ...(prev || {}),
     mision: val("r-mision"), sapo: val("r-sapo"), pilar,
     energia: parseNum(document.getElementById("r-energia").value),
     servir: val("r-servir"),
     proyectos: val("r-proy").split(",").map(s => s.trim()).filter(Boolean),
     hecho: true,
+    ts: Date.now(),
   };
   // Tareas del día -> Planificador semanal (día de hoy). El SAPO es la 1ª tarea (esSapo).
   const wd = (new Date().getDay() + 6) % 7;
@@ -210,6 +213,7 @@ function saveCierre() {
     mejor: val("c-mejor"), manana: val("c-manana"), nota: val("c-nota"),
   };
   r.cerrado = true;
+  r.ts = Date.now();
 
   // Conecta el cierre con el Diario de vida: una entrada por día, actualizable
   const mood = parseNum(document.getElementById("c-mood").value) || 3;
@@ -219,6 +223,7 @@ function saveCierre() {
   dEntry.mood = mood;
   dEntry.texto = r.cierre.nota || "";
   dEntry.gratitud = r.cierre.mejor || "";
+  dEntry.ts = Date.now();
 
   if (!yaCerrado) addPoints(40);
   saveState(); closeModal(); updateTopbar(); rerender();
@@ -363,7 +368,7 @@ function renderEntrenamiento() {
         <span class="chip">${escapeHtml(b.series || "")}</span>
         <button class="icon-btn" data-action="entren-del-bloque" data-dia="${dia.id}" data-id="${b.id}">✕</button></div>`).join("")}
       <button class="btn-ghost btn-block mt-8" data-action="entren-add-bloque" data-dia="${dia.id}">+ Bloque</button>
-      ${dia.premiado ? '<div class="chip chip--coral mt-8">¡Día completado! +30 ⭐</div>' : ""}
+      ${done === dia.bloques.length && dia.bloques.length ? '<div class="chip chip--coral mt-8">¡Día completado! 💪</div>' : ""}
     </div>`;
   }).join("");
 

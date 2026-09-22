@@ -525,7 +525,6 @@ function saveLibro() {
 
   let l = id ? STATE.lecturas.find(x => x.id === id) : null;
   if (!l) { l = { id: uid(), inicio: "", fin: "" }; STATE.lecturas.push(l); }
-  const antes = l.estado;
   Object.assign(l, { titulo, autor: val("lb-autor"), estado, valoracion, pagina, paginas, nota, color, portada });
 
   /* Fechas automáticas según el estado */
@@ -533,9 +532,10 @@ function saveLibro() {
   if (estado === "terminado") { if (!l.inicio) l.inicio = todayISO(); if (!l.fin) l.fin = todayISO(); if (paginas) l.pagina = paginas; }
   if (estado !== "terminado") l.fin = "";
 
+  /* Recompensa al terminar un libro: una sola vez por libro (aunque lo pases a
+     "leyendo" y de vuelta a "terminado"), para que las monedas sean coherentes. */
+  if (estado === "terminado" && !l.premiado) { l.premiado = true; addPoints(40); }
   saveState(); closeModal();
-  /* Recompensa al terminar un libro (además dispara insignias) */
-  if (estado === "terminado" && antes !== "terminado") addPoints(40);
   if (typeof checkBadges === "function") checkBadges();
   rerender();
 }

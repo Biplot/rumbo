@@ -105,11 +105,17 @@ function mergeStates(server, local) {
   if (!local) return server;
   const out = JSON.parse(JSON.stringify(local));
 
-  // Une dos arrays de objetos por id (local pisa; conserva los solo-server)
+  // Une dos arrays de objetos por id. Conserva los solo-server; en conflicto gana
+  // el más nuevo por `ts` (si existe), y si no hay ts gana local (a).
   const byId = (a, b) => {
     const map = new Map();
     (b || []).forEach(x => x && x.id != null && map.set(x.id, x));
-    (a || []).forEach(x => x && x.id != null && map.set(x.id, x));
+    (a || []).forEach(x => {
+      if (!x || x.id == null) return;
+      const other = map.get(x.id);
+      if (other && (other.ts || 0) > (x.ts || 0)) return; // el server es más nuevo: no pisar
+      map.set(x.id, x);
+    });
     return Array.from(map.values());
   };
   const buckets = (la, sa) => (la || []).map((arr, i) => byId(arr, (sa || [])[i] || []));
@@ -141,8 +147,17 @@ function mergeStates(server, local) {
   }
   if (local.semana && server.semana) out.semana.dias = buckets(local.semana.dias, server.semana.dias);
 
-  // ritual.dias: dict por fecha (local pisa por día; conserva días solo-server)
-  if (local.ritual && server.ritual) out.ritual.dias = { ...(server.ritual.dias || {}), ...(local.ritual.dias || {}) };
+  // ritual.dias: dict por fecha. Conserva días solo-server; en conflicto gana el
+  // más nuevo por `ts` (si existe) para no perder el cierre hecho en otro dispositivo.
+  if (local.ritual && server.ritual) {
+    const sd = server.ritual.dias || {}, ld = local.ritual.dias || {}, md = {};
+    new Set([...Object.keys(sd), ...Object.keys(ld)]).forEach(k => {
+      const s = sd[k], l = ld[k];
+      if (!s) md[k] = l; else if (!l) md[k] = s;
+      else md[k] = (l.ts || 0) >= (s.ts || 0) ? l : s;
+    });
+    out.ritual.dias = md;
+  }
 
   // eventos: dict por fecha -> unión de arrays de texto
   out.eventos = {};
@@ -231,7 +246,11 @@ const SupabaseBackend = {
       if (data && data.length) { this._ver[uid] = data[0].updated_at; return { ok: true }; } // guardado OK
       return await this._saveWithMerge(uid, state); // conflicto -> fusionar
     }
-    // Sin versión conocida (primera vez): upsert normal
+    // Sin versión conocida: puede existir una fila más nueva (p. ej. tras refrescar el
+    // token con la app abierta). Leer antes de escribir para no pisar datos del otro
+    // dispositivo: si ya hay fila, fusionar; si no, insertar.
+    const { data: row } = await client.from("estado_usuario").select("updated_at").eq("user_id", uid).maybeSingle();
+    if (row) { this._ver[uid] = row.updated_at; return await this._saveWithMerge(uid, state); }
     const { data, error } = await client.from("estado_usuario")
       .upsert({ user_id: uid, data: state, updated_at: now }).select("updated_at");
     if (error) { console.warn("saveState", error.message); return { error: error.message }; }

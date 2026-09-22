@@ -13,10 +13,10 @@ a partir de los datos sembrados.
 
 | Archivo | Qué es |
 |---|---|
-| `out/rumbo-teaser-vertical-completo.mp4` | 1080×1920 · 40 s · Reels, TikTok, Stories |
-| `out/rumbo-teaser-vertical-corto.mp4` | 1080×1920 · 15 s · corte rápido |
-| `out/rumbo-teaser-wide-completo.mp4` | 1920×1080 · 40 s · web y YouTube |
-| `out/rumbo-teaser-musica-*.wav` | pista instrumental sintetizada |
+| `video/rumbo-teaser-vertical-completo.mp4` | 1080×1920 · 40 s · Reels, TikTok, Stories |
+| `video/rumbo-teaser-vertical-corto.mp4` | 1080×1920 · 15 s · corte rápido |
+| `video/rumbo-teaser-wide-completo.mp4` | 1920×1080 · 40 s · web y YouTube |
+| `out/rumbo-teaser-musica-*.wav` | pista instrumental sintetizada (directorio de trabajo) |
 
 ## Cómo se genera
 
@@ -32,6 +32,9 @@ node teaser/render.js --format=wide     --cut=completo
 Cada render tarda unos 10–12 minutos (1200 fotogramas PNG sin pérdida a
 1080×1920). La música se mezcla en la misma pasada; `--musica=no` deja el video
 mudo para montarlo en un editor.
+
+Los videos terminados quedan en `teaser/video/` y se versionan. `teaser/out/` es
+el directorio de trabajo —música, fotogramas de revisión— y no se versiona.
 
 Para revisar la composición sin renderizar los 40 s completos:
 

@@ -6,7 +6,6 @@ desktop.ini
 # Dependencias (por si más adelante)
 node_modules/
 
-# Teaser: intermedios regenerables (los MP4 finales sí se versionan)
-teaser/out/stills*/
-teaser/out/check/
-teaser/out/*.wav
+# Teaser: directorio de trabajo del render (fotogramas, música, videos en curso).
+# Los entregables finales se versionan en teaser/video/.
+teaser/out/

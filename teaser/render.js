@@ -4,7 +4,7 @@
    ffmpeg. Nada se guarda en disco entre medio.
 
    Uso:  node teaser/render.js [--format=vertical|wide] [--fps=30]
-                              [--out=teaser/out/rumbo-teaser.mp4]
+                              [--out=teaser/video/rumbo-teaser.mp4]
                               [--from=0] [--to=40000]
    ============================================================ */
 const fs = require("fs");
@@ -23,7 +23,7 @@ async function main() {
   const format = arg("format", "vertical");
   const cut = arg("cut", "completo");
   const fps = +arg("fps", 30);
-  const out = path.resolve(arg("out", `teaser/out/rumbo-teaser-${format}-${cut}.mp4`));
+  const out = path.resolve(arg("out", `teaser/video/rumbo-teaser-${format}-${cut}.mp4`));
   const from = +arg("from", 0);
   const toArg = arg("to", null);
 

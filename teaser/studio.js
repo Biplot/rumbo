@@ -12,8 +12,8 @@ const Studio = (() => {
   /* Geometría por formato. El teléfono mide siempre lo mismo en CSS
      (la app se maqueta igual en los dos) y solo cambia su escala. */
   const L = FORMAT === "wide"
-    ? { W: 960, H: 540, U: 0.60, deviceScale: 0.66, deviceX: 0.27, deviceY: 0.5,
-        textX: 0.50, textW: 0.44, textAlign: "left" }
+    ? { W: 960, H: 540, U: 0.60, deviceScale: 0.66, deviceX: 0.31, deviceY: 0.5,
+        textX: 0.54, textW: 0.39, textAlign: "left" }
     : { W: 540, H: 960, U: 1.00, deviceScale: 1.00, deviceX: 0.5, deviceY: 0.545,
         textX: 0.07, textW: 0.86, textAlign: "center" };
 

@@ -75,6 +75,9 @@ window.TIMELINE_CORTO = function (L) {
       { t: 10050, fn: ruta("inicio") },
       { t: 10650, fn: click('#view [data-action="day-close"]') },
       { t: 10950, fn: click("#c-moods .mood-btn:nth-child(4)") },
+      /* En 40 s el SAPO se marca antes, en la lista de tareas. Aquí no hay
+         tiempo para ese paso y el cierre saldría diciendo que no se cumplió. */
+      { t: 11080, fn: click("#c-sapo button:nth-child(1)") },
       { t: 12650, fn: click('[data-action="cierre-save"]') },
       { t: 12780, fn: limpiaToast },
       { t: 12820, fn: ruta("diario") },

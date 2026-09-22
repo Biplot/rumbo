@@ -54,9 +54,11 @@ async function boot() {
   document.getElementById("sidebarBackdrop").addEventListener("click", () => setSidebar(false));
   initGestures();
   window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
-  // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) syncFromCloud(); });
+  // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube;
+  // al ocultarla/cerrarla, subir de inmediato lo pendiente (no perder el cierre recién hecho).
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else syncFromCloud(); });
   window.addEventListener("focus", () => syncFromCloud());
+  window.addEventListener("pagehide", () => flushCloudSave());
   window.addEventListener("hashchange", onRoute);
   document.getElementById("authScreen").addEventListener("keydown", e => {
     if (e.key === "Enter") { e.preventDefault(); (document.getElementById("form-register").hidden ? doLogin : doRegister)(); }
@@ -140,12 +142,19 @@ function saveOnboarding() {
 }
 
 async function loadUserState(user) {
-  let data = await BACKEND.loadState(user.id);
-  if (!data) { try { const raw = localStorage.getItem("rumbo_state_" + user.id); if (raw) data = JSON.parse(raw); } catch (e) {} }
+  const cloud = await BACKEND.loadState(user.id);
+  let local = null;
+  try { const raw = localStorage.getItem("rumbo_state_" + user.id); if (raw) local = JSON.parse(raw); } catch (e) {}
+  // Fusiona nube + local: si el último guardado no alcanzó a subir a la nube (p. ej.
+  // cerraste la app justo después de cerrar el día), lo local conserva ese cambio y la
+  // fusión por timestamp lo recupera en vez de que la nube vieja lo borre.
+  let data;
+  if (cloud && local) data = mergeStates(cloud, local);
+  else data = cloud || local;
   STATE = data ? migrate(data) : defaultState();
   if (!STATE.profile.name || STATE.profile.name === "Chris") STATE.profile.name = user.name || STATE.profile.name;
   ensureCurrentWeek();   // limpia el planificador si cambió la semana
-  saveState();
+  saveState();           // sube el resultado fusionado (recupera lo que faltó subir)
 }
 
 let _cloudTimer = null;
@@ -160,6 +169,18 @@ function scheduleCloudSave() {
     if (res && res.error) { setSaveStatus("offline"); }
     else { _dirty = false; setSaveStatus("saved"); }
   }, 800);
+}
+
+/* Fuerza el guardado pendiente de inmediato (sin esperar el debounce). Se usa al
+   salir/ocultar la app para que un cierre recién hecho alcance a subir a la nube. */
+async function flushCloudSave() {
+  if (!CURRENT_USER || !_dirty) return;
+  clearTimeout(_cloudTimer);
+  try {
+    const res = await BACKEND.saveState(CURRENT_USER.id, STATE);
+    if (res && res.error) setSaveStatus("offline");
+    else { _dirty = false; setSaveStatus("saved"); }
+  } catch (e) { setSaveStatus("offline"); }
 }
 
 /* Trae el estado más reciente de la nube al volver a un dispositivo que estuvo

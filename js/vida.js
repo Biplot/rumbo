@@ -141,38 +141,124 @@ function renderIdeas() {
 /* ============================================================
    RELACIONES (cumpleaños + último contacto)
    ============================================================ */
+const REL_AV_COLORS = ["#17C3B2", "#FF6B4A", "#7C5CFC", "#F5A623", "#3AAED8", "#E056A0", "#4CAF7D"];
+function relIniciales(nombre) {
+  const parts = (nombre || "?").trim().split(/\s+/);
+  return ((parts[0][0] || "") + (parts[1] ? parts[1][0] : "")).toUpperCase();
+}
+function relColor(nombre) {
+  let h = 0; for (const c of (nombre || "")) h += c.charCodeAt(0);
+  return REL_AV_COLORS[h % REL_AV_COLORS.length];
+}
+function relFreqLabel(f) {
+  return f === 0 ? "sin recordatorio" : f === 7 ? "cada semana" : f === 14 ? "cada 2 semanas"
+    : f === 30 ? "cada mes" : f === 90 ? "cada 3 meses" : "cada " + f + " días";
+}
+// "Deuda" de contacto: días transcurridos menos la frecuencia deseada. >=0 => toca escribir.
+function relDeuda(p) {
+  const f = p.frecuencia ?? 30;
+  if (f === 0) return -9999;                 // sin recordatorio: nunca "atrasado"
+  const dc = diasDesde(p.ultimoContacto);
+  if (dc == null) return 9999;               // sin registro: máxima prioridad
+  return dc - f;
+}
+
 function renderRelaciones() {
-  const gente = STATE.vida.relaciones.slice().sort((a, b) => (diasHastaCumple(a.cumple) ?? 999) - (diasHastaCumple(b.cumple) ?? 999));
+  const gente = STATE.vida.relaciones.slice();
+  if (!gente.length) {
+    return `
+    <div class="flex-between"><div class="card__title" style="margin:0">Tu gente</div>
+      <button class="btn btn--primary" data-action="rel-add">+ Agregar persona</button></div>
+    <div class="card mt-16"><div class="empty">Agrega a las personas que quieres cuidar. Rumbo te avisará cuándo hace tiempo que no hablan y cuándo se acerca un cumpleaños.</div></div>`;
+  }
+
+  // Necesitan atención (atrasados) y próximos cumpleaños
+  const atn = gente.filter(p => relDeuda(p) >= 0).sort((a, b) => relDeuda(b) - relDeuda(a));
+  const cumples = gente.filter(p => p.cumple && diasHastaCumple(p.cumple) <= 60)
+    .sort((a, b) => diasHastaCumple(a.cumple) - diasHastaCumple(b.cumple));
+
+  const summary = `<div class="grid grid-2 mt-16">
+    <div class="card">
+      <div class="card__title" style="font-size:15px">⚠️ Necesitan atención</div>
+      ${atn.length ? atn.slice(0, 6).map(p => {
+        const dc = diasDesde(p.ultimoContacto);
+        return `<div class="rel-attn-row">
+          <span class="rel-attn-name">${escapeHtml(p.nombre)}</span>
+          <span class="text-xs muted">${dc == null ? "sin registro" : "hace " + dc + " d"}</span>
+          <button class="btn btn--soft" style="padding:5px 11px;font-size:12.5px" data-action="rel-contacto" data-id="${p.id}">Hablé hoy</button>
+        </div>`;
+      }).join("") : `<div class="text-sm soft mt-8">Estás al día con todos 🎉</div>`}
+    </div>
+    <div class="card">
+      <div class="card__title" style="font-size:15px">🎂 Próximos cumpleaños</div>
+      ${cumples.length ? cumples.slice(0, 6).map(p => {
+        const dd = diasHastaCumple(p.cumple);
+        return `<div class="rel-attn-row">
+          <span class="rel-attn-name">${escapeHtml(p.nombre)}</span>
+          <span class="text-xs ${dd <= 14 ? "hl-coral" : "muted"}">${dd === 0 ? "¡hoy! 🎉" : "en " + dd + " d"}</span></div>`;
+      }).join("") : `<div class="text-sm soft mt-8">Sin cumpleaños en los próximos 2 meses.</div>`}
+    </div>
+  </div>`;
+
+  // Tarjetas: primero quienes más necesitan atención
+  const orden = gente.sort((a, b) => relDeuda(b) - relDeuda(a));
+  const cards = orden.map(p => {
+    const dCumple = diasHastaCumple(p.cumple);
+    const dCont = diasDesde(p.ultimoContacto);
+    const cumpleSoon = dCumple != null && dCumple <= 14;
+    const deuda = relDeuda(p);
+    const attn = deuda >= 0;
+    const freq = p.frecuencia ?? 30;
+    const status = freq === 0 ? "" : `<span class="rel-status rel-status--${attn ? "attn" : "ok"}">${attn ? "Toca escribir" : "Al día"}</span>`;
+    return `<div class="card rel-card ${attn ? "rel-card--attn" : ""}">
+      <div class="rel-head">
+        <div class="rel-avatar" style="background:${relColor(p.nombre)}">${escapeHtml(relIniciales(p.nombre))}</div>
+        <div class="rel-idbox"><div class="rel-name">${escapeHtml(p.nombre)}</div>
+          <div class="text-xs muted">${escapeHtml(p.vinculo || "")}</div></div>
+        <div class="rel-tools">
+          <button class="icon-btn" data-action="rel-edit" data-id="${p.id}" title="Editar">✏️</button>
+          <button class="icon-btn" data-action="rel-del" data-id="${p.id}" title="Eliminar">🗑</button></div>
+      </div>
+      <div class="divider" style="margin:12px 0"></div>
+      ${p.cumple ? `<div class="text-sm ${cumpleSoon ? "hl-coral" : "soft"}">🎂 ${dCumple === 0 ? "¡Hoy es su cumple!" : "Cumple en " + dCumple + " días"}</div>` : ""}
+      <div class="rel-line"><span class="text-sm soft">💬 ${dCont == null ? "Sin registro" : dCont === 0 ? "Hablaron hoy" : "Hace " + dCont + " días"}</span>${status}</div>
+      ${freq !== 0 ? `<div class="text-xs muted mt-8">🔁 Meta: ${relFreqLabel(freq)}</div>` : ""}
+      ${p.notas ? `<div class="rel-notas">${escapeHtml(p.notas)}</div>` : ""}
+      <button class="btn btn--soft btn-block mt-8" data-action="rel-contacto" data-id="${p.id}">Hablé hoy</button>
+    </div>`;
+  }).join("");
+
   return `
   <div class="flex-between"><div class="card__title" style="margin:0">Tu gente</div>
     <button class="btn btn--primary" data-action="rel-add">+ Agregar persona</button></div>
-  <div class="grid grid-3 mt-16">
-    ${gente.length ? gente.map(p => {
-      const dCumple = diasHastaCumple(p.cumple);
-      const dCont = diasDesde(p.ultimoContacto);
-      const cumpleSoon = dCumple != null && dCumple <= 14;
-      return `<div class="card" style="${cumpleSoon ? "border-color:var(--coral)" : ""}">
-        <div class="flex-between"><div class="card__title" style="font-size:15px">${escapeHtml(p.nombre)}</div>
-          <button class="icon-btn" data-action="rel-del" data-id="${p.id}">🗑</button></div>
-        <div class="text-xs muted">${escapeHtml(p.vinculo || "")}</div>
-        <div class="divider"></div>
-        ${p.cumple ? `<div class="text-sm ${cumpleSoon ? "hl-coral" : "soft"}">🎂 ${dCumple === 0 ? "¡Hoy es su cumple!" : "Cumple en " + dCumple + " días"}</div>` : ""}
-        <div class="text-sm soft mt-8">💬 ${dCont == null ? "Sin registro" : dCont === 0 ? "Hablaste hoy" : "Hace " + dCont + " días"}</div>
-        <button class="btn btn--soft btn-block mt-8" data-action="rel-contacto" data-id="${p.id}">Hablé hoy</button>
-      </div>`;
-    }).join("") : '<div class="card"><div class="empty">Agrega a las personas que quieres cuidar.</div></div>'}
-  </div>`;
+  ${summary}
+  <div class="section-title">Todas tus personas</div>
+  <div class="grid grid-3">${cards}</div>`;
 }
-function openRelModal() {
-  openModal("Nueva persona", `
-    <div class="field"><label>Nombre</label><input class="input" id="rel-nombre" placeholder="Ej: Ignacia"></div>
-    <div class="field"><label>Vínculo</label><input class="input" id="rel-vinculo" placeholder="Ej: Pareja, amigo, mamá..."></div>
-    <div class="field"><label>Cumpleaños</label><input class="input" type="date" id="rel-cumple"></div>
-    <button class="btn btn--primary btn-block" data-action="rel-save">Agregar</button>`);
+function openRelModal(id) {
+  const p = id ? STATE.vida.relaciones.find(x => x.id === id) : null;
+  const curFreq = p ? (p.frecuencia ?? 30) : 30;
+  const freqs = [[7, "Cada semana"], [14, "Cada 2 semanas"], [30, "Cada mes"], [90, "Cada 3 meses"], [0, "Sin recordatorio"]];
+  openModal(p ? "Editar persona" : "Nueva persona", `
+    <input type="hidden" id="rel-id" value="${p ? p.id : ""}">
+    <div class="field"><label>Nombre</label><input class="input" id="rel-nombre" placeholder="Ej: Ignacia" value="${p ? escapeAttr(p.nombre) : ""}"></div>
+    <div class="field"><label>Vínculo</label><input class="input" id="rel-vinculo" placeholder="Ej: Pareja, amigo, mamá..." value="${p ? escapeAttr(p.vinculo || "") : ""}"></div>
+    <div class="field"><label>Cumpleaños</label><input class="input" type="date" id="rel-cumple" value="${p ? (p.cumple || "") : ""}"></div>
+    <div class="field"><label>¿Cada cuánto quieres hablarle?</label>
+      <select class="input" id="rel-frecuencia">${freqs.map(([v, l]) => `<option value="${v}" ${v === curFreq ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+    <div class="field"><label>Notas</label><textarea class="input" id="rel-notas" style="min-height:80px" placeholder="Lo que quieras recordar de esta persona...">${p ? escapeHtml(p.notas || "") : ""}</textarea></div>
+    <button class="btn btn--primary btn-block" data-action="rel-save">${p ? "Guardar" : "Agregar"}</button>`);
 }
 function saveRel() {
   const nombre = val("rel-nombre"); if (!nombre) return toast("Ponle un nombre", true);
-  STATE.vida.relaciones.push({ id: uid(), nombre, vinculo: val("rel-vinculo"), cumple: val("rel-cumple"), ultimoContacto: todayISO() });
+  const data = { nombre, vinculo: val("rel-vinculo"), cumple: val("rel-cumple"), frecuencia: +val("rel-frecuencia"), notas: val("rel-notas") };
+  const id = val("rel-id");
+  if (id) {
+    const p = STATE.vida.relaciones.find(x => x.id === id);
+    if (p) Object.assign(p, data);
+  } else {
+    STATE.vida.relaciones.push({ id: uid(), ...data, ultimoContacto: todayISO() });
+  }
   saveState(); closeModal(); rerender();
 }
 

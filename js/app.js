@@ -681,6 +681,7 @@ function onClick(e) {
 
     /* Vida · Relaciones */
     case "rel-add": openRelModal(); break;
+    case "rel-edit": openRelModal(d.id); break;
     case "rel-save": saveRel(); break;
     case "rel-contacto": { const p = STATE.vida.relaciones.find(x => x.id === d.id); p.ultimoContacto = todayISO(); saveState(); rerender(); toast("💬 Registrado"); break; }
     case "rel-del": STATE.vida.relaciones = STATE.vida.relaciones.filter(p => p.id !== d.id); saveState(); rerender(); break;

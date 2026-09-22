@@ -11,6 +11,20 @@ function monthsSelector(current, action) {
   return `<div class="months">${MESES_CORTO.map((m, i) =>
     `<button class="${i === current ? "is-active" : ""}" data-action="${action}" data-m="${i}" title="${MESES[i]}">${m}</button>`).join("")}</div>`;
 }
+// Navegador de mes compacto: ‹ [mes ▾] año › — mucho más limpio en móvil que la tira de 12 botones.
+// `action` = acción de click para las flechas (data-m); `sel` = nombre para el <select> (data-month-nav).
+function monthNav(current, action, sel) {
+  const prev = (current + 11) % 12, next = (current + 1) % 12;
+  const opts = MESES.map((m, i) => `<option value="${i}" ${i === current ? "selected" : ""}>${m}</option>`).join("");
+  return `<div class="mnav">
+    <button class="mnav__arrow" data-action="${action}" data-m="${prev}" aria-label="Mes anterior">‹</button>
+    <label class="mnav__center">
+      <select class="mnav__sel" data-month-nav="${sel}" aria-label="Elegir mes">${opts}</select>
+      <span class="mnav__year">${STATE.settings.year}</span>
+    </label>
+    <button class="mnav__arrow" data-action="${action}" data-m="${next}" aria-label="Mes siguiente">›</button>
+  </div>`;
+}
 
 /* ============================================================
    FINANZAS
@@ -544,11 +558,11 @@ function renderSalud() {
   <div class="grid grid-4">
     ${statCard("🏋️", "Días entrenados (año)", deTot, "Total acumulado")}
     ${statCard("🍳", "Días cocinando (año)", dcTot, "Total acumulado")}
-    ${statCard("⚖️", "Peso actual", pesoActual != null ? pesoActual + " kg" : "—", "Meta " + s.pesoObjetivo + " kg")}
-    ${statCard("🎯", "Peso objetivo", `<input class="input" style="width:90px" type="text" inputmode="numeric" data-bind="salud.pesoObjetivo" data-type="num" value="${s.pesoObjetivo}">`, "kg")}
+    ${statCard("⚖️", "Peso actual", pesoActual != null ? pesoActual + " kg" : "—", s.pesoObjetivo != null ? "Meta " + s.pesoObjetivo + " kg" : "Define tu meta")}
+    ${statCard("🎯", "Peso objetivo", `<input class="input" style="width:90px" type="text" inputmode="numeric" data-bind="salud.pesoObjetivo" data-type="num" value="${s.pesoObjetivo ?? ""}" placeholder="—">`, "kg")}
   </div>
 
-  ${monthsSelector(i, "salud-month")}
+  ${monthNav(i, "salud-month", "salud")}
 
   <div class="grid grid-2">
     <div class="card">
@@ -765,11 +779,49 @@ function saveNota() {
 /* ============================================================
    CALENDARIO
    ============================================================ */
+// Reúne todo lo que tiene fecha en el mes: eventos, rituales, cumpleaños y libros terminados.
+function calMonthItems(year, m) {
+  const map = {}; // día -> [{icon,label,cls,type,date?}]
+  const push = (day, it) => { (map[day] = map[day] || []).push(it); };
+  const nDays = daysInMonth(year, m);
+  const mm = String(m + 1).padStart(2, "0");
+
+  // Eventos manuales
+  for (const iso in STATE.eventos) {
+    const p = iso.split("-").map(Number);
+    if (p[0] === year && p[1] === m + 1)
+      (STATE.eventos[iso] || []).forEach(e => push(p[2], { icon: "📌", label: e, cls: "cian", type: "evento", date: iso }));
+  }
+  // Rituales (abierto / cerrado)
+  for (let d = 1; d <= nDays; d++) {
+    const iso = `${year}-${mm}-${String(d).padStart(2, "0")}`;
+    const r = STATE.ritual.dias[iso];
+    if (r) push(d, r.cerrado
+      ? { icon: "🌙", label: "Ritual cerrado", cls: "coral", type: "ritual" }
+      : { icon: "🌅", label: "Día abierto", cls: "soft", type: "ritual" });
+  }
+  // Cumpleaños (mes + día, recurrente)
+  (STATE.vida.relaciones || []).forEach(pn => {
+    if (!pn.cumple) return;
+    const p = pn.cumple.split("-").map(Number);
+    if (p.length === 3 && p[1] === m + 1 && p[2] >= 1 && p[2] <= nDays)
+      push(p[2], { icon: "🎂", label: `Cumpleaños de ${pn.nombre}`, cls: "coral", type: "cumple" });
+  });
+  // Libros terminados
+  (STATE.lecturas || []).forEach(l => {
+    if (!l.fin) return;
+    const p = l.fin.split("-").map(Number);
+    if (p[0] === year && p[1] === m + 1) push(p[2], { icon: "📖", label: `Terminaste “${l.titulo}”`, cls: "cian", type: "libro" });
+  });
+  return map;
+}
+
 function renderCalendario() {
   const m = CAL_MONTH, year = STATE.settings.year;
   const first = new Date(year, m, 1);
   let startDow = (first.getDay() + 6) % 7; // lunes = 0
   const nDays = daysInMonth(year, m);
+  const items = calMonthItems(year, m);
   const cells = [];
   for (let k = 0; k < startDow; k++) cells.push("");
   for (let d = 1; d <= nDays; d++) cells.push(d);
@@ -782,29 +834,61 @@ function renderCalendario() {
     let tr = "<tr>";
     for (let c = 0; c < 7; c++, i++) {
       const d = cells[i];
-      if (!d) { tr += `<td style="height:92px;border:1px solid var(--line)"></td>`; continue; }
+      if (!d) { tr += `<td class="cal-cell cal-cell--empty"></td>`; continue; }
       const iso = `${year}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      const evs = STATE.eventos[iso] || [];
+      const its = items[d] || [];
       const isToday = iso === todayISO();
-      tr += `<td style="height:92px;border:1px solid var(--line);vertical-align:top;padding:6px;cursor:pointer" data-action="cal-add" data-date="${iso}">
-        <div style="font-size:12px;font-weight:600;color:${isToday ? "var(--coral)" : "var(--text-soft)"}">${d}</div>
-        ${evs.map((e, ei) => `<div class="chip chip--cian" style="display:block;margin-top:3px;font-size:10.5px;padding:3px 6px" title="${escapeAttr(e)}">${escapeHtml(e.length > 16 ? e.slice(0, 15) + "…" : e)}</div>`).join("")}
+      const dots = its.filter(x => x.type !== "evento");
+      const evs = its.filter(x => x.type === "evento");
+      tr += `<td class="cal-cell ${isToday ? "cal-cell--today" : ""}" data-action="cal-add" data-date="${iso}">
+        <div class="cal-num">${d}</div>
+        ${dots.length ? `<div class="cal-dots">${dots.map(x => `<span title="${escapeAttr(x.label)}">${x.icon}</span>`).join("")}</div>` : ""}
+        ${evs.slice(0, 2).map(e => `<div class="cal-ev cal-ev--${e.cls}" title="${escapeAttr(e.label)}">${escapeHtml(e.label.length > 15 ? e.label.slice(0, 14) + "…" : e.label)}</div>`).join("")}
+        ${evs.length > 2 ? `<div class="cal-more">+${evs.length - 2}</div>` : ""}
       </td>`;
     }
     tr += "</tr>"; rows += tr;
   }
 
-  return `
-  <div class="flex-between">
-    <button class="btn--soft btn" data-action="cal-prev">‹</button>
-    <div class="card__title">${MESES[m]} ${year}</div>
-    <button class="btn--soft btn" data-action="cal-next">›</button>
-  </div>
-  <div class="card mt-16" style="overflow-x:auto">
-    <table style="width:100%;border-collapse:collapse;min-width:640px">
-      <thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
-    <p class="text-xs muted mt-8">Haz clic en un día para agregar un evento.</p>
+  // Agenda del mes: todo lo fechado, ordenado por día
+  const agenda = [];
+  Object.keys(items).map(Number).sort((a, b) => a - b).forEach(day =>
+    items[day].forEach(it => agenda.push({ day, ...it })));
+  const agendaHtml = agenda.length
+    ? agenda.map(it => {
+        const iso = `${year}-${String(m + 1).padStart(2, "0")}-${String(it.day).padStart(2, "0")}`;
+        const clickable = it.type === "evento" ? `data-action="cal-add" data-date="${iso}" style="cursor:pointer"` : "";
+        return `<div class="agenda-row" ${clickable}>
+          <span class="agenda-day">${String(it.day).padStart(2, "0")}</span>
+          <span class="agenda-ico">${it.icon}</span>
+          <span class="agenda-label">${escapeHtml(it.label)}</span></div>`;
+      }).join("")
+    : `<div class="empty">Nada agendado este mes. Haz clic en un día para añadir un evento.</div>`;
+
+  // Resumen del mes (chips)
+  const nCumple = agenda.filter(x => x.type === "cumple").length;
+  const nLibro = agenda.filter(x => x.type === "libro").length;
+  const nRitual = agenda.filter(x => x.type === "ritual").length;
+  const metasMes = (STATE.metas.mensuales[m] || []);
+  const resumen = `<div class="cal-summary">
+    <span class="chip">🌙 ${nRitual} ${nRitual === 1 ? "ritual" : "rituales"}</span>
+    <span class="chip">🎂 ${nCumple} cumpleaños</span>
+    <span class="chip">📖 ${nLibro} ${nLibro === 1 ? "libro" : "libros"}</span>
+    <span class="chip">🎯 ${metasMes.filter(g => g.done).length}/${metasMes.length} metas</span>
   </div>`;
+
+  return `
+  ${monthNav(m, "cal-goto", "cal")}
+  ${resumen}
+  <div class="card mt-16" style="overflow-x:auto">
+    <table class="cal-table">
+      <thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
+    <div class="cal-legend">
+      <span>🌅 Día abierto</span><span>🌙 Ritual cerrado</span><span>🎂 Cumpleaños</span><span>📖 Libro terminado</span><span>📌 Evento</span>
+    </div>
+  </div>
+  <div class="section-title">Agenda de ${MESES[m]}</div>
+  <div class="card">${agendaHtml}</div>`;
 }
 let EVENTO_DATE = null;
 function openEventoModal(date) {

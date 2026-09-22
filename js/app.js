@@ -446,6 +446,8 @@ function setPath(obj, path, val) {
 }
 
 function onBind(e) {
+  const mn = e.target.closest("[data-month-nav]");
+  if (mn) { setMonthNav(mn.dataset.monthNav, +mn.value); return; }
   const el = e.target.closest("[data-bind]");
   if (!el) return;
   const path = el.dataset.bind;
@@ -585,6 +587,7 @@ function onClick(e) {
     /* Calendario */
     case "cal-prev": CAL_MONTH = (CAL_MONTH + 11) % 12; rerender(); break;
     case "cal-next": CAL_MONTH = (CAL_MONTH + 1) % 12; rerender(); break;
+    case "cal-goto": CAL_MONTH = +d.m; rerender(); break;
     case "cal-add": openEventoModal(d.date); break;
     case "evento-save": saveEvento(); break;
     case "evento-del": {
@@ -833,6 +836,15 @@ function toggleBloque(diaId, bloqueId) {
   if (allDone && !dia.premiado) { dia.premiado = true; addPoints(30); }
   if (!allDone && dia.premiado) { dia.premiado = false; }
   saveState(); rerender();
+}
+
+/* -------- Navegador de mes (dropdown del monthNav) -------- */
+function setMonthNav(name, m) {
+  if (name === "salud") SALUD_MONTH = m;
+  else if (name === "rueda") RUEDA_MONTH = m;
+  else if (name === "habit") HABIT_MONTH = m;
+  else if (name === "cal") CAL_MONTH = m;
+  rerender();
 }
 
 /* -------- Hábitos: toggle celda -------- */

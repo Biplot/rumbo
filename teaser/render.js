@@ -49,6 +49,11 @@ async function main() {
   const conAudio = musica !== "no" && fs.existsSync(path.resolve(musica));
   if (musica !== "no" && !conAudio) console.warn(`  ⚠ sin música: no existe ${musica}`);
 
+  /* Se codifica a un temporal y sólo al terminar se renombra: un render
+     interrumpido nunca deja un MP4 a medio escribir ocupando el nombre
+     del entregable. */
+  const parcial = out + ".part";
+
   const ff = spawn(FFMPEG, [
     "-y", "-hide_banner", "-loglevel", "error",
     "-f", "image2pipe", "-vcodec", "png", "-framerate", String(fps), "-i", "-",
@@ -56,7 +61,7 @@ async function main() {
     "-c:v", "libx264", "-preset", "slow", "-crf", "18",
     "-pix_fmt", "yuv420p", "-movflags", "+faststart",
     ...(conAudio ? ["-c:a", "aac", "-b:a", "192k", "-shortest"] : []),
-    out,
+    parcial,
   ]);
   ff.stderr.on("data", d => process.stderr.write("  [ffmpeg] " + d));
   const done = new Promise((res, rej) => {
@@ -83,6 +88,8 @@ async function main() {
 
   if (s.errors.length) console.warn("  ⚠ errores de la app:", [...new Set(s.errors)].join(" | "));
   await s.close();
+
+  fs.renameSync(parcial, out);   // recién ahora el entregable toma su nombre
 
   const mb = (fs.statSync(out).size / 1048576).toFixed(1);
   console.log(`✔ ${out}  (${mb} MB, ${((Date.now() - t0) / 1000).toFixed(0)}s)`);

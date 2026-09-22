@@ -9,3 +9,6 @@ node_modules/
 # Teaser: directorio de trabajo del render (fotogramas, música, videos en curso).
 # Los entregables finales se versionan en teaser/video/.
 teaser/out/
+
+# Renders en curso (el entregable toma su nombre al terminar)
+teaser/video/*.part

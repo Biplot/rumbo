@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Rumbo · Estudio de teaser</title>
+<link rel="stylesheet" href="/teaser/fonts/space-grotesk.css" />
+<style>
+  :root{
+    --azul:#0E2A47; --cian:#12A594; --coral:#E8563A;
+    --tinta:#0E2A47; --papel:#FBFBF9;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#000;overflow:hidden}
+  body{font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+
+  #stage{position:relative;overflow:hidden;background:var(--papel)}
+
+  /* --- Fondo: el cielo del día, de madrugada a noche --- */
+  #sky{position:absolute;inset:0}
+  #glow{position:absolute;inset:0;mix-blend-mode:screen}
+  #vig{position:absolute;inset:0;pointer-events:none;
+       background:radial-gradient(120% 80% at 50% 45%, transparent 55%, rgba(6,18,32,.28) 100%)}
+  #grain{position:absolute;inset:0;pointer-events:none;opacity:.035;mix-blend-mode:multiply}
+
+  /* --- El teléfono --- */
+  #device{position:absolute;transform-origin:50% 50%;will-change:transform}
+  #shell{position:relative;border-radius:46px;background:linear-gradient(160deg,#12314f,#0A1F34 45%,#16395c);
+         padding:9px;box-shadow:0 40px 90px rgba(8,24,40,.38), 0 8px 24px rgba(8,24,40,.22),
+         inset 0 1px 0 rgba(255,255,255,.18)}
+  #screen{position:relative;border-radius:38px;overflow:hidden;background:#fff}
+  #app{display:block;border:0;background:#fff}
+  #screenOff{position:absolute;inset:0;background:#07131f;pointer-events:none}
+  #screenWarm{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:0;
+              background:linear-gradient(170deg, rgba(255,186,120,.55), rgba(255,140,90,.32))}
+  #glare{position:absolute;inset:0;pointer-events:none;opacity:.5;
+         background:linear-gradient(118deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.05) 22%, transparent 42%)}
+  #taps{position:absolute;inset:0;pointer-events:none}
+  .tap{position:absolute;border-radius:50%;border:2px solid rgba(232,86,58,.85);
+       background:rgba(232,86,58,.16);transform:translate(-50%,-50%)}
+
+  /* --- Tipografía en pantalla --- */
+  #ui{position:absolute;inset:0;pointer-events:none}
+  .card{position:absolute;will-change:transform,opacity}
+  .ln{display:block;will-change:transform,opacity}
+  .ln b{font-weight:700}
+  .em-cian{color:var(--cian)}
+  .em-coral{color:var(--coral)}
+
+  .chips{position:absolute;display:flex;gap:10px;justify-content:center;width:100%}
+  .chip{background:rgba(255,255,255,.92);color:var(--azul);border-radius:999px;
+        font-weight:600;box-shadow:0 6px 18px rgba(8,24,40,.14);white-space:nowrap}
+
+  /* --- Cierre de marca --- */
+  #brand{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0}
+  #brand .mark{display:flex;align-items:center;gap:14px}
+  #brand .name{font-weight:700;color:var(--azul);letter-spacing:-.02em}
+  #brand .by{color:#6b7f93;font-weight:500}
+  #brand .tag{color:var(--azul);font-weight:500}
+  #brand .dom{color:var(--cian);font-weight:700;letter-spacing:.01em}
+  #brand .rule{height:2px;background:var(--coral);border-radius:2px}
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div id="sky"></div>
+    <div id="glow"></div>
+
+    <div id="device">
+      <div id="shell">
+        <div id="screen">
+          <iframe id="app" src="/index.html" scrolling="no"></iframe>
+          <div id="screenWarm"></div>
+          <div id="taps"></div>
+          <div id="glare"></div>
+          <div id="screenOff"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ui"></div>
+
+    <div id="brand">
+      <div class="mark">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <rect x="1" y="1" width="30" height="30" rx="8" fill="#0E2A47" stroke="#12A594" stroke-width="1.2"/>
+          <polyline points="7,23 13,17 18,20 25,10" fill="none" stroke="#12A594" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="7" cy="23" r="2" fill="#12A594"/><circle cx="13" cy="17" r="2" fill="#12A594"/>
+          <circle cx="18" cy="20" r="2" fill="#12A594"/><circle cx="25" cy="10" r="2.6" fill="#E8563A"/>
+        </svg>
+        <div>
+          <div class="name">Rumbo</div>
+          <div class="by">by BiPlot</div>
+        </div>
+      </div>
+      <div class="rule"></div>
+      <div class="tag">Tu vida, con rumbo</div>
+      <div class="dom">rumbo.biplot.cl</div>
+    </div>
+
+    <div id="vig"></div>
+    <div id="grain"></div>
+  </div>
+
+  <script src="/teaser/studio.js"></script>
+  <script src="/teaser/timeline.js"></script>
+  <script src="/teaser/timeline-corto.js"></script>
+  <script>window.__studioReady = Studio.init();</script>
+</body>
+</html>

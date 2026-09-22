@@ -153,6 +153,7 @@ async function loadUserState(user) {
   else data = cloud || local;
   STATE = data ? migrate(data) : defaultState();
   if (!STATE.profile.name || STATE.profile.name === "Chris") STATE.profile.name = user.name || STATE.profile.name;
+  grantOwnerPerks();     // cuenta dueña: todos los temas desbloqueados
   ensureCurrentWeek();   // limpia el planificador si cambió la semana
   saveState();           // sube el resultado fusionado (recupera lo que faltó subir)
 }
@@ -801,6 +802,17 @@ function applyTheme(t) {
 }
 function themeOwned(id) {
   return BASE_THEMES.includes(id) || (STATE.gamif.owned || []).includes("tema-" + id);
+}
+/* Cuenta dueña: desbloquea todos los temas automáticamente al entrar.
+   El correo va encriptado (hash), no en texto plano, para no exponerlo. */
+function grantOwnerPerks() {
+  try {
+    if (!CURRENT_USER || !CURRENT_USER.email || typeof _hash !== "function") return;
+    if (_hash(CURRENT_USER.email.trim().toLowerCase()) !== "h1805468134") return;
+    STATE.gamif = STATE.gamif || {};
+    STATE.gamif.owned = STATE.gamif.owned || [];
+    THEMES.forEach(t => { const k = "tema-" + t.id; if (!STATE.gamif.owned.includes(k)) STATE.gamif.owned.push(k); });
+  } catch (e) {}
 }
 
 const FONT_SG = "'Space Grotesk',sans-serif";

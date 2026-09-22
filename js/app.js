@@ -795,28 +795,36 @@ function onClick(e) {
   }
 }
 
+const BASE_THEMES = ["claro", "navy", "editorial"];
 function applyTheme(t) {
-  document.documentElement.setAttribute("data-theme", t || "biplot");
+  document.documentElement.setAttribute("data-theme", t || "claro");
 }
 function themeOwned(id) {
-  return id === "biplot" || id === "light" || (STATE.gamif.owned || []).includes("tema-" + id);
+  return BASE_THEMES.includes(id) || (STATE.gamif.owned || []).includes("tema-" + id);
 }
 
+const FONT_SG = "'Space Grotesk',sans-serif";
 const THEMES = [
-  { id: "biplot", nombre: "BiPlot", concepto: "El dashboard original: azul profundo, limpio y moderno.", costo: 0,
-    bg: "#0A1F34", card: "#102A46", accent: "#17C3B2", cta: "#FF6B4A", text: "#EAF2FB", font: "'Space Grotesk',sans-serif", radius: "10px" },
-  { id: "light", nombre: "Claro", concepto: "Sobre gris niebla, tarjetas blancas y texto azul. Diurno y sobrio.", costo: 0,
-    bg: "#F2F4F7", card: "#FFFFFF", accent: "#17C3B2", cta: "#FF6B4A", text: "#0E2A47", font: "'Space Grotesk',sans-serif", radius: "10px" },
-  { id: "pixel", nombre: "8-Bit Arcade", concepto: "Retro pixelado: tipografía de consola, bordes duros y sombras sólidas.", costo: 400,
-    bg: "#0A1F34", card: "#102A46", accent: "#17C3B2", cta: "#FF6B4A", text: "#EAF2FB", font: "'Press Start 2P',monospace", radius: "0" },
-  { id: "terminal", nombre: "Terminal", concepto: "Consola retro: monoespaciado cian sobre casi negro.", costo: 400,
-    bg: "#05141F", card: "#08202F", accent: "#8FF3E8", cta: "#FF6B4A", text: "#8FF3E8", font: "'VT323',monospace", radius: "6px" },
-  { id: "neon", nombre: "Neón", concepto: "Noche cyberpunk: acentos magenta y cian que brillan.", costo: 600,
-    bg: "#0B0A1F", card: "#151233", accent: "#22E7FF", cta: "#FF4FD8", text: "#EDE9FF", font: "'Space Grotesk',sans-serif", radius: "12px" },
-  { id: "matrix", nombre: "Matrix", concepto: "Verde fósforo sobre negro. Modo hacker total.", costo: 600,
-    bg: "#000000", card: "#04140A", accent: "#3BE38B", cta: "#3BE38B", text: "#4dff9b", font: "'VT323',monospace", radius: "2px" },
-  { id: "papel", nombre: "Papel", concepto: "Cálido tipo cuaderno: crema, sepia y tinta azul.", costo: 300,
-    bg: "#F3EEE3", card: "#FBF8F1", accent: "#17877A", cta: "#E0603A", text: "#2E2A22", font: "'Space Grotesk',sans-serif", radius: "10px" },
+  /* --- 3 bases gratis --- */
+  { id: "claro", nombre: "Claro", base: "Base", concepto: "Fondo claro, mucho aire y un acento cian. Sereno y profesional.", costo: 0,
+    bg: "#FBFBF9", card: "#FFFFFF", accent: "#12A594", cta: "#E8563A", text: "#111F31", font: FONT_SG, radius: "12px" },
+  { id: "navy", nombre: "Navy sobrio", base: "Base", concepto: "El modo oscuro BiPlot, pero calmado: navy profundo y planos, sin neón.", costo: 0,
+    bg: "#0C1B2C", card: "#122539", accent: "#2BB6A5", cta: "#E8563A", text: "#EAF0F6", font: FONT_SG, radius: "12px" },
+  { id: "editorial", nombre: "Editorial", base: "Base", concepto: "Claro de neutro frío, estructurado y serio. Con carácter de negocio.", costo: 0,
+    bg: "#F3F4F1", card: "#FFFFFF", accent: "#12A594", cta: "#E8563A", text: "#0E2A47", font: FONT_SG, radius: "12px" },
+  /* --- Tienda: variaciones del mismo esquema --- */
+  { id: "grafito", nombre: "Grafito", base: "Navy sobrio", concepto: "Modo oscuro neutro en grafito. Elegante y de bajo perfil.", costo: 400,
+    bg: "#111418", card: "#1A1E24", accent: "#39B9AE", cta: "#E8563A", text: "#E9ECEF", font: FONT_SG, radius: "12px" },
+  { id: "medianoche", nombre: "Medianoche", base: "Navy sobrio", concepto: "Oscuro con acento índigo. Sobrio pero con personalidad.", costo: 500,
+    bg: "#131A2C", card: "#1C2540", accent: "#8B93E8", cta: "#8B93E8", text: "#E7EAF4", font: FONT_SG, radius: "12px" },
+  { id: "arena", nombre: "Arena", base: "Claro", concepto: "Claro cálido con acento terracota. Acogedor sin perder la calma.", costo: 400,
+    bg: "#F7F4EE", card: "#FFFFFF", accent: "#C2603F", cta: "#C2603F", text: "#241E17", font: FONT_SG, radius: "12px" },
+  { id: "bosque", nombre: "Bosque", base: "Claro", concepto: "Claro con acento verde profundo. Fresco y equilibrado.", costo: 450,
+    bg: "#F4F7F3", card: "#FFFFFF", accent: "#2F7D5B", cta: "#E8563A", text: "#13251C", font: FONT_SG, radius: "12px" },
+  { id: "pizarra", nombre: "Pizarra", base: "Editorial", concepto: "Claro frío con acento azul pizarra. El más 'corporativo'.", costo: 550,
+    bg: "#F2F4F6", card: "#FFFFFF", accent: "#3B6FB0", cta: "#E8563A", text: "#1B2733", font: FONT_SG, radius: "12px" },
+  { id: "ciruela", nombre: "Ciruela", base: "Editorial", concepto: "Claro con acento ciruela. Cálido, sobrio y distintivo.", costo: 600,
+    bg: "#F6F2F4", card: "#FFFFFF", accent: "#B5567A", cta: "#B5567A", text: "#2A1B26", font: FONT_SG, radius: "12px" },
 ];
 
 function renderTienda() {
@@ -961,11 +969,12 @@ function computeStreak() {
    Ciclo del día: hero del Inicio + resumen de cierre
    ============================================================ */
 function heroCoral(title, sub, btnLabel, action) {
-  return `<div class="card" style="background:linear-gradient(120deg,var(--coral),#ff8a70);color:#fff;margin-bottom:24px">
+  return `<div class="card hero-focus" style="margin-bottom:20px">
     <div class="flex-between" style="flex-wrap:wrap;gap:16px">
-      <div><div class="big-num" style="color:#fff">${title}</div>
-        <div style="opacity:.92;margin-top:4px">${sub}</div></div>
-      <button class="btn" style="background:#fff;color:var(--coral)" data-action="${action}">${btnLabel}</button>
+      <div style="min-width:0">
+        <div class="hero-focus__title">${title}</div>
+        <div class="text-sm muted" style="margin-top:4px">${sub}</div></div>
+      <button class="btn btn--primary" data-action="${action}">${btnLabel}</button>
     </div></div>`;
 }
 function renderDayHero() {

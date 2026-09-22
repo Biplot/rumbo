@@ -7,39 +7,41 @@
    ============================================================ */
 
 :root {
-  /* Marca */
+  /* Marca (calmada: mismos matices BiPlot, menos neón) */
   --azul: #0E2A47;
-  --cian: #17C3B2;
-  --coral: #FF6B4A;
+  --cian: #12A594;
+  --coral: #E8563A;
   --grafito: #1C1C1E;
-  --niebla: #F2F4F7;
+  --niebla: #F5F6F4;
 
-  /* Superficies (tema oscuro, azul manda) */
-  --bg: #0A1F36;
-  --bg-grad: radial-gradient(1200px 600px at 80% -10%, #123456 0%, #0A1F36 55%, #081a2e 100%);
-  --surface: #102A46;
-  --surface-2: #16324f;
-  --surface-3: #1d3b5c;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.16);
+  /* Base por defecto = tema "Claro" (B): claro, sereno, profesional */
+  --bg: #FBFBF9;
+  --bg-grad: none;
+  --surface: #FFFFFF;
+  --surface-2: #F4F5F2;
+  --surface-3: #ECEEE9;
+  --line: #ECEDEA;
+  --line-strong: #D6D8D3;
 
   /* Texto */
-  --text: #EAF2FB;
-  --text-soft: #A9Bed4;
-  --text-muted: #6f88a3;
+  --text: #111F31;
+  --text-soft: #45505F;
+  --text-muted: #727C89;
 
-  /* Acentos */
-  --cian-soft: rgba(23, 195, 178, 0.14);
-  --coral-soft: rgba(255, 107, 74, 0.14);
+  /* Acentos suaves */
+  --cian-soft: rgba(18, 165, 148, 0.12);
+  --coral-soft: rgba(232, 86, 58, 0.12);
 
-  /* Radios y sombra */
+  /* Radios y sombra (planas, discretas) */
   --r-sm: 10px;
-  --r: 16px;
-  --r-lg: 22px;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.25);
+  --r: 14px;
+  --r-lg: 20px;
+  --shadow: 0 1px 2px rgba(16, 30, 48, 0.05), 0 12px 28px -20px rgba(16, 30, 48, 0.35);
+  --shadow-sm: 0 1px 2px rgba(16, 30, 48, 0.05);
 
   --sidebar-w: 250px;
+  --sidebar-bg: #FFFFFF;
+  --topbar-bg: rgba(251, 251, 249, 0.85);
   --font: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
@@ -68,7 +70,7 @@ a { color: var(--cian); }
 .sidebar {
   width: var(--sidebar-w);
   flex-shrink: 0;
-  background: linear-gradient(180deg, #0d2740, #0a1f34);
+  background: var(--sidebar-bg);
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
@@ -93,8 +95,8 @@ a { color: var(--cian); }
   width: 100%; text-align: left; transition: background .15s, color .15s;
 }
 .nav__item:hover { background: var(--surface-2); color: var(--text); }
-.nav__item.is-active { background: var(--cian-soft); color: #fff; }
-.nav__item.is-active .nav__ico { filter: drop-shadow(0 0 6px rgba(23,195,178,.6)); }
+.nav__item.is-active { background: var(--cian-soft); color: var(--text); font-weight: 600; box-shadow: inset 3px 0 0 var(--cian); }
+.nav__item.is-active .nav__ico { color: var(--cian); }
 .nav__ico { width: 20px; text-align: center; font-size: 16px; }
 .nav__sep { height: 1px; background: var(--line); margin: 8px 6px; }
 .nav__label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--text-muted); padding: 12px 12px 4px; }
@@ -107,7 +109,7 @@ a { color: var(--cian); }
 .topbar {
   border-bottom: 1px solid var(--line);
   position: sticky; top: 0; z-index: 20;
-  background: rgba(10, 31, 54, 0.72); backdrop-filter: blur(10px);
+  background: var(--topbar-bg); backdrop-filter: blur(10px);
   padding-top: env(safe-area-inset-top, 0px);
 }
 .topbar__inner {
@@ -176,8 +178,9 @@ a { color: var(--cian); }
 
 .pill { padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 500;
   background: var(--surface-2); border: 1px solid var(--line); white-space: nowrap; }
-.pill--streak { color: var(--coral); }
-.pill--pts { color: #FFC24A; }
+/* Contadores de la topbar: discretos (monocromo), no protagonistas */
+.pill--streak, .pill--pts { color: var(--text-soft); font-variant-numeric: tabular-nums; }
+.topbar__meta .pill--pts, .topbar__meta .pill--streak { background: none; border: none; padding: 6px 6px; font-size: 12.5px; }
 
 /* Ritual: pilares y energía */
 .pilar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
@@ -444,6 +447,8 @@ textarea.input { resize: vertical; min-height: 84px; }
 .mt-8 { margin-top: 8px; } .mt-16 { margin-top: 16px; } .mt-24 { margin-top: 24px; }
 .mb-0 { margin-bottom: 0; }
 .big-num { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; }
+.hero-focus { border-left: 3px solid var(--cian); }
+.hero-focus__title { font-family: var(--font); font-size: 21px; font-weight: 600; letter-spacing: -0.01em; color: var(--text); line-height: 1.25; }
 .hl-cian { color: var(--cian); } .hl-coral { color: var(--coral); }
 .text-sm { font-size: 13px; } .text-xs { font-size: 12px; }
 .divider { height: 1px; background: var(--line); margin: 16px 0; }
@@ -764,6 +769,78 @@ html[data-theme="papel"] body { background: #F3EEE3; }
 html[data-theme="papel"] .sidebar { background: #FBF8F1; }
 html[data-theme="papel"] .topbar { background: rgba(243,238,227,.82); }
 html[data-theme="papel"] .nav__item.is-active { color: #2E2A22; }
+
+/* ============================================================
+   TEMAS · esquema profesional (Claro = :root por defecto)
+   3 bases gratis: Claro (root) · Navy sobrio · Editorial
+   6 de Tienda: Grafito · Medianoche · Arena · Bosque · Pizarra · Ciruela
+   Todas comparten el mismo esquema; solo cambia color/neutro/acento.
+   ============================================================ */
+
+/* BASE A · Navy sobrio (oscuro refinado) */
+html[data-theme="navy"] {
+  --bg:#0C1B2C; --bg-grad:none; --surface:#122539; --surface-2:#16304A; --surface-3:#1D3B5C;
+  --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.20);
+  --text:#EAF0F6; --text-soft:#AFC0D2; --text-muted:#8695A8;
+  --cian:#2BB6A5; --coral:#E8563A; --cian-soft:rgba(43,182,165,.16); --coral-soft:rgba(232,86,58,.18);
+  --sidebar-bg:#0C1B2C; --topbar-bg:rgba(12,27,44,.82);
+  --shadow:0 1px 2px rgba(0,0,0,.28), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+}
+
+/* BASE C · Editorial (claro, neutro frío) */
+html[data-theme="editorial"] {
+  --bg:#F3F4F1; --bg-grad:none; --surface:#FFFFFF; --surface-2:#ECEEE9; --surface-3:#E2E5DE;
+  --line:#E5E7E2; --line-strong:#CDD0CA; --text:#0E2A47; --text-soft:#45525F; --text-muted:#6A7280;
+  --cian:#12A594; --coral:#E8563A; --cian-soft:rgba(18,165,148,.12); --coral-soft:rgba(232,86,58,.10);
+  --sidebar-bg:#FFFFFF; --topbar-bg:rgba(243,244,241,.85);
+}
+
+/* TIENDA · Grafito (base Navy, neutro grafito) */
+html[data-theme="grafito"] {
+  --bg:#111418; --bg-grad:none; --surface:#1A1E24; --surface-2:#20252C; --surface-3:#272D35;
+  --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.18);
+  --text:#E9ECEF; --text-soft:#B4BAC1; --text-muted:#8A9199;
+  --cian:#39B9AE; --coral:#E8563A; --cian-soft:rgba(57,185,174,.15); --coral-soft:rgba(232,86,58,.16);
+  --sidebar-bg:#111418; --topbar-bg:rgba(17,20,24,.82);
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.32);
+}
+/* TIENDA · Medianoche (base Navy, acento índigo) */
+html[data-theme="medianoche"] {
+  --bg:#131A2C; --bg-grad:none; --surface:#1C2540; --surface-2:#212B4A; --surface-3:#293356;
+  --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.20);
+  --text:#E7EAF4; --text-soft:#AFB6D0; --text-muted:#8C93AE;
+  --cian:#8B93E8; --coral:#E8563A; --cian-soft:rgba(139,147,232,.16); --coral-soft:rgba(232,86,58,.16);
+  --sidebar-bg:#131A2C; --topbar-bg:rgba(19,26,44,.82);
+  --shadow:0 1px 2px rgba(0,0,0,.28), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+}
+/* TIENDA · Arena (base Claro, cálido + terracota) */
+html[data-theme="arena"] {
+  --bg:#F7F4EE; --bg-grad:none; --surface:#FFFFFF; --surface-2:#F1ECE2; --surface-3:#E9E2D4;
+  --line:#EAE4D8; --line-strong:#D8CFBD; --text:#241E17; --text-soft:#5B5346; --text-muted:#7A7263;
+  --cian:#C2603F; --coral:#C2603F; --cian-soft:rgba(194,96,63,.12); --coral-soft:rgba(194,96,63,.12);
+  --sidebar-bg:#FFFFFF; --topbar-bg:rgba(247,244,238,.85);
+}
+/* TIENDA · Bosque (base Claro, acento verde) */
+html[data-theme="bosque"] {
+  --bg:#F4F7F3; --bg-grad:none; --surface:#FFFFFF; --surface-2:#EAF0E9; --surface-3:#DFE8DD;
+  --line:#E1E8E0; --line-strong:#CBD5C9; --text:#13251C; --text-soft:#41514A; --text-muted:#6B7A70;
+  --cian:#2F7D5B; --coral:#E8563A; --cian-soft:rgba(47,125,91,.12); --coral-soft:rgba(232,86,58,.10);
+  --sidebar-bg:#FFFFFF; --topbar-bg:rgba(244,247,243,.85);
+}
+/* TIENDA · Pizarra (base Editorial, acento azul) */
+html[data-theme="pizarra"] {
+  --bg:#F2F4F6; --bg-grad:none; --surface:#FFFFFF; --surface-2:#E9ECEF; --surface-3:#DFE3E7;
+  --line:#E2E6EA; --line-strong:#CBD1D7; --text:#1B2733; --text-soft:#48545F; --text-muted:#69747F;
+  --cian:#3B6FB0; --coral:#E8563A; --cian-soft:rgba(59,111,176,.12); --coral-soft:rgba(232,86,58,.10);
+  --sidebar-bg:#FFFFFF; --topbar-bg:rgba(242,244,246,.85);
+}
+/* TIENDA · Ciruela (base Editorial, acento rosa) */
+html[data-theme="ciruela"] {
+  --bg:#F6F2F4; --bg-grad:none; --surface:#FFFFFF; --surface-2:#EFE7EB; --surface-3:#E6DBE1;
+  --line:#EADFE4; --line-strong:#D8C7D0; --text:#2A1B26; --text-soft:#574A52; --text-muted:#7A6B74;
+  --cian:#B5567A; --coral:#B5567A; --cian-soft:rgba(181,86,122,.12); --coral-soft:rgba(181,86,122,.12);
+  --sidebar-bg:#FFFFFF; --topbar-bg:rgba(246,242,244,.85);
+}
 
 /* ============================================================
    PORTAL DE USUARIOS

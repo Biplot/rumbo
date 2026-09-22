@@ -22,7 +22,7 @@ function defaultState() {
       motto: "Construyendo mi mejor versión",
     },
     settings: {
-      appName: "Rumbo", year: YEAR, theme: "biplot", onboarded: false, metaLibros: 12,
+      appName: "Rumbo", year: YEAR, theme: "claro", onboarded: false, metaLibros: 12,
       notif: { enabled: false, manana: "08:00", noche: "21:00", subs: [] },
     },
 
@@ -197,7 +197,12 @@ function migrate(s) {
   const d = defaultState();
   ["gamif", "ritual", "semana", "entrenamiento", "vida"].forEach(k => { if (!s[k]) s[k] = d[k]; });
   if (s.ritual && !s.ritual.pilares) s.ritual.pilares = d.ritual.pilares;
-  if (s.settings && !s.settings.theme) s.settings.theme = "biplot";
+  if (s.settings && !s.settings.theme) s.settings.theme = "claro";
+  // Migración al nuevo esquema de temas: cualquier tema viejo pasa a "Claro" (nueva base).
+  if (s.settings) {
+    const NUEVOS = ["claro", "navy", "editorial", "grafito", "medianoche", "arena", "bosque", "pizarra", "ciruela"];
+    if (!NUEVOS.includes(s.settings.theme)) s.settings.theme = "claro";
+  }
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
   if (s.settings && s.settings.metaLibros == null) s.settings.metaLibros = 12;
   if (s.settings && !s.settings.notif) s.settings.notif = { enabled: false, manana: "08:00", noche: "21:00", subs: [] };

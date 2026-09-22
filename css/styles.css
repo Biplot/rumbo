@@ -310,8 +310,9 @@ textarea.input { resize: vertical; min-height: 84px; }
 .seg button.is-active { background: var(--coral); color: #fff; }
 
 /* Meses selector */
-.months { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
-.months button { background: var(--surface-2); border: 1px solid var(--line); color: var(--text-soft);
+.months { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 20px; padding-bottom: 4px; scrollbar-width: thin; }
+.months::-webkit-scrollbar { height: 5px; }
+.months button { flex: 0 0 auto; background: var(--surface-2); border: 1px solid var(--line); color: var(--text-soft);
   padding: 7px 13px; border-radius: 999px; font-size: 12.5px; font-weight: 500; }
 .months button.is-active { background: var(--cian); color: #06231f; border-color: var(--cian); }
 
@@ -371,6 +372,10 @@ textarea.input { resize: vertical; min-height: 84px; }
 
 .spine { border-radius: 3px 5px 5px 3px; flex-shrink: 0;
   box-shadow: inset -3px 0 0 rgba(0,0,0,.20), inset 3px 0 0 rgba(255,255,255,.16); }
+.spine--img { background-size: cover; background-position: center; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+.cover-prev { width: 48px; height: 66px; border-radius: 6px; background: var(--surface-3); background-size: cover;
+  background-position: center; border: 1px dashed var(--line-strong); flex-shrink: 0; }
+.cover-prev.has-img { border-style: solid; border-color: transparent; }
 
 .lect-now__top { display: flex; align-items: center; gap: 14px; }
 .lect-now__title { font-size: 15.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

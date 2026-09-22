@@ -8,8 +8,8 @@ let CAL_MONTH = new Date().getMonth();
 
 /* Selector de meses reutilizable */
 function monthsSelector(current, action) {
-  return `<div class="months">${MESES.map((m, i) =>
-    `<button class="${i === current ? "is-active" : ""}" data-action="${action}" data-m="${i}">${m}</button>`).join("")}</div>`;
+  return `<div class="months">${MESES_CORTO.map((m, i) =>
+    `<button class="${i === current ? "is-active" : ""}" data-action="${action}" data-m="${i}" title="${MESES[i]}">${m}</button>`).join("")}</div>`;
 }
 
 /* ============================================================
@@ -249,7 +249,33 @@ function estrellas(n) {
   return `<span class="stars">${"★".repeat(n)}<span class="stars__off">${"★".repeat(5 - n)}</span></span>`;
 }
 function libroSpine(l, w, h) {
+  if (l.portada) return `<div class="spine spine--img" style="width:${w}px;height:${h}px;background-image:url('${l.portada}')"></div>`;
   return `<div class="spine" style="background:${l.color || "#17C3B2"};width:${w}px;height:${h}px"></div>`;
+}
+function libroCoverUpload(input) {
+  const f = input.files && input.files[0]; input.value = "";
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 160, scale = Math.min(1, maxW / img.width);
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+      const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      const data = cv.toDataURL("image/jpeg", 0.72);
+      const hid = document.getElementById("lb-portada"); if (hid) hid.value = data;
+      const prev = document.getElementById("lb-portada-prev");
+      if (prev) { prev.style.backgroundImage = `url('${data}')`; prev.classList.add("has-img"); }
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+}
+function libroCoverClear() {
+  const hid = document.getElementById("lb-portada"); if (hid) hid.value = "";
+  const prev = document.getElementById("lb-portada-prev");
+  if (prev) { prev.style.backgroundImage = ""; prev.classList.remove("has-img"); }
 }
 
 function renderLecturas() {
@@ -358,7 +384,18 @@ function openLibroModal(id) {
       <div class="field" style="flex:1;margin-bottom:0"><label>Páginas totales</label><input class="input" type="number" min="0" id="lb-paginas" placeholder="Ej: 296" value="${l && l.paginas ? l.paginas : ""}"></div>
     </div>
     <div class="field mt-16"><label>Nota o aprendizaje clave</label><textarea class="input" id="lb-nota" placeholder="Lo que te llevas del libro...">${l ? escapeHtml(l.nota) : ""}</textarea></div>
-    <div class="field"><label>Color del lomo</label><div class="swatches">${colores}</div></div>
+    <input type="hidden" id="lb-portada" value="${l && l.portada ? l.portada : ""}">
+    <div class="field"><label>Portada (opcional)</label>
+      <div class="row" style="gap:12px;align-items:center">
+        <div class="cover-prev ${l && l.portada ? "has-img" : ""}" id="lb-portada-prev" style="${l && l.portada ? `background-image:url('${l.portada}')` : ""}"></div>
+        <div class="row" style="gap:8px">
+          <input type="file" id="lb-portada-file" accept="image/*" hidden onchange="libroCoverUpload(this)">
+          <button type="button" class="btn btn--soft" style="padding:8px 12px" onclick="document.getElementById('lb-portada-file').click()">Subir imagen</button>
+          <button type="button" class="btn-ghost" onclick="libroCoverClear()">Quitar</button>
+        </div>
+      </div>
+    </div>
+    <div class="field"><label>Color del lomo <span class="text-xs muted">(si no pones portada)</span></label><div class="swatches">${colores}</div></div>
     <div class="row" style="margin-top:6px">
       <button class="btn btn--primary" style="flex:1" data-action="libro-save">${id ? "Guardar cambios" : "Agregar a mi biblioteca"}</button>
       ${id ? `<button class="btn btn--soft" data-action="libro-del" data-id="${id}" title="Eliminar">🗑</button>` : ""}
@@ -375,11 +412,12 @@ function saveLibro() {
   const paginas = parseNum(document.getElementById("lb-paginas").value);
   const nota = val("lb-nota");
   const color = document.getElementById("lb-color").value || LECT_COLORS[0];
+  const portada = (document.getElementById("lb-portada") || {}).value || "";
 
   let l = id ? STATE.lecturas.find(x => x.id === id) : null;
   if (!l) { l = { id: uid(), inicio: "", fin: "" }; STATE.lecturas.push(l); }
   const antes = l.estado;
-  Object.assign(l, { titulo, autor: val("lb-autor"), estado, valoracion, pagina, paginas, nota, color });
+  Object.assign(l, { titulo, autor: val("lb-autor"), estado, valoracion, pagina, paginas, nota, color, portada });
 
   /* Fechas automáticas según el estado */
   if (estado === "leyendo" && !l.inicio) l.inicio = todayISO();

@@ -176,12 +176,24 @@ function mergeStates(server, local) {
     out.habitos.defs = byId(local.habitos.defs, server.habitos.defs);
   }
 
-  // gamif: no perder moneda/xp ganada -> máximo; badges/owned -> unión
+  // gamif: el saldo se DERIVA del libro de movimientos (ledger), fusionado por id.
+  // Nunca se toma el máximo de saldos (eso duplicaba monedas tras gastar en otro equipo).
   if (local.gamif && server.gamif) {
-    out.gamif.puntos = Math.max(local.gamif.puntos || 0, server.gamif.puntos || 0);
-    out.gamif.xp = Math.max(local.gamif.xp || 0, server.gamif.xp || 0);
+    const lL = Array.isArray(local.gamif.ledger), sL = Array.isArray(server.gamif.ledger);
     out.gamif.badges = Array.from(new Set([...(server.gamif.badges || []), ...(local.gamif.badges || [])]));
-    out.gamif.owned = Array.from(new Set([...(server.gamif.owned || []), ...(local.gamif.owned || [])]));
+    if (lL || sL) {
+      // Si un lado aún no tiene ledger (estado viejo), su saldo se ignora: el lado con
+      // ledger es más nuevo por construcción (se migra al cargar).
+      out.gamif.ledger = JSON.parse(JSON.stringify(
+        lL && sL ? ledgerMerge(local.gamif.ledger, server.gamif.ledger) : (lL ? local.gamif.ledger : server.gamif.ledger)));
+      recalcGamif(out);
+      syncHabitLogFromLedger(out);
+    } else {
+      // Ambos anteriores al ledger: criterio conservador (menor saldo), XP no baja.
+      out.gamif.puntos = Math.min(local.gamif.puntos || 0, server.gamif.puntos || 0);
+      out.gamif.xp = Math.max(local.gamif.xp || 0, server.gamif.xp || 0);
+      out.gamif.owned = Array.from(new Set([...(server.gamif.owned || []), ...(local.gamif.owned || [])]));
+    }
   }
   // Suscripciones push: unir por endpoint (cada dispositivo tiene la suya)
   const ln = local.settings && local.settings.notif, sn = server.settings && server.settings.notif;
@@ -263,6 +275,7 @@ const SupabaseBackend = {
       const { data: row, error: e1 } = await client.from("estado_usuario").select("data, updated_at").eq("user_id", uid).maybeSingle();
       if (e1 || !row) { console.warn("saveState merge (lectura)", e1 && e1.message); return { error: e1 ? e1.message : "sin fila" }; }
       const merged = mergeStates(row.data, localState);
+      if (typeof migrate === "function") migrate(merged);   // normaliza y recalcula derivados (monedas)
       const now = new Date().toISOString();
       const { data, error } = await client.from("estado_usuario")
         .update({ data: merged, updated_at: now }).eq("user_id", uid).eq("updated_at", row.updated_at)

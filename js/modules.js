@@ -534,7 +534,7 @@ function saveLibro() {
 
   /* Recompensa al terminar un libro: una sola vez por libro (aunque lo pases a
      "leyendo" y de vuelta a "terminado"), para que las monedas sean coherentes. */
-  if (estado === "terminado" && !l.premiado) { l.premiado = true; addPoints(40); }
+  if (estado === "terminado" && !l.premiado) { l.premiado = true; registrarMovimiento("lectura:" + l.id, 40, 40, "Libro terminado"); }
   saveState(); closeModal();
   if (typeof checkBadges === "function") checkBadges();
   rerender();

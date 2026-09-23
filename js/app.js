@@ -485,13 +485,21 @@ function dayAutoSummary() {
 }
 
 /* -------- Puntos (gamificación) -------- */
-function addPoints(n) {
-  STATE.gamif.puntos = Math.max(0, STATE.gamif.puntos + n);
-  STATE.gamif.xp = Math.max(0, (STATE.gamif.xp || 0) + n);
-  saveState();
+/* Todo cambio de monedas/XP pasa por el ledger (ver state.js). El id es determinista
+   por evento: el mismo evento nunca paga dos veces, ni entre dispositivos. */
+function registrarMovimiento(id, delta, xp, motivo, silencioso) {
+  const ok = ledgerRegistrar(STATE, id, delta, xp == null ? Math.max(0, delta) : xp, motivo);
+  if (!ok) return false;
+  saveState(); refreshPts();
+  if (delta > 0 && !silencioso) toast("+" + delta + " ⭐");
+  return true;
+}
+function anularMovimiento(id) {
+  if (ledgerAnular(STATE, id)) { saveState(); refreshPts(); }
+}
+function refreshPts() {
   const el = document.getElementById("ptsVal");
   if (el) el.textContent = STATE.gamif.puntos;
-  if (n > 0) toast("+" + n + " ⭐");
 }
 function computeRitualStreak() {
   const now = new Date(); let streak = 0;
@@ -643,7 +651,7 @@ function onClick(e) {
     case "apr-add": openAprModal(d.tipo); break;
     case "apr-del": STATE.aprendizajes = STATE.aprendizajes.filter(x => x.id !== d.id); saveState(); rerender(); break;
     case "apr-save": saveApr(); break;
-    case "apr-toggle": { const a = STATE.aprendizajes.find(x => x.id === d.id); if (a) { a.done = !a.done; addPoints(a.done ? 10 : -10); } saveState(); rerender(); break; }
+    case "apr-toggle": { const a = STATE.aprendizajes.find(x => x.id === d.id); if (a) { a.done = !a.done; a.done ? registrarMovimiento("aprendizaje:" + a.id, 10, 10, "Aprendizaje") : anularMovimiento("aprendizaje:" + a.id); } saveState(); rerender(); break; }
 
     /* Notas */
     case "nota-add-cat": openNotaCatModal(); break;
@@ -688,7 +696,7 @@ function onClick(e) {
     }
     case "sem-toggle": {
       const t = STATE.semana.dias[+d.day].find(x => x.id === d.id);
-      t.done = !t.done; addPoints(t.done ? 15 : -15);
+      t.done = !t.done; t.done ? registrarMovimiento("tarea:" + t.id, 15, 15, "Tarea") : anularMovimiento("tarea:" + t.id);
       saveState(); rerender(); break;
     }
     case "sem-del": STATE.semana.dias[+d.day] = STATE.semana.dias[+d.day].filter(x => x.id !== d.id); saveState(); rerender(); break;
@@ -717,9 +725,11 @@ function onClick(e) {
     case "tema-buy": {
       const th = THEMES.find(t => t.id === d.theme) || {};
       if (themeOwned(d.theme)) break;
+      recalcGamif(STATE);
       if (STATE.gamif.puntos < th.costo) { toast("Te faltan " + (th.costo - STATE.gamif.puntos) + " ⭐", true); break; }
       if (!confirm(`¿Desbloquear el tema "${th.nombre}" por ${th.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - th.costo} ⭐.`)) break;
-      STATE.gamif.puntos -= th.costo; STATE.gamif.owned.push("tema-" + d.theme);
+      const res = ledgerComprar(STATE, "tema-" + d.theme, th.costo);
+      if (!res.ok && !res.yaTenia) { toast("Te faltan " + (res.falta || th.costo) + " ⭐", true); break; }
       STATE.settings.theme = d.theme; saveState(); applyTheme(d.theme); updateTopbar(); closeModal(); rerender();
       toast("🛍️ Tema " + th.nombre + " desbloqueado y aplicado");
       break;
@@ -737,8 +747,9 @@ function onClick(e) {
       const texto = val("di-texto"), grat = val("di-grat");
       const mood = parseNum(document.getElementById("di-mood").value) || 3;
       if (!texto && !grat) return toast("Escribe algo primero", true);
-      STATE.vida.diario.push({ id: uid(), fecha: todayISO(), mood, texto, gratitud: grat });
-      saveState(); addPoints(10); rerender(); break;
+      const entrada = { id: uid(), fecha: todayISO(), mood, texto, gratitud: grat, ts: Date.now() };
+      STATE.vida.diario.push(entrada);
+      saveState(); registrarMovimiento("diario:" + entrada.id, 10, 10, "Diario"); rerender(); break;
     }
     case "diario-del": STATE.vida.diario = STATE.vida.diario.filter(e => e.id !== d.id); saveState(); rerender(); break;
 
@@ -809,9 +820,9 @@ function grantOwnerPerks() {
   try {
     if (!CURRENT_USER || !CURRENT_USER.email || typeof _hash !== "function") return;
     if (_hash(CURRENT_USER.email.trim().toLowerCase()) !== "h1805468134") return;
-    STATE.gamif = STATE.gamif || {};
-    STATE.gamif.owned = STATE.gamif.owned || [];
-    THEMES.forEach(t => { const k = "tema-" + t.id; if (!STATE.gamif.owned.includes(k)) STATE.gamif.owned.push(k); });
+    // Van a gamif.perks (no al ledger): desbloquear no genera movimientos de cobro
+    STATE.gamif.perks = THEMES.map(t => "tema-" + t.id);
+    recalcGamif(STATE);
   } catch (e) {}
 }
 
@@ -926,7 +937,7 @@ function toggleBloque(diaId, bloqueId) {
   const allDone = dia.bloques.length && dia.bloques.every(x => x.done);
   // Premio de una sola vez: se otorga la primera vez que completas el día y nunca se
   // vuelve a dar (aunque desmarques y vuelvas a marcar). Evita farmear monedas.
-  if (allDone && !dia.premiado) { dia.premiado = true; addPoints(30); }
+  if (allDone && !dia.premiado) { dia.premiado = true; registrarMovimiento("entreno:" + dia.id, 30, 30, "Entrenamiento"); }
   saveState(); rerender();
 }
 
@@ -946,8 +957,9 @@ function toggleHabitDate(habitId, year, monthIdx, day) {
   STATE.habitos.log[key] = STATE.habitos.log[key] || {};
   STATE.habitos.log[key][habitId] = STATE.habitos.log[key][habitId] || {};
   const cur = STATE.habitos.log[key][habitId][day];
-  if (cur) { delete STATE.habitos.log[key][habitId][day]; addPoints(-5); }
-  else { STATE.habitos.log[key][habitId][day] = true; addPoints(5); }
+  const movId = "habito:" + habitId + ":" + isoLocal(new Date(year, monthIdx, day));
+  if (cur) { delete STATE.habitos.log[key][habitId][day]; anularMovimiento(movId); }
+  else { STATE.habitos.log[key][habitId][day] = true; registrarMovimiento(movId, 5, 5); }
   saveState();
   updateTopbar();
   rerender();

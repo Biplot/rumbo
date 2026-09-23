@@ -89,10 +89,12 @@ function defaultState() {
 
     // gamificación
     gamif: {
-      puntos: 0,   // monedas gastables
-      xp: 0,       // experiencia total (rango), no baja por gastar
+      puntos: 0,   // DERIVADO del ledger: monedas gastables
+      xp: 0,       // DERIVADO del ledger: experiencia total (rango), no baja por gastar
       badges: [],  // ids de insignias ganadas
-      owned: [],   // ids de cosméticos desbloqueados (temas/títulos/detalles)
+      owned: [],   // DERIVADO del ledger (compra:*) + perks: caché por compatibilidad
+      perks: [],   // desbloqueos sin cobro (cuenta dueña); no generan movimientos
+      ledger: [],  // libro de movimientos: [{ id, ts, delta, xp, motivo, anulado? }]
       equipped: { titulo: null, insignia: null, acento: null, confeti: false },
     },
 
@@ -187,7 +189,7 @@ function seedDemo(s) {
   }
 
   // Monedas de prueba para explorar la tienda completa
-  s.gamif.puntos = 6000;
+  ledgerRegistrar(s, "demo-monedas", 6000, 0, "Monedas de prueba");
 
   return s;
 }
@@ -211,7 +213,10 @@ function migrate(s) {
   if (g.xp == null) g.xp = g.puntos || 0;
   if (!g.badges) g.badges = [];
   if (!g.owned) g.owned = [];
+  if (!Array.isArray(g.perks)) g.perks = [];
   if (!g.equipped) g.equipped = { titulo: null, insignia: null, acento: null, confeti: false };
+  ensureLedger(s);    // monedas: libro de movimientos (idempotente)
+  recalcGamif(s);
 
   // Biblioteca de lecturas: migrar del modelo viejo (12 meses, 1 libro/mes) a lista libre
   if (!Array.isArray(s.lecturas)) s.lecturas = [];
@@ -235,6 +240,119 @@ function migrate(s) {
       }));
   }
 
+  return s;
+}
+
+/* ============================================================
+   Monedas y XP: libro de movimientos (ledger) idempotente.
+   Cada evento tiene un id determinista (p. ej. "ritual-cierre:2026-09-23"),
+   así el mismo evento en dos dispositivos colapsa en un solo movimiento.
+   puntos, xp y owned se DERIVAN siempre del ledger.
+   ============================================================ */
+const SALDO_INICIAL = "saldo-inicial";
+
+/* Migración: crea el ledger desde el saldo viejo. Idempotente. */
+function ensureLedger(s) {
+  const g = s.gamif = s.gamif || {};
+  if (Array.isArray(g.ledger)) return s;
+  const perks = new Set(g.perks || []);
+  g.ledger = [{ id: SALDO_INICIAL, ts: 0, delta: g.puntos > 0 ? g.puntos : 0, xp: g.xp > 0 ? g.xp : 0, motivo: "Saldo al migrar" }];
+  // Insignias y compras existentes: ya pagadas/cobradas (delta 0, ts 0 → cualquier movimiento real gana)
+  (g.badges || []).forEach(b => g.ledger.push({ id: "insignia:" + b, ts: 0, delta: 0, xp: 0, motivo: "Migración" }));
+  (g.owned || []).forEach(o => { if (!perks.has(o)) g.ledger.push({ id: "compra:" + o, ts: 0, delta: 0, xp: 0, motivo: "Migración" }); });
+  return s;
+}
+
+/* Recalcula los derivados (puntos, xp, owned) desde el ledger */
+function recalcGamif(s) {
+  const g = s.gamif; if (!g || !Array.isArray(g.ledger)) return s;
+  let puntos = 0, xp = 0; const owned = new Set(g.perks || []);
+  g.ledger.forEach(m => {
+    if (!m || m.anulado) return;
+    puntos += m.delta || 0;
+    xp += Math.max(0, m.xp || 0);
+    if (typeof m.id === "string" && m.id.startsWith("compra:")) owned.add(m.id.slice(7));
+  });
+  g.puntos = puntos; g.xp = xp; g.owned = Array.from(owned);
+  return s;
+}
+
+/* Fusión de dos ledgers por id: gana el ts más reciente.
+   Excepción: dos "saldo-inicial" distintos → se conserva el menor (conservador). */
+function ledgerMerge(a, b) {
+  const map = new Map();
+  [...(b || []), ...(a || [])].forEach(m => {
+    if (!m || m.id == null) return;
+    const o = map.get(m.id);
+    if (!o) { map.set(m.id, m); return; }
+    if (m.id === SALDO_INICIAL) { if ((m.delta || 0) < (o.delta || 0)) map.set(m.id, m); return; }
+    if ((m.ts || 0) > (o.ts || 0)) map.set(m.id, m);
+  });
+  return Array.from(map.values());
+}
+
+/* Registra un movimiento. Si ya existe vigente, no hace nada (devuelve false).
+   Si existía anulado (acción reversible), lo reactiva con un ts nuevo y su delta original. */
+function ledgerRegistrar(s, id, delta, xp, motivo, now) {
+  ensureLedger(s);
+  const L = s.gamif.ledger;
+  const ex = L.find(m => m.id === id);
+  if (ex && !ex.anulado) return false;
+  const ts = now || Date.now();
+  if (ex) { ex.anulado = false; ex.ts = Math.max(ts, (ex.ts || 0) + 1); }
+  else { const m = { id, ts, delta: delta || 0, xp: Math.max(0, xp || 0) }; if (motivo) m.motivo = motivo; L.push(m); }
+  recalcGamif(s);
+  return true;
+}
+
+/* Anula un movimiento reversible (desmarcar). No se borra: queda anulado con ts nuevo.
+   Si no existía (marca anterior al ledger), deja un registro anulado de 0 para que
+   volver a marcar no pague de nuevo. */
+function ledgerAnular(s, id, now) {
+  ensureLedger(s);
+  const L = s.gamif.ledger;
+  const ts = now || Date.now();
+  const ex = L.find(m => m.id === id);
+  if (!ex) L.push({ id, ts, delta: 0, xp: 0, anulado: true });
+  else if (!ex.anulado) { ex.anulado = true; ex.ts = Math.max(ts, (ex.ts || 0) + 1); }
+  else return false;
+  recalcGamif(s);
+  return true;
+}
+
+/* Movimiento vigente? */
+function ledgerVigente(s, id) {
+  const m = ((s.gamif && s.gamif.ledger) || []).find(x => x.id === id);
+  return !!(m && !m.anulado);
+}
+
+/* Compra: valida contra el saldo derivado y no cobra dos veces */
+function ledgerComprar(s, itemId, costo, now) {
+  recalcGamif(s);
+  const id = "compra:" + itemId;
+  if (ledgerVigente(s, id) || (s.gamif.owned || []).includes(itemId)) return { ok: false, yaTenia: true };
+  if ((s.gamif.puntos || 0) < costo) return { ok: false, falta: costo - (s.gamif.puntos || 0) };
+  ledgerRegistrar(s, id, -costo, 0, "Compra", now);
+  return { ok: true };
+}
+
+/* Las marcas de hábitos hechas con ledger siguen el estado de su movimiento
+   (así desmarcar en un dispositivo se propaga al otro). */
+function syncHabitLogFromLedger(s) {
+  if (!s.habitos || !s.gamif || !Array.isArray(s.gamif.ledger)) return s;
+  s.habitos.log = s.habitos.log || {};
+  s.gamif.ledger.forEach(m => {
+    if (!m || typeof m.id !== "string" || !m.id.startsWith("habito:")) return;
+    const p = m.id.split(":"); if (p.length !== 3) return;
+    const [y, mo, d] = p[2].split("-").map(Number); if (!y || !mo || !d) return;
+    const key = `${y}-${mo}`;
+    if (m.anulado) { if (s.habitos.log[key] && s.habitos.log[key][p[1]]) delete s.habitos.log[key][p[1]][d]; }
+    else {
+      s.habitos.log[key] = s.habitos.log[key] || {};
+      s.habitos.log[key][p[1]] = s.habitos.log[key][p[1]] || {};
+      s.habitos.log[key][p[1]][d] = true;
+    }
+  });
   return s;
 }
 

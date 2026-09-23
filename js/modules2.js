@@ -154,7 +154,10 @@ function saveRitual() {
   });
   STATE.semana.dias[wd] = nuevas;
 
-  if (!yaHecho) { STATE.ritual.pilares[pilar] = (STATE.ritual.pilares[pilar] || 0) + 1; addPoints(50); }
+  if (!yaHecho) {
+    STATE.ritual.pilares[pilar] = (STATE.ritual.pilares[pilar] || 0) + 1;
+    registrarMovimiento("ritual-apertura:" + iso, 50, 50, "Ritual de apertura");
+  }
   saveState(); closeModal(); updateTopbar(); rerender();
 }
 
@@ -231,7 +234,7 @@ function saveCierre() {
   dEntry.gratitud = r.cierre.mejor || "";
   dEntry.ts = Date.now();
 
-  if (!yaCerrado) addPoints(40);
+  if (!yaCerrado) registrarMovimiento("ritual-cierre:" + iso, 40, 40, "Ritual de cierre");
   saveState(); closeModal(); updateTopbar(); rerender();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
   toast("Día cerrado 🌙 ¡Descansa!");

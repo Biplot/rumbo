@@ -65,12 +65,16 @@ function checkBadges() {
   BADGES.forEach(b => {
     if (g.badges.includes(b.id)) return;
     let ok = false; try { ok = b.check(STATE); } catch (e) { ok = false; }
-    if (ok) { g.badges.push(b.id); gained += b.reward || 0; count++; last = b.nombre; }
+    if (ok) {
+      g.badges.push(b.id);
+      // La recompensa sale de su movimiento "insignia:<id>": nunca se paga dos veces
+      if (registrarMovimiento("insignia:" + b.id, b.reward || 0, b.reward || 0, "Insignia " + b.nombre, true)) gained += b.reward || 0;
+      count++; last = b.nombre;
+    }
   });
   if (count > 0) {
-    g.puntos += gained; g.xp = (g.xp || 0) + gained; saveState();
-    const el = document.getElementById("ptsVal"); if (el) el.textContent = g.puntos;
-    toast(count === 1 ? `🏅 ${last} · +${gained} ⭐` : `🏅 ${count} insignias · +${gained} ⭐`);
+    saveState(); refreshPts();
+    if (gained > 0) toast(count === 1 ? `🏅 ${last} · +${gained} ⭐` : `🏅 ${count} insignias · +${gained} ⭐`);
   }
 }
 
@@ -92,10 +96,11 @@ function isOwned(id) { return (STATE.gamif.owned || []).includes(id); }
 
 function buyItem(id) {
   const it = findCosmetic(id); if (!it || isOwned(id)) return;
+  recalcGamif(STATE);   // valida contra el saldo derivado del ledger
   if (STATE.gamif.puntos < it.costo) return toast("Te faltan " + (it.costo - STATE.gamif.puntos) + " ⭐", true);
   if (!confirm(`¿Comprar "${it.nombre}" por ${it.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - it.costo} ⭐.`)) return;
-  STATE.gamif.puntos -= it.costo;
-  STATE.gamif.owned.push(id);
+  const res = ledgerComprar(STATE, id, it.costo);
+  if (!res.ok) return res.yaTenia ? rerender() : toast("Te faltan " + res.falta + " ⭐", true);
   saveState(); updateTopbar(); rerender();
   toast("🛍️ " + it.nombre + " desbloqueado");
 }

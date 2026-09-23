@@ -49,7 +49,7 @@ function defaultState() {
       porque: "",
       gastos: [],
       // seguimiento mensual: ingreso, gasto, ahorro por mes (índice 0-11)
-      meses: MESES.map(() => ({ ingreso: 0, gasto: 0, ahorro: 0 })),
+      meses: MESES.map(() => ({ ingreso: 0, gasto: 0, ahorro: 0, metaAhorro: 0 })),
     },
 
     // metas trimestrales (4) y mensuales (12)
@@ -117,7 +117,8 @@ function defaultState() {
 
     // ritual matutino: días + 6 pilares del alto rendimiento
     ritual: {
-      dias: {}, // "2026-09-20": { mision, pilar, sapo, energia, servir, proyectos:[], hecho:true }
+      dias: {}, // "2026-09-20": { mision, pilar, sapo, sapoAmbito, energia, servir, proyectos:[], hecho:true }
+      meses: {}, // ritual de mes: "2026-10": { apertura: {…, ts}, cierre: {…, ts} }
       pilares: { "Psicología": 0, "Fisiología": 0, "Productividad": 0, "Magnetismo": 0, "Presencia": 0, "Propósito": 0 },
     },
 
@@ -216,6 +217,8 @@ function migrate(s) {
   const d = defaultState();
   ["gamif", "ritual", "semana", "entrenamiento", "vida"].forEach(k => { if (!s[k]) s[k] = d[k]; });
   if (s.ritual && !s.ritual.pilares) s.ritual.pilares = d.ritual.pilares;
+  if (s.ritual && (!s.ritual.meses || typeof s.ritual.meses !== "object")) s.ritual.meses = {};
+  if (s.finanzas && Array.isArray(s.finanzas.meses)) s.finanzas.meses.forEach(fm => { if (fm && fm.metaAhorro == null) fm.metaAhorro = 0; });
   // Temas: los existentes conservan el suyo. Retirados: bosque → bosque-claro; el resto → navy.
   if (s.settings) {
     const TEMAS = ["navy", "claro", "grafito", "medianoche", "bosque-claro", "bosque-oscuro"];

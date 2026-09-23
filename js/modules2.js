@@ -25,7 +25,14 @@ function openPilaresInfo() {
 /* ============================================================
    RITUAL MATUTINO
    ============================================================ */
+let RITUAL_VIEW = "dia";   // dia | mes
 function renderRitual() {
+  const seg = `<div class="seg" style="margin-bottom:16px">${[["dia", "🌅 Día"], ["mes", "🗓️ Mes"]].map(([k, l]) =>
+    `<button class="${RITUAL_VIEW === k ? "is-active" : ""}" data-action="ritual-view" data-v="${k}">${l}</button>`).join("")}</div>`;
+  if (RITUAL_VIEW === "mes") return seg + renderMesBanner() + renderRitualMes();
+  return seg + renderMesBanner() + renderRitualDia();
+}
+function renderRitualDia() {
   const iso = todayISO();
   const r = STATE.ritual.dias[iso];
   const hecho = r && r.hecho;

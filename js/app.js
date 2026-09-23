@@ -592,7 +592,7 @@ function onClick(e) {
     }
     case "meta-toggle": {
       const bucket = d.bucket === "tri" ? STATE.metas.trimestres : STATE.metas.mensuales;
-      const it = bucket[+d.idx].find(x => x.id === d.id); it.done = !it.done;
+      const it = bucket[+d.idx].find(x => x.id === d.id); it.done = !it.done; it.ts = Date.now();
       saveState(); rerender(); break;
     }
     case "meta-del": {
@@ -686,6 +686,15 @@ function onClick(e) {
     case "ritual-start": openRitualModal(); break;
     case "ritual-save": saveRitual(); break;
     case "pilares-info": openPilaresInfo(); break;
+
+    /* Ritual de mes */
+    case "ritual-view": RITUAL_VIEW = d.v; rerender(); break;
+    case "mes-open": openMesApertura(d.key); break;
+    case "mes-close": openMesCierre(d.key); break;
+    case "mes-next": mesWizMover(1); break;
+    case "mes-prev": mesWizMover(-1); break;
+    case "mes-finish": mesWizFinish(); break;
+    case "mes-hab-add": mesHabAdd(); break;
 
     /* Bitácora */
     case "bita-toggle": BITA_OPEN[d.iso] = !BITA_OPEN[d.iso]; rerender(); break;
@@ -1007,13 +1016,14 @@ function computeStreak() { return rachaGlobalHabitos(STATE); }
 /* ============================================================
    Ciclo del día: hero del Inicio + resumen de cierre
    ============================================================ */
-function heroCoral(title, sub, btnLabel, action) {
+function heroCoral(title, sub, btnLabel, action, data = {}) {
+  const extra = Object.entries(data).map(([k, v]) => ` data-${k}="${escapeAttr(v)}"`).join("");
   return `<div class="card hero-focus" style="margin-bottom:20px">
     <div class="flex-between" style="flex-wrap:wrap;gap:16px">
       <div style="min-width:0">
         <div class="hero-focus__title">${title}</div>
         <div class="text-sm muted" style="margin-top:4px">${sub}</div></div>
-      <button class="btn btn--primary" data-action="${action}">${btnLabel}</button>
+      <button class="btn btn--primary" data-action="${action}"${extra}>${btnLabel}</button>
     </div></div>`;
 }
 function renderDayHero() {
@@ -1167,6 +1177,7 @@ function renderInicio() {
 
   return `
   ${renderPendingYesterday()}
+  ${renderMesBanner()}
   ${renderDayHero()}
   <div class="grid grid-4">
     ${statCard("💰", "Ahorro de " + MESES[mIdx], fmtCLP(ahorroMes), `Meta ${fmtCLP(metaMes)} · ${pctAhorro}%`, pctAhorro)}

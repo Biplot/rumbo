@@ -157,6 +157,18 @@ function mergeStates(server, local) {
       else md[k] = (l.ts || 0) >= (s.ts || 0) ? l : s;
     });
     out.ritual.dias = md;
+
+    // ritual.meses: por clave "YYYY-MM"; apertura y cierre se fusionan por separado (gana ts)
+    const sm = server.ritual.meses || {}, lm = local.ritual.meses || {}, mm = {};
+    new Set([...Object.keys(sm), ...Object.keys(lm)]).forEach(k => {
+      const s = sm[k] || {}, l = lm[k] || {}, r = {};
+      ["apertura", "cierre"].forEach(p => {
+        const a = l[p], b = s[p];
+        if (a || b) r[p] = !b ? a : !a ? b : ((a.ts || 0) >= (b.ts || 0) ? a : b);
+      });
+      mm[k] = r;
+    });
+    out.ritual.meses = mm;
   }
 
   // eventos: dict por fecha -> unión de arrays de texto
@@ -202,6 +214,11 @@ function mergeStates(server, local) {
     (sn.subs || []).forEach(x => x && x.endpoint && map.set(x.endpoint, x));
     (ln.subs || []).forEach(x => x && x.endpoint && map.set(x.endpoint, x));
     out.settings.notif.subs = Array.from(map.values());
+  }
+  // Versión de la introducción vista: nunca retrocede (Novedades se muestra una sola vez)
+  if (local.settings && server.settings && out.settings) {
+    const iv = Math.max(local.settings.introVersion || 0, server.settings.introVersion || 0);
+    if (iv) out.settings.introVersion = iv;
   }
   // El resto (profile, settings, salud, rueda, ritual.pilares, entrenamiento) lo gana local.
   return out;

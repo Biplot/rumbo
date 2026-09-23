@@ -16,7 +16,7 @@ const ctx = vm.createContext({
   console, Math, Date, JSON,
   localStorage: { getItem: k => mem[k] ?? null, setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } },
 });
-for (const f of ["js/store.js", "js/state.js", "js/habitos-motor.js"]) {
+for (const f of ["js/store.js", "js/state.js", "js/habitos-motor.js", "js/ritual-mes.js"]) {
   const p = path.join(root, f);
   if (fs.existsSync(p)) vm.runInContext(fs.readFileSync(p, "utf8"), ctx, { filename: f });
 }

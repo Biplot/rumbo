@@ -134,9 +134,12 @@ function renderMetas() {
     if (i < curTri && list.length === 0) return ""; // ocultar trimestres pasados vacíos
     const inputId = `mt-tri-${i}`;
     const done = list.filter(m => m.done).length;
+    // Objetivos mensuales que alimentan las metas de este trimestre
+    const alimentan = STATE.metas.mensuales.slice(i * 3, i * 3 + 3).flat().filter(o => o.triId && list.some(t => t.id === o.triId)).length;
     return `<div class="card">
       <div class="card__head"><div class="card__title">${i + 1}° Trimestre</div>
-        <span class="chip">${done}/${list.length}</span></div>
+        <div class="row" style="gap:6px">${alimentan ? `<span class="chip chip--cian" title="Objetivos mensuales vinculados">↳ ${alimentan} mensual${alimentan === 1 ? "" : "es"}</span>` : ""}
+        <span class="chip">${done}/${list.length}</span></div></div>
       ${list.map(m => metaRow(m, "tri", i)).join("") || '<div class="empty">Sin metas aún.</div>'}
       <div class="row mt-8">
         <input class="input" id="${inputId}" placeholder="Nueva meta...">
@@ -148,14 +151,25 @@ function renderMetas() {
   const mesCards = STATE.metas.mensuales.map((list, i) => {
     if (i < curM && list.length === 0) return ""; // ocultar meses pasados vacíos
     const inputId = `mt-mes-${i}`;
-    return `<div class="card">
+    const key = mesKey(STATE.settings.year, i); // TODO año:
+    const rm = (STATE.ritual.meses || {})[key] || {};
+    const foco = rm.apertura && rm.apertura.foco;
+    let accion = "";
+    if (i === curM) accion = !rm.apertura
+      ? `<button class="btn btn--primary btn-block mt-8" data-action="mes-open" data-key="${key}">🗓️ Abrir mes</button>`
+      : (!rm.cierre && mesCerrable(STATE.settings.year, i) ? `<button class="btn btn--soft btn-block mt-8" data-action="mes-close" data-key="${key}">🌙 Cerrar mes</button>` : "");
+    else if (i === curM - 1 && !rm.cierre) accion = `<button class="btn-ghost btn-block mt-8" data-action="mes-close" data-key="${key}">🌙 Cerrar ${MESES[i]}</button>`;
+    return `<div class="card ${i === curM ? "mes-actual" : ""}">
       <div class="card__head"><div class="card__title" style="font-size:14px">${MESES[i]}</div>
-        <span class="chip">${list.filter(m => m.done).length}/${list.length}</span></div>
+        <div class="row" style="gap:6px">${rm.apertura ? '<span class="chip chip--done">Abierto ✓</span>' : ""}${rm.cierre ? '<span class="chip chip--done">Cerrado ✓</span>' : ""}
+        <span class="chip">${list.filter(m => m.done).length}/${list.length}</span></div></div>
+      ${foco ? `<div class="text-xs muted" style="margin:-6px 0 8px">Foco: <b class="hl-cian">${escapeHtml(foco)}</b></div>` : ""}
       ${list.map(m => metaRow(m, "mes", i)).join("") || '<div class="empty" style="padding:12px">—</div>'}
       <div class="row mt-8">
         <input class="input" id="${inputId}" placeholder="Meta de ${MESES_CORTO[i]}...">
         <button class="btn btn--cian" data-action="meta-add" data-bucket="mes" data-idx="${i}" data-input="${inputId}">+</button>
       </div>
+      ${accion}
     </div>`;
   }).join("");
 
@@ -176,9 +190,14 @@ function renderMetas() {
   <div class="grid grid-3">${mesCards}</div>`;
 }
 function metaRow(m, bucket, idx) {
+  // Vínculo con la meta trimestral y ámbito (objetivos del ritual de mes)
+  let tri = null;
+  if (bucket === "mes" && m.triId) tri = (STATE.metas.trimestres[Math.floor(idx / 3)] || []).find(t => t.id === m.triId);
+  const estado = m.estadoCierre === "parcial" ? '<span class="chip chip--coral">parcial</span>' : m.estadoCierre === "no" ? '<span class="chip">no cumplido</span>' : "";
   return `<div class="item-row">
     <span class="check ${m.done ? "is-on" : ""}" data-action="meta-toggle" data-bucket="${bucket}" data-idx="${idx}" data-id="${m.id}">${m.done ? "✓" : ""}</span>
-    <div class="item-row__main"><div class="item-row__title ${m.done ? "strike" : ""}">${escapeHtml(m.texto)}</div></div>
+    <div class="item-row__main"><div class="item-row__title ${m.done ? "strike" : ""}">${m.ambito ? AMBITOS[ambitoDe(m)].icon + " " : ""}${escapeHtml(m.texto)} ${estado}</div>
+      ${tri ? `<div class="item-row__sub">↳ 🎯 ${escapeHtml(tri.texto)}</div>` : ""}</div>
     <button class="icon-btn" data-action="meta-del" data-bucket="${bucket}" data-idx="${idx}" data-id="${m.id}">🗑</button>
   </div>`;
 }

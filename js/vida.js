@@ -79,8 +79,9 @@ function diarioDayCard(fecha) {
   const dash = "<span class='muted'>—</span>";
 
   const chip = r ? (r.cerrado ? `<span class="chip chip--done">🌙 Cerrado</span>` : `<span class="chip chip--coral">🌅 Abierto</span>`) : "";
-  const manual = es.find(e => !e.fromRitual);
-  const gratitud = (r ? c.mejor : "") || (es.find(e => e.gratitud) || {}).gratitud || "";
+  const manual = es.find(e => !e.fromRitual && !e.fromRitualMes);
+  const mesE = es.find(e => e.fromRitualMes);
+  const gratitud = (r ? c.mejor : "") || (es.find(e => e.gratitud && !e.fromRitualMes) || {}).gratitud || "";
   const nota = (r ? c.nota : "") || (manual && manual.texto) || "";
 
   const rows = [];
@@ -89,6 +90,12 @@ function diarioDayCard(fecha) {
     rows.push(`<div class="bita-row"><span class="bita-k">${BOCADO.emoji} ${BOCADO.corto}</span><span class="bita-v">${r.sapo ? escapeHtml(r.sapo) : dash} ${r.cerrado ? (c.sapo ? "<span class='chip chip--done'>hecho</span>" : "<span class='chip'>pendiente</span>") : ""}</span></div>`);
     const energia = r.cerrado ? `${r.energia || "—"} → ${c.energia || "—"}` : `${r.energia || "—"}`;
     rows.push(`<div class="bita-row"><span class="bita-k">⚡ Energía</span><span class="bita-v">${energia} <span class="muted text-xs">/ 5</span> ${r.pilar ? `<span class="chip chip--cian">${escapeHtml(r.pilar)}</span>` : ""}</span></div>`);
+  }
+  if (mesE) {
+    const { y: my, m: mm } = mesDeKey(mesE.mes);
+    rows.unshift(`<div class="bita-row"><span class="bita-k">🗓️ Cierre de mes</span><span class="bita-v"><b>${MESES[mm]} ${my}</b> <span class="chip chip--done">${mesE.nota}/10</span></span></div>`
+      + (mesE.gratitud ? `<div class="bita-row"><span class="bita-k">🌟 Lo mejor</span><span class="bita-v">${escapeHtml(mesE.gratitud)}</span></div>` : "")
+      + (mesE.texto ? `<div class="bita-row"><span class="bita-k">🧠 Reflexión</span><span class="bita-v">${escapeHtml(mesE.texto)}</span></div>` : ""));
   }
   if (nota) rows.push(`<div class="bita-row"><span class="bita-k">📝 Nota</span><span class="bita-v">${escapeHtml(nota)}</span></div>`);
   if (gratitud) rows.push(`<div class="bita-row"><span class="bita-k">🙏 Gratitud</span><span class="bita-v">${escapeHtml(gratitud)}</span></div>`);

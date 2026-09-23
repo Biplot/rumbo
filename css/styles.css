@@ -567,6 +567,20 @@ textarea.input { resize: vertical; min-height: 84px; }
 .onb-nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .onb-nav .btn { min-width: 130px; }
 
+/* ============================================================
+   RITUAL DE MES (asistente por pasos)
+   ============================================================ */
+.mes-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mes-num { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px; }
+.mes-num__v { font-family: var(--font-display); font-size: 20px; font-weight: 700; line-height: 1.2; }
+.mes-num__l { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.mes-obj { padding: 10px 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.mes-obj:first-child { border-top: none; padding-top: 0; }
+.mes-hab { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.mes-hab__n { font-size: 14px; font-weight: 500; }
+.mes-actual { border-color: var(--cian); }
+.modal__body .mes-wiz { max-height: 58vh; overflow-y: auto; padding-right: 2px; }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }
@@ -649,6 +663,8 @@ textarea.input { resize: vertical; min-height: 84px; }
   .bita-day { padding: 13px 14px; }
   .bita-k { min-width: 78px; }
   .bita-row { font-size: 13px; }
+
+  .mes-nums { grid-template-columns: repeat(2, 1fr); }
 }
 .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 55; }
 .backdrop[hidden] { display: none; }

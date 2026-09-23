@@ -27,7 +27,7 @@ function hmMesFin(iso) { const d = hmDate(iso); return isoLocal(new Date(d.getFu
 const hmMax = (a, b) => (a > b ? a : b);
 const hmMin = (a, b) => (a < b ? a : b);
 
-const HM_DIAS = ["L", "M", "M", "J", "V", "S", "D"];
+const HM_DIAS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
 
 /* Frecuencia normalizada (hábitos viejos = diario) */
 function hmFreq(h) {

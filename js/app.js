@@ -201,8 +201,12 @@ async function loadUserState(user) {
   // Fusiona nube + local: si el último guardado no alcanzó a subir a la nube (p. ej.
   // cerraste la app justo después de cerrar el día), lo local conserva ese cambio y la
   // fusión por timestamp lo recupera en vez de que la nube vieja lo borre.
+  // Solo se fusiona lo local si quedó algo SIN subir; si no, la nube manda. (Antes se
+  // fusionaba siempre y la copia local vieja pisaba lo hecho en otro dispositivo.)
+  let pending = false;
+  try { pending = !!localStorage.getItem("rumbo_pending_" + user.id); } catch (e) {}
   let data;
-  if (cloud && local) data = mergeStates(cloud, local);
+  if (cloud && local && pending) data = mergeStates(cloud, local);
   else data = cloud || local;
   STATE = data ? migrate(data) : defaultState();
   if (!STATE.profile.name || STATE.profile.name === "Chris") STATE.profile.name = user.name || STATE.profile.name;
@@ -213,16 +217,25 @@ async function loadUserState(user) {
 
 let _cloudTimer = null;
 let _dirty = false;        // hay cambios locales sin confirmar en la nube
+let _editSeq = 0;          // sube con cada cambio: un guardado solo "limpia" si no hubo otro después
 function scheduleCloudSave() {
   clearTimeout(_cloudTimer);
   _dirty = true;
+  _editSeq++;
   setSaveStatus("saving");
-  _cloudTimer = setTimeout(async () => {
-    if (!CURRENT_USER) return;
-    const res = await BACKEND.saveState(CURRENT_USER.id, STATE);
-    if (res && res.error) { setSaveStatus("offline"); }
-    else { _dirty = false; setSaveStatus("saved"); }
-  }, 800);
+  _cloudTimer = setTimeout(() => { if (CURRENT_USER) subirANube(); }, 800);
+}
+async function subirANube() {
+  const uidAct = CURRENT_USER.id, seq = _editSeq;
+  const res = await BACKEND.saveState(uidAct, STATE);
+  if (res && res.error) { setSaveStatus("offline"); return; }
+  // Guardar localmente lo confirmado (puede venir fusionado con otro dispositivo)
+  try { localStorage.setItem("rumbo_state_" + uidAct, JSON.stringify(STATE)); } catch (e) {}
+  if (seq === _editSeq) {
+    _dirty = false;
+    try { localStorage.removeItem("rumbo_pending_" + uidAct); } catch (e) {}
+    setSaveStatus("saved");
+  }
 }
 
 /* Fuerza el guardado pendiente de inmediato (sin esperar el debounce). Se usa al
@@ -230,11 +243,7 @@ function scheduleCloudSave() {
 async function flushCloudSave() {
   if (!CURRENT_USER || !_dirty) return;
   clearTimeout(_cloudTimer);
-  try {
-    const res = await BACKEND.saveState(CURRENT_USER.id, STATE);
-    if (res && res.error) setSaveStatus("offline");
-    else { _dirty = false; setSaveStatus("saved"); }
-  } catch (e) { setSaveStatus("offline"); }
+  try { await subirANube(); } catch (e) { setSaveStatus("offline"); }
 }
 
 /* Trae el estado más reciente de la nube al volver a un dispositivo que estuvo
@@ -252,6 +261,7 @@ async function syncFromCloud() {
     if (data && !_dirty) {
       STATE = migrate(data);
       ensureCurrentWeek();
+      try { localStorage.setItem("rumbo_state_" + CURRENT_USER.id, JSON.stringify(STATE)); } catch (e) {}
       updateTopbar();
       rerender();
     }
@@ -768,21 +778,21 @@ function onClick(e) {
       const input = document.getElementById(d.input);
       const txt = input.value.trim(); if (!txt) return;
       const ambEl = d.amb && document.getElementById(d.amb);
-      STATE.semana.dias[+d.day].push({ id: uid(), txt, done: false, ambito: ambEl && ambEl.value === "pro" ? "pro" : "per" });
+      STATE.semana.dias[+d.day].push({ id: uid(), txt, done: false, ambito: ambEl && ambEl.value === "pro" ? "pro" : "per", ts: Date.now() });
       saveState(); rerender(); break;
     }
     case "sem-toggle": {
       const t = STATE.semana.dias[+d.day].find(x => x.id === d.id);
-      t.done = !t.done; t.done ? registrarMovimiento("tarea:" + t.id, 15, 15, "Tarea") : anularMovimiento("tarea:" + t.id);
+      t.done = !t.done; t.ts = Date.now(); t.done ? registrarMovimiento("tarea:" + t.id, 15, 15, "Tarea") : anularMovimiento("tarea:" + t.id);
       saveState(); rerender(); break;
     }
     case "sem-ambito": {
       const t = STATE.semana.dias[+d.day].find(x => x.id === d.id);
-      if (t) { t.ambito = ambitoDe(t) === "pro" ? "per" : "pro"; saveState(); rerender(); }
+      if (t) { t.ambito = ambitoDe(t) === "pro" ? "per" : "pro"; t.ts = Date.now(); saveState(); rerender(); }
       break;
     }
-    case "sem-del": STATE.semana.dias[+d.day] = STATE.semana.dias[+d.day].filter(x => x.id !== d.id); saveState(); rerender(); break;
-    case "sem-clear": if (confirm("¿Vaciar todas las tareas de la semana?")) { STATE.semana.dias = [[],[],[],[],[],[],[]]; saveState(); rerender(); } break;
+    case "sem-del": semMarcarBorradas([d.id]); STATE.semana.dias[+d.day] = STATE.semana.dias[+d.day].filter(x => x.id !== d.id); saveState(); rerender(); break;
+    case "sem-clear": if (confirm("¿Vaciar todas las tareas de la semana?")) { semMarcarBorradas(STATE.semana.dias.flat().map(t => t.id)); STATE.semana.dias = [[],[],[],[],[],[],[]]; saveState(); rerender(); } break;
 
     /* Entrenamiento */
     case "entren-add-dia": openDiaModal(); break;

@@ -103,6 +103,27 @@ export default async function ({ G, test, assert, clone, cargar, estadoViejo }) 
       assert.equal(mergeStates(clone(A), clone(B)).settings.introVersion, 2);
       assert.equal(mergeStates(clone(B), clone(A)).settings.introVersion, 2);
     });
+    console.log("\nTareas entre dispositivos");
+    const conTareas = (tareas, borradas) => { const s = migrate(defaultState()); s.semana.weekOf = "2026-09-21";
+      s.semana.dias[2] = tareas; if (borradas) s.semana.borradas = borradas; return s; };
+    test("tarea: gana el cambio más reciente (ts), no el dispositivo", () => {
+      const nube = conTareas([{ id: "t1", txt: "A", done: true, ambito: "pro", ts: 200 }]);
+      const movil = conTareas([{ id: "t1", txt: "A", done: false, ambito: "per" }]);
+      const t = mergeStates(clone(nube), clone(movil)).semana.dias[2][0];
+      assert.equal(t.done, true); assert.equal(t.ambito, "pro");
+    });
+    test("tarea borrada en un dispositivo no revive al fusionar", () => {
+      const nube = conTareas([{ id: "t2", txt: "B" }], ["t1"]);
+      const movil = conTareas([{ id: "t1", txt: "A" }, { id: "t2", txt: "B" }]);
+      const r = mergeStates(clone(nube), clone(movil));
+      assert.equal(r.semana.dias[2].map(t => t.id).join(), "t2");
+      assert.equal(JSON.stringify(r.semana.borradas), "[\"t1\"]");
+    });
+    test("semana más nueva en la nube reemplaza a la vieja local", () => {
+      const nube = conTareas([{ id: "n", txt: "Nueva" }]);
+      const movil = migrate(defaultState()); movil.semana.weekOf = "2026-09-14"; movil.semana.dias[2] = [{ id: "v", txt: "Vieja" }];
+      assert.equal(mergeStates(clone(nube), clone(movil)).semana.dias[2].map(t => t.id).join(), "n");
+    });
   }
   set("HM_HOY = null");
 }

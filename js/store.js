@@ -145,7 +145,18 @@ function mergeStates(server, local) {
     out.metas.trimestres = buckets(local.metas.trimestres, server.metas.trimestres);
     out.metas.mensuales = buckets(local.metas.mensuales, server.metas.mensuales);
   }
-  if (local.semana && server.semana) out.semana.dias = buckets(local.semana.dias, server.semana.dias);
+  // semana: si son semanas distintas gana la más reciente; si es la misma, se unen las
+  // tareas por id (gana `ts`) y se quitan las borradas en cualquiera de los dos lados.
+  if (local.semana && server.semana) {
+    const lw = local.semana.weekOf || "", sw = server.semana.weekOf || "";
+    if (sw > lw) out.semana = JSON.parse(JSON.stringify(server.semana));
+    else if (sw === lw) {
+      const borr = Array.from(new Set([...(server.semana.borradas || []), ...(local.semana.borradas || [])]));
+      const fuera = new Set(borr);
+      out.semana.dias = buckets(local.semana.dias, server.semana.dias).map(d => d.filter(t => !fuera.has(t.id)));
+      out.semana.borradas = borr;
+    }
+  }
 
   // ritual.dias: dict por fecha. Conserva días solo-server; en conflicto gana el
   // más nuevo por `ts` (si existe) para no perder el cierre hecho en otro dispositivo.

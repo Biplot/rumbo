@@ -419,8 +419,19 @@ function loadState() {
 }
 function saveState() {
   if (typeof CURRENT_USER === "undefined" || !CURRENT_USER) return;
-  try { localStorage.setItem("rumbo_state_" + CURRENT_USER.id, JSON.stringify(STATE)); } catch (e) {}
+  try {
+    localStorage.setItem("rumbo_state_" + CURRENT_USER.id, JSON.stringify(STATE));
+    localStorage.setItem("rumbo_pending_" + CURRENT_USER.id, "1");   // hay cambios sin subir
+  } catch (e) {}
   if (typeof scheduleCloudSave === "function") scheduleCloudSave();
+}
+
+/* Registra ids de tareas del planificador borradas, para que la fusión con otro
+   dispositivo no las reviva. Se vacía al cambiar de semana. */
+function semMarcarBorradas(ids) {
+  if (!ids || !ids.length) return;
+  const b = STATE.semana.borradas || (STATE.semana.borradas = []);
+  ids.forEach(id => { if (id != null && !b.includes(id)) b.push(id); });
 }
 
 /* -------- Utilidades -------- */
@@ -451,6 +462,7 @@ function ensureCurrentWeek() {
   const wk = currentMondayISO();
   if (STATE.semana.weekOf !== wk) {
     STATE.semana.dias = [[], [], [], [], [], [], []];
+    STATE.semana.borradas = [];
     STATE.semana.weekOf = wk;
     return true;
   }

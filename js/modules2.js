@@ -161,17 +161,22 @@ function saveRitual() {
   const prevTareas = STATE.semana.dias[wd] || [];
   const findPrev = txt => prevTareas.find(t => t.txt === txt);   // conserva id/done emparejando por texto
   const nuevas = [], vistos = new Set();
+  // Solo se marca `ts` si la tarea cambió, para no pisar lo hecho en otro dispositivo
+  const cambiar = (ex, esSapo, ambito) => (!!ex.esSapo === esSapo && ambitoDe(ex) === ambito)
+    ? { ...ex } : { ...ex, esSapo, ambito, ts: Date.now() };
   if (sapoTxt) {
     const ex = findPrev(sapoTxt);
-    nuevas.push(ex ? { ...ex, esSapo: true, ambito: sapoAmb } : { id: uid(), txt: sapoTxt, done: false, esSapo: true, ambito: sapoAmb });
+    nuevas.push(ex ? cambiar(ex, true, sapoAmb) : { id: uid(), txt: sapoTxt, done: false, esSapo: true, ambito: sapoAmb, ts: Date.now() });
     vistos.add(sapoTxt);
   }
   [["pro", leer("r-tareas-pro")], ["per", leer("r-tareas-per")]].forEach(([ambito, lines]) => lines.forEach(txt => {
     if (vistos.has(txt)) return;   // misma línea en ambos cuadros: se queda la primera
     vistos.add(txt);
     const ex = findPrev(txt);
-    nuevas.push(ex ? { ...ex, esSapo: false, ambito } : { id: uid(), txt, done: false, ambito });
+    nuevas.push(ex ? cambiar(ex, false, ambito) : { id: uid(), txt, done: false, ambito, ts: Date.now() });
   }));
+  const quedan = new Set(nuevas.map(t => t.id));
+  semMarcarBorradas(prevTareas.filter(t => !quedan.has(t.id)).map(t => t.id));
   STATE.semana.dias[wd] = nuevas;
 
   if (!yaHecho) {

@@ -14,6 +14,19 @@ const YEAR = 2026;
    Los nombres internos de datos siguen siendo sapo / esSapo / cierre.sapo. */
 const BOCADO = { emoji: "🐘", titulo: "TU PRIMER BOCADO", accion: "Empieza por aquí", corto: "Primer bocado" };
 
+/* Ámbitos de las tareas del día. Tareas antiguas sin ámbito = "per". */
+const AMBITOS = {
+  pro: { icon: "💼", label: "Profesionales", corto: "Pro" },
+  per: { icon: "🏡", label: "Personales", corto: "Personal" },
+};
+function ambitoDe(t) { return t && t.ambito === "pro" ? "pro" : "per"; }
+/* Resumen { pro: [hechas, total], per: [hechas, total] } de una lista de tareas */
+function tareasResumen(tareas) {
+  const r = { pro: [0, 0], per: [0, 0] };
+  (tareas || []).forEach(t => { const a = ambitoDe(t); r[a][1]++; if (t.done) r[a][0]++; });
+  return r;
+}
+
 /* Colores de lomo para los libros de la biblioteca (paleta BiPlot + armónicos) */
 const LECT_COLORS = ["#17C3B2", "#FF6B4A", "#0E2A47", "#6C63FF", "#F4A63B", "#2E9E7B", "#E5527A", "#3E8BD6"];
 

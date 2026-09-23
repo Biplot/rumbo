@@ -99,7 +99,11 @@ function openRitualModal() {
     if (yc && yc.cierre && yc.cierre.manana) misionDefault = yc.cierre.manana;
   }
   const wd = (new Date().getDay() + 6) % 7;
-  const otrasTareas = (STATE.semana.dias[wd] || []).filter(t => !t.esSapo).map(t => t.txt).join("\n");
+  const hoyTareas = STATE.semana.dias[wd] || [];
+  const tareasDe = a => hoyTareas.filter(t => !t.esSapo && ambitoDe(t) === a).map(t => t.txt).join("\n");
+  const bocadoPrev = hoyTareas.find(t => t.esSapo);
+  const bocadoAmb = r.sapoAmbito || (bocadoPrev ? ambitoDe(bocadoPrev) : "pro");
+  const ambSeg = (v) => `<button type="button" class="${bocadoAmb === v ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'r-sapo-amb')">${AMBITOS[v].icon} ${AMBITOS[v].corto}</button>`;
   openModal("Ritual de apertura", `
     <div class="field"><label>Misión de hoy</label><input class="input" id="r-mision" value="${escapeAttr(misionDefault)}" placeholder="¿Qué hará hoy un gran día?"></div>
 
@@ -107,9 +111,15 @@ function openRitualModal() {
       <div style="background:var(--coral-soft);border:1px solid var(--coral);border-radius:var(--r-sm);padding:12px;margin-bottom:10px">
         <label style="color:var(--coral);margin-bottom:6px">${BOCADO.emoji} ${BOCADO.titulo} — la tarea más importante (empieza por aquí)</label>
         <input class="input" id="r-sapo" value="${escapeAttr(r.sapo || "")}" placeholder="La que más mueve la aguja hoy">
+        <div class="seg mt-8" style="display:inline-flex">${ambSeg("pro")}${ambSeg("per")}</div>
+        <input type="hidden" id="r-sapo-amb" value="${bocadoAmb}">
       </div>
-      <label class="text-xs muted" style="display:block;margin-bottom:6px">Otras tareas (una por línea)</label>
-      <textarea class="input" id="r-tareas" style="min-height:88px" placeholder="Ej: Llamar al banco&#10;Comprar para la semana">${escapeHtml(otrasTareas)}</textarea>
+      <div class="grid grid-2" style="gap:10px">
+        <div><label class="text-xs muted" style="display:block;margin-bottom:6px">${AMBITOS.pro.icon} ${AMBITOS.pro.label} (una por línea)</label>
+          <textarea class="input" id="r-tareas-pro" style="min-height:88px" placeholder="Ej: Enviar propuesta&#10;Revisar informe">${escapeHtml(tareasDe("pro"))}</textarea></div>
+        <div><label class="text-xs muted" style="display:block;margin-bottom:6px">${AMBITOS.per.icon} ${AMBITOS.per.label} (una por línea)</label>
+          <textarea class="input" id="r-tareas-per" style="min-height:88px" placeholder="Ej: Llamar al banco&#10;Comprar para la semana">${escapeHtml(tareasDe("per"))}</textarea></div>
+      </div>
       <div class="text-xs muted mt-8">Tu primer bocado y estas tareas aparecen juntos en Inicio y en tu Planificador.</div></div>
 
     <div class="field"><label>Pilar de hoy</label>
@@ -129,7 +139,7 @@ function saveRitual() {
   // ...prev conserva el cierre/estado del día si ya estaba cerrado (no borrar historial)
   STATE.ritual.dias[iso] = {
     ...(prev || {}),
-    mision: val("r-mision"), sapo: val("r-sapo"), pilar,
+    mision: val("r-mision"), sapo: val("r-sapo"), sapoAmbito: val("r-sapo-amb") === "per" ? "per" : "pro", pilar,
     energia: parseNum(document.getElementById("r-energia").value),
     servir: val("r-servir"),
     proyectos: val("r-proy").split(",").map(s => s.trim()).filter(Boolean),
@@ -139,19 +149,22 @@ function saveRitual() {
   // Tareas del día -> Planificador semanal (día de hoy). El Primer Bocado es la 1ª tarea (esSapo).
   const wd = (new Date().getDay() + 6) % 7;
   const sapoTxt = val("r-sapo");
-  const lines = document.getElementById("r-tareas").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const sapoAmb = STATE.ritual.dias[iso].sapoAmbito;
+  const leer = id => document.getElementById(id).value.split("\n").map(s => s.trim()).filter(Boolean);
   const prevTareas = STATE.semana.dias[wd] || [];
-  const findPrev = txt => prevTareas.find(t => t.txt === txt);
-  const nuevas = [];
+  const findPrev = txt => prevTareas.find(t => t.txt === txt);   // conserva id/done emparejando por texto
+  const nuevas = [], vistos = new Set();
   if (sapoTxt) {
     const ex = findPrev(sapoTxt);
-    nuevas.push(ex ? { ...ex, esSapo: true } : { id: uid(), txt: sapoTxt, done: false, esSapo: true });
+    nuevas.push(ex ? { ...ex, esSapo: true, ambito: sapoAmb } : { id: uid(), txt: sapoTxt, done: false, esSapo: true, ambito: sapoAmb });
+    vistos.add(sapoTxt);
   }
-  lines.forEach(txt => {
-    if (txt === sapoTxt) return;
+  [["pro", leer("r-tareas-pro")], ["per", leer("r-tareas-per")]].forEach(([ambito, lines]) => lines.forEach(txt => {
+    if (vistos.has(txt)) return;   // misma línea en ambos cuadros: se queda la primera
+    vistos.add(txt);
     const ex = findPrev(txt);
-    nuevas.push(ex ? { ...ex, esSapo: false } : { id: uid(), txt, done: false });
-  });
+    nuevas.push(ex ? { ...ex, esSapo: false, ambito } : { id: uid(), txt, done: false, ambito });
+  }));
   STATE.semana.dias[wd] = nuevas;
 
   if (!yaHecho) {
@@ -173,7 +186,9 @@ function openCierreModal(date) {
   const moodCur = dEntry ? dEntry.mood : 3;
   const dObj = new Date(iso + "T12:00:00");
   const wd = (dObj.getDay() + 6) % 7;
-  const sapoTask = (STATE.semana.dias[wd] || []).find(t => t.esSapo);
+  const tareasDia = tareasDelDia(iso);
+  const sapoTask = (tareasDia || []).find(t => t.esSapo);
+  const tr = tareasDia ? tareasResumen(tareasDia) : (c.tareas || null);
   const sapoDone = c.sapo !== undefined ? c.sapo : (sapoTask ? sapoTask.done : false);
   const sapoCur = sapoDone ? "1" : "0";
   const titulo = esHoy ? "Ritual de cierre" : "Cerrar el " + dObj.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
@@ -196,6 +211,9 @@ function openCierreModal(date) {
         ${segBtn("c-sapo", "1", "Sí", sapoCur)}
         ${segBtn("c-sapo", "0", "No", sapoCur)}
       </div><input type="hidden" id="c-sapo-v" value="${sapoCur}"></div>
+    ${tr && (tr.pro[1] || tr.per[1]) ? `<div class="field"><label>📋 Tus tareas del día</label>
+      <div class="row-wrap"><span class="chip">${AMBITOS.pro.icon} ${AMBITOS.pro.label} ${tr.pro[0]}/${tr.pro[1]}</span>
+        <span class="chip">${AMBITOS.per.icon} ${AMBITOS.per.label} ${tr.per[0]}/${tr.per[1]}</span></div></div>` : ""}
     <div class="field"><label>Energía con la que terminas: <span id="c-elabel">${c.energia || 3}</span>/5</label>
       <input type="range" min="1" max="5" step="1" id="c-energia" value="${c.energia || 3}" style="width:100%;accent-color:var(--cian)"
         oninput="document.getElementById('c-elabel').textContent=this.value"></div>
@@ -204,6 +222,14 @@ function openCierreModal(date) {
     <div class="field"><label>Nota de cierre (libre)</label><textarea class="input" id="c-nota" placeholder="¿Cómo estuvo el día?">${escapeHtml(c.nota || "")}</textarea></div>
     <p class="text-xs muted" style="margin:-4px 0 12px">📔 Tu ánimo, esta nota y tu gratitud se guardan en tu <b>Diario de vida</b>.</p>
     <button class="btn btn--primary btn-block" data-action="cierre-save">Cerrar el día (+40 ⭐)</button>`);
+}
+/* Tareas del planificador para una fecha, solo si cae en la semana actual (si no, null) */
+function tareasDelDia(iso) {
+  const d = new Date(iso + "T12:00:00");
+  const dow = (d.getDay() + 6) % 7;
+  const monday = new Date(d); monday.setDate(d.getDate() - dow);
+  if (isoLocal(monday) !== STATE.semana.weekOf) return null;
+  return STATE.semana.dias[dow] || [];
 }
 function cierreMoodPick(btn) {
   document.getElementById("c-mood").value = btn.dataset.v;
@@ -221,6 +247,9 @@ function saveCierre() {
     energia: parseNum(document.getElementById("c-energia").value),
     mejor: val("c-mejor"), manana: val("c-manana"), nota: val("c-nota"),
   };
+  // Resumen pro/per para métricas (solo lectura en el modal)
+  const tareasDia = tareasDelDia(iso);
+  if (tareasDia) r.cierre.tareas = tareasResumen(tareasDia);
   r.cerrado = true;
   r.ts = Date.now();
 
@@ -337,11 +366,12 @@ function renderSemana() {
         ${tareas.length ? tareas.map(t => `<div class="item-row" style="padding:8px 10px${t.esSapo ? ";border-color:var(--coral)" : ""}">
           <span class="check ${t.done ? "is-on" : ""}" data-action="sem-toggle" data-day="${i}" data-id="${t.id}">${t.done ? "✓" : ""}</span>
           <div class="item-row__main"><div class="item-row__title text-sm ${t.done ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : ""}${escapeHtml(t.txt)}</div></div>
+          ${ambitoChip(t, i)}
           <button class="icon-btn" data-action="sem-del" data-day="${i}" data-id="${t.id}">✕</button></div>`).join("")
         : '<div class="text-xs muted" style="padding:6px">Sin tareas.</div>'}
       </div>
-      <div class="row mt-8"><input class="input" id="${inputId}" placeholder="Nueva tarea..." style="padding:8px 10px">
-        <button class="btn btn--cian" data-action="sem-add" data-day="${i}" data-input="${inputId}" style="padding:8px 12px">+</button></div>
+      <div class="row mt-8">${ambitoPicker(inputId + "-amb", "per")}<input class="input" id="${inputId}" placeholder="Nueva tarea..." style="padding:8px 10px">
+        <button class="btn btn--cian" data-action="sem-add" data-day="${i}" data-input="${inputId}" data-amb="${inputId}-amb" style="padding:8px 12px">+</button></div>
     </div>`;
   }).join("");
 

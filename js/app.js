@@ -691,13 +691,19 @@ function onClick(e) {
     case "sem-add": {
       const input = document.getElementById(d.input);
       const txt = input.value.trim(); if (!txt) return;
-      STATE.semana.dias[+d.day].push({ id: uid(), txt, done: false });
+      const ambEl = d.amb && document.getElementById(d.amb);
+      STATE.semana.dias[+d.day].push({ id: uid(), txt, done: false, ambito: ambEl && ambEl.value === "pro" ? "pro" : "per" });
       saveState(); rerender(); break;
     }
     case "sem-toggle": {
       const t = STATE.semana.dias[+d.day].find(x => x.id === d.id);
       t.done = !t.done; t.done ? registrarMovimiento("tarea:" + t.id, 15, 15, "Tarea") : anularMovimiento("tarea:" + t.id);
       saveState(); rerender(); break;
+    }
+    case "sem-ambito": {
+      const t = STATE.semana.dias[+d.day].find(x => x.id === d.id);
+      if (t) { t.ambito = ambitoDe(t) === "pro" ? "per" : "pro"; saveState(); rerender(); }
+      break;
     }
     case "sem-del": STATE.semana.dias[+d.day] = STATE.semana.dias[+d.day].filter(x => x.id !== d.id); saveState(); rerender(); break;
     case "sem-clear": if (confirm("¿Vaciar todas las tareas de la semana?")) { STATE.semana.dias = [[],[],[],[],[],[],[]]; saveState(); rerender(); } break;
@@ -1066,13 +1072,31 @@ function renderCierreResumen(r) {
         ${c.manana ? `<div class="text-xs muted mt-16">Una cosa para mañana</div><div class="mt-8 hl-cian">${escapeHtml(c.manana)}</div>` : ""}
         <div class="row-wrap mt-16" style="gap:8px">
           <span class="chip">📊 Hábitos ${s.habDone}/${s.habTotal}</span>
-          <span class="chip">🗂️ Tareas ${s.tareasDone}/${s.tareasTotal}</span>
+          ${c.tareas ? `<span class="chip">${AMBITOS.pro.icon} ${c.tareas.pro[0]}/${c.tareas.pro[1]}</span>
+            <span class="chip">${AMBITOS.per.icon} ${c.tareas.per[0]}/${c.tareas.per[1]}</span>`
+            : `<span class="chip">🗂️ Tareas ${s.tareasDone}/${s.tareasTotal}</span>`}
         </div>
       </div>
     </div>
     ${c.nota ? `<div class="divider"></div><div class="text-sm soft">"${escapeHtml(c.nota)}"</div>` : ""}
     <div class="text-sm muted mt-16">Mañana volvemos a empezar 🌅</div>
   </div>`;
+}
+/* Chip de ámbito de una tarea (clic para alternar Pro/Personal) */
+function ambitoChip(t, day) {
+  const a = ambitoDe(t);
+  return `<button class="chip chip--amb" data-action="sem-ambito" data-day="${day}" data-id="${t.id}" title="Cambiar ámbito">${AMBITOS[a].icon} ${AMBITOS[a].corto}</button>`;
+}
+/* Toggle Pro/Personal para inputs de nueva tarea (guarda el valor en un input oculto) */
+function ambitoPicker(hiddenId, cur) {
+  const a = cur === "pro" ? "pro" : "per";
+  return `<input type="hidden" id="${hiddenId}" value="${a}"><button type="button" class="chip chip--amb amb-pick" title="Ámbito de la nueva tarea"
+    onclick="ambFlip(this,'${hiddenId}')">${AMBITOS[a].icon} ${AMBITOS[a].corto}</button>`;
+}
+function ambFlip(btn, hiddenId) {
+  const el = document.getElementById(hiddenId);
+  el.value = el.value === "pro" ? "per" : "pro";
+  btn.textContent = AMBITOS[el.value].icon + " " + AMBITOS[el.value].corto;
 }
 function segPick(btn, hiddenId) {
   Array.from(btn.parentNode.children).forEach(b => b.classList.remove("is-active"));
@@ -1114,16 +1138,26 @@ function renderInicio() {
 
   const wd = (new Date().getDay() + 6) % 7;
   const tareasHoy = s.semana.dias[wd] || [];
-  const tareasCard = `<div class="card">
-    <div class="card__head"><div class="card__title">📋 Tareas de hoy</div><a class="card__hint" href="#semana">Ver semana →</a></div>
-    ${tareasHoy.length ? tareasHoy.map(t => `<div class="item-row" style="padding:9px 11px${t.esSapo ? ";border-color:var(--coral)" : ""}">
+  const bocado = tareasHoy.find(t => t.esSapo);
+  const tareaRow = t => `<div class="item-row" style="padding:9px 11px${t.esSapo ? ";border-color:var(--coral)" : ""}">
       <span class="check ${t.done ? "is-on" : ""}" data-action="sem-toggle" data-day="${wd}" data-id="${t.id}">${t.done ? "✓" : ""}</span>
       <div class="item-row__main"><div class="item-row__title text-sm ${t.done ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : ""}${escapeHtml(t.txt)}</div>
         ${t.esSapo ? `<div class="item-row__sub hl-coral">${BOCADO.titulo} · ${BOCADO.accion}</div>` : ""}</div>
-      <button class="icon-btn" data-action="sem-del" data-day="${wd}" data-id="${t.id}">✕</button></div>`).join("")
+      ${t.esSapo ? ambitoChip(t, wd) : ""}
+      <button class="icon-btn" data-action="sem-del" data-day="${wd}" data-id="${t.id}">✕</button></div>`;
+  const grupo = a => {
+    const ts = tareasHoy.filter(t => !t.esSapo && ambitoDe(t) === a);
+    const all = tareasHoy.filter(t => ambitoDe(t) === a);
+    if (!ts.length) return "";
+    return `<div class="tarea-grupo"><span>${AMBITOS[a].icon} ${AMBITOS[a].label}</span>
+      <span class="chip">${all.filter(t => t.done).length}/${all.length}</span></div>${ts.map(tareaRow).join("")}`;
+  };
+  const tareasCard = `<div class="card">
+    <div class="card__head"><div class="card__title">📋 Tareas de hoy</div><a class="card__hint" href="#semana">Ver semana →</a></div>
+    ${tareasHoy.length ? (bocado ? tareaRow(bocado) : "") + grupo("pro") + grupo("per")
     : '<div class="empty" style="padding:14px">Sin tareas para hoy. Defínelas en tu ritual de apertura.</div>'}
-    <div class="row mt-8"><input class="input" id="inicio-tarea" placeholder="Nueva tarea..." style="padding:9px 11px">
-      <button class="btn btn--cian" data-action="sem-add" data-day="${wd}" data-input="inicio-tarea" style="padding:9px 12px">+</button></div>
+    <div class="row mt-8">${ambitoPicker("inicio-amb", "per")}<input class="input" id="inicio-tarea" placeholder="Nueva tarea..." style="padding:9px 11px">
+      <button class="btn btn--cian" data-action="sem-add" data-day="${wd}" data-input="inicio-tarea" data-amb="inicio-amb" style="padding:9px 12px">+</button></div>
   </div>`;
 
   return `

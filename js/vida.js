@@ -86,7 +86,7 @@ function diarioDayCard(fecha) {
   const rows = [];
   if (r) {
     rows.push(`<div class="bita-row"><span class="bita-k">🎯 Misión</span><span class="bita-v">${r.mision ? escapeHtml(r.mision) : dash} ${r.cerrado ? cumpliChip(c.mision) : ""}</span></div>`);
-    rows.push(`<div class="bita-row"><span class="bita-k">🐸 SAPO</span><span class="bita-v">${r.sapo ? escapeHtml(r.sapo) : dash} ${r.cerrado ? (c.sapo ? "<span class='chip chip--done'>hecho</span>" : "<span class='chip'>pendiente</span>") : ""}</span></div>`);
+    rows.push(`<div class="bita-row"><span class="bita-k">${BOCADO.emoji} ${BOCADO.corto}</span><span class="bita-v">${r.sapo ? escapeHtml(r.sapo) : dash} ${r.cerrado ? (c.sapo ? "<span class='chip chip--done'>hecho</span>" : "<span class='chip'>pendiente</span>") : ""}</span></div>`);
     const energia = r.cerrado ? `${r.energia || "—"} → ${c.energia || "—"}` : `${r.energia || "—"}`;
     rows.push(`<div class="bita-row"><span class="bita-k">⚡ Energía</span><span class="bita-v">${energia} <span class="muted text-xs">/ 5</span> ${r.pilar ? `<span class="chip chip--cian">${escapeHtml(r.pilar)}</span>` : ""}</span></div>`);
   }

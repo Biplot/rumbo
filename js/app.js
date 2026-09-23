@@ -92,7 +92,7 @@ async function enterApp(user) {
 let ONB_STEP = 0;
 const ONB_SLIDES = [
   { icon: "👋", titulo: "Bienvenido a Rumbo", cuerpo: "Tu vida en un solo lugar. Un centro de control personal para tu día, tus hábitos, tus finanzas, tus lecturas y tu bienestar — todo en una sola app." },
-  { icon: "🌅", titulo: "Tu día, de principio a fin", cuerpo: "El corazón de Rumbo es un ritual diario: <b>abre tu día</b> (tu misión, tu SAPO 🐸 y tu energía), vívelo, y <b>ciérralo</b> de noche con una breve reflexión y gratitud. Con solo abrir y cerrar, tu sistema sigue vivo — la idea es usar la app lo <i>menos</i> posible." },
+  { icon: "🌅", titulo: "Tu día, de principio a fin", cuerpo: "El corazón de Rumbo es un ritual diario: <b>abre tu día</b> (tu misión, tu primer bocado 🐘 y tu energía), vívelo, y <b>ciérralo</b> de noche con una breve reflexión y gratitud. Con solo abrir y cerrar, tu sistema sigue vivo — la idea es usar la app lo <i>menos</i> posible." },
   { icon: "🧭", titulo: "Todo en un lugar", cuerpo: "__GRID__" },
 ];
 function openOnboarding() { ONB_STEP = 0; renderOnboardingStep(); }
@@ -915,7 +915,7 @@ function openThemePreview(themeId) {
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span style="background:${t.accent};color:${t.bg};border-radius:${t.radius};padding:4px 10px;font-size:11px;font-weight:600">🎯 Misión</span>
-        <span style="background:${t.card};border-radius:${t.radius};padding:4px 10px;font-size:11px">🐸 SAPO</span>
+        <span style="background:${t.card};border-radius:${t.radius};padding:4px 10px;font-size:11px">${BOCADO.emoji} ${BOCADO.corto}</span>
         <button style="margin-left:auto;background:${t.cta};color:#fff;border:none;border-radius:${t.radius};padding:8px 16px;font-size:12px;font-weight:700;font-family:${t.font}">Abre tu día</button>
       </div>
     </div>`;
@@ -1023,7 +1023,7 @@ function renderDayHero() {
   const tDone = tHoy.filter(t => t.done).length;
   const chips = `<div class="row-wrap" style="gap:8px;margin-top:8px">
     ${r.mision ? `<span class="chip chip--cian">🎯 ${escapeHtml(r.mision)}</span>` : ""}
-    ${r.sapo ? `<span class="chip chip--coral">🐸 ${escapeHtml(r.sapo)}</span>` : ""}
+    ${r.sapo ? `<span class="chip chip--coral">${BOCADO.emoji} ${escapeHtml(r.sapo)}</span>` : ""}
     ${r.servir ? `<span class="chip">🙌 ${escapeHtml(r.servir)}</span>` : ""}
     ${r.pilar ? `<span class="chip">${escapeHtml(r.pilar)}</span>` : ""}
     ${tHoy.length ? `<span class="chip">📋 ${tDone}/${tHoy.length} tareas</span>` : ""}</div>`;
@@ -1048,7 +1048,7 @@ function renderCierreResumen(r) {
     <div class="grid grid-2">
       <div>
         <div class="text-xs muted">Misión</div><div class="mt-8">${r.mision ? escapeHtml(r.mision) : "—"} ${cumpliChip(c.mision)}</div>
-        <div class="text-xs muted mt-16">SAPO</div><div class="mt-8">${r.sapo ? escapeHtml(r.sapo) : "—"} ${c.sapo ? '<span class="chip chip--done">hecho</span>' : '<span class="chip">pendiente</span>'}</div>
+        <div class="text-xs muted mt-16">${BOCADO.emoji} ${BOCADO.corto}</div><div class="mt-8">${r.sapo ? escapeHtml(r.sapo) : "—"} ${c.sapo ? '<span class="chip chip--done">hecho</span>' : '<span class="chip">pendiente</span>'}</div>
         <div class="text-xs muted mt-16">Energía inicio → cierre</div>
         <div class="mt-8">${r.energia || "—"} → ${c.energia || "—"} / 5</div>
       </div>
@@ -1109,8 +1109,8 @@ function renderInicio() {
     <div class="card__head"><div class="card__title">📋 Tareas de hoy</div><a class="card__hint" href="#semana">Ver semana →</a></div>
     ${tareasHoy.length ? tareasHoy.map(t => `<div class="item-row" style="padding:9px 11px${t.esSapo ? ";border-color:rgba(255,107,74,.4)" : ""}">
       <span class="check ${t.done ? "is-on" : ""}" data-action="sem-toggle" data-day="${wd}" data-id="${t.id}">${t.done ? "✓" : ""}</span>
-      <div class="item-row__main"><div class="item-row__title text-sm ${t.done ? "strike" : ""}">${t.esSapo ? "🐸 " : ""}${escapeHtml(t.txt)}</div>
-        ${t.esSapo ? '<div class="item-row__sub hl-coral">Tu SAPO · cómetela primero</div>' : ""}</div>
+      <div class="item-row__main"><div class="item-row__title text-sm ${t.done ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : ""}${escapeHtml(t.txt)}</div>
+        ${t.esSapo ? `<div class="item-row__sub hl-coral">${BOCADO.titulo} · ${BOCADO.accion}</div>` : ""}</div>
       <button class="icon-btn" data-action="sem-del" data-day="${wd}" data-id="${t.id}">✕</button></div>`).join("")
     : '<div class="empty" style="padding:14px">Sin tareas para hoy. Defínelas en tu ritual de apertura.</div>'}
     <div class="row mt-8"><input class="input" id="inicio-tarea" placeholder="Nueva tarea..." style="padding:9px 11px">

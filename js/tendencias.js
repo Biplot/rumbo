@@ -108,11 +108,11 @@ function computeInsights() {
       if (Math.abs(d) >= 0.4) out.push({ icon: d > 0 ? "🎉" : "📅", strength: Math.abs(d),
         text: d > 0 ? `Tu ánimo es mejor los <b>fines de semana</b>.` : `Tu ánimo <b>baja los fines de semana</b> — cuidar el descanso ahí podría ayudar.` }); } }
 
-  // 4) Los días que te comes tu SAPO
+  // 4) Los días que das tu primer bocado
   { const con = [], sin = [];
     moodDates.forEach(f => { const r = S.ritual.dias[f]; if (r && r.cerrado && r.cierre) (r.cierre.sapo ? con : sin).push(moodAt(f)); });
     if (con.length >= 4 && sin.length >= 4) { const d = avg(con) - avg(sin);
-      if (d >= 0.4) out.push({ icon: "🐸", strength: d, text: `Los días que te <b>comes tu SAPO</b>, tu ánimo es <b>${pctMejor(avg(con), avg(sin))}% mejor</b>.` }); } }
+      if (d >= 0.4) out.push({ icon: BOCADO.emoji, strength: d, text: `Los días que das tu <b>primer bocado</b>, tu ánimo es <b>${pctMejor(avg(con), avg(sin))}% mejor</b>.` }); } }
 
   // 5) Racha de cierre
   { const streak = computeClosedStreak();

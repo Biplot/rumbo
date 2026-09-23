@@ -46,7 +46,7 @@ const BADGES = [
   { id: "semana-fuego", icon: "🔥", nombre: "Semana de Fuego", desc: "7 días cerrados seguidos", reward: 50, check: () => computeClosedStreak() >= 7 },
   { id: "inquebrantable", icon: "💠", nombre: "Inquebrantable", desc: "30 días cerrados seguidos", reward: 150, check: () => computeClosedStreak() >= 30 },
   { id: "madrugador", icon: "🌅", nombre: "Madrugador", desc: "Completa 10 rituales de apertura", reward: 40, check: s => g_ritualesHechos(s) >= 10 },
-  { id: "cazador-sapos", icon: "🐸", nombre: "Cazador de Sapos", desc: "Cómete 10 SAPOs", reward: 50, check: s => g_sapos(s) >= 10 },
+  { id: "cazador-sapos", icon: "🐘", nombre: "Bocado a Bocado", desc: "Completa 10 primeros bocados", reward: 50, check: s => g_sapos(s) >= 10 },
   { id: "semana-perfecta", icon: "📊", nombre: "Semana Perfecta", desc: "Todos tus hábitos, 7 días seguidos", reward: 60, check: s => g_semanaPerfecta(s) },
   { id: "centurion", icon: "🎖️", nombre: "Centurión", desc: "Marca 100 hábitos", reward: 40, check: s => g_habitMarks(s) >= 100 },
   { id: "primer-peso", icon: "💰", nombre: "Primer Peso", desc: "Registra tu primer ahorro mensual", reward: 20, check: s => s.finanzas.meses.some(m => (m.ingreso || 0) - (m.gasto || 0) > 0) },

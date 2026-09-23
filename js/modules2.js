@@ -69,7 +69,7 @@ function renderRitual() {
 
   <div class="grid grid-3 mt-24">
     ${box("Misión de hoy", r && escapeHtml(r.mision), "Todavía no defines tu misión.")}
-    ${box("Tu SAPO de hoy", r && escapeHtml(r.sapo), "La tarea que más evitas.")}
+    ${box(BOCADO.titulo + " de hoy", r && escapeHtml(r.sapo), "La tarea que más mueve la aguja.")}
     ${box("Pilar de hoy", r && r.pilar ? `<span class="chip chip--cian">${escapeHtml(r.pilar)}</span>` : "", "No elegido.")}
     ${box("Nivel de energía", energia)}
     ${box("A quién sirves hoy", r && escapeHtml(r.servir), "No definido.")}
@@ -105,12 +105,12 @@ function openRitualModal() {
 
     <div class="field"><label>📋 Tareas del día</label>
       <div style="background:var(--coral-soft);border:1px solid rgba(255,107,74,.3);border-radius:var(--r-sm);padding:12px;margin-bottom:10px">
-        <label style="color:var(--coral);margin-bottom:6px">🐸 Tu SAPO — la tarea más importante (cómetela primero)</label>
+        <label style="color:var(--coral);margin-bottom:6px">${BOCADO.emoji} ${BOCADO.titulo} — la tarea más importante (empieza por aquí)</label>
         <input class="input" id="r-sapo" value="${escapeAttr(r.sapo || "")}" placeholder="La que más mueve la aguja hoy">
       </div>
       <label class="text-xs muted" style="display:block;margin-bottom:6px">Otras tareas (una por línea)</label>
       <textarea class="input" id="r-tareas" style="min-height:88px" placeholder="Ej: Llamar al banco&#10;Comprar para la semana">${escapeHtml(otrasTareas)}</textarea>
-      <div class="text-xs muted mt-8">El SAPO y estas tareas aparecen juntos en Inicio y en tu Planificador.</div></div>
+      <div class="text-xs muted mt-8">Tu primer bocado y estas tareas aparecen juntos en Inicio y en tu Planificador.</div></div>
 
     <div class="field"><label>Pilar de hoy</label>
       <select class="select" id="r-pilar">${PILARES.map(p => `<option ${r.pilar === p ? "selected" : ""}>${p}</option>`).join("")}</select></div>
@@ -136,7 +136,7 @@ function saveRitual() {
     hecho: true,
     ts: Date.now(),
   };
-  // Tareas del día -> Planificador semanal (día de hoy). El SAPO es la 1ª tarea (esSapo).
+  // Tareas del día -> Planificador semanal (día de hoy). El Primer Bocado es la 1ª tarea (esSapo).
   const wd = (new Date().getDay() + 6) % 7;
   const sapoTxt = val("r-sapo");
   const lines = document.getElementById("r-tareas").value.split("\n").map(s => s.trim()).filter(Boolean);
@@ -191,7 +191,7 @@ function openCierreModal(date) {
         ${segBtn("c-mision", "parcial", "Parcial", c.mision)}
         ${segBtn("c-mision", "no", "No", c.mision)}
       </div><input type="hidden" id="c-mision-v" value="${c.mision || "si"}"></div>
-    <div class="field"><label>🐸 ¿Te comiste tu SAPO?${r.sapo ? ` <span class="text-xs muted">(${escapeHtml(r.sapo)})</span>` : ""}</label>
+    <div class="field"><label>${BOCADO.emoji} ¿Diste tu primer bocado?${r.sapo ? ` <span class="text-xs muted">(${escapeHtml(r.sapo)})</span>` : ""}</label>
       <div class="seg" id="c-sapo">
         ${segBtn("c-sapo", "1", "Sí", sapoCur)}
         ${segBtn("c-sapo", "0", "No", sapoCur)}
@@ -261,7 +261,7 @@ function bitaCard(iso, r) {
     <div class="bita-day__head"><div class="bita-date">${fecha}</div>${estadoChip}</div>
     <div class="bita-row"><span class="bita-k">🎯 Misión</span>
       <span class="bita-v">${r.mision ? escapeHtml(r.mision) : dash} ${r.cerrado ? cumpliChip(c.mision) : ""}</span></div>
-    <div class="bita-row"><span class="bita-k">🐸 SAPO</span>
+    <div class="bita-row"><span class="bita-k">${BOCADO.emoji} ${BOCADO.corto}</span>
       <span class="bita-v">${r.sapo ? escapeHtml(r.sapo) : dash} ${r.cerrado ? (c.sapo ? "<span class='chip chip--done'>hecho</span>" : "<span class='chip'>pendiente</span>") : ""}</span></div>
     <div class="bita-row"><span class="bita-k">⚡ Energía</span>
       <span class="bita-v">${energia} <span class="muted text-xs">/ 5</span> ${r.pilar ? `<span class="chip chip--cian">${escapeHtml(r.pilar)}</span>` : ""}</span></div>
@@ -336,7 +336,7 @@ function renderSemana() {
       <div class="mt-8">
         ${tareas.length ? tareas.map(t => `<div class="item-row" style="padding:8px 10px${t.esSapo ? ";border-color:rgba(255,107,74,.4)" : ""}">
           <span class="check ${t.done ? "is-on" : ""}" data-action="sem-toggle" data-day="${i}" data-id="${t.id}">${t.done ? "✓" : ""}</span>
-          <div class="item-row__main"><div class="item-row__title text-sm ${t.done ? "strike" : ""}">${t.esSapo ? "🐸 " : ""}${escapeHtml(t.txt)}</div></div>
+          <div class="item-row__main"><div class="item-row__title text-sm ${t.done ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : ""}${escapeHtml(t.txt)}</div></div>
           <button class="icon-btn" data-action="sem-del" data-day="${i}" data-id="${t.id}">✕</button></div>`).join("")
         : '<div class="text-xs muted" style="padding:6px">Sin tareas.</div>'}
       </div>

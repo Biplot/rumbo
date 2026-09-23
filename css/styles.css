@@ -386,6 +386,17 @@ textarea.input { resize: vertical; min-height: 84px; }
 .hb-today.is-on .hb-today__name { color: var(--text); font-weight: 600; }
 .hb-today.is-on .hb-today__check { background: var(--cian); border-color: var(--cian); }
 
+.hb-today__prog { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.hb-today__edit { position: absolute; top: 6px; left: 6px; font-size: 13px; opacity: .55; }
+.hb-today__edit:hover { opacity: 1; color: var(--cian-ink); }
+.hb-more > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-soft); padding: 6px 2px; list-style: revert; }
+.hb-more > summary:hover { color: var(--text); }
+.chip--freq { font-size: 10.5px; padding: 2px 8px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text-muted); }
+.is-paused { opacity: .55; }
+.cell.prog:not(.on), .hb-day.prog:not(.on) { box-shadow: inset 0 0 0 2px var(--cian-soft); border-color: var(--cian); }
+.dia-pick { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; padding: 6px 10px;
+  border: 1px solid var(--line-strong); border-radius: 999px; cursor: pointer; }
+
 /* Hábitos · vista Diario (Semana) */
 .hb-week { margin-bottom: 12px; }
 .hb-week__name { font-weight: 600; font-size: 14.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }

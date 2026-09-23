@@ -71,17 +71,17 @@ function defaultState() {
       })),
     },
 
-    // hábitos: definición + registro { "YYYY-MM": { habitId: [dias marcados] } }
+    // hábitos: definición (frecuencia, creado, pausado?) + registro { "YYYY-M": { habitId: {día: true} } }
     habitos: {
       defs: [
-        { id: uid(), nombre: "Deporte", icon: "🏋️" },
-        { id: uid(), nombre: "Lectura", icon: "📖" },
-        { id: uid(), nombre: "Estudio", icon: "✏️" },
-        { id: uid(), nombre: "Música", icon: "🎵" },
-        { id: uid(), nombre: "Alimento", icon: "🥗" },
-        { id: uid(), nombre: "Agua", icon: "💧" },
-        { id: uid(), nombre: "Meditar", icon: "🧘" },
-        { id: uid(), nombre: "Vitaminas", icon: "💊" },
+        { id: uid(), nombre: "Deporte", icon: "🏋️", frecuencia: { tipo: "diario" }, creado: todayISO() },
+        { id: uid(), nombre: "Lectura", icon: "📖", frecuencia: { tipo: "diario" }, creado: todayISO() },
+        { id: uid(), nombre: "Estudio", icon: "✏️", frecuencia: { tipo: "diario" }, creado: todayISO() },
+        { id: uid(), nombre: "Música", icon: "🎵", frecuencia: { tipo: "diario" }, creado: todayISO() },
+        { id: uid(), nombre: "Alimento", icon: "🥗", frecuencia: { tipo: "diario" }, creado: todayISO() },
+        { id: uid(), nombre: "Agua", icon: "💧", frecuencia: { tipo: "diario" }, creado: todayISO() },
+        { id: uid(), nombre: "Meditar", icon: "🧘", frecuencia: { tipo: "diario" }, creado: todayISO() },
+        { id: uid(), nombre: "Vitaminas", icon: "💊", frecuencia: { tipo: "diario" }, creado: todayISO() },
       ],
       log: {}, // ej: { "2026-9": { habitId: {5:true, 6:true} } }
     },
@@ -238,6 +238,16 @@ function migrate(s) {
   ensureLedger(s);    // monedas: libro de movimientos (idempotente)
   recalcGamif(s);
 
+  // Hábitos con frecuencia: los existentes quedan "diario", creados el día de su primera marca (o hoy)
+  if (s.habitos && Array.isArray(s.habitos.defs)) {
+    s.habitos.log = s.habitos.log || {};
+    s.habitos.defs.forEach(h => {
+      if (!h) return;
+      if (!h.frecuencia) h.frecuencia = { tipo: "diario" };
+      if (!h.creado) h.creado = primeraMarcaHabito(s.habitos.log, h.id) || todayISO();
+    });
+  }
+
   // Biblioteca de lecturas: migrar del modelo viejo (12 meses, 1 libro/mes) a lista libre
   if (!Array.isArray(s.lecturas)) s.lecturas = [];
   const esModeloViejo = s.lecturas.length &&
@@ -374,6 +384,21 @@ function syncHabitLogFromLedger(s) {
     }
   });
   return s;
+}
+
+/* Primer día marcado de un hábito en el log { "YYYY-M": { hid: { d: true } } } → ISO o null */
+function primeraMarcaHabito(log, hid) {
+  let best = null;
+  Object.keys(log || {}).forEach(k => {
+    const [y, m] = k.split("-").map(Number); const days = (log[k] || {})[hid];
+    if (!y || !m || !days) return;
+    Object.keys(days).forEach(d => {
+      if (!days[d]) return;
+      const iso = `${y}-${String(m).padStart(2, "0")}-${String(+d).padStart(2, "0")}`;
+      if (!best || iso < best) best = iso;
+    });
+  });
+  return best;
 }
 
 /* -------- Helpers de persistencia -------- */

@@ -476,8 +476,10 @@ function computeClosedStreak() {
 }
 function dayAutoSummary() {
   const mIdx = new Date().getMonth(), day = new Date().getDate();
-  const habTotal = STATE.habitos.defs.length;
-  const habDone = STATE.habitos.defs.filter(h => habitDone(h.id, mIdx, day)).length;
+  // Hábitos de hoy: los que tocan + los que marcaste hoy aunque no tocaran
+  const hoyHabs = STATE.habitos.defs.filter(h => !h.pausado && (tocaHoy(h) || habitDone(h.id, mIdx, day) || (hmProgramado(h, todayISO()) && hmCreado(h) <= todayISO())));
+  const habTotal = hoyHabs.length;
+  const habDone = hoyHabs.filter(h => habitDone(h.id, mIdx, day)).length;
   const wd = (new Date().getDay() + 6) % 7;
   const tareas = STATE.semana.dias[wd] || [];
   const tareasDone = tareas.filter(t => t.done).length;
@@ -606,10 +608,11 @@ function onClick(e) {
 
     /* Hábitos */
     case "habit-add": openHabitModal(); break;
+    case "habit-edit": openHabitModal(d.id); break;
     case "habit-del":
       if (confirm("¿Eliminar este hábito y su historial?")) {
         STATE.habitos.defs = STATE.habitos.defs.filter(h => h.id !== d.id);
-        saveState(); rerender();
+        saveState(); closeModal(); rerender();
       } break;
     case "habit-save": saveHabit(); break;
     case "habit-cell": toggleHabitCell(d.id, +d.day); break;
@@ -975,6 +978,7 @@ function toggleHabitDate(habitId, year, monthIdx, day) {
   const movId = "habito:" + habitId + ":" + isoLocal(new Date(year, monthIdx, day));
   if (cur) { delete STATE.habitos.log[key][habitId][day]; anularMovimiento(movId); }
   else { STATE.habitos.log[key][habitId][day] = true; registrarMovimiento(movId, 5, 5); }
+  actualizarMetaHabito(habitId, isoLocal(new Date(year, monthIdx, day)));
   saveState();
   updateTopbar();
   rerender();
@@ -987,22 +991,18 @@ function habitDone(habitId, monthIdx, day) {
   const key = monthKey(STATE.settings.year, monthIdx);
   return !!(STATE.habitos.log[key] && STATE.habitos.log[key][habitId] && STATE.habitos.log[key][habitId][day]);
 }
-function computeStreak() {
-  // días consecutivos (terminando hoy) con al menos un hábito marcado
-  const now = new Date();
-  let streak = 0;
-  for (let back = 0; back < 366; back++) {
-    const d = new Date(now); d.setDate(now.getDate() - back);
-    const key = monthKey(d.getFullYear(), d.getMonth());
-    const log = STATE.habitos.log[key];
-    let any = false;
-    if (log) for (const hid in log) { if (log[hid][d.getDate()]) { any = true; break; } }
-    if (any) streak++;
-    else if (back === 0) continue; // hoy aún puede estar vacío
-    else break;
-  }
-  return streak;
+/* +20 ⭐ al cumplir la cuota del período (semana, o mes si es mensual).
+   Anulable: si al desmarcar deja de cumplirse, el movimiento se anula. */
+function actualizarMetaHabito(habitId, iso) {
+  const h = STATE.habitos.defs.find(x => x.id === habitId);
+  if (!h || h.pausado) return;
+  const meta = hmMetaPeriodo(h, iso);
+  const id = "habito-meta:" + habitId + ":" + meta.key;
+  if (meta.cumplido) { if (registrarMovimiento(id, 20, 20, "Cuota de " + h.nombre, true)) toast("🎯 " + h.nombre + ": ¡cuota cumplida! +20 ⭐"); }
+  else if (ledgerVigente(STATE, id)) anularMovimiento(id);
 }
+/* Racha global: días seguidos cumpliendo todos los hábitos que tocaban (ver motor) */
+function computeStreak() { return rachaGlobalHabitos(STATE); }
 
 /* ============================================================
    Ciclo del día: hero del Inicio + resumen de cierre
@@ -1125,14 +1125,19 @@ function renderInicio() {
   const pesos = s.salud.meses.map(m => m.peso).filter(p => p != null);
   const pesoActual = pesos.length ? pesos[pesos.length - 1] : null;
 
-  const habitsToday = s.habitos.defs.map(h => {
+  const habBtn = h => {
     const on = habitDone(h.id, mIdx, day);
+    const prog = progresoPeriodoActual(h);
     return `<button class="nav__item" style="background:${on ? 'var(--cian-soft)' : 'var(--surface-2)'};border:1px solid var(--line);justify-content:space-between"
       data-action="quick-habit" data-id="${h.id}">
-      <span><span class="nav__ico">${h.icon}</span> ${h.nombre}</span>
+      <span><span class="nav__ico">${h.icon}</span> ${escapeHtml(h.nombre)} <span class="text-xs muted">· ${prog.texto}</span></span>
       <span class="check ${on ? 'is-on' : ''}">${on ? '✓' : ''}</span></button>`;
-  }).join("");
-  const doneToday = s.habitos.defs.filter(h => habitDone(h.id, mIdx, day)).length;
+  };
+  const { toca: habToca, cumplidos: habCumplidos } = habitosHoy();
+  const habitsToday = habToca.map(habBtn).join("")
+    + (habCumplidos.length ? `<details class="hb-more"><summary>✅ Ya cumplidos este período (${habCumplidos.length})</summary>
+      <div class="grid mt-8" style="gap:8px">${habCumplidos.map(habBtn).join("")}</div></details>` : "");
+  const doneToday = habToca.filter(h => habitDone(h.id, mIdx, day)).length;
 
   const metasMes = (s.metas.mensuales[mIdx] || []).filter(m => !m.done);
 
@@ -1165,7 +1170,7 @@ function renderInicio() {
   ${renderDayHero()}
   <div class="grid grid-4">
     ${statCard("💰", "Ahorro de " + MESES[mIdx], fmtCLP(ahorroMes), `Meta ${fmtCLP(metaMes)} · ${pctAhorro}%`, pctAhorro)}
-    ${statCard("🔥", "Racha de hábitos", computeStreak() + (computeStreak() === 1 ? " día" : " días"), doneToday + "/" + s.habitos.defs.length + " hoy")}
+    ${statCard("🔥", "Racha de hábitos", computeStreak() + (computeStreak() === 1 ? " día" : " días"), doneToday + "/" + habToca.length + " hoy")}
     ${statCard("📚", "Leyendo ahora", libro && libro.titulo ? libro.titulo : "—", libro && libro.estado === "leyendo" ? "En curso" : "Sin libro activo")}
     ${statCard("⚖️", "Peso actual", pesoActual != null ? pesoActual + " kg" : "—", "Meta " + s.salud.pesoObjetivo + " kg")}
   </div>

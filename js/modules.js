@@ -185,6 +185,7 @@ function metaRow(m, bucket, idx) {
 
 /* ============================================================
    HÁBITOS · Panel con vistas Diario / Mensual / Anual
+   Cumplimiento real contra la frecuencia objetivo (ver habitos-motor.js)
    ============================================================ */
 let HABIT_VIEW = "diario";   // diario | mensual | anual
 let HABIT_LAYOUT = "hoy";    // hoy | semana  (dentro de Diario)
@@ -201,13 +202,32 @@ function donutSvg(pct, color = "var(--cian)") {
       stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 36 36)"/>
     <text x="36" y="41" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">${pct}%</text></svg>`;
 }
+/* Rango ISO de un mes del año fijo */
+function mesRango(m) {
+  const y = STATE.settings.year; // TODO año: usa el año fijo de settings
+  return [isoLocal(new Date(y, m, 1)), isoLocal(new Date(y, m + 1, 0))];
+}
+function freqChip(h) {
+  return `<span class="chip chip--freq">${h.pausado ? "⏸ Pausado" : hmFreqLabel(h)}</span>`;
+}
+function rachaTxt(h) {
+  const r = rachaPeriodos(h);
+  return r.n ? `🔥 ${r.n} ${r.unidad}` : "";
+}
+/* Hábitos para hoy: los que tocan (pendientes) y los ya cumplidos en el período */
+function habitosHoy() {
+  const activos = STATE.habitos.defs.filter(h => !h.pausado);
+  const toca = activos.filter(h => tocaHoy(h));
+  const cumplidos = activos.filter(h => !toca.includes(h) && hmCreado(h) <= hmHoy());
+  return { toca, cumplidos };
+}
 
 function renderHabitos() {
   const defs = STATE.habitos.defs;
   const tabs = [["diario", "Diario"], ["mensual", "Mensual"], ["anual", "Anual"]];
   const head = `
   <div class="flex-between" style="flex-wrap:wrap;gap:12px">
-    <div class="pill pill--streak">🔥 Racha: ${computeStreak()} días</div>
+    <div class="pill pill--streak" title="Días seguidos cumpliendo todos los hábitos que tocaban">🔥 Racha: ${computeStreak()} días</div>
     <div class="row" style="gap:10px;flex-wrap:wrap">
       <div class="seg">${tabs.map(([k, l]) => `<button class="${HABIT_VIEW === k ? "is-active" : ""}" data-action="habit-view" data-v="${k}">${l}</button>`).join("")}</div>
       <button class="btn btn--primary" data-action="habit-add">+ Nuevo hábito</button>
@@ -216,6 +236,17 @@ function renderHabitos() {
   if (!defs.length) return head + `<div class="card mt-16"><div class="empty">Aún no tienes hábitos. Crea el primero con “+ Nuevo hábito”.</div></div>`;
   const body = HABIT_VIEW === "mensual" ? habitViewMensual() : HABIT_VIEW === "anual" ? habitViewAnual() : habitViewDiario();
   return head + `<div class="mt-16">${body}</div>`;
+}
+
+function habitTodayCard(h) {
+  const now = new Date();
+  const on = habitDoneDate(h.id, now);
+  const prog = progresoPeriodoActual(h);
+  return `<div class="card hb-today ${on ? "is-on" : ""}" data-action="habit-today" data-id="${h.id}" role="button" tabindex="0">
+      <div class="hb-today__ico">${h.icon}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
+      <div class="hb-today__prog">${prog.texto}${rachaTxt(h) ? " · " + rachaTxt(h) : ""}</div>
+      <div class="hb-today__check">${on ? "✓" : ""}</div>
+      <button class="hb-today__edit icon-btn" data-action="habit-edit" data-id="${h.id}" title="Editar hábito" aria-label="Editar">✎</button></div>`;
 }
 
 function habitViewDiario() {
@@ -231,110 +262,176 @@ function habitViewDiario() {
     const rows = defs.map(h => {
       const cells = dias.map(d => {
         const on = habitDoneDate(h.id, d);
-        const isT = isoLocal(d) === todayISO();
-        return `<button class="hb-day ${on ? "on" : ""} ${isT ? "today" : ""}" data-action="habit-daycell" data-id="${h.id}" data-y="${d.getFullYear()}" data-m="${d.getMonth()}" data-d="${d.getDate()}">
+        const iso = isoLocal(d);
+        const isT = iso === todayISO();
+        const prog = hmFreq(h).tipo === "dias" && hmProgramado(h, iso);
+        return `<button class="hb-day ${on ? "on" : ""} ${isT ? "today" : ""} ${prog ? "prog" : ""}" data-action="habit-daycell" data-id="${h.id}" data-y="${d.getFullYear()}" data-m="${d.getMonth()}" data-d="${d.getDate()}">
           <span class="hb-day__dow">${DIAS_CORTO[d.getDay()]}</span><span class="hb-day__n">${d.getDate()}</span></button>`;
       }).join("");
-      return `<div class="card hb-week"><div class="hb-week__name">${h.icon} ${escapeHtml(h.nombre)}
-        <button class="icon-btn" data-action="habit-del" data-id="${h.id}">🗑</button></div><div class="hb-week__days">${cells}</div></div>`;
+      const meta = hmFreq(h).tipo === "mensual" ? progresoPeriodoActual(h).texto : `${hmMetaPeriodo(h, todayISO()).hecho}/${hmMetaPeriodo(h, todayISO()).esperado} esta semana`;
+      return `<div class="card hb-week ${h.pausado ? "is-paused" : ""}"><div class="hb-week__name">${h.icon} ${escapeHtml(h.nombre)} ${freqChip(h)}
+        <span class="text-xs muted" style="margin-left:auto">${h.pausado ? "" : meta}</span>
+        <button class="icon-btn" data-action="habit-edit" data-id="${h.id}" title="Editar">✎</button></div><div class="hb-week__days">${cells}</div></div>`;
     }).join("");
     return sub + rows;
   }
 
-  // Hoy (grilla de toggles)
-  const done = defs.filter(h => habitDoneDate(h.id, now)).length;
-  const cards = defs.map(h => {
-    const on = habitDoneDate(h.id, now);
-    return `<button class="card hb-today ${on ? "is-on" : ""}" data-action="habit-today" data-id="${h.id}">
-      <div class="hb-today__ico">${h.icon}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
-      <div class="hb-today__check">${on ? "✓" : ""}</div></button>`;
-  }).join("");
-  return sub + `<div class="text-sm muted" style="margin-bottom:12px">Hoy llevas <b>${done}/${defs.length}</b> hábitos</div><div class="hb-grid">${cards}</div>`;
+  // Hoy: solo los que tocan hoy; los demás en un colapsable
+  const { toca, cumplidos } = habitosHoy();
+  const done = toca.filter(h => habitDoneDate(h.id, now)).length;
+  const pausados = defs.filter(h => h.pausado);
+  return sub + `<div class="text-sm muted" style="margin-bottom:12px">Hoy llevas <b>${done}/${toca.length}</b> hábitos que tocan hoy</div>
+    <div class="hb-grid">${toca.map(habitTodayCard).join("") || '<div class="empty">Nada pendiente hoy 🎉</div>'}</div>
+    ${cumplidos.length ? `<details class="hb-more mt-16"><summary>✅ Ya cumplidos este período (${cumplidos.length})</summary>
+      <div class="hb-grid mt-16">${cumplidos.map(habitTodayCard).join("")}</div></details>` : ""}
+    ${pausados.length ? `<details class="hb-more mt-16"><summary>⏸ Pausados (${pausados.length})</summary>
+      <div class="mt-8">${pausados.map(h => `<div class="item-row"><span>${h.icon}</span><div class="item-row__main">${escapeHtml(h.nombre)}</div>
+        <button class="btn-ghost" data-action="habit-edit" data-id="${h.id}">Editar</button></div>`).join("")}</div></details>` : ""}`;
 }
 
 function habitGrid(m) {
-  const year = STATE.settings.year;
+  const year = STATE.settings.year; // TODO año:
   const nDays = daysInMonth(year, m);
   const defs = STATE.habitos.defs;
+  const [desde, hasta] = mesRango(m);
   const todayD = (new Date().getMonth() === m && new Date().getFullYear() === year) ? new Date().getDate() : -1;
   const header = `<tr><th class="name">Hábito</th>${Array.from({ length: nDays }, (_, k) => {
     const d = k + 1; const wd = new Date(year, m, d).getDay();
     return `<th class="${d === todayD ? "today" : ""}">${DIAS_CORTO[wd]}<br>${d}</th>`;
   }).join("")}<th>%</th></tr>`;
   const rows = defs.map(h => {
-    let count = 0;
+    const esDias = hmFreq(h).tipo === "dias";
     const cells = Array.from({ length: nDays }, (_, k) => {
-      const d = k + 1; const on = habitDone(h.id, m, d); if (on) count++;
-      return `<td><span class="cell ${on ? "on" : ""} ${d === todayD ? "today" : ""}" data-action="habit-cell" data-id="${h.id}" data-day="${d}"></span></td>`;
+      const d = k + 1; const on = habitDone(h.id, m, d);
+      const iso = isoLocal(new Date(year, m, d));
+      const prog = esDias && hmProgramado(h, iso) && iso >= hmCreado(h);
+      return `<td><span class="cell ${on ? "on" : ""} ${d === todayD ? "today" : ""} ${prog ? "prog" : ""}" data-action="habit-cell" data-id="${h.id}" data-day="${d}"></span></td>`;
     }).join("");
-    const pct = Math.round((count / nDays) * 100);
-    return `<tr><td class="name">${h.icon} ${escapeHtml(h.nombre)}
-      <button class="icon-btn" data-action="habit-del" data-id="${h.id}" style="margin-left:4px">🗑</button></td>
-      ${cells}<td style="font-weight:600;color:var(--cian-ink)">${pct}%</td></tr>`;
+    const c = cumplimiento(h, desde, hasta);
+    return `<tr class="${h.pausado ? "is-paused" : ""}"><td class="name">${h.icon} ${escapeHtml(h.nombre)}
+      <button class="icon-btn" data-action="habit-edit" data-id="${h.id}" style="margin-left:4px" title="Editar">✎</button></td>
+      ${cells}<td style="font-weight:600;color:var(--cian-ink)">${c.pct == null ? "—" : c.pct + "%"}</td></tr>`;
   }).join("");
   return `<table><thead>${header}</thead><tbody>${rows}</tbody></table>`;
 }
 
 function habitViewMensual() {
-  const m = HABIT_MONTH, year = STATE.settings.year, defs = STATE.habitos.defs;
-  const nDays = daysInMonth(year, m);
-  const now = new Date();
-  const isCur = now.getMonth() === m && now.getFullYear() === year;
-  const elapsed = isCur ? now.getDate() : nDays;
-  let marks = 0; defs.forEach(h => { for (let d = 1; d <= elapsed; d++) if (habitDone(h.id, m, d)) marks++; });
-  const posibles = defs.length * elapsed;
-  const pct = posibles ? Math.round((marks / posibles) * 100) : 0;
-  const ranking = defs.map(h => { let c = 0; for (let d = 1; d <= nDays; d++) if (habitDone(h.id, m, d)) c++; return { h, pct: Math.round((c / nDays) * 100) }; }).sort((a, b) => b.pct - a.pct);
+  const m = HABIT_MONTH, defs = STATE.habitos.defs;
+  const [desde, hasta] = mesRango(m);
+  const g = cumplimientoGrupo(defs, desde, hasta);
+  const ranking = defs.filter(h => !h.pausado)
+    .map(h => ({ h, c: cumplimiento(h, desde, hasta) }))
+    .sort((a, b) => (b.c.pct ?? -1) - (a.c.pct ?? -1));
 
   return `${monthsSelector(m, "habit-month")}
   <div class="grid grid-2">
-    <div class="card"><div class="card__title">Progreso de ${MESES[m]}</div>
-      <div class="row" style="gap:16px;align-items:center;margin-top:14px">${donutSvg(pct)}
-        <div><div class="text-sm muted">Cumplimiento</div><div class="text-sm muted mt-8">${marks} de ${posibles} marcas posibles</div></div></div></div>
+    <div class="card"><div class="card__title">Cumplimiento de ${MESES[m]}</div>
+      <div class="row" style="gap:16px;align-items:center;margin-top:14px">${donutSvg(g.pct || 0)}
+        <div><div class="text-sm muted">Contra tu objetivo de cada hábito</div>
+          <div class="text-sm muted mt-8">${g.hecho} de ${g.esperado} cumplimientos esperados${g.esperado ? "" : " (aún sin períodos cerrados)"}</div></div></div></div>
     <div class="card"><div class="card__title">Mejores hábitos del mes</div>
-      <div class="mt-16">${ranking.map((r, i) => `<div class="flex-between" style="padding:6px 0"><span class="text-sm">${i + 1}. ${r.h.icon} ${escapeHtml(r.h.nombre)}</span><span class="hl-cian">${r.pct}%</span></div>`).join("")}</div></div>
+      <div class="mt-16">${ranking.map((r, i) => `<div class="flex-between" style="padding:6px 0;gap:8px">
+        <span class="text-sm">${i + 1}. ${r.h.icon} ${escapeHtml(r.h.nombre)} ${freqChip(r.h)}</span>
+        <span class="hl-cian">${r.c.pct == null ? (r.c.enCurso ? "en curso" : "—") : r.c.pct + "%"}</span></div>`).join("")}</div></div>
   </div>
-  <div class="section-title">Calendario del mes</div>
+  <div class="section-title">Calendario del mes <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· los días programados se marcan con un borde</span></div>
   <div class="card habit-grid">${habitGrid(m)}</div>`;
 }
 
 function habitViewAnual() {
-  const year = STATE.settings.year, defs = STATE.habitos.defs;
-  const porMes = MESES.map((_, m) => { let c = 0; const nd = daysInMonth(year, m); defs.forEach(h => { for (let d = 1; d <= nd; d++) if (habitDone(h.id, m, d)) c++; }); return c; });
-  const total = porMes.reduce((a, b) => a + b, 0);
-  const prom = Math.round(total / 12);
-  const ranking = defs.map(h => { let c = 0; MESES.forEach((_, m) => { const nd = daysInMonth(year, m); for (let d = 1; d <= nd; d++) if (habitDone(h.id, m, d)) c++; }); return { h, c }; }).sort((a, b) => b.c - a.c);
+  const year = STATE.settings.year, defs = STATE.habitos.defs; // TODO año:
+  const porMes = MESES.map((_, m) => { const [a, b] = mesRango(m); return cumplimientoGrupo(defs, a, b).pct; });
+  const anio = cumplimientoGrupo(defs, `${year}-01-01`, `${year}-12-31`);
+  const conDatos = porMes.map((v, m) => ({ v, m })).filter(x => x.v != null);
+  const mejor = conDatos.length ? conDatos.reduce((a, b) => (b.v > a.v ? b : a)) : null;
+  const ranking = defs.filter(h => !h.pausado)
+    .map(h => ({ h, c: cumplimiento(h, `${year}-01-01`, `${year}-12-31`), r: rachaPeriodos(h) }))
+    .sort((a, b) => (b.c.pct ?? -1) - (a.c.pct ?? -1));
   return `
   <div class="grid grid-3">
-    ${statCard("✅", "Marcas del año", total, "en " + year)}
-    ${statCard("📅", "Promedio / mes", prom, "marcas")}
-    ${statCard("🔥", "Racha actual", computeStreak() + " días", "seguidos")}
+    ${statCard("✅", "Cumplimiento del año", anio.pct == null ? "—" : anio.pct + "%", "contra tu objetivo", anio.pct)}
+    ${statCard("📅", "Mejor mes", mejor ? MESES[mejor.m] : "—", mejor ? mejor.v + "%" : "")}
+    ${statCard("🔥", "Racha actual", computeStreak() + " días", "cumpliendo lo que tocaba")}
   </div>
   <div class="grid grid-2 mt-24">
-    <div class="card"><div class="card__head"><div class="card__title">Por mes</div><span class="card__hint">marcas</span></div>${svgBar(porMes, { color: "var(--cian)", fmt: v => v })}</div>
+    <div class="card"><div class="card__head"><div class="card__title">Por mes</div><span class="card__hint">% de cumplimiento</span></div>${svgBar(porMes, { color: "var(--cian)", fmt: v => v + "%" })}</div>
     <div class="card"><div class="card__title">Top del año</div>
-      <div class="mt-16">${ranking.map((r, i) => `<div class="flex-between" style="padding:6px 0"><span class="text-sm">${i + 1}. ${r.h.icon} ${escapeHtml(r.h.nombre)}</span><span class="hl-cian">${r.c}</span></div>`).join("")}</div></div>
+      <div class="mt-16">${ranking.map((x, i) => `<div class="flex-between" style="padding:6px 0;gap:8px">
+        <span class="text-sm">${i + 1}. ${x.h.icon} ${escapeHtml(x.h.nombre)} ${freqChip(x.h)}</span>
+        <span class="text-xs muted">${x.r.n ? "🔥 " + x.r.n + " " + x.r.unidad : ""}</span>
+        <span class="hl-cian">${x.c.pct == null ? "—" : x.c.pct + "%"}</span></div>`).join("")}</div></div>
   </div>`;
 }
-function openHabitModal() {
+
+/* -------- Crear / editar hábito -------- */
+let HABIT_EDIT = null;
+function openHabitModal(id) {
+  const h = id ? STATE.habitos.defs.find(x => x.id === id) : null;
+  HABIT_EDIT = h ? h.id : null;
+  const f = h ? hmFreq(h) : { tipo: "diario" };
   const iconos = ["🏋️","📖","✏️","🎵","🥗","💧","🧘","💊","🏃","☀️","🛏️","🚭","🧹","💻","📞","🙏"];
-  openModal("Nuevo hábito", `
-    <div class="field"><label>Nombre del hábito</label><input class="input" id="h-nombre" placeholder="Ej: Meditar"></div>
+  const icon = h ? h.icon : "🏋️";
+  const tipos = [["diario", "Diario"], ["semanal", "X por semana"], ["dias", "Días fijos"], ["mensual", "X al mes"]];
+  const dias = f.tipo === "dias" ? f.dias : [0, 2, 4];
+  openModal(h ? "Editar hábito" : "Nuevo hábito", `
+    <div class="field"><label>Nombre del hábito</label><input class="input" id="h-nombre" value="${escapeAttr(h ? h.nombre : "")}" placeholder="Ej: Meditar"></div>
     <div class="field"><label>Ícono</label>
-      <div class="row-wrap" id="h-iconos">${iconos.map((ic, i) =>
-        `<button type="button" class="btn--soft btn" style="padding:8px 12px" data-ic="${ic}" onclick="pickIcon(this)">${ic}</button>`).join("")}</div>
-      <input type="hidden" id="h-icon" value="🏋️"></div>
-    <button class="btn btn--primary btn-block mt-8" data-action="habit-save">Crear hábito</button>`);
+      <div class="row-wrap" id="h-iconos">${iconos.map(ic =>
+        `<button type="button" class="btn--soft btn ${ic === icon ? "btn--cian" : ""}" style="padding:8px 12px" data-ic="${ic}" onclick="pickIcon(this)">${ic}</button>`).join("")}</div>
+      <input type="hidden" id="h-icon" value="${icon}"></div>
+    <div class="field"><label>Frecuencia objetivo</label>
+      <div class="seg" id="h-tipo-seg" style="flex-wrap:wrap">${tipos.map(([k, l]) => `<button type="button" class="${f.tipo === k ? "is-active" : ""}" data-v="${k}" onclick="habitTipoPick(this)">${l}</button>`).join("")}</div>
+      <input type="hidden" id="h-tipo" value="${f.tipo}">
+      <div id="h-veces-box" class="mt-8" ${f.tipo === "semanal" || f.tipo === "mensual" ? "" : "hidden"}>
+        <label class="text-xs muted">Veces por <span id="h-veces-per">${f.tipo === "mensual" ? "mes (1–25)" : "semana (1–6)"}</span></label>
+        <input class="input" type="number" id="h-veces" min="1" max="${f.tipo === "mensual" ? 25 : 6}" value="${f.veces || 3}" style="max-width:120px"></div>
+      <div id="h-dias-box" class="mt-8" ${f.tipo === "dias" ? "" : "hidden"}>
+        <div class="row-wrap" id="h-dias">${HM_DIAS.map((d, i) => `<label class="dia-pick"><input type="checkbox" value="${i}" ${dias.includes(i) ? "checked" : ""}> ${["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][i]}</label>`).join("")}</div></div>
+      <div class="text-xs muted mt-8">Se mide contra este objetivo, no contra 7 días. La semana va de lunes a domingo.</div></div>
+    ${h ? `<label class="row" style="gap:8px;margin-bottom:14px"><input type="checkbox" id="h-pausado" ${h.pausado ? "checked" : ""}> ⏸ Pausar este hábito (no se mide mientras esté pausado)</label>` : ""}
+    <button class="btn btn--primary btn-block mt-8" data-action="habit-save">${h ? "Guardar cambios" : "Crear hábito"}</button>
+    ${h ? `<button class="btn-ghost btn-block mt-8" data-action="habit-del" data-id="${h.id}" style="color:var(--coral);border-color:var(--coral)">🗑 Eliminar hábito</button>` : ""}`);
+}
+function habitTipoPick(btn) {
+  segPick(btn, "h-tipo");
+  const t = btn.dataset.v;
+  document.getElementById("h-veces-box").hidden = !(t === "semanal" || t === "mensual");
+  document.getElementById("h-dias-box").hidden = t !== "dias";
+  const v = document.getElementById("h-veces");
+  v.max = t === "mensual" ? 25 : 6;
+  document.getElementById("h-veces-per").textContent = t === "mensual" ? "mes (1–25)" : "semana (1–6)";
 }
 function pickIcon(btn) {
   document.getElementById("h-icon").value = btn.dataset.ic;
   document.querySelectorAll("#h-iconos .btn").forEach(b => b.classList.remove("btn--cian"));
   btn.classList.add("btn--cian");
 }
+/* Lee la frecuencia del formulario del modal */
+function leerFrecuencia() {
+  const tipo = val("h-tipo") || "diario";
+  if (tipo === "semanal" || tipo === "mensual") {
+    const max = tipo === "mensual" ? 25 : 6;
+    return { tipo, veces: Math.min(max, Math.max(1, parseNum(val("h-veces")) || 1)) };
+  }
+  if (tipo === "dias") {
+    const dias = Array.from(document.querySelectorAll("#h-dias input:checked")).map(x => +x.value);
+    return dias.length ? { tipo, dias } : { tipo: "diario" };
+  }
+  return { tipo: "diario" };
+}
 function saveHabit() {
   const nombre = val("h-nombre"); if (!nombre) return toast("Ponle un nombre", true);
-  STATE.habitos.defs.push({ id: uid(), nombre, icon: val("h-icon") || "✅" });
-  saveState(); closeModal(); rerender(); toast("Hábito creado");
+  const frecuencia = leerFrecuencia();
+  const h = HABIT_EDIT && STATE.habitos.defs.find(x => x.id === HABIT_EDIT);
+  if (h) {
+    h.nombre = nombre; h.icon = val("h-icon") || h.icon; h.frecuencia = frecuencia;
+    const p = document.getElementById("h-pausado"); h.pausado = !!(p && p.checked);
+    h.ts = Date.now();   // en la fusión gana la edición más reciente
+  } else {
+    STATE.habitos.defs.push({ id: uid(), nombre, icon: val("h-icon") || "✅", frecuencia, creado: todayISO(), ts: Date.now() });
+  }
+  HABIT_EDIT = null;
+  saveState(); closeModal(); rerender(); toast(h ? "Hábito actualizado" : "Hábito creado");
 }
 
 /* ============================================================

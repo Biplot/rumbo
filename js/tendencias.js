@@ -77,17 +77,18 @@ function computeInsights() {
   const moodDates = Object.keys(moodMap);
   const moodAt = f => avg(moodMap[f]);
 
-  const habitDoneAt = (habId, f) => {
-    const d = new Date(f + "T00:00:00");
-    const log = S.habitos.log[`${d.getFullYear()}-${d.getMonth() + 1}`];
-    return !!(log && log[habId] && log[habId][d.getDate()]);
-  };
-
-  // 1) Ánimo vs cada hábito → el de mayor efecto positivo
+  // 1) Ánimo vs cada hábito → el de mayor efecto positivo.
+  //    Solo cuentan los días en que el hábito "tocaba" (diario / días fijos) o se hizo,
+  //    desde su creación: un hábito semanal no "falta" los días que no le tocan.
   let best = null;
   (S.habitos.defs || []).forEach(h => {
     const con = [], sin = [];
-    moodDates.forEach(f => (habitDoneAt(h.id, f) ? con : sin).push(moodAt(f)));
+    moodDates.forEach(f => {
+      if (f < hmCreado(h)) return;
+      const hecho = hmDone(h, f, S);
+      if (hecho) con.push(moodAt(f));
+      else if (hmProgramado(h, f)) sin.push(moodAt(f));
+    });
     if (con.length >= 4 && sin.length >= 4) {
       const d = avg(con) - avg(sin);
       if (d >= 0.4 && (!best || d > best.d)) best = { h, d, con: avg(con), sin: avg(sin) };
@@ -146,17 +147,8 @@ function renderTendencias() {
   const ahorroAcum = ahorroVals.reduce((a, v) => a + (v || 0), 0);
   const pctAnual = S.finanzas.metaAnual ? Math.min(100, Math.round((ahorroAcum / S.finanzas.metaAnual) * 100)) : 0;
 
-  const habPct = MESES.map((_, m) => {
-    const key = monthKey(S.settings.year, m);
-    const log = S.habitos.log[key];
-    if (!log) return null;
-    const days = (m === curM) ? now.getDate() : daysInMonth(S.settings.year, m);
-    const total = S.habitos.defs.length * days;
-    if (!total) return null;
-    let marked = 0;
-    for (const hid in log) for (const d in log[hid]) if (+d <= days) marked++;
-    return Math.round((marked / total) * 100);
-  });
+  // % de cumplimiento real por mes (contra la frecuencia de cada hábito)
+  const habPct = MESES.map((_, m) => cumplimientoGrupo(S.habitos.defs, ...mesRango(m), S).pct);
 
   const ruedaAvg = S.rueda.meses.map(a => {
     const sum = a.reduce((x, y) => x + y, 0);
@@ -193,12 +185,8 @@ function renderTendencias() {
   const moodAvgSem = moodsSem.length ? moodsSem.reduce((a, b) => a + b, 0) / moodsSem.length : null;
   const moodEmojiSem = moodAvgSem != null ? MOODS[Math.round(moodAvgSem) - 1] : "—";
   const cerradosSem = semanaISO.filter(iso => S.ritual.dias[iso] && S.ritual.dias[iso].cerrado).length;
-  let habMarc = 0, habPos = 0;
-  semanaISO.forEach(iso => {
-    const d = new Date(iso + "T00:00:00");
-    S.habitos.defs.forEach(h => { habPos++; if (habitDone(h.id, d.getMonth(), d.getDate())) habMarc++; });
-  });
-  const habPctSem = habPos ? Math.round((habMarc / habPos) * 100) : 0;
+  const habSem = cumplimientoGrupo(S.habitos.defs, semanaISO[0], semanaISO[6], S);
+  const habPctSem = habSem.pct == null ? 0 : habSem.pct;
   const tareasSem = (S.semana.dias || []).flat();
   const tareasDoneSem = tareasSem.filter(t => t.done).length;
   const gratisSem = diario.filter(e => e.gratitud && setSemana.has(e.fecha));

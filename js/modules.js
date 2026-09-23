@@ -270,7 +270,7 @@ function habitGrid(m) {
     const pct = Math.round((count / nDays) * 100);
     return `<tr><td class="name">${h.icon} ${escapeHtml(h.nombre)}
       <button class="icon-btn" data-action="habit-del" data-id="${h.id}" style="margin-left:4px">🗑</button></td>
-      ${cells}<td style="font-weight:600;color:var(--cian)">${pct}%</td></tr>`;
+      ${cells}<td style="font-weight:600;color:var(--cian-ink)">${pct}%</td></tr>`;
   }).join("");
   return `<table><thead>${header}</thead><tbody>${rows}</tbody></table>`;
 }

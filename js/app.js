@@ -807,9 +807,20 @@ function onClick(e) {
   }
 }
 
-const BASE_THEMES = ["claro", "navy", "editorial"];
+const BASE_THEMES = ["navy", "claro"];
+const DEFAULT_THEME = "navy";
+/* Fuentes de los temas Bosque: se cargan solo cuando se aplica uno de ellos */
+const FUNDOS_FONTS_URL = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Mulish:wght@400;500;600;700&display=swap";
 function applyTheme(t) {
-  document.documentElement.setAttribute("data-theme", t || "claro");
+  const id = THEMES.some(x => x.id === t) ? t : DEFAULT_THEME;
+  document.documentElement.setAttribute("data-theme", id);
+  if (id.startsWith("bosque")) loadFundosFonts();
+}
+function loadFundosFonts() {
+  if (document.getElementById("fundosFonts")) return;
+  const l = document.createElement("link");
+  l.id = "fundosFonts"; l.rel = "stylesheet"; l.href = FUNDOS_FONTS_URL;
+  document.head.appendChild(l);
 }
 function themeOwned(id) {
   return BASE_THEMES.includes(id) || (STATE.gamif.owned || []).includes("tema-" + id);
@@ -827,27 +838,24 @@ function grantOwnerPerks() {
 }
 
 const FONT_SG = "'Space Grotesk',sans-serif";
+const FONT_CORMORANT = "'Cormorant Garamond',Georgia,serif";
+const FONT_MULISH = "'Mulish',sans-serif";
+/* Orden = orden en la Tienda */
 const THEMES = [
-  /* --- 3 bases gratis --- */
-  { id: "claro", nombre: "Claro", base: "Base", concepto: "Fondo claro, mucho aire y un acento cian. Sereno y profesional.", costo: 0,
-    bg: "#FBFBF9", card: "#FFFFFF", accent: "#12A594", cta: "#E8563A", text: "#111F31", font: FONT_SG, radius: "12px" },
-  { id: "navy", nombre: "Navy sobrio", base: "Base", concepto: "El modo oscuro BiPlot, pero calmado: navy profundo y planos, sin neón.", costo: 0,
-    bg: "#0C1B2C", card: "#122539", accent: "#2BB6A5", cta: "#E8563A", text: "#EAF0F6", font: FONT_SG, radius: "12px" },
-  { id: "editorial", nombre: "Editorial", base: "Base", concepto: "Claro de neutro frío, estructurado y serio. Con carácter de negocio.", costo: 0,
-    bg: "#F3F4F1", card: "#FFFFFF", accent: "#12A594", cta: "#E8563A", text: "#0E2A47", font: FONT_SG, radius: "12px" },
-  /* --- Tienda: variaciones del mismo esquema --- */
+  /* --- 2 bases gratis --- */
+  { id: "navy", nombre: "Navy sobrio", base: "Base", concepto: "Oscuro calmado: navy profundo y planos, sin neón. El tema predeterminado.", costo: 0,
+    bg: "#0C1B2C", card: "#122539", accent: "#2BB6A5", cta: "#E8563A", onCta: "#FFFFFF", text: "#EAF0F6", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
+  { id: "claro", nombre: "Claro", base: "Base", concepto: "Fondo claro, mucho aire y un acento azul. Sereno y profesional.", costo: 0,
+    bg: "#FBFBF9", card: "#FFFFFF", accent: "#3B6FB0", cta: "#E8563A", onCta: "#FFFFFF", text: "#111F31", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
+  /* --- Tienda --- */
   { id: "grafito", nombre: "Grafito", base: "Navy sobrio", concepto: "Modo oscuro neutro en grafito. Elegante y de bajo perfil.", costo: 400,
-    bg: "#111418", card: "#1A1E24", accent: "#39B9AE", cta: "#E8563A", text: "#E9ECEF", font: FONT_SG, radius: "12px" },
+    bg: "#111418", card: "#1A1E24", accent: "#39B9AE", cta: "#E8563A", onCta: "#FFFFFF", text: "#E9ECEF", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
   { id: "medianoche", nombre: "Medianoche", base: "Navy sobrio", concepto: "Oscuro con acento índigo. Sobrio pero con personalidad.", costo: 500,
-    bg: "#131A2C", card: "#1C2540", accent: "#8B93E8", cta: "#8B93E8", text: "#E7EAF4", font: FONT_SG, radius: "12px" },
-  { id: "arena", nombre: "Arena", base: "Claro", concepto: "Claro cálido con acento terracota. Acogedor sin perder la calma.", costo: 400,
-    bg: "#F7F4EE", card: "#FFFFFF", accent: "#C2603F", cta: "#C2603F", text: "#241E17", font: FONT_SG, radius: "12px" },
-  { id: "bosque", nombre: "Bosque", base: "Claro", concepto: "Claro con acento verde profundo. Fresco y equilibrado.", costo: 450,
-    bg: "#F4F7F3", card: "#FFFFFF", accent: "#2F7D5B", cta: "#E8563A", text: "#13251C", font: FONT_SG, radius: "12px" },
-  { id: "pizarra", nombre: "Pizarra", base: "Editorial", concepto: "Claro frío con acento azul pizarra. El más 'corporativo'.", costo: 550,
-    bg: "#F2F4F6", card: "#FFFFFF", accent: "#3B6FB0", cta: "#E8563A", text: "#1B2733", font: FONT_SG, radius: "12px" },
-  { id: "ciruela", nombre: "Ciruela", base: "Editorial", concepto: "Claro con acento ciruela. Cálido, sobrio y distintivo.", costo: 600,
-    bg: "#F6F2F4", card: "#FFFFFF", accent: "#B5567A", cta: "#B5567A", text: "#2A1B26", font: FONT_SG, radius: "12px" },
+    bg: "#131A2C", card: "#1C2540", accent: "#8B93E8", cta: "#E8563A", onCta: "#FFFFFF", text: "#E7EAF4", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
+  { id: "bosque-claro", nombre: "Bosque Claro", base: "Claro", concepto: "Marfil, verde bosque y detalles dorados. Títulos con serifa clásica.", costo: 550,
+    bg: "#F7F5F0", card: "#FFFFFF", accent: "#C8A165", cta: "#16301F", onCta: "#F7F5F0", text: "#0A140E", font: FONT_MULISH, fontDisplay: FONT_CORMORANT, radius: "12px" },
+  { id: "bosque-oscuro", nombre: "Bosque Oscuro", base: "Navy sobrio", concepto: "Verde profundo con acento dorado. Sobrio, cálido y con carácter.", costo: 650,
+    bg: "#0A140E", card: "#0F1F16", accent: "#C8A165", cta: "#C8A165", onCta: "#0A140E", text: "#F7F5F0", font: FONT_MULISH, fontDisplay: FONT_CORMORANT, radius: "12px" },
 ];
 
 function renderTienda() {
@@ -866,7 +874,7 @@ function renderTienda() {
       : `<button class="btn btn--primary btn-block mt-8" data-action="tema-buy" data-theme="${t.id}">Desbloquear · ${t.costo} ⭐</button>`;
     return `<div class="card theme-card ${active ? "is-active" : ""}">
       <button class="theme-preview" data-action="tema-preview" data-theme="${t.id}" style="background:${t.bg};width:100%;border:none;cursor:pointer;${owned ? "" : "opacity:.9"}">
-        <div class="theme-preview__card" style="background:${t.card};border-radius:${t.radius};color:${t.text};font-family:${t.font}">Aa</div>
+        <div class="theme-preview__card" style="background:${t.card};border-radius:${t.radius};color:${t.text};font-family:${t.fontDisplay || t.font}">Aa</div>
         <div class="theme-preview__btn" style="background:${t.cta};border-radius:${t.radius}"></div>
         <span class="theme-preview__dot" style="background:${t.accent}"></span>
         <span class="theme-preview__eye">👁 Vista previa</span>
@@ -900,23 +908,24 @@ function renderTienda() {
 
 function openThemePreview(themeId) {
   const t = THEMES.find(x => x.id === themeId); if (!t) return;
+  if (t.id.startsWith("bosque")) loadFundosFonts();
   const owned = themeOwned(t.id);
   const active = STATE.settings.theme === t.id;
   const mock = `
     <div style="background:${t.bg};border-radius:14px;padding:14px;font-family:${t.font};color:${t.text}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-weight:700;font-size:15px">Rumbo</div>
+        <div style="font-weight:700;font-size:17px;font-family:${t.fontDisplay || t.font}">Rumbo</div>
         <div style="background:${t.card};border-radius:${t.radius};padding:4px 10px;font-size:11px">⭐ 320</div>
       </div>
       <div style="background:${t.card};border-radius:${t.radius};padding:14px;margin-bottom:10px">
         <div style="font-size:11px;opacity:.7">Ahorro del mes</div>
-        <div style="font-size:24px;font-weight:700">$540.000</div>
+        <div style="font-size:24px;font-weight:700;font-family:${t.fontDisplay || t.font}">$540.000</div>
         <div style="height:8px;background:rgba(128,128,128,.25);border-radius:99px;margin-top:8px;overflow:hidden"><div style="width:66%;height:100%;background:${t.accent};border-radius:99px"></div></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <span style="background:${t.accent};color:${t.bg};border-radius:${t.radius};padding:4px 10px;font-size:11px;font-weight:600">🎯 Misión</span>
         <span style="background:${t.card};border-radius:${t.radius};padding:4px 10px;font-size:11px">${BOCADO.emoji} ${BOCADO.corto}</span>
-        <button style="margin-left:auto;background:${t.cta};color:#fff;border:none;border-radius:${t.radius};padding:8px 16px;font-size:12px;font-weight:700;font-family:${t.font}">Abre tu día</button>
+        <button style="margin-left:auto;background:${t.cta};color:${t.onCta || "#fff"};border:none;border-radius:${t.radius};padding:8px 16px;font-size:12px;font-weight:700;font-family:${t.font}">Abre tu día</button>
       </div>
     </div>`;
   const cta = active
@@ -1107,7 +1116,7 @@ function renderInicio() {
   const tareasHoy = s.semana.dias[wd] || [];
   const tareasCard = `<div class="card">
     <div class="card__head"><div class="card__title">📋 Tareas de hoy</div><a class="card__hint" href="#semana">Ver semana →</a></div>
-    ${tareasHoy.length ? tareasHoy.map(t => `<div class="item-row" style="padding:9px 11px${t.esSapo ? ";border-color:rgba(255,107,74,.4)" : ""}">
+    ${tareasHoy.length ? tareasHoy.map(t => `<div class="item-row" style="padding:9px 11px${t.esSapo ? ";border-color:var(--coral)" : ""}">
       <span class="check ${t.done ? "is-on" : ""}" data-action="sem-toggle" data-day="${wd}" data-id="${t.id}">${t.done ? "✓" : ""}</span>
       <div class="item-row__main"><div class="item-row__title text-sm ${t.done ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : ""}${escapeHtml(t.txt)}</div>
         ${t.esSapo ? `<div class="item-row__sub hl-coral">${BOCADO.titulo} · ${BOCADO.accion}</div>` : ""}</div>
@@ -1190,7 +1199,7 @@ function openProfileModal() {
     <button class="btn btn--primary btn-block" data-action="profile-save">Guardar</button>
     <div class="divider"></div>
     <button class="btn-ghost btn-block" data-action="show-tutorial">🎓 Ver el tutorial otra vez</button>
-    <button class="btn-ghost btn-block" data-action="reset-data" style="margin-top:6px;color:var(--coral);border-color:rgba(255,107,74,.4)">🗑 Reiniciar mis datos (empezar de cero)</button>`);
+    <button class="btn-ghost btn-block" data-action="reset-data" style="margin-top:6px;color:var(--coral);border-color:var(--coral)">🗑 Reiniciar mis datos (empezar de cero)</button>`);
 }
 function saveProfile() {
   STATE.profile.name = val("pf-name") || STATE.profile.name || "Tú";
@@ -1230,11 +1239,11 @@ function renderCuenta() {
     <input type="file" id="acc-file" accept="application/json,.json" hidden onchange="importBackup(this)">
   </div>
 
-  <div class="card mt-16" style="border-color:rgba(255,107,74,.35)">
+  <div class="card mt-16" style="border-color:var(--coral)">
     <div class="card__title" style="font-size:15px">⚠️ Zona sensible</div>
     <div class="row-wrap mt-16">
-      <button class="btn-ghost" data-action="reset-data" style="color:var(--coral);border-color:rgba(255,107,74,.4)">🗑 Reiniciar mis datos</button>
-      <button class="btn-ghost" data-action="acc-delete" style="color:var(--coral);border-color:rgba(255,107,74,.4)">✕ Eliminar mi cuenta</button>
+      <button class="btn-ghost" data-action="reset-data" style="color:var(--coral);border-color:var(--coral)">🗑 Reiniciar mis datos</button>
+      <button class="btn-ghost" data-action="acc-delete" style="color:var(--coral);border-color:var(--coral)">✕ Eliminar mi cuenta</button>
     </div>
     <p class="text-xs muted mt-8">Reiniciar borra tus datos pero conserva tu cuenta. Eliminar borra todo y cierra tu cuenta para siempre.</p>
   </div>`;

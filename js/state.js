@@ -26,7 +26,7 @@ function defaultState() {
       motto: "Construyendo mi mejor versión",
     },
     settings: {
-      appName: "Rumbo", year: YEAR, theme: "claro", onboarded: false, metaLibros: 12,
+      appName: "Rumbo", year: YEAR, theme: "navy", onboarded: false, metaLibros: 12,
       notif: { enabled: false, manana: "08:00", noche: "21:00", subs: [] },
     },
 
@@ -203,11 +203,11 @@ function migrate(s) {
   const d = defaultState();
   ["gamif", "ritual", "semana", "entrenamiento", "vida"].forEach(k => { if (!s[k]) s[k] = d[k]; });
   if (s.ritual && !s.ritual.pilares) s.ritual.pilares = d.ritual.pilares;
-  if (s.settings && !s.settings.theme) s.settings.theme = "claro";
-  // Migración al nuevo esquema de temas: cualquier tema viejo pasa a "Claro" (nueva base).
+  // Temas: los existentes conservan el suyo. Retirados: bosque → bosque-claro; el resto → navy.
   if (s.settings) {
-    const NUEVOS = ["claro", "navy", "editorial", "grafito", "medianoche", "arena", "bosque", "pizarra", "ciruela"];
-    if (!NUEVOS.includes(s.settings.theme)) s.settings.theme = "claro";
+    const TEMAS = ["navy", "claro", "grafito", "medianoche", "bosque-claro", "bosque-oscuro"];
+    if (s.settings.theme === "bosque") s.settings.theme = "bosque-claro";
+    if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "navy";
   }
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
   if (s.settings && s.settings.metaLibros == null) s.settings.metaLibros = 12;
@@ -219,6 +219,9 @@ function migrate(s) {
   if (!g.owned) g.owned = [];
   if (!Array.isArray(g.perks)) g.perks = [];
   if (!g.equipped) g.equipped = { titulo: null, insignia: null, acento: null, confeti: false };
+  // Tema retirado "bosque" → "bosque-claro" (en owned viejo y en el ledger)
+  g.owned = g.owned.map(o => o === "tema-bosque" ? "tema-bosque-claro" : o);
+  if (Array.isArray(g.ledger)) g.ledger.forEach(m => { if (m && m.id === "compra:tema-bosque") m.id = "compra:tema-bosque-claro"; });
   ensureLedger(s);    // monedas: libro de movimientos (idempotente)
   recalcGamif(s);
 

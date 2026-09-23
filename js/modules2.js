@@ -35,10 +35,10 @@ function renderRitual() {
   const cerrado = r && r.cerrado;
   let banner;
   if (!hecho) {
-    banner = `<div class="card" style="background:linear-gradient(120deg, var(--coral), #ff8a70);color:#fff">
-      <div class="card__title" style="color:#fff">¿Listo para tu ritual de apertura?</div>
+    banner = `<div class="card" style="background:var(--coral);color:var(--on-coral)">
+      <div class="card__title" style="color:var(--on-coral)">¿Listo para tu ritual de apertura?</div>
       <p class="mt-8" style="opacity:.9">Dos minutos para elegir tu enfoque del día.</p>
-      <button class="btn" style="background:#fff;color:var(--coral)" data-action="day-open">Comenzar ritual</button></div>`;
+      <button class="btn" style="background:var(--on-coral);color:var(--coral)" data-action="day-open">Comenzar ritual</button></div>`;
   } else if (!cerrado) {
     banner = `<div class="card" style="background:linear-gradient(120deg, var(--cian-soft), var(--surface))">
       <div class="flex-between" style="flex-wrap:wrap;gap:12px"><div><div class="card__title">✅ Día abierto — a ejecutar</div>
@@ -104,7 +104,7 @@ function openRitualModal() {
     <div class="field"><label>Misión de hoy</label><input class="input" id="r-mision" value="${escapeAttr(misionDefault)}" placeholder="¿Qué hará hoy un gran día?"></div>
 
     <div class="field"><label>📋 Tareas del día</label>
-      <div style="background:var(--coral-soft);border:1px solid rgba(255,107,74,.3);border-radius:var(--r-sm);padding:12px;margin-bottom:10px">
+      <div style="background:var(--coral-soft);border:1px solid var(--coral);border-radius:var(--r-sm);padding:12px;margin-bottom:10px">
         <label style="color:var(--coral);margin-bottom:6px">${BOCADO.emoji} ${BOCADO.titulo} — la tarea más importante (empieza por aquí)</label>
         <input class="input" id="r-sapo" value="${escapeAttr(r.sapo || "")}" placeholder="La que más mueve la aguja hoy">
       </div>
@@ -334,7 +334,7 @@ function renderSemana() {
       <div class="flex-between"><div class="card__title" style="font-size:14px">${nombre}</div>
         <span class="dia-badge">${fecha.getDate()}/${MESES_CORTO[fecha.getMonth()]}</span></div>
       <div class="mt-8">
-        ${tareas.length ? tareas.map(t => `<div class="item-row" style="padding:8px 10px${t.esSapo ? ";border-color:rgba(255,107,74,.4)" : ""}">
+        ${tareas.length ? tareas.map(t => `<div class="item-row" style="padding:8px 10px${t.esSapo ? ";border-color:var(--coral)" : ""}">
           <span class="check ${t.done ? "is-on" : ""}" data-action="sem-toggle" data-day="${i}" data-id="${t.id}">${t.done ? "✓" : ""}</span>
           <div class="item-row__main"><div class="item-row__title text-sm ${t.done ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : ""}${escapeHtml(t.txt)}</div></div>
           <button class="icon-btn" data-action="sem-del" data-day="${i}" data-id="${t.id}">✕</button></div>`).join("")

@@ -39,7 +39,7 @@ function defaultState() {
       motto: "Construyendo mi mejor versión",
     },
     settings: {
-      appName: "Rumbo", year: YEAR, theme: "navy", onboarded: false, metaLibros: 12,
+      appName: "Rumbo", year: YEAR, theme: "navy", onboarded: false, introVersion: 0, metaLibros: 12,
       notif: { enabled: false, manana: "08:00", noche: "21:00", subs: [] },
     },
 
@@ -226,6 +226,8 @@ function migrate(s) {
     if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "navy";
   }
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
+  // Versión de la introducción vista: los existentes quedan en 1 (verán "Novedades" una vez)
+  if (s.settings && s.settings.introVersion == null) s.settings.introVersion = s.settings.onboarded ? 1 : 0;
   if (s.settings && s.settings.metaLibros == null) s.settings.metaLibros = 12;
   if (s.settings && !s.settings.notif) s.settings.notif = { enabled: false, manana: "08:00", noche: "21:00", subs: [] };
   if (s.settings && s.settings.notif && !Array.isArray(s.settings.notif.subs)) s.settings.notif.subs = [];

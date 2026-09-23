@@ -85,38 +85,71 @@ async function enterApp(user) {
   document.getElementById("app").hidden = false;
   updateTopbar();
   onRoute();
-  if (!STATE.settings.onboarded) setTimeout(openOnboarding, 350);
+  if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
+  else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
 }
 
-/* -------- Tutorial / onboarding para usuarios nuevos -------- */
+/* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
+const INTRO_VERSION = 2;          // sube cuando haya novedades que mostrar a usuarios existentes
 let ONB_STEP = 0;
+let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
+let ONB_ACTIVE = false;
 const ONB_SLIDES = [
-  { icon: "👋", titulo: "Bienvenido a Rumbo", cuerpo: "Tu vida en un solo lugar. Un centro de control personal para tu día, tus hábitos, tus finanzas, tus lecturas y tu bienestar — todo en una sola app." },
-  { icon: "🌅", titulo: "Tu día, de principio a fin", cuerpo: "El corazón de Rumbo es un ritual diario: <b>abre tu día</b> (tu misión, tu primer bocado 🐘 y tu energía), vívelo, y <b>ciérralo</b> de noche con una breve reflexión y gratitud. Con solo abrir y cerrar, tu sistema sigue vivo — la idea es usar la app lo <i>menos</i> posible." },
+  { icon: "👋", titulo: "Bienvenido a Rumbo",
+    cuerpo: "Tu vida en un solo lugar: un centro de control personal para tu día, tus hábitos, tus objetivos, tus finanzas y tu bienestar. Simple, privado y sincronizado entre tus dispositivos." },
+  { icon: "🌅", titulo: "El ritual diario",
+    cuerpo: `<b>Abre tu día</b> en la mañana: tu misión, tu ${BOCADO.corto.toLowerCase()}, tus tareas ${AMBITOS.pro.icon} profesionales y ${AMBITOS.per.icon} personales, y tu energía. De noche, <b>ciérralo</b> con una breve reflexión y gratitud.<br><br>La idea es usar la app lo <i>menos</i> posible: abrir y cerrar mantiene vivo todo tu sistema.` },
+  { icon: BOCADO.emoji, titulo: "Tu Primer Bocado",
+    cuerpo: `<i>¿Cómo te comes un elefante? Un bocado a la vez.</i><br><br>${BOCADO.titulo} es la tarea más importante del día: la que más mueve la aguja. <b>${BOCADO.accion}</b> y el resto del día fluye.` },
+  { icon: "🗓️", titulo: "Ritual de mes",
+    cuerpo: "Al empezar cada mes, <b>ábrelo</b>: mira cómo te fue, define un foco y 3 a 5 objetivos conectados con tus metas del trimestre. Al terminar, <b>ciérralo</b>: revisa tus objetivos, tus números y tu rueda de la vida." },
+  { icon: "📊", titulo: "Hábitos con frecuencia real",
+    cuerpo: "Cada hábito tiene su objetivo: <b>diario</b>, <b>X veces por semana</b>, <b>días fijos</b> o <b>X veces al mes</b>. Se miden contra ese objetivo, no contra 7 días: ir al gimnasio 3 veces por semana es un 100%." },
   { icon: "🧭", titulo: "Todo en un lugar", cuerpo: "__GRID__" },
+  { icon: "🏆", titulo: "Recompensas",
+    cuerpo: "Ganas <b>monedas ⭐</b> abriendo y cerrando tus días, cumpliendo hábitos y objetivos. Las monedas se gastan en la <b>Tienda</b> (temas, títulos y detalles).<br><br>La <b>XP</b> es distinta: mide tu rango y <b>nunca baja</b>, aunque gastes. Además desbloqueas insignias por tus logros." },
 ];
-function openOnboarding() { ONB_STEP = 0; renderOnboardingStep(); }
+function openOnboarding(mode = "nuevo") { ONB_MODE = mode; ONB_STEP = 0; ONB_ACTIVE = true; renderOnboardingStep(); }
+function onbMover(delta) {
+  const max = ONB_MODE === "nuevo" ? ONB_SLIDES.length : ONB_SLIDES.length - 1;
+  ONB_STEP = Math.max(0, Math.min(max, ONB_STEP + delta));
+  renderOnboardingStep();
+}
+function onbSaltar() {
+  if (ONB_MODE === "nuevo") { ONB_STEP = ONB_SLIDES.length; renderOnboardingStep(); }
+  else onbTerminar();
+}
+function onbTerminar() {
+  ONB_ACTIVE = false;
+  if ((STATE.settings.introVersion || 0) < INTRO_VERSION) { STATE.settings.introVersion = INTRO_VERSION; saveState(); }
+  closeModal();
+}
 function renderOnboardingStep() {
-  const total = ONB_SLIDES.length + 1; // 3 diapositivas + formulario
+  const conForm = ONB_MODE === "nuevo";
+  const total = ONB_SLIDES.length + (conForm ? 1 : 0);
   const dots = Array.from({ length: total }, (_, i) => `<span class="onb-dot ${i === ONB_STEP ? "is-on" : ""}"></span>`).join("");
+  ONB_ACTIVE = true;
   if (ONB_STEP < ONB_SLIDES.length) {
     const s = ONB_SLIDES[ONB_STEP];
+    const ultima = ONB_STEP === ONB_SLIDES.length - 1;
     let cuerpo = s.cuerpo;
     if (cuerpo === "__GRID__") {
-      const areas = [["🌅", "Ritual"], ["📓", "Bitácora"], ["📔", "Diario"], ["📊", "Hábitos"], ["📚", "Lecturas"], ["💰", "Finanzas"], ["📈", "Tendencias"], ["🏆", "Recompensas"]];
+      const areas = [["📔", "Diario"], ["🎯", "Objetivos"], ["🗂️", "Planificador"], ["📊", "Hábitos"], ["📚", "Lecturas"], ["💰", "Finanzas"],
+        ["💪", "Salud"], ["👥", "Relaciones"], ["🧾", "Listas"], ["📝", "Notas"], ["📈", "Tendencias"], ["🧭", "Rueda"]];
       cuerpo = `Rumbo reúne lo que hoy tienes disperso:
-        <div class="onb-grid">${areas.map(a => `<div class="onb-area"><span>${a[0]}</span>${a[1]}</div>`).join("")}</div>
-        <div class="text-xs muted" style="margin-top:12px">Y ganas ⭐, subes de rango y desbloqueas insignias mientras avanzas.</div>`;
+        <div class="onb-grid">${areas.map(a => `<div class="onb-area"><span>${a[0]}</span>${a[1]}</div>`).join("")}</div>`;
     }
-    openModal("Bienvenido 🎉", `
+    openModal(ONB_MODE === "nuevo" ? "Bienvenido 🎉" : "Introducción a Rumbo", `
       <div class="onb-slide"><div class="onb-ico">${s.icon}</div>
         <h3 class="onb-title">${s.titulo}</h3>
         <div class="onb-body">${cuerpo}</div></div>
       <div class="onb-dots">${dots}</div>
       <div class="onb-nav">
-        <button class="btn-ghost" data-action="onb-skip">Saltar</button>
-        <button class="btn btn--primary" data-action="onb-next">${ONB_STEP === ONB_SLIDES.length - 1 ? "Continuar" : "Siguiente"}</button>
-      </div>`);
+        ${ONB_STEP ? `<button class="btn-ghost" data-action="onb-prev">Atrás</button>` : `<button class="btn-ghost" data-action="onb-skip">Saltar</button>`}
+        ${ONB_STEP && !ultima ? `<button class="btn-ghost onb-skip-link" data-action="onb-skip">Saltar</button>` : ""}
+        <button class="btn btn--primary" data-action="${ultima && !conForm ? "onb-done" : "onb-next"}">${ultima ? (conForm ? "Continuar" : "Listo ✓") : "Siguiente"}</button>
+      </div>
+      <div class="text-xs muted onb-hint">Desliza o usa las flechas ← →</div>`);
   } else {
     openModal("Cuéntanos de ti", `
       <p class="soft" style="margin-bottom:16px">Último paso: personaliza tu experiencia (puedes cambiarlo cuando quieras).</p>
@@ -131,11 +164,31 @@ function renderOnboardingStep() {
       </div>`);
   }
 }
+/* Novedades para usuarios existentes (una sola vez por versión) */
+function openNovedades() {
+  const items = [
+    [BOCADO.emoji, BOCADO.titulo, "Tu tarea más importante del día tiene nuevo nombre: ¿cómo te comes un elefante? Un bocado a la vez."],
+    ["💼", "Tareas profesionales y personales", "Separa tus tareas del día en dos grupos, cada uno con su contador."],
+    ["📊", "Hábitos con frecuencia", "Diario, X por semana, días fijos o X al mes. Se miden contra tu objetivo real."],
+    ["🗓️", "Ritual de mes", "Abre y cierra cada mes, conectado con tus objetivos mensuales y trimestrales."],
+    ["🎨", "Temas nuevos", "Navy es el nuevo tema base, Claro ahora es azul y llegan Bosque Claro y Bosque Oscuro a la Tienda."],
+  ];
+  ONB_ACTIVE = false;
+  openModal("✨ Novedades de Rumbo", `
+    <div class="novedades">${items.map(([ic, t, d]) => `<div class="novedad"><span class="novedad__ico">${ic}</span>
+      <div><div class="novedad__t">${escapeHtml(t)}</div><div class="text-sm muted">${escapeHtml(d)}</div></div></div>`).join("")}</div>
+    <div class="onb-nav mt-16">
+      <button class="btn-ghost" data-action="intro-replay">📖 Ver la introducción</button>
+      <button class="btn btn--primary" data-action="onb-done">¡Entendido!</button>
+    </div>`);
+}
 function saveOnboarding() {
   STATE.profile.name = val("ob-name") || (CURRENT_USER && CURRENT_USER.name) || "Tú";
   STATE.profile.birthDate = val("ob-birth");
   STATE.profile.motto = val("ob-motto") || "Construyendo mi mejor versión";
   STATE.settings.onboarded = true;
+  STATE.settings.introVersion = INTRO_VERSION;
+  ONB_ACTIVE = false;
   saveState(); closeModal(); updateTopbar(); rerender();
   toast("¡Listo! Bienvenido a Rumbo 🎉");
   if (typeof maybePromptNotif === "function") setTimeout(maybePromptNotif, 500);
@@ -397,6 +450,17 @@ function initGestures() {
   };
   modal.addEventListener("touchend", endModal, { passive: true });
   modal.addEventListener("touchcancel", endModal, { passive: true });
+
+  // (5) Introducción: deslizar o flechas del teclado para avanzar / retroceder
+  attachSwipe(modal, (dx, dy) => {
+    if (!ONB_ACTIVE || Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    onbMover(dx < 0 ? 1 : -1);
+  });
+  document.addEventListener("keydown", e => {
+    if (!ONB_ACTIVE || document.getElementById("modalOverlay").hidden || isFormEl(e.target)) return;
+    if (e.key === "ArrowRight") onbMover(1);
+    else if (e.key === "ArrowLeft") onbMover(-1);
+  });
 }
 
 function rerender() {
@@ -808,10 +872,11 @@ function onClick(e) {
     case "edit-profile": openProfileModal(); break;
     case "profile-save": saveProfile(); break;
     case "onboarding-save": saveOnboarding(); break;
-    case "onb-next": ONB_STEP = Math.min(ONB_SLIDES.length, ONB_STEP + 1); renderOnboardingStep(); break;
-    case "onb-prev": ONB_STEP = Math.max(0, ONB_STEP - 1); renderOnboardingStep(); break;
-    case "onb-skip": ONB_STEP = ONB_SLIDES.length; renderOnboardingStep(); break;
-    case "show-tutorial": openOnboarding(); break;
+    case "onb-next": onbMover(1); break;
+    case "onb-prev": onbMover(-1); break;
+    case "onb-skip": onbSaltar(); break;
+    case "onb-done": onbTerminar(); break;
+    case "show-tutorial": case "intro-replay": setSidebar(false); openOnboarding(STATE.settings.onboarded ? "repetir" : "nuevo"); break;
     case "reset-data":
       if (confirm("¿Borrar TODOS tus datos y empezar de cero? Esto no se puede deshacer.")) {
         const name = STATE.profile.name, birth = STATE.profile.birthDate, theme = STATE.settings.theme;
@@ -1248,7 +1313,7 @@ function openProfileModal() {
     <div class="field"><label>Nombre de la app</label><input class="input" id="pf-app" value="${escapeAttr(STATE.settings.appName)}"></div>
     <button class="btn btn--primary btn-block" data-action="profile-save">Guardar</button>
     <div class="divider"></div>
-    <button class="btn-ghost btn-block" data-action="show-tutorial">🎓 Ver el tutorial otra vez</button>
+    <button class="btn-ghost btn-block" data-action="show-tutorial">📖 Ver introducción</button>
     <button class="btn-ghost btn-block" data-action="reset-data" style="margin-top:6px;color:var(--coral);border-color:var(--coral)">🗑 Reiniciar mis datos (empezar de cero)</button>`);
 }
 function saveProfile() {
@@ -1270,6 +1335,12 @@ function renderCuenta() {
   <div class="card">
     <div class="card__title">👤 Tu cuenta</div>
     <div class="mt-8 text-sm soft">Sesión iniciada como <b>${escapeHtml(email)}</b></div>
+  </div>
+
+  <div class="card mt-16">
+    <div class="flex-between" style="flex-wrap:wrap;gap:10px"><div><div class="card__title" style="font-size:15px">📖 Introducción</div>
+      <div class="text-sm muted mt-8">Vuelve a ver el recorrido por Rumbo.</div></div>
+      <button class="btn btn--soft" data-action="show-tutorial">📖 Ver introducción</button></div>
   </div>
 
   <div class="card mt-16">
@@ -1343,7 +1414,7 @@ function openModal(title, bodyHtml) {
   document.getElementById("modalBody").innerHTML = bodyHtml;
   document.getElementById("modalOverlay").hidden = false;
 }
-function closeModal() { document.getElementById("modalOverlay").hidden = true; }
+function closeModal() { ONB_ACTIVE = false; document.getElementById("modalOverlay").hidden = true; }
 document.addEventListener("click", e => { if (e.target.id === "modalOverlay") closeModal(); });
 
 let toastTimer = null;

@@ -566,6 +566,12 @@ textarea.input { resize: vertical; min-height: 84px; }
 .onb-dot.is-on { background: var(--cian); width: 20px; }
 .onb-nav { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .onb-nav .btn { min-width: 130px; }
+.onb-grid { grid-template-columns: repeat(4, 1fr); }
+.onb-hint { text-align: center; margin-top: 12px; }
+.novedades { display: flex; flex-direction: column; gap: 12px; }
+.novedad { display: flex; gap: 12px; align-items: flex-start; }
+.novedad__ico { font-size: 24px; line-height: 1; width: 32px; text-align: center; flex-shrink: 0; }
+.novedad__t { font-weight: 600; font-size: 14.5px; }
 
 /* ============================================================
    RITUAL DE MES (asistente por pasos)
@@ -665,6 +671,9 @@ textarea.input { resize: vertical; min-height: 84px; }
   .bita-row { font-size: 13px; }
 
   .mes-nums { grid-template-columns: repeat(2, 1fr); }
+  .onb-grid { grid-template-columns: repeat(3, 1fr); }
+  .onb-skip-link { display: none; }
+  .onb-nav .btn { min-width: 0; }
 }
 .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 55; }
 .backdrop[hidden] { display: none; }

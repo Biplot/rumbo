@@ -19,7 +19,9 @@ node serve.js
 ```
 Luego abre `http://localhost:5178`.
 
-Tests (sin dependencias): `node tests/merge.test.mjs`.
+Tests de lógica (sin dependencias): `node tests/merge.test.mjs`.
+
+Pruebas en navegador (requieren Playwright, solo para desarrollo): `node tests/e2e/run.cjs`. Levantan `serve.js` solas; con `E2E_SHOTS=carpeta` guardan capturas. Ambas corren en GitHub Actions en cada push (`.github/workflows/pruebas.yml`).
 
 ## Configuración de Supabase
 Las claves públicas van en `js/store.js` (`SUPABASE_URL`, `SUPABASE_KEY`). La `publishable key` es pública por diseño; los datos están protegidos por RLS. Esquema:

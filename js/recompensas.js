@@ -45,7 +45,7 @@ const BADGES = [
   { id: "semana-perfecta", icon: "📊", nombre: "Semana Perfecta", desc: "Todos tus hábitos cumplen su objetivo en una semana", reward: 60, check: s => g_semanaPerfecta(s) },
   { id: "centurion", icon: "🎖️", nombre: "Centurión", desc: "Marca 100 hábitos", reward: 40, check: s => g_habitMarks(s) >= 100 },
   { id: "primer-peso", icon: "💰", nombre: "Primer Peso", desc: "Registra tu primer ahorro mensual", reward: 20, check: s => s.finanzas.meses.some(m => (m.ingreso || 0) - (m.gasto || 0) > 0) },
-  { id: "medio-camino", icon: "💵", nombre: "A Medio Camino", desc: "Llega al 50% de tu meta anual", reward: 80, check: s => g_ahorroAcum(s) >= s.finanzas.metaAnual * 0.5 },
+  { id: "medio-camino", icon: "💵", nombre: "A Medio Camino", desc: "Llega al 50% de tu meta anual", reward: 80, check: s => s.finanzas.metaAnual > 0 && g_ahorroAcum(s) >= s.finanzas.metaAnual * 0.5 },
   { id: "pagina-uno", icon: "📖", nombre: "Página Uno", desc: "Termina tu primer libro", reward: 20, check: s => s.lecturas.some(l => l.estado === "terminado") },
   { id: "devorador", icon: "📚", nombre: "Devorador de Libros", desc: "Termina 3 libros", reward: 60, check: s => s.lecturas.filter(l => l.estado === "terminado").length >= 3 },
   { id: "peso-pluma", icon: "⚖️", nombre: "Peso Pluma", desc: "Alcanza tu peso objetivo", reward: 100, check: s => { const p = g_pesoActual(s); return p != null && p <= s.salud.pesoObjetivo; } },

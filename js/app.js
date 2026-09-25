@@ -90,7 +90,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 3;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 4;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -184,6 +184,9 @@ const NOVEDADES = {
     ["⚠", "La regla de las 3 postergaciones", "A la tercera vez, Rumbo te pregunta si vale la pena: hazla tu primer bocado, pártela en un paso más chico o suéltala."],
     ["🎯", "Foco y postergación", "En Tendencias: índice de postergación, días de arrastre, tu capacidad real, qué días postergas más y nuevos descubrimientos."],
     ["📅", "Ritual de semana", "El domingo (o el lunes) cierras tu semana y planificas la siguiente: foco, 3 prioridades, tus días y tu premio. +75 ⭐ cada uno."],
+  ],
+  4: [
+    ["⚡", "Modo express", "¿Día apretado? Abre y cierra tu día en 3 toques con el botón ⚡ Express: tu primer bocado, tu energía y tu ánimo. Tus pendientes pasan a mañana y la racha se mantiene (mitad de monedas)."],
   ],
 };
 function openNovedades() {
@@ -551,7 +554,8 @@ function renderPendingYesterday() {
     <div class="flex-between" style="flex-wrap:wrap;gap:12px">
       <div><div class="card__title">🌙 Te quedó un día por cerrar</div>
         <div class="text-sm soft mt-8">Olvidaste cerrar el <b>${escapeHtml(fecha)}</b>. Ciérralo antes de arrancar hoy.</div></div>
-      <button class="btn btn--primary" data-action="day-close" data-date="${iso}">Cerrar ${escapeHtml(d.toLocaleDateString("es-CL", { weekday: "long" }))}</button>
+      <div class="row-wrap" style="gap:8px"><button class="btn btn--soft" data-action="day-close-express" data-date="${iso}">⚡ Express</button>
+        <button class="btn btn--primary" data-action="day-close" data-date="${iso}">Cerrar ${escapeHtml(d.toLocaleDateString("es-CL", { weekday: "long" }))}</button></div>
     </div></div>`;
 }
 function computeClosedStreak() {
@@ -770,6 +774,10 @@ function onClick(e) {
     /* Ciclo del día */
     case "day-open": openRitualModal(); break;
     case "day-close": openCierreModal(d.date); break;
+    case "day-open-express": openExpressApertura(); break;
+    case "day-close-express": openExpressCierre(d.date); break;
+    case "express-apertura-save": saveExpressApertura(); break;
+    case "express-cierre-save": saveExpressCierre(); break;
     case "cierre-save": saveCierre(); break;
 
     /* Ritual matutino */
@@ -1132,14 +1140,18 @@ function computeStreak() { return rachaGlobalHabitos(STATE); }
 /* ============================================================
    Ciclo del día: hero del Inicio + resumen de cierre
    ============================================================ */
-function heroCoral(title, sub, btnLabel, action, data = {}) {
-  const extra = Object.entries(data).map(([k, v]) => ` data-${k}="${escapeAttr(v)}"`).join("");
+/* segundo: botón secundario opcional { label, action, data } (p. ej. el modo express) */
+function heroCoral(title, sub, btnLabel, action, data = {}, segundo = null) {
+  const attrs = d => Object.entries(d || {}).map(([k, v]) => ` data-${k}="${escapeAttr(v)}"`).join("");
+  const extra = attrs(data);
   return `<div class="card hero-focus" style="margin-bottom:20px">
     <div class="flex-between" style="flex-wrap:wrap;gap:16px">
       <div style="min-width:0">
         <div class="hero-focus__title">${title}</div>
         <div class="text-sm muted" style="margin-top:4px">${sub}</div></div>
-      <button class="btn btn--primary" data-action="${action}"${extra}>${btnLabel}</button>
+      <div class="row-wrap" style="gap:8px">
+        ${segundo ? `<button class="btn btn--soft" data-action="${segundo.action}"${attrs(segundo.data)}>${segundo.label}</button>` : ""}
+        <button class="btn btn--primary" data-action="${action}"${extra}>${btnLabel}</button></div>
     </div></div>`;
 }
 function renderDayHero() {
@@ -1151,10 +1163,10 @@ function renderDayHero() {
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
 
   if (st === "por-abrir")
-    return heroCoral(`${saludo}, ${name}.`, "Antes de arrancar, define tu enfoque del día. Toma 30 segundos.", "🌅 Abre tu día", "day-open");
+    return heroCoral(`${saludo}, ${name}.`, "Antes de arrancar, define tu enfoque del día. Toma 30 segundos (o 3 toques en express).", "🌅 Abre tu día", "day-open", {}, { label: "⚡ Express", action: "day-open-express" });
 
   if (st === "por-cerrar")
-    return heroCoral(`${saludo}, ${name}.`, "Tu día está por terminar. Cierra el ritual y reflexiona.", "🌙 Cierra tu día", "day-close");
+    return heroCoral(`${saludo}, ${name}.`, "Tu día está por terminar. Cierra el ritual y reflexiona.", "🌙 Cierra tu día", "day-close", {}, { label: "⚡ Express", action: "day-close-express" });
 
   if (st === "cerrado") return renderCierreResumen(r);
 
@@ -1169,7 +1181,8 @@ function renderDayHero() {
   return `<div class="card" style="margin-bottom:24px;border-left:3px solid var(--cian)">
     <div class="flex-between" style="flex-wrap:wrap;gap:12px">
       <div><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">Tu enfoque de hoy</div>${chips}</div>
-      <button class="btn btn--soft" data-action="day-close">🌙 Cerrar el día</button>
+      <div class="row-wrap" style="gap:8px"><button class="btn-ghost" data-action="day-close-express">⚡ Express</button>
+        <button class="btn btn--soft" data-action="day-close">🌙 Cerrar el día</button></div>
     </div></div>`;
 }
 function cumpliChip(v) {

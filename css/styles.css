@@ -627,6 +627,8 @@ textarea.input { resize: vertical; min-height: 84px; }
 .semw-dia .row .input { flex: 1; min-width: 0; }
 .chip-x { background: none; border: 0; color: inherit; padding: 0 0 0 2px; margin-left: 2px; cursor: pointer; font-size: 11px; opacity: .7; line-height: 1; }
 .chip-x:hover { opacity: 1; }
+.xp-cand { border: 1px solid var(--line); cursor: pointer; font-family: inherit; }
+.xp-cand:hover { border-color: var(--cian); }
 .sem-mini { background: var(--surface-2); border: 1px dashed var(--line); border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 14px; }
 .delta { font-size: 11px; margin-left: 6px; vertical-align: middle; }
 .delta.is-up { color: var(--cian); }

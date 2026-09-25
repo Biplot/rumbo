@@ -47,12 +47,14 @@ function renderRitualDia() {
     banner = `<div class="card" style="background:var(--coral);color:var(--on-coral)">
       <div class="card__title" style="color:var(--on-coral)">¿Listo para tu ritual de apertura?</div>
       <p class="mt-8" style="opacity:.9">Dos minutos para elegir tu enfoque del día.</p>
-      <button class="btn" style="background:var(--on-coral);color:var(--coral)" data-action="day-open">Comenzar ritual</button></div>`;
+      <div class="row-wrap" style="gap:8px"><button class="btn" style="background:var(--on-coral);color:var(--coral)" data-action="day-open">Comenzar ritual</button>
+        <button class="btn" style="background:transparent;color:var(--on-coral);border:1px solid var(--on-coral)" data-action="day-open-express">⚡ Express</button></div></div>`;
   } else if (!cerrado) {
     banner = `<div class="card" style="background:linear-gradient(120deg, var(--cian-soft), var(--surface))">
       <div class="flex-between" style="flex-wrap:wrap;gap:12px"><div><div class="card__title">✅ Día abierto — a ejecutar</div>
         <div class="text-sm soft mt-8">Cuando termines tu día, ciérralo para reflexionar.</div></div>
         <div class="row" style="gap:8px"><button class="btn btn--soft" data-action="day-open">Editar apertura</button>
+          <button class="btn btn--soft" data-action="day-close-express">⚡ Express</button>
           <button class="btn btn--primary" data-action="day-close">🌙 Cerrar el día</button></div></div></div>`;
   } else {
     banner = `<div class="card" style="background:linear-gradient(120deg, var(--cian-soft), var(--surface))">

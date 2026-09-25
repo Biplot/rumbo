@@ -68,6 +68,7 @@ function resumenMes(y, m) {
   const objetivos = enAnio ? (S.metas.mensuales[m] || []) : [];
   const fin = enAnio ? (S.finanzas.meses[m] || {}) : {};
   const ahorro = (fin.ingreso || 0) - (fin.gasto || 0);
+  const post = tmResumen(S, desde, hasta);
   return {
     abiertos: dias.filter(r => r.hecho).length,
     cerrados: dias.filter(r => r.cerrado).length,
@@ -75,6 +76,7 @@ function resumenMes(y, m) {
     habitos: cumplimientoGrupo(S.habitos.defs, desde, hasta).pct,
     objetivos: [objetivos.filter(o => o.done).length, objetivos.length],
     tareas,
+    postergacion: post.tareas ? post.indice : null, arrastre: post.arrastre, cronicas: post.cronicas.length,
     ahorro, metaAhorro: fin.metaAhorro || S.finanzas.metaMensual || 0,
     libros: (S.lecturas || []).filter(l => l.estado === "terminado" && (l.fin || "").startsWith(pref)).length,
   };
@@ -89,6 +91,8 @@ function resumenMesHtml(r) {
     ${n(BOCADO.emoji, "primeros bocados", r.bocados)}
     ${n(AMBITOS.pro.icon, "tareas pro", `${r.tareas.pro[0]}/${r.tareas.pro[1]}`)}
     ${n(AMBITOS.per.icon, "tareas personales", `${r.tareas.per[0]}/${r.tareas.per[1]}`)}
+    ${n("↪", "postergación", r.postergacion == null ? "—" : r.postergacion + "%")}
+    ${n("⏳", "días de arrastre", r.arrastre == null ? "—" : String(r.arrastre).replace(".", ","))}
     ${n("💰", "ahorro" + (r.metaAhorro ? " / meta " + fmtCLP(r.metaAhorro) : ""), fmtCLP(r.ahorro))}
     ${n("📚", "libros terminados", r.libros)}
   </div>`;

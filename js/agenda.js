@@ -181,6 +181,13 @@ function chipMigraciones(t) {
   if (!n) return "";
   return `<span class="chip chip--mig ${n >= 3 ? "is-cronica" : ""}" title="Postergada ${n} ${n === 1 ? "vez" : "veces"}">↪ ${n}</span>`;
 }
+/* Compara lo planificado con tu capacidad real (tmCapacidad). Vacío si aún no hay datos. */
+function capacidadHint(n, cap) {
+  if (!cap) return "";
+  const prom = String(cap.hechasProm).replace(".", ",");
+  if (n > Math.ceil(cap.hechasProm) + 1) return `<span class="hl-coral">⚠ Llevas ${n} tareas y en promedio completas ${prom} por día. ¿Cuáles pueden esperar?</span>`;
+  return `Llevas ${n} tarea${n === 1 ? "" : "s"} · en promedio completas ${prom} por día.`;
+}
 function tareaRowHtml(t, iso, op) {
   op = op || {};
   const e = estadoTarea(t);

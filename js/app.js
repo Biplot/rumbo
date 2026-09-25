@@ -1154,13 +1154,20 @@ function cumpliChip(v) {
 function renderCierreResumen(r) {
   const c = r.cierre || {};
   const s = dayAutoSummary();
+  const rd = resumenDia(STATE, todayISO());
+  const mov = rd.migradas + rd.programadas;
+  // El bocado que no se dio muestra qué se decidió con él (> < @ ✕)
+  const tb = tareasDelDia(todayISO()).find(t => t.esSapo);
+  const eb = tb ? estadoTarea(tb) : null;
+  const chipBocado = c.sapo ? '<span class="chip chip--done">hecho</span>'
+    : eb && eb !== "pendiente" && eb !== "hecha" ? `<span class="chip chip--sig">${signoTarea(tb)}</span>` : '<span class="chip">pendiente</span>';
   return `<div class="card" style="margin-bottom:24px;background:linear-gradient(120deg,var(--cian-soft),var(--surface))">
     <div class="card__head"><div class="card__title">✅ Día cerrado</div>
       <span class="chip chip--streak" style="color:var(--coral)">🔥 ${computeClosedStreak()} días cerrados</span></div>
     <div class="grid grid-2">
       <div>
         <div class="text-xs muted">Misión</div><div class="mt-8">${r.mision ? escapeHtml(r.mision) : "—"} ${cumpliChip(c.mision)}</div>
-        <div class="text-xs muted mt-16">${BOCADO.emoji} ${BOCADO.corto}</div><div class="mt-8">${r.sapo ? escapeHtml(r.sapo) : "—"} ${c.sapo ? '<span class="chip chip--done">hecho</span>' : '<span class="chip">pendiente</span>'}</div>
+        <div class="text-xs muted mt-16">${BOCADO.emoji} ${BOCADO.corto}</div><div class="mt-8">${r.sapo ? escapeHtml(r.sapo) : "—"} ${chipBocado}</div>
         <div class="text-xs muted mt-16">Energía inicio → cierre</div>
         <div class="mt-8">${r.energia || "—"} → ${c.energia || "—"} / 5</div>
       </div>
@@ -1172,6 +1179,9 @@ function renderCierreResumen(r) {
           ${c.tareas ? `<span class="chip">${AMBITOS.pro.icon} ${c.tareas.pro[0]}/${c.tareas.pro[1]}</span>
             <span class="chip">${AMBITOS.per.icon} ${c.tareas.per[0]}/${c.tareas.per[1]}</span>`
             : `<span class="chip">🗂️ Tareas ${s.tareasDone}/${s.tareasTotal}</span>`}
+          ${mov ? `<span class="chip">↪ ${mov} a otro día</span>` : ""}
+          ${rd.delegadas ? `<span class="chip">@ ${rd.delegadas} delegada${rd.delegadas === 1 ? "" : "s"}</span>` : ""}
+          ${rd.soltadas ? `<span class="chip">✕ ${rd.soltadas} soltada${rd.soltadas === 1 ? "" : "s"}</span>` : ""}
         </div>
       </div>
     </div>
@@ -1251,6 +1261,11 @@ function renderInicio() {
     return `<div class="tarea-grupo"><span>${AMBITOS[a].icon} ${AMBITOS[a].label}</span>
       <span class="chip" title="hechas / planificadas hoy">${all.filter(t => estadoTarea(t) === "hecha").length}/${all.length}</span></div>${ts.map(t => tareaRowHtml(t, hoyISO, { ambitoSoloBocado: true })).join("")}`;
   };
+  const p7 = tmResumen(STATE, agSumar(hoyISO, -6), hoyISO);
+  const cronicasAbiertas = p7.cronicas.filter(c => c.estado === "pendiente").length;
+  const pieTareas = p7.tareas >= 5 ? `<div class="flex-between text-xs muted mt-8" style="gap:8px;flex-wrap:wrap">
+      <span>↪ Postergación 7 días: <b>${p7.indice}%</b>${cronicasAbiertas ? ` · <span class="hl-coral">${cronicasAbiertas} postergada${cronicasAbiertas === 1 ? "" : "s"} 3+ veces</span>` : ""}</span>
+      <a href="#tendencias">Ver métricas →</a></div>` : "";
   const tareasCard = `<div class="card">
     <div class="card__head"><div class="card__title">📋 Tareas de hoy</div><a class="card__hint" href="#semana">Ver semana →</a></div>
     ${renderBandejaPendientes()}
@@ -1258,6 +1273,7 @@ function renderInicio() {
     : '<div class="empty" style="padding:14px">Sin tareas para hoy. Defínelas en tu ritual de apertura.</div>'}
     <div class="row mt-8">${ambitoPicker("inicio-amb", "per")}<input class="input" id="inicio-tarea" placeholder="Nueva tarea..." style="padding:9px 11px">
       <button class="btn btn--cian" data-action="tarea-add" data-fecha="${hoyISO}" data-input="inicio-tarea" data-amb="inicio-amb" style="padding:9px 12px">+</button></div>
+    ${pieTareas}
   </div>`;
 
   return `

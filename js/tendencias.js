@@ -3,7 +3,7 @@
    ============================================================ */
 
 function svgLine(values, opts = {}) {
-  const { color = "var(--cian)", goal = null, fmt = (v) => v } = opts;
+  const { color = "var(--cian)", goal = null, fmt = (v) => v, labels = MESES_CORTO } = opts;
   const W = 680, H = 200, padL = 46, padR = 18, padT = 14, padB = 28;
   const idx = values.map((v, i) => [i, v]).filter(p => p[1] != null);
   if (!idx.length) return `<div class="empty" style="height:160px;display:grid;place-items:center">Sin datos aún.</div>`;
@@ -27,18 +27,18 @@ function svgLine(values, opts = {}) {
     <text x="${W - padR}" y="${(Y(goal) - 5).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--coral)">meta ${fmt(goal)}</text>` : "";
   const path = idx.map((p, k) => `${k ? "L" : "M"}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(" ");
   const dots = idx.map(p => `<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="3.2" fill="${color}"/>`).join("");
-  const xl = values.map((v, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="var(--text-muted)">${MESES_CORTO[i]}</text>`).join("");
+  const xl = values.map((v, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="var(--text-muted)">${labels[i] ?? ""}</text>`).join("");
 
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${grid}${goalLine}
     <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}${xl}</svg>`;
 }
 
 function svgBar(values, opts = {}) {
-  const { color = "var(--cian)", fmt = (v) => v } = opts;
+  const { color = "var(--cian)", fmt = (v) => v, labels = MESES_CORTO, max = null } = opts;
   const W = 680, H = 200, padL = 46, padR = 18, padT = 14, padB = 28;
   const present = values.filter(v => v != null);
   if (!present.length) return `<div class="empty" style="height:160px;display:grid;place-items:center">Sin datos aún.</div>`;
-  let hi = Math.max(...present, 0); if (hi <= 0) hi = 1;
+  let hi = max != null ? max : Math.max(...present, 0); if (hi <= 0) hi = 1;
   const n = values.length;
   const bw = ((W - padL - padR) / n) * 0.6;
   const X = i => padL + ((i + 0.5) / n) * (W - padL - padR);
@@ -57,7 +57,7 @@ function svgBar(values, opts = {}) {
     const h = Math.max(0, base - Y(v));
     return `<rect x="${(X(i) - bw / 2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}"/>`;
   }).join("");
-  const xl = values.map((v, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="var(--text-muted)">${MESES_CORTO[i]}</text>`).join("");
+  const xl = values.map((v, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="var(--text-muted)">${labels[i] ?? ""}</text>`).join("");
 
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${grid}${bars}${xl}</svg>`;
 }
@@ -124,11 +124,100 @@ function computeInsights() {
     for (let i = 0; i < 14; i++) { const d = new Date(hoy); d.setDate(hoy.getDate() - i); const f = isoLocal(d); if ((S.vida.diario || []).some(e => e.fecha === f && e.gratitud)) con++; }
     if (con >= 5) out.push({ icon: "🙏", strength: 0.2 + con / 28, text: `Anotaste algo que agradeces <b>${con} de los últimos 14 días</b>.` }); }
 
+  // ---- Tareas y postergación (registro diario) ----
+  const hoyT = todayISO();
+  const diasPlan = Object.keys(agendaDias(S)).filter(f => f < hoyT && tmDia(S, f).pct != null);
+
+  // 7) Energía de la mañana vs cumplimiento del día
+  { const alto = [], bajo = [];
+    diasPlan.forEach(f => { const r = S.ritual.dias[f]; if (!r || !r.energia) return; const p = tmDia(S, f).pct;
+      if (r.energia >= 4) alto.push(p); else if (r.energia <= 2) bajo.push(p); });
+    if (alto.length >= 4 && bajo.length >= 4) { const a = avg(alto), b = avg(bajo);
+      if (a - b >= 15) out.push({ icon: "⚡", strength: (a - b) / 40, text: `Los días que partes con <b>energía alta</b> completas el <b>${Math.round(a)}%</b> de tus tareas; con energía baja, el ${Math.round(b)}%.` }); } }
+
+  // 8) Hora a la que abres el día vs cumplimiento
+  { const temprano = [], tarde = [];
+    diasPlan.forEach(f => { const r = S.ritual.dias[f]; if (!r || !r.abiertoTs) return; const p = tmDia(S, f).pct;
+      (new Date(r.abiertoTs).getHours() < 9 ? temprano : tarde).push(p); });
+    if (temprano.length >= 4 && tarde.length >= 4) { const a = avg(temprano), b = avg(tarde);
+      if (Math.abs(a - b) >= 15) out.push({ icon: "⏰", strength: Math.abs(a - b) / 40, text: a > b
+        ? `Cuando abres tu día <b>antes de las 9</b> completas el <b>${Math.round(a)}%</b> de tus tareas (${Math.round(b)}% si lo abres más tarde).`
+        : `Abrir tu día más tarde no te juega en contra: completas el ${Math.round(b)}% de tus tareas.` }); } }
+
+  // 9) El hábito que más te ayuda a cumplir tus tareas
+  { let mejor = null;
+    (S.habitos.defs || []).forEach(h => { if (h.pausado) return; const con = [], sin = [];
+      diasPlan.forEach(f => { if (f < hmCreado(h)) return; const p = tmDia(S, f).pct;
+        if (hmDone(h, f, S)) con.push(p); else if (hmProgramado(h, f)) sin.push(p); });
+      if (con.length >= 4 && sin.length >= 4) { const d = avg(con) - avg(sin); if (d >= 15 && (!mejor || d > mejor.d)) mejor = { h, d }; } });
+    if (mejor) out.push({ icon: mejor.h.icon || "✨", strength: mejor.d / 40, text: `Los días que haces <b>${escapeHtml(mejor.h.nombre)}</b> completas <b>${Math.round(mejor.d)} puntos más</b> de tus tareas.` }); }
+
+  // 10) El día de la semana en que más postergas
+  { const r = tmResumen(S, agSumar(hoyT, -55), hoyT);
+    const cand = r.porDia.map((d, i) => ({ ...d, i })).filter(d => d.pct != null && d.planificadas >= 5);
+    if (cand.length >= 3 && r.indice != null) { const peor = cand.reduce((a, b) => (b.pct > a.pct ? b : a));
+      if (peor.pct >= 30 && peor.pct >= r.indice * 1.4) out.push({ icon: "📅", strength: peor.pct / 100, text: `Los <b>${DIAS_SEMANA[peor.i].toLowerCase()}</b> postergas el <b>${peor.pct}%</b> de tus tareas (tu promedio es ${r.indice}%).` }); }
+    // 11) Lo profesional vs lo personal
+    const pro = r.porAmbito.pro.indice, per = r.porAmbito.per.indice;
+    if (pro != null && per != null && Math.abs(pro - per) >= 15) out.push({ icon: pro > per ? AMBITOS.pro.icon : AMBITOS.per.icon, strength: Math.abs(pro - per) / 60,
+      text: `Postergas más lo <b>${pro > per ? "profesional" : "personal"}</b> (${Math.max(pro, per)}%) que lo ${pro > per ? "personal" : "profesional"} (${Math.min(pro, per)}%).` }); }
+
+  // 12) Postergar mucho vs tu ánimo
+  { const mucho = [], poco = [];
+    diasPlan.forEach(f => { if (!moodMap[f]) return; const d = tmDia(S, f);
+      (d.movidas / d.planificadas >= 0.5 ? mucho : poco).push(moodAt(f)); });
+    if (mucho.length >= 4 && poco.length >= 4) { const d = avg(poco) - avg(mucho);
+      if (d >= 0.4) out.push({ icon: "🌧️", strength: d, text: `Los días que postergas más de la mitad de tus tareas, tu ánimo es <b>${Math.round((1 - avg(mucho) / avg(poco)) * 100)}% más bajo</b>.` }); } }
+
   return out.sort((a, b) => b.strength - a.strength);
 }
 
+/* ============================================================
+   FOCO Y POSTERGACIÓN · métricas del registro diario (últimos 30 días)
+   ============================================================ */
+function renderFocoPostergacion() {
+  const S = STATE, hoy = todayISO(), desde = agSumar(hoy, -29);
+  const r = tmResumen(S, desde, hoy);
+  const titulo = `<div class="section-title">🎯 Foco y postergación <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· últimos 30 días</span></div>`;
+  if (r.tareas < 3) return titulo + `<div class="card"><div class="empty">Cuando tengas unos días de tareas en tu registro diario, aquí verás cuánto postergas, qué días y qué tareas se te repiten. Empieza cerrando tu día y decidiendo tus pendientes.</div></div>`;
+  const cap = tmCapacidad(S, hoy, 14);
+  const serie = tmSerieSemanas(S, hoy, 8);
+  const lblSem = serie.map(x => { const d = agDate(x.lunes); return `${d.getDate()}/${d.getMonth() + 1}`; });
+  const amb = a => r.porAmbito[a].indice == null ? "—" : r.porAmbito[a].indice + "%";
+  const estadoChip = c => c.estado === "hecha" ? '<span class="chip chip--done">✓ hecha</span>' : c.estado === "pendiente" ? '<span class="chip chip--coral">pendiente</span>' : `<span class="chip">${ESTADOS_TAREA[c.estado].sig} ${ESTADOS_TAREA[c.estado].label.toLowerCase()}</span>`;
+  return titulo + `
+  <div class="grid grid-4">
+    ${statCard("↪", "Índice de postergación", r.indice + "%", `${r.postergadas} de ${r.tareas} tareas movidas de día`)}
+    ${statCard("⏳", "Días de arrastre", r.arrastre == null ? "—" : String(r.arrastre).replace(".", ",") + (r.arrastre === 1 ? " día" : " días"), "entre planificar y hacer")}
+    ${statCard(BOCADO.emoji, "Primer bocado postergado", r.bocado.pct == null ? "—" : r.bocado.pct + "%", r.bocado.dias ? `${r.bocado.postergados} de ${r.bocado.dias} días` : "sin datos aún")}
+    ${statCard("⚡", "Capacidad real", cap ? String(cap.hechasProm).replace(".", ",") + " / día" : "—", cap ? `planificas ${String(cap.planProm).replace(".", ",")} por día` : "faltan días con datos")}
+  </div>
+  <div class="grid grid-2 mt-24">
+    <div class="card"><div class="card__head"><div class="card__title">Postergación por semana</div><span class="card__hint">% de tareas movidas</span></div>
+      ${svgBar(serie.map(x => x.indice), { labels: lblSem, max: 100, fmt: v => v + "%", color: "var(--coral)" })}</div>
+    <div class="card"><div class="card__head"><div class="card__title">¿Qué día postergas más?</div><span class="card__hint">% por día de la semana</span></div>
+      ${svgBar(r.porDia.map(d => d.pct), { labels: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"], max: 100, fmt: v => v + "%", color: "var(--cian)" })}</div>
+  </div>
+  <div class="grid grid-2 mt-24">
+    <div class="card"><div class="card__title">Cómo cierras tus tareas</div>
+      <div class="row-wrap mt-16" style="gap:8px">
+        <span class="chip chip--done">✓ ${r.cumplimiento}% completadas</span>
+        <span class="chip">✕ ${r.soltadas} soltadas</span><span class="chip">@ ${r.delegadas} delegadas</span>
+        <span class="chip">• ${r.pendientes} pendientes</span></div>
+      <div class="row-wrap mt-16" style="gap:8px">
+        <span class="chip">${AMBITOS.pro.icon} Postergas ${amb("pro")} de lo profesional</span>
+        <span class="chip">${AMBITOS.per.icon} Postergas ${amb("per")} de lo personal</span></div>
+      <p class="text-xs muted mt-16">Soltar no es fallar: si sueltas mucho, quizás anotas más de lo que cabe en tu día.</p></div>
+    <div class="card"><div class="card__title">Más postergadas</div>
+      ${r.cronicas.length ? `<div class="mt-8">${r.cronicas.slice(0, 5).map(c => `<div class="flex-between" style="padding:8px 0;gap:8px;border-top:1px solid var(--line)">
+        <span class="text-sm">${escapeHtml(c.txt)}</span><span class="row" style="gap:6px"><span class="chip chip--mig is-cronica">↪ ${c.n}</span>${estadoChip(c)}</span></div>`).join("")}</div>
+        <p class="text-xs muted mt-8">Regla del bullet journal: si la postergaste 3 veces, pregúntate si vale la pena. Hazla tu primer bocado, pártela o suéltala.</p>`
+      : `<div class="empty">Ninguna tarea postergada 3 veces o más. 👏</div>`}</div>
+  </div>`;
+}
+
 function renderDescubrimientos() {
-  const ins = computeInsights().slice(0, 4);
+  const ins = computeInsights().slice(0, 6);
   const cuerpo = ins.length
     ? `<div class="grid grid-2">${ins.map(i => `<div class="card insight-card"><div class="insight-ico">${i.icon}</div><div class="insight-txt">${i.text}</div></div>`).join("")}</div>`
     : `<div class="card"><div class="empty">Registra tu ánimo (en el cierre del ritual) y tus hábitos unos días. Cuando haya suficiente, aquí verás <b>qué te hace bien</b> — correlaciones entre tu día y cómo te sientes. 🔍</div></div>`;
@@ -217,6 +306,8 @@ function renderTendencias() {
   </div>
 
   ${resumenSemana}
+
+  ${renderFocoPostergacion()}
 
   <div class="section-title">Tu evolución ${S.settings.year}</div>
   <div class="grid grid-2">

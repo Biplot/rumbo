@@ -108,11 +108,14 @@ function openRitualModal() {
   const lista = tareasDelDia(todayISO());
   const vivas = lista.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t)));
   // Las que vienen de días anteriores (postergadas) se muestran aparte: ya están en tu lista de hoy
-  const vienen = vivas.filter(t => (t.migraciones > 0 || t.bocadoSugerido) && !t.esSapo);
-  const propias = vivas.filter(t => !vienen.includes(t));
-  const tareasDe = a => propias.filter(t => !t.esSapo && ambitoDe(t) === a).map(t => t.txt).join("\n");
   const bocadoPrev = vivas.find(t => t.esSapo);
   const sugerido = !r.sapo && !bocadoPrev ? vivas.find(t => t.bocadoSugerido && tareaAbierta(t)) : null;
+  // (el bocado sugerido va en su cuadro, no en la lista de las que vienen)
+  const vienen = vivas.filter(t => (t.migraciones > 0 || t.bocadoSugerido) && !t.esSapo && t !== sugerido);
+  const propias = vivas.filter(t => !vienen.includes(t) && t !== sugerido);
+  const tareasDe = a => propias.filter(t => !t.esSapo && ambitoDe(t) === a).map(t => t.txt).join("\n");
+  // Las que vienen de otros días se quedan aunque no estén en los cuadros: cuentan para la capacidad
+  RITUAL_VIENEN = vivas.filter(t => t.migraciones > 0 || t.bocadoSugerido).map(t => t.txt);
   const sapoDefault = r.sapo || (bocadoPrev && bocadoPrev.txt) || (sugerido && sugerido.txt) || "";
   const bocadoAmb = r.sapoAmbito || (bocadoPrev ? ambitoDe(bocadoPrev) : sugerido ? ambitoDe(sugerido) : "pro");
   const ambSeg = (v) => `<button type="button" class="${bocadoAmb === v ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'r-sapo-amb')">${AMBITOS[v].icon} ${AMBITOS[v].corto}</button>`;
@@ -122,19 +125,20 @@ function openRitualModal() {
     <div class="field"><label>📋 Tareas del día</label>
       <div style="background:var(--coral-soft);border:1px solid var(--coral);border-radius:var(--r-sm);padding:12px;margin-bottom:10px">
         <label style="color:var(--coral);margin-bottom:6px">${BOCADO.emoji} ${BOCADO.titulo} — la tarea más importante (empieza por aquí)</label>
-        <input class="input" id="r-sapo" value="${escapeAttr(sapoDefault)}" placeholder="La que más mueve la aguja hoy">
+        <input class="input" id="r-sapo" value="${escapeAttr(sapoDefault)}" placeholder="La que más mueve la aguja hoy" oninput="ritualCapHint()">
         ${sugerido ? `<div class="text-xs mt-8" style="color:var(--coral)">↪ Ayer no alcanzaste tu primer bocado; te lo dejé como sugerencia.</div>` : ""}
         <div class="seg mt-8" style="display:inline-flex">${ambSeg("pro")}${ambSeg("per")}</div>
         <input type="hidden" id="r-sapo-amb" value="${bocadoAmb}">
       </div>
       <div class="grid grid-2" style="gap:10px">
         <div><label class="text-xs muted" style="display:block;margin-bottom:6px">${AMBITOS.pro.icon} ${AMBITOS.pro.label} (una por línea)</label>
-          <textarea class="input" id="r-tareas-pro" style="min-height:88px" placeholder="Ej: Enviar propuesta&#10;Revisar informe">${escapeHtml(tareasDe("pro"))}</textarea></div>
+          <textarea class="input" id="r-tareas-pro" style="min-height:88px" placeholder="Ej: Enviar propuesta&#10;Revisar informe" oninput="ritualCapHint()">${escapeHtml(tareasDe("pro"))}</textarea></div>
         <div><label class="text-xs muted" style="display:block;margin-bottom:6px">${AMBITOS.per.icon} ${AMBITOS.per.label} (una por línea)</label>
-          <textarea class="input" id="r-tareas-per" style="min-height:88px" placeholder="Ej: Llamar al banco&#10;Comprar para la semana">${escapeHtml(tareasDe("per"))}</textarea></div>
+          <textarea class="input" id="r-tareas-per" style="min-height:88px" placeholder="Ej: Llamar al banco&#10;Comprar para la semana" oninput="ritualCapHint()">${escapeHtml(tareasDe("per"))}</textarea></div>
       </div>
       ${vienen.length ? `<div class="vienen mt-8"><div class="text-xs muted">↪ Vienen de días anteriores (${vienen.length}) · ya están en tu lista de hoy</div>
         <div class="row-wrap mt-8" style="gap:6px">${vienen.map(t => `<span class="chip">${AMBITOS[ambitoDe(t)].icon} ${escapeHtml(t.txt)}${t.migraciones ? ` · ↪ ${t.migraciones}` : ""}</span>`).join("")}</div></div>` : ""}
+      <div class="text-xs muted mt-8" id="r-cap">${capacidadHint(contarTareasRitual(sapoDefault, tareasDe("pro"), tareasDe("per"), RITUAL_VIENEN), tmCapacidad(STATE, todayISO()))}</div>
       <div class="text-xs muted mt-8">Tu primer bocado y estas tareas aparecen juntos en Inicio y en tu Planificador.</div></div>
 
     <div class="field"><label>Pilar de hoy</label>
@@ -145,6 +149,19 @@ function openRitualModal() {
     <div class="field"><label>¿A quién sirves hoy?</label><input class="input" id="r-servir" value="${escapeAttr(r.servir || "")}" placeholder="Persona, equipo, cliente..."></div>
     <div class="field"><label>Proyectos de hoy (separa con comas)</label><input class="input" id="r-proy" value="${escapeAttr((r.proyectos || []).join(", "))}" placeholder="Proyecto A, Proyecto B"></div>
     <button class="btn btn--primary btn-block" data-action="ritual-save">Guardar ritual (+50 ⭐)</button>`);
+}
+/* Cuántas tareas quedan en el plan del día (sin repetir líneas) */
+let RITUAL_VIENEN = [];
+function contarTareasRitual(sapo, pro, per, vienen) {
+  const set = new Set([pro, per].flatMap(x => String(x || "").split("\n").map(s => s.trim()).filter(Boolean)));
+  if (sapo && sapo.trim()) set.add(sapo.trim());
+  (vienen || []).forEach(t => set.add(t));
+  return set.size;
+}
+function ritualCapHint() {
+  const el = document.getElementById("r-cap"); if (!el) return;
+  const n = contarTareasRitual(val("r-sapo"), document.getElementById("r-tareas-pro").value, document.getElementById("r-tareas-per").value, RITUAL_VIENEN);
+  el.innerHTML = capacidadHint(n, tmCapacidad(STATE, todayISO()));
 }
 function saveRitual() {
   const iso = todayISO();
@@ -161,6 +178,7 @@ function saveRitual() {
     hecho: true,
     ts: Date.now(),
   };
+  if (!yaHecho) STATE.ritual.dias[iso].abiertoTs = Date.now();   // a qué hora abriste el día (descubrimientos)
   // Tareas del día → registro diario (hoy). Se empareja por texto para conservar id,
   // estado e historia; solo se marca `ts` si la tarea cambió (no pisar otro dispositivo).
   const sapoTxt = val("r-sapo");
@@ -402,6 +420,7 @@ function renderSemana() {
   let hechas = 0, pend = 0, mov = 0, solt = 0;
   fechas.forEach(iso => { const r = resumenDia(STATE, iso); hechas += r.hechas; pend += r.pendientes; mov += r.migradas + r.programadas; solt += r.soltadas + r.delegadas; });
   const vivas = hechas + pend;
+  const pSem = tmResumen(STATE, lunes, fechas[6]);
   const plan = ((STATE.ritual.semanas || {})[lunes] || {}).plan || {};
   const dL = agDate(lunes), dD = agDate(fechas[6]);
   const rango = dL.getMonth() === dD.getMonth()
@@ -422,7 +441,7 @@ function renderSemana() {
     <div class="card"><div class="text-xs muted" style="text-transform:uppercase">Avance semanal</div>
       <div class="big-num">${hechas}<span class="text-sm muted">/${vivas} tareas</span></div>
       <div class="bar mt-8"><div class="bar__fill" style="width:${vivas ? Math.round(hechas / vivas * 100) : 0}%"></div></div>
-      ${mov || solt ? `<div class="row-wrap mt-8" style="gap:6px">${mov ? `<span class="chip">↪ ${mov} movida${mov === 1 ? "" : "s"}</span>` : ""}${solt ? `<span class="chip">✕ ${solt} soltada${solt === 1 ? "" : "s"} o delegada${solt === 1 ? "" : "s"}</span>` : ""}</div>` : ""}
+      ${mov || solt ? `<div class="row-wrap mt-8" style="gap:6px">${mov ? `<span class="chip">↪ ${mov} movida${mov === 1 ? "" : "s"}</span>` : ""}${solt ? `<span class="chip">✕ ${solt} soltada${solt === 1 ? "" : "s"} o delegada${solt === 1 ? "" : "s"}</span>` : ""}${pSem.tareas >= 3 ? `<span class="chip ${pSem.indice >= 40 ? "chip--coral" : ""}" title="Tareas de la semana que moviste de día al menos una vez">Postergación ${pSem.indice}%</span>` : ""}</div>` : ""}
     </div>
   </div>
   <div class="week-scroll mt-24">${cols}</div>

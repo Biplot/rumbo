@@ -52,6 +52,7 @@ const BADGES = [
   { id: "mes-redondo", icon: "🗓️", nombre: "Mes Redondo", desc: "Abre y cierra el mismo mes", reward: 100, check: s => g_mesesRedondos(s).length >= 1 },
   { id: "trimestre-rumbo", icon: "🧭", nombre: "Trimestre con Rumbo", desc: "3 meses seguidos abiertos y cerrados", reward: 250, check: s => g_trimestreConRumbo(s) },
   { id: "guerrero", icon: "💪", nombre: "Guerrero", desc: "Acumula 50 días entrenados", reward: 60, check: s => g_diasEntren(s) >= 50 },
+  { id: "elefante-domado", icon: "🎪", nombre: "Elefante Domado", desc: "Completa una tarea que habías postergado 3 veces o más", reward: 50, check: s => tmElefanteDomado(s) },
 ];
 function findBadge(id) { return BADGES.find(b => b.id === id); }
 

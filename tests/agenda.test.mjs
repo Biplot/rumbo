@@ -78,6 +78,62 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(deshacerMovimiento(s, b), false);
   });
 
+  test("métricas: índice de postergación, arrastre, bocado postergado y crónicas", () => {
+    const tmResumen = G("tmResumen");
+    const s = migrate(defaultState());
+    const A = nuevaTarea(s, "2026-09-21", { txt: "A", ambito: "pro" }); marcarTarea(A, "hecha");
+    const B = nuevaTarea(s, "2026-09-21", { txt: "B", ambito: "per" });
+    const B1 = moverTarea(s, B, "2026-09-21", "2026-09-22", "migrada", { hoy: "2026-09-21" });
+    const C = nuevaTarea(s, "2026-09-21", { txt: "C", ambito: "per" }); marcarTarea(C, "soltada");
+    const D = nuevaTarea(s, "2026-09-22", { txt: "D", ambito: "pro" }); marcarTarea(D, "hecha");
+    const E = nuevaTarea(s, "2026-09-22", { txt: "E", ambito: "pro", esSapo: true });
+    const E1 = moverTarea(s, E, "2026-09-22", "2026-09-23", "migrada", { hoy: "2026-09-22" }); E1.esSapo = true; marcarTarea(E1, "hecha");
+    const B2 = moverTarea(s, B1, "2026-09-22", "2026-09-23", "migrada", { hoy: "2026-09-22" }); marcarTarea(B2, "hecha");
+    const r = tmResumen(s, "2026-09-21", "2026-09-27");
+    assert.equal(r.tareas, 5); assert.equal(r.postergadas, 2); assert.equal(r.indice, 40);
+    assert.equal(r.hechas, 4); assert.equal(r.cumplimiento, 80); assert.equal(r.soltadas, 1);
+    assert.equal(r.arrastre, 0.8);                       // (0 + 2 + 0 + 1) / 4
+    assert.equal(r.bocado.dias, 2); assert.equal(r.bocado.postergados, 1); assert.equal(r.bocado.pct, 50);
+    assert.equal(r.porAmbito.pro.tareas, 3); assert.equal(r.porAmbito.pro.postergadas, 1);
+    assert.equal(r.cronicas.length, 0);
+    // una tarea postergada 3 veces pasa a ser crónica
+    let F = nuevaTarea(s, "2026-09-24", { txt: "Crónica" });
+    ["2026-09-25", "2026-09-26", "2026-09-27"].forEach((d, i) => { F = moverTarea(s, F, i ? ["2026-09-25", "2026-09-26"][i - 1] : "2026-09-24", d, "migrada", { hoy: "2026-09-27" }); });
+    const r2 = tmResumen(s, "2026-09-21", "2026-09-27");
+    assert.equal(r2.cronicas.length, 1); assert.equal(r2.cronicas[0].n, 3); assert.equal(r2.cronicas[0].txt, "Crónica");
+    assert.equal(r2.pendientes, 1);
+  });
+
+  test("capacidad real y serie semanal", () => {
+    const tmCapacidad = G("tmCapacidad"), tmSerieSemanas = G("tmSerieSemanas");
+    const s = migrate(defaultState());
+    for (let d = 14; d <= 20; d++) {
+      const iso = `2026-09-${d}`;
+      for (let k = 0; k < 4; k++) { const t = nuevaTarea(s, iso, { txt: iso + k }); if (k < 3) marcarTarea(t, "hecha"); }
+    }
+    const cap = tmCapacidad(s, "2026-09-21");
+    assert.equal(cap.dias, 7); assert.equal(cap.hechasProm, 3); assert.equal(cap.planProm, 4);
+    assert.equal(tmCapacidad(migrate(defaultState()), "2026-09-21"), null);
+    const serie = tmSerieSemanas(s, "2026-09-21", 3);
+    assert.equal(serie.length, 3); assert.equal(serie[1].lunes, "2026-09-14"); assert.equal(serie[1].cumplimiento, 75);
+    assert.equal(serie[2].indice, null);
+  });
+
+  test("replanificar antes de su día no cuenta como postergación ni en el plan del día", () => {
+    const tmResumen = G("tmResumen"), tmDia = G("tmDia");
+    const s = migrate(defaultState());
+    const t = nuevaTarea(s, "2026-09-24", { txt: "Futura" });                       // jueves
+    const t1 = moverTarea(s, t, "2026-09-24", "2026-09-25", "migrada", { hoy: "2026-09-22" });
+    marcarTarea(t1, "hecha");
+    const h = nuevaTarea(s, "2026-09-24", { txt: "Otra" }); marcarTarea(h, "hecha");
+    assert.equal(t1.migraciones, 0);
+    const d = tmDia(s, "2026-09-24");
+    assert.equal(d.planificadas, 1); assert.equal(d.movidas, 0); assert.equal(d.pct, 100);
+    const r = tmResumen(s, "2026-09-21", "2026-09-27");
+    assert.equal(r.tareas, 2); assert.equal(r.postergadas, 0); assert.equal(r.indice, 0);
+    assert.equal(r.porDia[3].planificadas, 1); assert.equal(r.porDia[3].postergadas, 0);
+  });
+
   test("resumen del día y bandeja de pendientes anteriores", () => {
     const s = migrate(defaultState());
     const a = nuevaTarea(s, "2026-09-22", { txt: "Vieja" });

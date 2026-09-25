@@ -180,6 +180,27 @@ function mergeStates(server, local) {
       mm[k] = r;
     });
     out.ritual.meses = mm;
+
+    // ritual.semanas: por lunes ISO; plan, apertura y cierre se fusionan por separado (gana ts)
+    const ss = server.ritual.semanas || {}, ls = local.ritual.semanas || {}, ws = {};
+    new Set([...Object.keys(ss), ...Object.keys(ls)]).forEach(k => {
+      const s = ss[k] || {}, l = ls[k] || {}, r = {};
+      ["plan", "apertura", "cierre"].forEach(p => {
+        const a = l[p], b = s[p];
+        if (a || b) r[p] = !b ? a : !a ? b : ((a.ts || 0) >= (b.ts || 0) ? a : b);
+      });
+      ws[k] = r;
+    });
+    out.ritual.semanas = ws;
+  }
+
+  // agenda (registro diario): por fecha; en cada día se unen las tareas por id y gana
+  // el cambio más reciente (ts). Las borradas quedan marcadas y no reviven.
+  if (local.agenda || server.agenda) {
+    const la = (local.agenda && local.agenda.dias) || {}, sa = (server.agenda && server.agenda.dias) || {};
+    const dias = {};
+    new Set([...Object.keys(la), ...Object.keys(sa)]).forEach(k => { dias[k] = byId(la[k] || [], sa[k] || []); });
+    out.agenda = Object.assign({}, out.agenda || {}, { dias });
   }
 
   // eventos: dict por fecha -> unión de arrays de texto

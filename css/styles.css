@@ -204,7 +204,9 @@ a { color: var(--cian-ink); }
 
 /* Planificador semanal / entrenamiento */
 .week-scroll { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 6px; }
-.week-col { flex: 0 0 210px; }
+.week-col { flex: 0 0 250px; min-width: 0; }
+.week-col .row .input { flex: 1; min-width: 0; }
+.week-col .tarea-row { gap: 8px; }
 .dia-badge { font-size: 11px; color: var(--text-muted); }
 .blk { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--r-sm); background:var(--surface-2); border:1px solid var(--line); margin-bottom:8px; }
 
@@ -309,6 +311,21 @@ textarea.input { resize: vertical; min-height: 84px; }
 .amb-pick { padding: 8px 10px; }
 .tarea-grupo { display: flex; align-items: center; justify-content: space-between; gap: 8px;
   font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin: 12px 2px 6px; }
+
+/* Registro diario: signos del bullet journal */
+.tarea-row.is-bocado{border-color:var(--coral)}
+.tarea-row.is-moved{opacity:.62;background:transparent}
+.tarea-row.is-moved .item-row__title{color:var(--text-soft)}
+.sig{width:22px;height:22px;flex-shrink:0;display:grid;place-items:center;font-weight:700;font-size:14px;color:var(--text-muted);font-family:var(--font-body)}
+.tarea-meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.chip--sig{font-size:11px;padding:2px 8px;background:var(--surface-2);border:1px solid var(--line);color:var(--text-soft)}
+.chip--mig{font-size:11px;padding:2px 8px;background:var(--surface-2);color:var(--text-muted)}
+.chip--mig.is-cronica{background:var(--coral-soft);color:var(--coral);font-weight:600}
+.sem-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sem-nav .icon-btn{font-size:22px;padding:2px 10px;border:1px solid var(--line);background:var(--surface)}
+.sem-nav__t{font-size:15px}
+.week-col.is-hoy{border-color:var(--coral)}
+.vienen{background:var(--surface-2);border:1px dashed var(--line-strong);border-radius:var(--r-sm);padding:10px}
 
 /* Checkbox custom */
 .check { width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--line-strong);

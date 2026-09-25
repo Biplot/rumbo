@@ -54,8 +54,15 @@ function renderMesBanner() {
 function resumenMes(y, m) {
   const S = STATE, pref = mesKey(y, m) + "-";
   const dias = Object.entries(S.ritual.dias || {}).filter(([k]) => k.startsWith(pref)).map(([, r]) => r || {});
+  // Tareas del mes: del registro diario; los días anteriores a él usan el resumen del cierre
   const tareas = { pro: [0, 0], per: [0, 0] };
-  dias.forEach(r => { const t = r.cierre && r.cierre.tareas; if (t) ["pro", "per"].forEach(a => { tareas[a][0] += (t[a] || [0, 0])[0]; tareas[a][1] += (t[a] || [0, 0])[1]; }); });
+  const sumar = t => { if (t) ["pro", "per"].forEach(a => { tareas[a][0] += (t[a] || [0, 0])[0]; tareas[a][1] += (t[a] || [0, 0])[1]; }); };
+  for (let d = 1; d <= daysInMonth(y, m); d++) {
+    const iso = isoLocal(new Date(y, m, d));
+    const lista = tareasDelDia(iso, S);
+    if (lista.length) sumar(tareasResumen(lista));
+    else { const r = S.ritual.dias[iso]; sumar(r && r.cierre && r.cierre.tareas); }
+  }
   const desde = isoLocal(new Date(y, m, 1)), hasta = isoLocal(new Date(y, m + 1, 0));
   const enAnio = mesEnAnio(y);
   const objetivos = enAnio ? (S.metas.mensuales[m] || []) : [];

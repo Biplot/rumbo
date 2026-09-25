@@ -105,11 +105,16 @@ function openRitualModal() {
     const yc = STATE.ritual.dias[isoLocal(y)];
     if (yc && yc.cierre && yc.cierre.manana) misionDefault = yc.cierre.manana;
   }
-  const wd = (new Date().getDay() + 6) % 7;
-  const hoyTareas = STATE.semana.dias[wd] || [];
-  const tareasDe = a => hoyTareas.filter(t => !t.esSapo && ambitoDe(t) === a).map(t => t.txt).join("\n");
-  const bocadoPrev = hoyTareas.find(t => t.esSapo);
-  const bocadoAmb = r.sapoAmbito || (bocadoPrev ? ambitoDe(bocadoPrev) : "pro");
+  const lista = tareasDelDia(todayISO());
+  const vivas = lista.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t)));
+  // Las que vienen de días anteriores (postergadas) se muestran aparte: ya están en tu lista de hoy
+  const vienen = vivas.filter(t => (t.migraciones > 0 || t.bocadoSugerido) && !t.esSapo);
+  const propias = vivas.filter(t => !vienen.includes(t));
+  const tareasDe = a => propias.filter(t => !t.esSapo && ambitoDe(t) === a).map(t => t.txt).join("\n");
+  const bocadoPrev = vivas.find(t => t.esSapo);
+  const sugerido = !r.sapo && !bocadoPrev ? vivas.find(t => t.bocadoSugerido && tareaAbierta(t)) : null;
+  const sapoDefault = r.sapo || (bocadoPrev && bocadoPrev.txt) || (sugerido && sugerido.txt) || "";
+  const bocadoAmb = r.sapoAmbito || (bocadoPrev ? ambitoDe(bocadoPrev) : sugerido ? ambitoDe(sugerido) : "pro");
   const ambSeg = (v) => `<button type="button" class="${bocadoAmb === v ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'r-sapo-amb')">${AMBITOS[v].icon} ${AMBITOS[v].corto}</button>`;
   openModal("Ritual de apertura", `
     <div class="field"><label>Misión de hoy</label><input class="input" id="r-mision" value="${escapeAttr(misionDefault)}" placeholder="¿Qué hará hoy un gran día?"></div>
@@ -117,7 +122,8 @@ function openRitualModal() {
     <div class="field"><label>📋 Tareas del día</label>
       <div style="background:var(--coral-soft);border:1px solid var(--coral);border-radius:var(--r-sm);padding:12px;margin-bottom:10px">
         <label style="color:var(--coral);margin-bottom:6px">${BOCADO.emoji} ${BOCADO.titulo} — la tarea más importante (empieza por aquí)</label>
-        <input class="input" id="r-sapo" value="${escapeAttr(r.sapo || "")}" placeholder="La que más mueve la aguja hoy">
+        <input class="input" id="r-sapo" value="${escapeAttr(sapoDefault)}" placeholder="La que más mueve la aguja hoy">
+        ${sugerido ? `<div class="text-xs mt-8" style="color:var(--coral)">↪ Ayer no alcanzaste tu primer bocado; te lo dejé como sugerencia.</div>` : ""}
         <div class="seg mt-8" style="display:inline-flex">${ambSeg("pro")}${ambSeg("per")}</div>
         <input type="hidden" id="r-sapo-amb" value="${bocadoAmb}">
       </div>
@@ -127,6 +133,8 @@ function openRitualModal() {
         <div><label class="text-xs muted" style="display:block;margin-bottom:6px">${AMBITOS.per.icon} ${AMBITOS.per.label} (una por línea)</label>
           <textarea class="input" id="r-tareas-per" style="min-height:88px" placeholder="Ej: Llamar al banco&#10;Comprar para la semana">${escapeHtml(tareasDe("per"))}</textarea></div>
       </div>
+      ${vienen.length ? `<div class="vienen mt-8"><div class="text-xs muted">↪ Vienen de días anteriores (${vienen.length}) · ya están en tu lista de hoy</div>
+        <div class="row-wrap mt-8" style="gap:6px">${vienen.map(t => `<span class="chip">${AMBITOS[ambitoDe(t)].icon} ${escapeHtml(t.txt)}${t.migraciones ? ` · ↪ ${t.migraciones}` : ""}</span>`).join("")}</div></div>` : ""}
       <div class="text-xs muted mt-8">Tu primer bocado y estas tareas aparecen juntos en Inicio y en tu Planificador.</div></div>
 
     <div class="field"><label>Pilar de hoy</label>
@@ -153,31 +161,36 @@ function saveRitual() {
     hecho: true,
     ts: Date.now(),
   };
-  // Tareas del día -> Planificador semanal (día de hoy). El Primer Bocado es la 1ª tarea (esSapo).
-  const wd = (new Date().getDay() + 6) % 7;
+  // Tareas del día → registro diario (hoy). Se empareja por texto para conservar id,
+  // estado e historia; solo se marca `ts` si la tarea cambió (no pisar otro dispositivo).
   const sapoTxt = val("r-sapo");
   const sapoAmb = STATE.ritual.dias[iso].sapoAmbito;
   const leer = id => document.getElementById(id).value.split("\n").map(s => s.trim()).filter(Boolean);
-  const prevTareas = STATE.semana.dias[wd] || [];
-  const findPrev = txt => prevTareas.find(t => t.txt === txt);   // conserva id/done emparejando por texto
-  const nuevas = [], vistos = new Set();
-  // Solo se marca `ts` si la tarea cambió, para no pisar lo hecho en otro dispositivo
-  const cambiar = (ex, esSapo, ambito) => (!!ex.esSapo === esSapo && ambitoDe(ex) === ambito)
-    ? { ...ex } : { ...ex, esSapo, ambito, ts: Date.now() };
+  const vivas = tareasDelDia(iso).filter(t => ["pendiente", "hecha"].includes(estadoTarea(t)));
+  const porTxt = txt => vivas.find(t => t.txt === txt);
+  const vistos = new Set(), now = Date.now();
+  const ajustar = (t, esSapo, ambito) => {
+    let cambio = false;
+    if (!!t.esSapo !== esSapo) { if (esSapo) t.esSapo = true; else delete t.esSapo; cambio = true; }
+    if (ambitoDe(t) !== ambito) { t.ambito = ambito; cambio = true; }
+    if (esSapo && t.bocadoSugerido) { delete t.bocadoSugerido; cambio = true; }
+    if (cambio) t.ts = now;
+  };
+  // Si cambió el primer bocado, el anterior deja de serlo
+  vivas.forEach(t => { if (t.esSapo && t.txt !== sapoTxt) { delete t.esSapo; t.ts = now; } });
   if (sapoTxt) {
-    const ex = findPrev(sapoTxt);
-    nuevas.push(ex ? cambiar(ex, true, sapoAmb) : { id: uid(), txt: sapoTxt, done: false, esSapo: true, ambito: sapoAmb, ts: Date.now() });
+    const ex = porTxt(sapoTxt);
+    if (ex) ajustar(ex, true, sapoAmb); else nuevaTarea(STATE, iso, { txt: sapoTxt, ambito: sapoAmb, esSapo: true });
     vistos.add(sapoTxt);
   }
   [["pro", leer("r-tareas-pro")], ["per", leer("r-tareas-per")]].forEach(([ambito, lines]) => lines.forEach(txt => {
     if (vistos.has(txt)) return;   // misma línea en ambos cuadros: se queda la primera
     vistos.add(txt);
-    const ex = findPrev(txt);
-    nuevas.push(ex ? cambiar(ex, false, ambito) : { id: uid(), txt, done: false, ambito, ts: Date.now() });
+    const ex = porTxt(txt);
+    if (ex) ajustar(ex, false, ambito); else nuevaTarea(STATE, iso, { txt, ambito });
   }));
-  const quedan = new Set(nuevas.map(t => t.id));
-  semMarcarBorradas(prevTareas.filter(t => !quedan.has(t.id)).map(t => t.id));
-  STATE.semana.dias[wd] = nuevas;
+  // Las tareas de hoy que se quitaron de los cuadros se borran; las que vienen de otros días se quedan
+  vivas.filter(t => !vistos.has(t.txt) && !(t.migraciones > 0) && !t.bocadoSugerido).forEach(borrarTarea);
 
   if (!yaHecho) {
     STATE.ritual.pilares[pilar] = (STATE.ritual.pilares[pilar] || 0) + 1;
@@ -197,11 +210,10 @@ function openCierreModal(date) {
   const dEntry = (STATE.vida.diario || []).find(e => e.fecha === iso && e.fromRitual);
   const moodCur = dEntry ? dEntry.mood : 3;
   const dObj = new Date(iso + "T12:00:00");
-  const wd = (dObj.getDay() + 6) % 7;
   const tareasDia = tareasDelDia(iso);
-  const sapoTask = (tareasDia || []).find(t => t.esSapo);
-  const tr = tareasDia ? tareasResumen(tareasDia) : (c.tareas || null);
-  const sapoDone = c.sapo !== undefined ? c.sapo : (sapoTask ? sapoTask.done : false);
+  const sapoTask = tareasDia.find(t => t.esSapo);
+  const tr = tareasDia.length ? tareasResumen(tareasDia) : (c.tareas || null);
+  const sapoDone = c.sapo !== undefined ? c.sapo : (sapoTask ? estadoTarea(sapoTask) === "hecha" : false);
   const sapoCur = sapoDone ? "1" : "0";
   const titulo = esHoy ? "Ritual de cierre" : "Cerrar el " + dObj.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
   const mananaLabel = esHoy ? "Una cosa para mañana" : "Una cosa para el día siguiente";
@@ -235,14 +247,6 @@ function openCierreModal(date) {
     <p class="text-xs muted" style="margin:-4px 0 12px">📔 Tu ánimo, esta nota y tu gratitud se guardan en tu <b>Diario de vida</b>.</p>
     <button class="btn btn--primary btn-block" data-action="cierre-save">Cerrar el día (+40 ⭐)</button>`);
 }
-/* Tareas del planificador para una fecha, solo si cae en la semana actual (si no, null) */
-function tareasDelDia(iso) {
-  const d = new Date(iso + "T12:00:00");
-  const dow = (d.getDay() + 6) % 7;
-  const monday = new Date(d); monday.setDate(d.getDate() - dow);
-  if (isoLocal(monday) !== STATE.semana.weekOf) return null;
-  return STATE.semana.dias[dow] || [];
-}
 function cierreMoodPick(btn) {
   document.getElementById("c-mood").value = btn.dataset.v;
   document.querySelectorAll("#c-moods .mood-btn").forEach(b => b.classList.remove("is-on"));
@@ -259,9 +263,8 @@ function saveCierre() {
     energia: parseNum(document.getElementById("c-energia").value),
     mejor: val("c-mejor"), manana: val("c-manana"), nota: val("c-nota"),
   };
-  // Resumen pro/per para métricas (solo lectura en el modal)
-  const tareasDia = tareasDelDia(iso);
-  if (tareasDia) r.cierre.tareas = tareasResumen(tareasDia);
+  // Resumen del día para métricas (hechas, movidas, soltadas… por ámbito)
+  if (tareasDelDia(iso).length) r.cierre.tareas = resumenCierre(STATE, iso);
   r.cerrado = true;
   r.ts = Date.now();
 
@@ -360,46 +363,63 @@ function renderBitacora() {
 /* ============================================================
    PLANIFICADOR SEMANAL
    ============================================================ */
+let SEM_LUNES = null;   // lunes de la semana que muestra el planificador (null = la actual)
 function renderSemana() {
-  ensureCurrentWeek();
-  const now = new Date();
-  const dow = (now.getDay() + 6) % 7;
-  const monday = new Date(now); monday.setDate(now.getDate() - dow);
+  const hoy = todayISO();
+  const lunes = SEM_LUNES || agLunes(hoy);
+  const esActual = lunes === agLunes(hoy);
+  const fechas = Array.from({ length: 7 }, (_, i) => agSumar(lunes, i));
 
-  const cols = DIAS_SEMANA.map((nombre, i) => {
-    const fecha = new Date(monday); fecha.setDate(monday.getDate() + i);
-    const esHoy = isoLocal(fecha) === todayISO();
-    const tareas = STATE.semana.dias[i];
+  const cols = fechas.map((iso, i) => {
+    const d = agDate(iso);
+    const tareas = tareasDelDia(iso);
     const inputId = `sem-${i}`;
-    return `<div class="week-col card" style="${esHoy ? "border-color:var(--coral)" : ""}">
-      <div class="flex-between"><div class="card__title" style="font-size:14px">${nombre}</div>
-        <span class="dia-badge">${fecha.getDate()}/${MESES_CORTO[fecha.getMonth()]}</span></div>
+    return `<div class="week-col card ${iso === hoy ? "is-hoy" : ""}">
+      <div class="flex-between"><div class="card__title" style="font-size:14px">${DIAS_SEMANA[i]}</div>
+        <span class="dia-badge">${d.getDate()}/${MESES_CORTO[d.getMonth()]}</span></div>
       <div class="mt-8">
-        ${tareas.length ? tareas.map(t => `<div class="item-row" style="padding:8px 10px${t.esSapo ? ";border-color:var(--coral)" : ""}">
-          <span class="check ${t.done ? "is-on" : ""}" data-action="sem-toggle" data-day="${i}" data-id="${t.id}">${t.done ? "✓" : ""}</span>
-          <div class="item-row__main"><div class="item-row__title text-sm ${t.done ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : ""}${escapeHtml(t.txt)}</div></div>
-          ${ambitoChip(t, i)}
-          <button class="icon-btn" data-action="sem-del" data-day="${i}" data-id="${t.id}">✕</button></div>`).join("")
+        ${tareas.length ? tareas.map(t => tareaRowHtml(t, iso, { compacto: true })).join("")
         : '<div class="text-xs muted" style="padding:6px">Sin tareas.</div>'}
       </div>
-      <div class="row mt-8">${ambitoPicker(inputId + "-amb", "per")}<input class="input" id="${inputId}" placeholder="Nueva tarea..." style="padding:8px 10px">
-        <button class="btn btn--cian" data-action="sem-add" data-day="${i}" data-input="${inputId}" data-amb="${inputId}-amb" style="padding:8px 12px">+</button></div>
+      <div class="row mt-8">${ambitoPicker(inputId + "-amb", "per", true)}<input class="input" id="${inputId}" placeholder="Nueva tarea..." style="padding:8px 10px">
+        <button class="btn btn--cian" data-action="tarea-add" data-fecha="${iso}" data-input="${inputId}" data-amb="${inputId}-amb" style="padding:8px 12px">+</button></div>
     </div>`;
   }).join("");
 
-  const total = STATE.semana.dias.flat().length;
-  const done = STATE.semana.dias.flat().filter(t => t.done).length;
+  let hechas = 0, pend = 0, mov = 0, solt = 0;
+  fechas.forEach(iso => { const r = resumenDia(STATE, iso); hechas += r.hechas; pend += r.pendientes; mov += r.migradas + r.programadas; solt += r.soltadas + r.delegadas; });
+  const vivas = hechas + pend;
+  const plan = ((STATE.ritual.semanas || {})[lunes] || {}).plan || {};
+  const dL = agDate(lunes), dD = agDate(fechas[6]);
+  const rango = dL.getMonth() === dD.getMonth()
+    ? `${dL.getDate()} al ${dD.getDate()} de ${MESES[dD.getMonth()].toLowerCase()}`
+    : `${dL.getDate()} de ${MESES[dL.getMonth()].toLowerCase()} al ${dD.getDate()} de ${MESES[dD.getMonth()].toLowerCase()}`;
 
   return `
-  <div class="grid grid-2">
-    <div class="card"><div class="text-xs muted" style="text-transform:uppercase">🏆 Tu premio de la semana</div>
-      <input class="input mt-8" data-bind="semana.premio" data-render="no" value="${escapeAttr(STATE.semana.premio)}" placeholder="¿Con qué te vas a premiar al cumplir?"></div>
-    <div class="card"><div class="flex-between"><div><div class="text-xs muted" style="text-transform:uppercase">Avance semanal</div>
-      <div class="big-num">${done}<span class="text-sm muted">/${total} tareas</span></div></div>
-      <button class="btn-ghost" data-action="sem-clear">Vaciar semana</button></div>
-      <div class="bar mt-8"><div class="bar__fill" style="width:${total ? Math.round(done / total * 100) : 0}%"></div></div></div>
+  <div class="sem-nav">
+    <button class="icon-btn" data-action="sem-nav" data-dir="-1" aria-label="Semana anterior">‹</button>
+    <div class="sem-nav__t"><b>${esActual ? "Esta semana" : "Semana"}</b> · ${rango}</div>
+    <button class="icon-btn" data-action="sem-nav" data-dir="1" aria-label="Semana siguiente">›</button>
+    ${esActual ? "" : `<button class="btn-ghost" data-action="sem-nav" data-dir="0">Ir a hoy</button>`}
   </div>
-  <div class="week-scroll mt-24">${cols}</div>`;
+  <div class="grid grid-2 mt-16">
+    <div class="card"><div class="text-xs muted" style="text-transform:uppercase">🏆 Tu premio de la semana</div>
+      <input class="input mt-8" id="sem-premio" value="${escapeAttr(plan.premio || "")}" placeholder="¿Con qué te vas a premiar al cumplir?"
+        onchange="guardarPremioSemana('${lunes}', this.value)"></div>
+    <div class="card"><div class="text-xs muted" style="text-transform:uppercase">Avance semanal</div>
+      <div class="big-num">${hechas}<span class="text-sm muted">/${vivas} tareas</span></div>
+      <div class="bar mt-8"><div class="bar__fill" style="width:${vivas ? Math.round(hechas / vivas * 100) : 0}%"></div></div>
+      ${mov || solt ? `<div class="row-wrap mt-8" style="gap:6px">${mov ? `<span class="chip">↪ ${mov} movida${mov === 1 ? "" : "s"}</span>` : ""}${solt ? `<span class="chip">✕ ${solt} soltada${solt === 1 ? "" : "s"} o delegada${solt === 1 ? "" : "s"}</span>` : ""}</div>` : ""}
+    </div>
+  </div>
+  <div class="week-scroll mt-24">${cols}</div>
+  <p class="text-xs muted mt-16">Signos: ✓ hecha · &gt; movida a otro día · &lt; programada · @ delegada · ✕ soltada · ↪ n veces postergada.</p>`;
+}
+function guardarPremioSemana(lunes, v) {
+  STATE.ritual.semanas = STATE.ritual.semanas || {};
+  const w = STATE.ritual.semanas[lunes] = STATE.ritual.semanas[lunes] || {};
+  w.plan = Object.assign({}, w.plan || {}, { premio: String(v || "").trim(), ts: Date.now() });
+  saveState();
 }
 
 /* ============================================================

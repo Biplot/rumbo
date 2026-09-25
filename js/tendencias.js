@@ -187,8 +187,9 @@ function renderTendencias() {
   const cerradosSem = semanaISO.filter(iso => S.ritual.dias[iso] && S.ritual.dias[iso].cerrado).length;
   const habSem = cumplimientoGrupo(S.habitos.defs, semanaISO[0], semanaISO[6], S);
   const habPctSem = habSem.pct == null ? 0 : habSem.pct;
-  const tareasSem = (S.semana.dias || []).flat();
-  const tareasDoneSem = tareasSem.filter(t => t.done).length;
+  // Últimos 7 días del registro diario (planificadas = todo lo anotado para esos días)
+  const tareasSem = semanaISO.flatMap(iso => tareasDelDia(iso, S));
+  const tareasDoneSem = tareasSem.filter(t => estadoTarea(t) === "hecha").length;
   const gratisSem = diario.filter(e => e.gratitud && setSemana.has(e.fecha));
 
   const resumenSemana = `

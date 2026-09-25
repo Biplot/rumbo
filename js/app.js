@@ -554,10 +554,8 @@ function dayAutoSummary() {
   const hoyHabs = STATE.habitos.defs.filter(h => !h.pausado && (tocaHoy(h) || habitDone(h.id, mIdx, day) || (hmProgramado(h, todayISO()) && hmCreado(h) <= todayISO())));
   const habTotal = hoyHabs.length;
   const habDone = hoyHabs.filter(h => habitDone(h.id, mIdx, day)).length;
-  const wd = (new Date().getDay() + 6) % 7;
-  const tareas = STATE.semana.dias[wd] || [];
-  const tareasDone = tareas.filter(t => t.done).length;
-  return { habDone, habTotal, tareasDone, tareasTotal: tareas.length };
+  const rd = resumenDia(STATE, todayISO());
+  return { habDone, habTotal, tareasDone: rd.hechas, tareasTotal: rd.planificadas };
 }
 
 /* -------- Puntos (gamificación) -------- */
@@ -773,26 +771,39 @@ function onClick(e) {
     /* Bitácora */
     case "bita-toggle": BITA_OPEN[d.iso] = !BITA_OPEN[d.iso]; rerender(); break;
 
-    /* Planificador semanal */
-    case "sem-add": {
+    /* Tareas (registro diario por fecha) */
+    case "tarea-add": {
       const input = document.getElementById(d.input);
       const txt = input.value.trim(); if (!txt) return;
       const ambEl = d.amb && document.getElementById(d.amb);
-      STATE.semana.dias[+d.day].push({ id: uid(), txt, done: false, ambito: ambEl && ambEl.value === "pro" ? "pro" : "per", ts: Date.now() });
+      nuevaTarea(STATE, d.fecha, { txt, ambito: ambEl && ambEl.value === "pro" ? "pro" : "per" });
       saveState(); rerender(); break;
     }
-    case "sem-toggle": {
-      const t = STATE.semana.dias[+d.day].find(x => x.id === d.id);
-      t.done = !t.done; t.ts = Date.now(); t.done ? registrarMovimiento("tarea:" + t.id, 15, 15, "Tarea") : anularMovimiento("tarea:" + t.id);
+    case "tarea-toggle": {
+      const t = buscarTarea(STATE, d.fecha, d.id); if (!t) break;
+      const hecha = estadoTarea(t) !== "hecha";
+      marcarTarea(t, hecha ? "hecha" : "pendiente");
+      hecha ? registrarMovimiento("tarea:" + t.id, 15, 15, "Tarea") : anularMovimiento("tarea:" + t.id);
       saveState(); rerender(); break;
     }
-    case "sem-ambito": {
-      const t = STATE.semana.dias[+d.day].find(x => x.id === d.id);
+    case "tarea-ambito": {
+      const t = buscarTarea(STATE, d.fecha, d.id);
       if (t) { t.ambito = ambitoDe(t) === "pro" ? "per" : "pro"; t.ts = Date.now(); saveState(); rerender(); }
       break;
     }
-    case "sem-del": semMarcarBorradas([d.id]); STATE.semana.dias[+d.day] = STATE.semana.dias[+d.day].filter(x => x.id !== d.id); saveState(); rerender(); break;
-    case "sem-clear": if (confirm("¿Vaciar todas las tareas de la semana?")) { semMarcarBorradas(STATE.semana.dias.flat().map(t => t.id)); STATE.semana.dias = [[],[],[],[],[],[],[]]; saveState(); rerender(); } break;
+    case "tarea-del": {
+      const t = buscarTarea(STATE, d.fecha, d.id);
+      if (t) { borrarTarea(t); saveState(); rerender(); }
+      break;
+    }
+    case "tarea-deshacer": {
+      const t = buscarTarea(STATE, d.fecha, d.id);
+      if (t && deshacerMovimiento(STATE, t, d.fecha)) { saveState(); rerender(); toast("Movimiento deshecho"); }
+      else toast("No se puede deshacer: la tarea ya cambió en su nuevo día", true);
+      break;
+    }
+    case "tarea-posponer": openPosponerTarea(d.fecha, d.id); break;
+    case "sem-nav": SEM_LUNES = +d.dir === 0 ? null : agSumar(SEM_LUNES || agLunes(todayISO()), 7 * +d.dir); rerender(); break;
 
     /* Entrenamiento */
     case "entren-add-dia": openDiaModal(); break;
@@ -1118,15 +1129,13 @@ function renderDayHero() {
   if (st === "cerrado") return renderCierreResumen(r);
 
   // en-curso
-  const wd = (new Date().getDay() + 6) % 7;
-  const tHoy = STATE.semana.dias[wd] || [];
-  const tDone = tHoy.filter(t => t.done).length;
+  const rd = resumenDia(STATE, iso);
   const chips = `<div class="row-wrap" style="gap:8px;margin-top:8px">
     ${r.mision ? `<span class="chip chip--cian">🎯 ${escapeHtml(r.mision)}</span>` : ""}
     ${r.sapo ? `<span class="chip chip--coral">${BOCADO.emoji} ${escapeHtml(r.sapo)}</span>` : ""}
     ${r.servir ? `<span class="chip">🙌 ${escapeHtml(r.servir)}</span>` : ""}
     ${r.pilar ? `<span class="chip">${escapeHtml(r.pilar)}</span>` : ""}
-    ${tHoy.length ? `<span class="chip">📋 ${tDone}/${tHoy.length} tareas</span>` : ""}</div>`;
+    ${rd.planificadas ? `<span class="chip">📋 ${rd.hechas}/${rd.planificadas} tareas</span>` : ""}</div>`;
   return `<div class="card" style="margin-bottom:24px;border-left:3px solid var(--cian)">
     <div class="flex-between" style="flex-wrap:wrap;gap:12px">
       <div><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">Tu enfoque de hoy</div>${chips}</div>
@@ -1168,20 +1177,21 @@ function renderCierreResumen(r) {
   </div>`;
 }
 /* Chip de ámbito de una tarea (clic para alternar Pro/Personal) */
-function ambitoChip(t, day) {
+function ambitoChip(t, iso, compacto) {
   const a = ambitoDe(t);
-  return `<button class="chip chip--amb" data-action="sem-ambito" data-day="${day}" data-id="${t.id}" title="Cambiar ámbito">${AMBITOS[a].icon} ${AMBITOS[a].corto}</button>`;
+  return `<button class="chip chip--amb" data-action="tarea-ambito" data-fecha="${iso}" data-id="${t.id}" title="${AMBITOS[a].label} · clic para cambiar">${AMBITOS[a].icon}${compacto ? "" : " " + AMBITOS[a].corto}</button>`;
 }
 /* Toggle Pro/Personal para inputs de nueva tarea (guarda el valor en un input oculto) */
-function ambitoPicker(hiddenId, cur) {
+function ambitoPicker(hiddenId, cur, compacto) {
   const a = cur === "pro" ? "pro" : "per";
-  return `<input type="hidden" id="${hiddenId}" value="${a}"><button type="button" class="chip chip--amb amb-pick" title="Ámbito de la nueva tarea"
-    onclick="ambFlip(this,'${hiddenId}')">${AMBITOS[a].icon} ${AMBITOS[a].corto}</button>`;
+  return `<input type="hidden" id="${hiddenId}" value="${a}"><button type="button" class="chip chip--amb amb-pick" title="Ámbito de la nueva tarea: ${AMBITOS[a].label}"
+    ${compacto ? 'data-compacto="1"' : ""} onclick="ambFlip(this,'${hiddenId}')">${AMBITOS[a].icon}${compacto ? "" : " " + AMBITOS[a].corto}</button>`;
 }
 function ambFlip(btn, hiddenId) {
   const el = document.getElementById(hiddenId);
   el.value = el.value === "pro" ? "per" : "pro";
-  btn.textContent = AMBITOS[el.value].icon + " " + AMBITOS[el.value].corto;
+  btn.textContent = AMBITOS[el.value].icon + (btn.dataset.compacto ? "" : " " + AMBITOS[el.value].corto);
+  btn.title = "Ámbito de la nueva tarea: " + AMBITOS[el.value].label;
 }
 function segPick(btn, hiddenId) {
   Array.from(btn.parentNode.children).forEach(b => b.classList.remove("is-active"));
@@ -1226,28 +1236,25 @@ function renderInicio() {
 
   const metasMes = (s.metas.mensuales[mIdx] || []).filter(m => !m.done);
 
-  const wd = (new Date().getDay() + 6) % 7;
-  const tareasHoy = s.semana.dias[wd] || [];
-  const bocado = tareasHoy.find(t => t.esSapo);
-  const tareaRow = t => `<div class="item-row" style="padding:9px 11px${t.esSapo ? ";border-color:var(--coral)" : ""}">
-      <span class="check ${t.done ? "is-on" : ""}" data-action="sem-toggle" data-day="${wd}" data-id="${t.id}">${t.done ? "✓" : ""}</span>
-      <div class="item-row__main"><div class="item-row__title text-sm ${t.done ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : ""}${escapeHtml(t.txt)}</div>
-        ${t.esSapo ? `<div class="item-row__sub hl-coral">${BOCADO.titulo} · ${BOCADO.accion}</div>` : ""}</div>
-      ${t.esSapo ? ambitoChip(t, wd) : ""}
-      <button class="icon-btn" data-action="sem-del" data-day="${wd}" data-id="${t.id}">✕</button></div>`;
+  const hoyISO = todayISO();
+  const tareasHoy = tareasDelDia(hoyISO);
+  const bocado = tareasHoy.find(t => t.esSapo && !tareaMovida(t));
   const grupo = a => {
-    const ts = tareasHoy.filter(t => !t.esSapo && ambitoDe(t) === a);
     const all = tareasHoy.filter(t => ambitoDe(t) === a);
+    const ts = all.filter(t => t !== bocado);
     if (!ts.length) return "";
+    // vivas primero; las resueltas sin hacer (> < @ ✕) al final del grupo
+    ts.sort((x, y) => (tareaMovida(x) || estadoTarea(x) === "soltada" || estadoTarea(x) === "delegada") - (tareaMovida(y) || estadoTarea(y) === "soltada" || estadoTarea(y) === "delegada"));
     return `<div class="tarea-grupo"><span>${AMBITOS[a].icon} ${AMBITOS[a].label}</span>
-      <span class="chip">${all.filter(t => t.done).length}/${all.length}</span></div>${ts.map(tareaRow).join("")}`;
+      <span class="chip" title="hechas / planificadas hoy">${all.filter(t => estadoTarea(t) === "hecha").length}/${all.length}</span></div>${ts.map(t => tareaRowHtml(t, hoyISO, { ambitoSoloBocado: true })).join("")}`;
   };
   const tareasCard = `<div class="card">
     <div class="card__head"><div class="card__title">📋 Tareas de hoy</div><a class="card__hint" href="#semana">Ver semana →</a></div>
-    ${tareasHoy.length ? (bocado ? tareaRow(bocado) : "") + grupo("pro") + grupo("per")
+    ${renderBandejaPendientes()}
+    ${tareasHoy.length ? (bocado ? tareaRowHtml(bocado, hoyISO) : "") + grupo("pro") + grupo("per")
     : '<div class="empty" style="padding:14px">Sin tareas para hoy. Defínelas en tu ritual de apertura.</div>'}
     <div class="row mt-8">${ambitoPicker("inicio-amb", "per")}<input class="input" id="inicio-tarea" placeholder="Nueva tarea..." style="padding:9px 11px">
-      <button class="btn btn--cian" data-action="sem-add" data-day="${wd}" data-input="inicio-tarea" data-amb="inicio-amb" style="padding:9px 12px">+</button></div>
+      <button class="btn btn--cian" data-action="tarea-add" data-fecha="${hoyISO}" data-input="inicio-tarea" data-amb="inicio-amb" style="padding:9px 12px">+</button></div>
   </div>`;
 
   return `

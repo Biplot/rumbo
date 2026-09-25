@@ -20,12 +20,6 @@ const AMBITOS = {
   per: { icon: "🏡", label: "Personales", corto: "Personal" },
 };
 function ambitoDe(t) { return t && t.ambito === "pro" ? "pro" : "per"; }
-/* Resumen { pro: [hechas, total], per: [hechas, total] } de una lista de tareas */
-function tareasResumen(tareas) {
-  const r = { pro: [0, 0], per: [0, 0] };
-  (tareas || []).forEach(t => { const a = ambitoDe(t); r[a][1]++; if (t.done) r[a][0]++; });
-  return r;
-}
 
 /* Colores de lomo para los libros de la biblioteca (paleta BiPlot + armónicos) */
 const LECT_COLORS = ["#17C3B2", "#FF6B4A", "#0E2A47", "#6C63FF", "#F4A63B", "#2E9E7B", "#E5527A", "#3E8BD6"];
@@ -119,10 +113,14 @@ function defaultState() {
     ritual: {
       dias: {}, // "2026-09-20": { mision, pilar, sapo, sapoAmbito, energia, servir, proyectos:[], hecho:true }
       meses: {}, // ritual de mes: "2026-10": { apertura: {…, ts}, cierre: {…, ts} }
+      semanas: {}, // ritual de semana, clave = lunes ISO: { plan: {…, ts}, apertura: {…, ts}, cierre: {…, ts} }
       pilares: { "Psicología": 0, "Fisiología": 0, "Productividad": 0, "Magnetismo": 0, "Presencia": 0, "Propósito": 0 },
     },
 
-    // planificador semanal: 7 días (Lun..Dom) + premio
+    // registro diario (bullet journal): tareas por fecha, con su historia (ver agenda.js)
+    agenda: { dias: {} },
+
+    // planificador semanal ANTIGUO (solo para clientes viejos; las tareas viven en agenda)
     semana: {
       premio: "",
       weekOf: "",           // lunes ISO de la semana actual (para limpiar al cambiar de semana)
@@ -218,6 +216,8 @@ function migrate(s) {
   ["gamif", "ritual", "semana", "entrenamiento", "vida"].forEach(k => { if (!s[k]) s[k] = d[k]; });
   if (s.ritual && !s.ritual.pilares) s.ritual.pilares = d.ritual.pilares;
   if (s.ritual && (!s.ritual.meses || typeof s.ritual.meses !== "object")) s.ritual.meses = {};
+  if (s.ritual && (!s.ritual.semanas || typeof s.ritual.semanas !== "object")) s.ritual.semanas = {};
+  migrarAgenda(s);   // tareas → registro diario por fecha (idempotente)
   if (s.finanzas && Array.isArray(s.finanzas.meses)) s.finanzas.meses.forEach(fm => { if (fm && fm.metaAhorro == null) fm.metaAhorro = 0; });
   // Temas: los existentes conservan el suyo. Retirados: bosque → bosque-claro; el resto → navy.
   if (s.settings) {

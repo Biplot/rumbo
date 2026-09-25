@@ -803,6 +803,9 @@ function onClick(e) {
       break;
     }
     case "tarea-posponer": openPosponerTarea(d.fecha, d.id); break;
+    case "posponer-save": guardarPosponer(); break;
+    case "bandeja-open": openBandeja(); break;
+    case "bandeja-save": guardarBandeja(); break;
     case "sem-nav": SEM_LUNES = +d.dir === 0 ? null : agSumar(SEM_LUNES || agLunes(todayISO()), 7 * +d.dir); rerender(); break;
 
     /* Entrenamiento */

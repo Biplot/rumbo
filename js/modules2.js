@@ -212,6 +212,8 @@ function openCierreModal(date) {
   const dObj = new Date(iso + "T12:00:00");
   const tareasDia = tareasDelDia(iso);
   const sapoTask = tareasDia.find(t => t.esSapo);
+  // Pendientes del día (el primer bocado primero): se decide qué pasa con cada una
+  const pendientes = tareasDia.filter(tareaAbierta).sort((a, b) => (b.esSapo ? 1 : 0) - (a.esSapo ? 1 : 0));
   const tr = tareasDia.length ? tareasResumen(tareasDia) : (c.tareas || null);
   const sapoDone = c.sapo !== undefined ? c.sapo : (sapoTask ? estadoTarea(sapoTask) === "hecha" : false);
   const sapoCur = sapoDone ? "1" : "0";
@@ -230,14 +232,19 @@ function openCierreModal(date) {
         ${segBtn("c-mision", "parcial", "Parcial", c.mision)}
         ${segBtn("c-mision", "no", "No", c.mision)}
       </div><input type="hidden" id="c-mision-v" value="${c.mision || "si"}"></div>
-    <div class="field"><label>${BOCADO.emoji} ¿Diste tu primer bocado?${r.sapo ? ` <span class="text-xs muted">(${escapeHtml(r.sapo)})</span>` : ""}</label>
+    ${sapoTask ? `<div class="field"><label>${BOCADO.emoji} Tu primer bocado</label>
+        <div class="text-sm">${escapeHtml(sapoTask.txt)} ${estadoTarea(sapoTask) === "hecha" ? '<span class="chip chip--done">✓ hecho</span>'
+          : tareaAbierta(sapoTask) ? '<span class="chip chip--coral">pendiente · decide abajo qué hacer</span>' : `<span class="chip">${signoTarea(sapoTask)}</span>`}</div></div>`
+    : `<div class="field"><label>${BOCADO.emoji} ¿Diste tu primer bocado?${r.sapo ? ` <span class="text-xs muted">(${escapeHtml(r.sapo)})</span>` : ""}</label>
       <div class="seg" id="c-sapo">
         ${segBtn("c-sapo", "1", "Sí", sapoCur)}
         ${segBtn("c-sapo", "0", "No", sapoCur)}
-      </div><input type="hidden" id="c-sapo-v" value="${sapoCur}"></div>
+      </div><input type="hidden" id="c-sapo-v" value="${sapoCur}"></div>`}
     ${tr && (tr.pro[1] || tr.per[1]) ? `<div class="field"><label>📋 Tus tareas del día</label>
       <div class="row-wrap"><span class="chip">${AMBITOS.pro.icon} ${AMBITOS.pro.label} ${tr.pro[0]}/${tr.pro[1]}</span>
         <span class="chip">${AMBITOS.per.icon} ${AMBITOS.per.label} ${tr.per[0]}/${tr.per[1]}</span></div></div>` : ""}
+    ${pendientes.length ? `<div class="field"><label>↪ Tus pendientes de ${esHoy ? "hoy" : "ese día"} (${pendientes.length})</label>
+      <div id="c-triage">${triageHtml(pendientes.map(t => ({ t, iso })), { mover: "manana", base: iso, min: agSumar(iso, 1), moverLabel: esHoy ? null : "Día siguiente" })}</div></div>` : ""}
     <div class="field"><label>Energía con la que terminas: <span id="c-elabel">${c.energia || 3}</span>/5</label>
       <input type="range" min="1" max="5" step="1" id="c-energia" value="${c.energia || 3}" style="width:100%;accent-color:var(--cian)"
         oninput="document.getElementById('c-elabel').textContent=this.value"></div>
@@ -257,9 +264,14 @@ function saveCierre() {
   const r = STATE.ritual.dias[iso];
   if (!r || !r.hecho) return toast("Primero abre tu día 🌅", true);
   const yaCerrado = r.cerrado;
+  // Decisiones sobre las pendientes (mañana, otro día, delegar, soltar, la hice)
+  const trCont = document.getElementById("c-triage");
+  const decid = trCont ? aplicarTriage(STATE, leerTriage(trCont), { base: iso, min: agSumar(iso, 1) }) : null;
+  const sapoTask = tareasDelDia(iso).find(t => t.esSapo);
+  const sapoEl = document.getElementById("c-sapo-v");
   r.cierre = {
     mision: document.getElementById("c-mision-v").value,
-    sapo: document.getElementById("c-sapo-v").value === "1",
+    sapo: sapoTask ? estadoTarea(sapoTask) === "hecha" : !!(sapoEl && sapoEl.value === "1"),
     energia: parseNum(document.getElementById("c-energia").value),
     mejor: val("c-mejor"), manana: val("c-manana"), nota: val("c-nota"),
   };
@@ -281,7 +293,8 @@ function saveCierre() {
   if (!yaCerrado) registrarMovimiento("ritual-cierre:" + iso, 40, 40, "Ritual de cierre");
   saveState(); closeModal(); updateTopbar(); rerender();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
-  toast("Día cerrado 🌙 ¡Descansa!");
+  const resumenTr = decid ? textoTriage(decid) : "";
+  toast(resumenTr ? `Día cerrado 🌙 · ${resumenTr}` : "Día cerrado 🌙 ¡Descansa!");
 }
 
 /* ============================================================

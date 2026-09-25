@@ -203,6 +203,150 @@ function tareaRowHtml(t, iso, op) {
     ${acciones}</div>`;
 }
 
-/* -------- Posponer (se completa en la fase 2) -------- */
-function renderBandejaPendientes() { return ""; }
-function openPosponerTarea() { toast("Muy pronto podrás posponer desde aquí", true); }
+/* ============================================================
+   Posponer (bullet journal): decidir qué pasa con cada tarea pendiente
+   Se usa en el cierre del día, la bandeja de pendientes, el botón ↪ y el
+   cierre de semana. Mover no da ni quita monedas: la métrica informa, no castiga.
+   ============================================================ */
+const TRIAGE_OPC = {
+  manana: { sig: ">", label: "Mañana" },
+  hoy: { sig: ">", label: "Hoy" },
+  semana: { sig: ">", label: "Próx. semana" },
+  otro: { sig: "<", label: "Otro día" },
+  delegar: { sig: "@", label: "Delegar" },
+  soltar: { sig: "✕", label: "Soltar" },
+  hecha: { sig: "✓", label: "La hice" },
+};
+const CRONICA = 3;   // regla del bullet journal: a la tercera postergación, pregúntate si vale la pena
+
+/* items: [{ t, iso }] · cfg: { mover: "manana" | "hoy" | "semana", base: fecha de referencia, min: fecha mínima para "Otro día" } */
+function triageHtml(items, cfg) {
+  const opciones = [cfg.mover, "otro", "delegar", "soltar", "hecha"];
+  const rows = items.map(({ t, iso }) => {
+    const n = (t.migraciones || 0) + 1;
+    const alerta = n >= CRONICA
+      ? `<div class="triage-alerta tr-alerta">⚠ Sería la ${n}.ª vez que la postergas. ¿Vale la pena? Puedes hacerla tu primer bocado, partirla en un paso más chico, programarla o soltarla.
+          <label class="row mt-8" style="gap:8px"><input type="checkbox" class="tr-bocado"> ${BOCADO.emoji} Hacerla mi primer bocado</label>
+          <input class="input mt-8 tr-paso" placeholder="O escribe un primer paso más chico (opcional)"></div>` : "";
+    return `<div class="triage-row" data-iso="${iso}" data-id="${t.id}">
+      <div class="triage-t">${t.esSapo ? BOCADO.emoji + " " : AMBITOS[ambitoDe(t)].icon + " "}${escapeHtml(t.txt)} ${chipMigraciones(t)}
+        ${iso !== cfg.base ? `<span class="text-xs muted">· ${diaCorto(iso)}</span>` : ""}</div>
+      <div class="seg seg--triage" role="group" aria-label="Qué hacer con esta tarea">${opciones.map(v =>
+        `<button type="button" class="${v === cfg.mover ? "is-active" : ""}" data-v="${v}" onclick="triagePick(this)"><b>${TRIAGE_OPC[v].sig}</b> ${v === cfg.mover && cfg.moverLabel ? cfg.moverLabel : TRIAGE_OPC[v].label}</button>`).join("")}</div>
+      <input type="hidden" class="tr-v" value="${cfg.mover}">
+      <div class="triage-extra tr-otro" hidden><label class="text-xs muted">¿Para qué día?</label>
+        <input type="date" class="input tr-fecha" min="${cfg.min}" value="${agSumar(cfg.min, 1)}"></div>
+      <div class="triage-extra tr-delegar" hidden><input class="input tr-quien" placeholder="¿A quién se la delegas?"></div>
+      ${alerta}
+    </div>`;
+  }).join("");
+  return `<div class="triage">
+    ${items.length > 1 ? `<div class="flex-between triage-head"><span class="text-xs muted">Elige qué hacer con cada una</span>
+      <button type="button" class="btn-ghost" onclick="triageTodas(this,'${cfg.mover}')">Todas → ${(cfg.moverLabel || TRIAGE_OPC[cfg.mover].label).toLowerCase()}</button></div>` : ""}
+    ${rows}</div>`;
+}
+function triagePick(btn) {
+  const row = btn.closest(".triage-row");
+  row.querySelectorAll(".seg--triage button").forEach(b => b.classList.toggle("is-active", b === btn));
+  const v = btn.dataset.v;
+  row.querySelector(".tr-v").value = v;
+  row.querySelector(".tr-otro").hidden = v !== "otro";
+  row.querySelector(".tr-delegar").hidden = v !== "delegar";
+  const al = row.querySelector(".tr-alerta");
+  if (al) al.hidden = !["manana", "hoy", "semana", "otro"].includes(v);
+}
+function triageTodas(btn, v) {
+  btn.closest(".triage").querySelectorAll(".triage-row").forEach(row => {
+    const b = row.querySelector(`.seg--triage button[data-v="${v}"]`); if (b) triagePick(b);
+  });
+}
+function leerTriage(cont) {
+  return Array.from((cont || document).querySelectorAll(".triage-row")).map(row => ({
+    iso: row.dataset.iso, id: row.dataset.id,
+    v: row.querySelector(".tr-v").value,
+    fecha: (row.querySelector(".tr-fecha") || {}).value || "",
+    quien: ((row.querySelector(".tr-quien") || {}).value || "").trim(),
+    bocado: !!(row.querySelector(".tr-bocado") || {}).checked,
+    paso: ((row.querySelector(".tr-paso") || {}).value || "").trim(),
+  }));
+}
+/* Aplica las decisiones. Devuelve un conteo para el mensaje final. */
+function aplicarTriage(S, decisiones, cfg) {
+  const n = { movidas: 0, delegadas: 0, soltadas: 0, hechas: 0 };
+  const hoy = todayISO();
+  decisiones.forEach(d => {
+    const t = buscarTarea(S, d.iso, d.id);
+    if (!t || t.borrada || !tareaAbierta(t)) return;
+    if (["manana", "hoy", "semana", "otro"].includes(d.v)) {
+      let destino = d.v === "manana" ? agSumar(cfg.base, 1) : d.v === "hoy" ? hoy
+        : d.v === "semana" ? agSumar(agLunes(cfg.base), 7) : d.fecha;
+      if (!destino || destino <= d.iso) destino = d.v === "otro" ? agSumar(cfg.min, 1) : agSumar(d.iso, 1);
+      moverTarea(S, t, d.iso, destino, d.v === "otro" ? "programada" : "migrada", { hoy, txt: d.paso || undefined, comoBocado: d.bocado });
+      n.movidas++;
+    } else if (d.v === "delegar") { marcarTarea(t, "delegada", { delegadaA: d.quien }); n.delegadas++; }
+    else if (d.v === "soltar") { marcarTarea(t, "soltada"); n.soltadas++; }
+    else if (d.v === "hecha") {
+      marcarTarea(t, "hecha"); n.hechas++;
+      if (typeof registrarMovimiento === "function") registrarMovimiento("tarea:" + t.id, 15, 15, "Tarea", true);
+    }
+  });
+  return n;
+}
+function textoTriage(n) {
+  const p = [];
+  if (n.hechas) p.push(`✓ ${n.hechas} hecha${n.hechas === 1 ? "" : "s"}`);
+  if (n.movidas) p.push(`↪ ${n.movidas} a otro día`);
+  if (n.delegadas) p.push(`@ ${n.delegadas} delegada${n.delegadas === 1 ? "" : "s"}`);
+  if (n.soltadas) p.push(`✕ ${n.soltadas} soltada${n.soltadas === 1 ? "" : "s"}`);
+  return p.join(" · ");
+}
+
+/* -------- Bandeja: pendientes de días anteriores -------- */
+function itemsBandeja() {
+  const hoy = todayISO();
+  const cierreAyer = typeof pendingCierreDate === "function" ? pendingCierreDate() : null;   // esas se deciden al cerrar ayer
+  return pendientesAnteriores(STATE, hoy, 30).filter(x => x.iso !== cierreAyer);
+}
+function renderBandejaPendientes() {
+  const items = itemsBandeja();
+  if (!items.length) return "";
+  return `<div class="bandeja">
+    <div><b>📥 ${items.length} pendiente${items.length === 1 ? "" : "s"} de días anteriores</b>
+      <div class="text-xs muted">Decide qué hacer con ${items.length === 1 ? "ella" : "ellas"}: hoy, otro día, delegar o soltar.</div></div>
+    <button class="btn btn--soft" data-action="bandeja-open">Resolver</button></div>`;
+}
+function openBandeja() {
+  const items = itemsBandeja();
+  if (!items.length) return toast("No tienes pendientes de días anteriores 🎉");
+  const hoy = todayISO();
+  openModal("Pendientes de días anteriores", `
+    <p class="text-sm muted" style="margin-bottom:12px">Como en tu agenda de papel: cada tarea abierta se decide. Por defecto pasan a hoy.</p>
+    <div id="bandeja-triage">${triageHtml(items, { mover: "hoy", base: hoy, min: hoy })}</div>
+    <button class="btn btn--primary btn-block mt-16" data-action="bandeja-save">Guardar decisiones</button>`);
+}
+function guardarBandeja() {
+  const hoy = todayISO();
+  const n = aplicarTriage(STATE, leerTriage(document.getElementById("bandeja-triage")), { base: hoy, min: hoy });
+  saveState(); closeModal(); updateTopbar(); rerender();
+  toast(textoTriage(n) || "Listo");
+}
+
+/* -------- ↪ Posponer una tarea puntual -------- */
+function openPosponerTarea(iso, id) {
+  const t = buscarTarea(STATE, iso, id);
+  if (!t || !tareaAbierta(t)) return;
+  const hoy = todayISO();
+  const base = iso < hoy ? hoy : iso;
+  const mover = iso < hoy ? "hoy" : "manana";
+  openModal("Posponer tarea", `
+    <div id="posponer-triage" data-base="${base}">${triageHtml([{ t, iso }], { mover, base, min: base, moverLabel: iso > hoy ? "Día siguiente" : null })}</div>
+    <p class="text-xs muted mt-8">${iso > hoy ? "Moverla antes de su día es replanificar: no cuenta como postergación." : "Moverla cuenta como postergación en tus métricas."}</p>
+    <button class="btn btn--primary btn-block mt-16" data-action="posponer-save">Guardar</button>`);
+}
+function guardarPosponer() {
+  const cont = document.getElementById("posponer-triage");
+  const base = cont.dataset.base;
+  const n = aplicarTriage(STATE, leerTriage(cont), { base, min: base });
+  saveState(); closeModal(); updateTopbar(); rerender();
+  toast(textoTriage(n) || "Listo");
+}

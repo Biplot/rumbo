@@ -90,7 +90,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 2;          // sube cuando haya novedades que mostrar a usuarios existentes
+const INTRO_VERSION = 3;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -98,9 +98,13 @@ const ONB_SLIDES = [
   { icon: "👋", titulo: "Bienvenido a Rumbo",
     cuerpo: "Tu vida en un solo lugar: un centro de control personal para tu día, tus hábitos, tus objetivos, tus finanzas y tu bienestar. Simple, privado y sincronizado entre tus dispositivos." },
   { icon: "🌅", titulo: "El ritual diario",
-    cuerpo: `<b>Abre tu día</b> en la mañana: tu misión, tu ${BOCADO.corto.toLowerCase()}, tus tareas ${AMBITOS.pro.icon} profesionales y ${AMBITOS.per.icon} personales, y tu energía. De noche, <b>ciérralo</b> con una breve reflexión y gratitud.<br><br>La idea es usar la app lo <i>menos</i> posible: abrir y cerrar mantiene vivo todo tu sistema.` },
+    cuerpo: `<b>Abre tu día</b> en la mañana: tu misión, tu ${BOCADO.corto.toLowerCase()}, tus tareas ${AMBITOS.pro.icon} profesionales y ${AMBITOS.per.icon} personales, y tu energía. De noche, <b>ciérralo</b>: decide qué pasa con lo pendiente, reflexiona y agradece.<br><br>La idea es usar la app lo <i>menos</i> posible: abrir y cerrar mantiene vivo todo tu sistema.` },
   { icon: BOCADO.emoji, titulo: "Tu Primer Bocado",
     cuerpo: `<i>¿Cómo te comes un elefante? Un bocado a la vez.</i><br><br>${BOCADO.titulo} es la tarea más importante del día: la que más mueve la aguja. <b>${BOCADO.accion}</b> y el resto del día fluye.` },
+  { icon: "📋", titulo: "Tu registro diario",
+    cuerpo: "Como en un bullet journal: cada tarea vive en su fecha y guarda su historia. Lo que no alcanzas lo decides al cerrar el día: <b>&gt;</b> mañana, <b>&lt;</b> otro día, <b>@</b> delegar o <b>✕</b> soltar.<br><br>Así ves cuánto postergas y qué se te repite, sin culpa: la métrica informa, no castiga. A la tercera postergación, Rumbo te pregunta si vale la pena." },
+  { icon: "📅", titulo: "Ritual de semana",
+    cuerpo: "El domingo (o el lunes, tú eliges) <b>cierras tu semana</b>: tus prioridades, tus números y tus pendientes. Y enseguida <b>planificas la siguiente</b>: un foco, 3 prioridades conectadas con tus objetivos del mes, tus días y tu premio." },
   { icon: "🗓️", titulo: "Ritual de mes",
     cuerpo: "Al empezar cada mes, <b>ábrelo</b>: mira cómo te fue, define un foco y 3 a 5 objetivos conectados con tus metas del trimestre. Al terminar, <b>ciérralo</b>: revisa tus objetivos, tus números y tu rueda de la vida." },
   { icon: "📊", titulo: "Hábitos con frecuencia real",
@@ -164,19 +168,33 @@ function renderOnboardingStep() {
       </div>`);
   }
 }
-/* Novedades para usuarios existentes (una sola vez por versión) */
-function openNovedades() {
-  const items = [
+/* Novedades para usuarios existentes, por versión de la introducción (se muestran una sola vez:
+   quien quedó en la 1 ve las de la 2 y la 3; quien quedó en la 2, solo las de la 3) */
+const NOVEDADES = {
+  2: [
     [BOCADO.emoji, BOCADO.titulo, "Tu tarea más importante del día tiene nuevo nombre: ¿cómo te comes un elefante? Un bocado a la vez."],
     ["💼", "Tareas profesionales y personales", "Separa tus tareas del día en dos grupos, cada uno con su contador."],
     ["📊", "Hábitos con frecuencia", "Diario, X por semana, días fijos o X al mes. Se miden contra tu objetivo real."],
     ["🗓️", "Ritual de mes", "Abre y cierra cada mes, conectado con tus objetivos mensuales y trimestrales."],
     ["🎨", "Temas nuevos", "Navy es el nuevo tema base, Claro ahora es azul y llegan Bosque Claro y Bosque Oscuro a la Tienda."],
-  ];
+  ],
+  3: [
+    ["📋", "Registro diario", "Como en tu bullet journal: tus tareas viven en su fecha y guardan su historia. Ya no se borran al cambiar de semana."],
+    ["↪", "Posponer al cerrar el día", "Decide qué pasa con cada pendiente: > mañana, < otro día, @ delegar, ✕ soltar o ✓ la hice. Lo que quede sin decidir te espera en la bandeja."],
+    ["⚠", "La regla de las 3 postergaciones", "A la tercera vez, Rumbo te pregunta si vale la pena: hazla tu primer bocado, pártela en un paso más chico o suéltala."],
+    ["🎯", "Foco y postergación", "En Tendencias: índice de postergación, días de arrastre, tu capacidad real, qué días postergas más y nuevos descubrimientos."],
+    ["📅", "Ritual de semana", "El domingo (o el lunes) cierras tu semana y planificas la siguiente: foco, 3 prioridades, tus días y tu premio. +75 ⭐ cada uno."],
+  ],
+};
+function openNovedades() {
+  const desde = STATE.settings.introVersion || 1;
+  const versiones = Object.keys(NOVEDADES).map(Number).filter(v => v > desde && v <= INTRO_VERSION).sort((a, b) => b - a);
+  const lista = items => `<div class="novedades">${items.map(([ic, t, d]) => `<div class="novedad"><span class="novedad__ico">${ic}</span>
+      <div><div class="novedad__t">${escapeHtml(t)}</div><div class="text-sm muted">${escapeHtml(d)}</div></div></div>`).join("")}</div>`;
+  const cuerpo = versiones.map((v, i) => (i ? `<div class="divider"></div><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">También llegó antes</div>` : "") + lista(NOVEDADES[v])).join("");
   ONB_ACTIVE = false;
   openModal("✨ Novedades de Rumbo", `
-    <div class="novedades">${items.map(([ic, t, d]) => `<div class="novedad"><span class="novedad__ico">${ic}</span>
-      <div><div class="novedad__t">${escapeHtml(t)}</div><div class="text-sm muted">${escapeHtml(d)}</div></div></div>`).join("")}</div>
+    ${cuerpo}
     <div class="onb-nav mt-16">
       <button class="btn-ghost" data-action="intro-replay">📖 Ver la introducción</button>
       <button class="btn btn--primary" data-action="onb-done">¡Entendido!</button>

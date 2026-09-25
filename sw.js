@@ -1,10 +1,14 @@
 /* Rumbo · Service Worker
    Cachea el "app shell" (mismo origen) con estrategia stale-while-revalidate.
    No toca peticiones a Supabase ni a otros dominios (siempre van a la red). */
-const CACHE = "rumbo-cache-v3";
+const CACHE = "rumbo-cache-v4";
 
 self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+/* Al activar una versión nueva se borran las cachés anteriores */
+self.addEventListener("activate", (e) => e.waitUntil(
+  caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k.startsWith("rumbo-cache")).map((k) => caches.delete(k))))
+    .then(() => self.clients.claim())
+));
 
 /* Web Push: mostrar el aviso que manda el servidor (Parte B) */
 self.addEventListener("push", (e) => {

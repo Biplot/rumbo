@@ -1,13 +1,13 @@
 # Rumbo · Tu vida en un solo lugar
 
-App personal de gestión de vida: ritual diario (apertura y cierre), hábitos, finanzas, metas, lecturas, salud, rueda de la vida, diario, relaciones, listas, tendencias y un sistema de recompensas (rangos, insignias y cosméticos).
+App personal de gestión de vida: rituales de día, semana y mes (apertura y cierre), registro diario de tareas estilo bullet journal (posponer, delegar, soltar) con métricas de postergación, hábitos, finanzas, metas, lecturas, salud, rueda de la vida, diario, relaciones, listas, tendencias y un sistema de recompensas (rangos, insignias y cosméticos).
 
 Hecha con la identidad de marca **BiPlot** (azul profundo · cian · coral).
 
 ## Producción
 - **Repositorio:** organización **Biplot** (`Biplot/rumbo`).
 - **App:** desplegada con GitHub Pages en `https://biplot.github.io/rumbo/` (dominio propio en configuración).
-- **Notificaciones:** recordatorios de ritual (mañana/noche) vía GitHub Actions + Web Push (`notifier/`).
+- **Notificaciones:** recordatorios de ritual (mañana/noche, semana y mes) vía GitHub Actions + Web Push (`notifier/`).
 
 ## Tecnología
 - **Frontend:** HTML, CSS y JavaScript sin frameworks (estático).
@@ -18,6 +18,8 @@ Hecha con la identidad de marca **BiPlot** (azul profundo · cian · coral).
 node serve.js
 ```
 Luego abre `http://localhost:5178`.
+
+Tests (sin dependencias): `node tests/merge.test.mjs`.
 
 ## Configuración de Supabase
 Las claves públicas van en `js/store.js` (`SUPABASE_URL`, `SUPABASE_KEY`). La `publishable key` es pública por diseño; los datos están protegidos por RLS. Esquema:

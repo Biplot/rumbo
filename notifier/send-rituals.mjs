@@ -1,5 +1,5 @@
 /* ============================================================
-   Rumbo · Envío de recordatorios de ritual (mañana / noche y ritual de mes)
+   Rumbo · Envío de recordatorios de ritual (mañana / noche, semana y mes)
    Corre en GitHub Actions cada ~15 min y manda Web Push a quien
    le toque su hora local. Idempotente vía la tabla notif_sent.
 
@@ -43,11 +43,31 @@ const MSGS = {
   noche: { title: "🌙 Cierra tu día", body: "Tómate un momento para reflexionar y cerrar tu día.", url: "./#ritual", tag: "rumbo-noche" },
   "mes-apertura": { title: "🗓️ Empieza un mes nuevo", body: "Abre tu mes: mira el anterior, define tu foco y tus objetivos.", url: "./#ritual", tag: "rumbo-mes-apertura" },
   "mes-cierre": { title: "🗓️ Último día del mes", body: "Cierra tu mes: revisa tus objetivos y reflexiona.", url: "./#ritual", tag: "rumbo-mes-cierre" },
+  "semana-cierre": { title: "📅 Tu ritual semanal", body: "Cierra tu semana y planifica la que viene. Toma 10 minutos.", url: "./#ritual", tag: "rumbo-semana-cierre" },
+  "semana-apertura": { title: "📅 Planifica tu semana", body: "Elige tu foco, tus 3 prioridades y reparte tus tareas en los días.", url: "./#ritual", tag: "rumbo-semana-apertura" },
 };
 /* Ritual de mes: apertura el día 1 (hora de "mañana"), cierre el último día (hora de "noche").
    Clave de mes "YYYY-MM" igual que STATE.ritual.meses en la app. */
 const MES_TIPOS = { "mes-apertura": { hora: "manana", parte: "apertura" }, "mes-cierre": { hora: "noche", parte: "cierre" } };
 function ultimoDiaMes(iso) { const [y, m] = iso.split("-").map(Number); return new Date(Date.UTC(y, m, 0)).getUTCDate(); }
+
+/* Ritual de semana (clave = lunes "YYYY-MM-DD", igual que STATE.ritual.semanas).
+   Día del ritual: settings.ritualSemanal.dia (0 = domingo, 1 = lunes).
+   · semana-cierre: el día del ritual (domingo en la noche / lunes en la mañana), si falta cerrar o planificar
+   · semana-apertura: el día siguiente en la mañana, si la semana aún no se planifica
+   Devuelve la hora a usar ("manana" | "noche") o null si hoy no toca. */
+function sumarDias(iso, n) { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+function lunesDe(iso) { const dow = new Date(iso + "T12:00:00Z").getUTCDay(); return sumarDias(iso, -((dow + 6) % 7)); }
+function avisoSemana(tipo, hoy, diaSem, semanas) {
+  const dow = new Date(hoy + "T12:00:00Z").getUTCDay(), L = lunesDe(hoy), w = k => semanas[k] || {};
+  if (tipo === "semana-cierre") {
+    if (diaSem === 0 && dow === 0) return w(L).cierre && w(sumarDias(L, 7)).apertura ? null : "noche";
+    if (diaSem === 1 && dow === 1) return w(sumarDias(L, -7)).cierre && w(L).apertura ? null : "manana";
+    return null;
+  }
+  if ((diaSem === 0 && dow === 1) || (diaSem === 1 && dow === 2)) return w(L).apertura ? null : "manana";
+  return null;
+}
 
 function localMinutes(tz) {
   const p = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date());
@@ -73,22 +93,31 @@ for (const row of usuarios || []) {
 
   const dia = +hoy.slice(8, 10), mes = hoy.slice(0, 7);
   const ritualMes = ((row.data.ritual || {}).meses || {})[mes] || {};
+  const semanas = (row.data.ritual || {}).semanas || {};
+  const diaSem = (((row.data.settings || {}).ritualSemanal) || {}).dia === 1 ? 1 : 0;
 
-  for (const tipo of ["manana", "noche", "mes-apertura", "mes-cierre"]) {
+  for (const tipo of ["manana", "noche", "mes-apertura", "mes-cierre", "semana-cierre", "semana-apertura"]) {
     const mt = MES_TIPOS[tipo];
+    let hora = tipo;
     if (mt) {
       if (tipo === "mes-apertura" && dia !== 1) continue;
       if (tipo === "mes-cierre" && dia !== ultimoDiaMes(hoy)) continue;
       if (ritualMes[mt.parte]) continue;          // ese ritual ya está hecho: no avisar
+      hora = mt.hora;
     }
-    const diff = nowMin - toMin(notif[mt ? mt.hora : tipo]);
+    if (tipo.startsWith("semana-")) {
+      hora = avisoSemana(tipo, hoy, diaSem, semanas);
+      if (!hora) continue;                        // hoy no toca o ya está hecho
+    }
+    const diff = nowMin - toMin(notif[hora]);
     if (diff < 0 || diff >= WINDOW_MIN) continue; // fuera de la ventana
 
     // Dedup: registrar el envío; si ya existe (PK duplicada) o falla, no reenviar
     const { error: insErr } = await sb.from("notif_sent").insert({ user_id: row.user_id, tipo, fecha: hoy });
     if (insErr) { saltados++; continue; }
 
-    const payload = JSON.stringify(mt ? { ...MSGS[tipo], tag: MSGS[tipo].tag + "-" + mes } : MSGS[tipo]);
+    const sufijo = mt ? mes : tipo.startsWith("semana-") ? lunesDe(hoy) : "";
+    const payload = JSON.stringify(sufijo ? { ...MSGS[tipo], tag: MSGS[tipo].tag + "-" + sufijo } : MSGS[tipo]);
     for (const sub of notif.subs) {
       try {
         await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);

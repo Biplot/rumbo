@@ -50,6 +50,8 @@ const BADGES = [
   { id: "devorador", icon: "📚", nombre: "Devorador de Libros", desc: "Termina 3 libros", reward: 60, check: s => s.lecturas.filter(l => l.estado === "terminado").length >= 3 },
   { id: "peso-pluma", icon: "⚖️", nombre: "Peso Pluma", desc: "Alcanza tu peso objetivo", reward: 100, check: s => { const p = g_pesoActual(s); return p != null && p <= s.salud.pesoObjetivo; } },
   { id: "mes-redondo", icon: "🗓️", nombre: "Mes Redondo", desc: "Abre y cierra el mismo mes", reward: 100, check: s => g_mesesRedondos(s).length >= 1 },
+  { id: "semana-redonda", icon: "📅", nombre: "Semana Redonda", desc: "Planifica y cierra la misma semana", reward: 75, check: s => g_semanasRedondas(s).length >= 1 },
+  { id: "cuatro-semanas", icon: "📆", nombre: "4 Semanas Seguidas", desc: "Planifica y cierra 4 semanas seguidas", reward: 200, check: s => g_semanasSeguidas(s, 4) },
   { id: "trimestre-rumbo", icon: "🧭", nombre: "Trimestre con Rumbo", desc: "3 meses seguidos abiertos y cerrados", reward: 250, check: s => g_trimestreConRumbo(s) },
   { id: "guerrero", icon: "💪", nombre: "Guerrero", desc: "Acumula 50 días entrenados", reward: 60, check: s => g_diasEntren(s) >= 50 },
   { id: "elefante-domado", icon: "🎪", nombre: "Elefante Domado", desc: "Completa una tarea que habías postergado 3 veces o más", reward: 50, check: s => tmElefanteDomado(s) },

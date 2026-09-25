@@ -11,7 +11,8 @@
      migraciones,  // cuántas veces se postergó la cadena antes de este registro
      destino?,     // a qué fecha se movió (migrada / programada)
      postergada?,  // se movió el mismo día o después (cuenta como postergación)
-     delegadaA?, bocadoSugerido?, borrada?
+     delegadaA?, bocadoSugerido?, borrada?,
+     prioridad?    // id de la prioridad de la semana que avanza (ritual semanal)
    }
    Estados: pendiente · hecha · migrada (>) · programada (<) · delegada (@) · soltada (✕)
    Las borradas quedan marcadas (borrada: true) para que no revivan al sincronizar.
@@ -60,6 +61,7 @@ function nuevaTarea(S, iso, p) {
   t.origen = p.origen || t.id;
   if (p.esSapo) t.esSapo = true;
   if (p.bocadoSugerido) t.bocadoSugerido = true;
+  if (p.prioridad) t.prioridad = p.prioridad;
   agendaDia(S, iso).push(t);
   return t;
 }
@@ -84,7 +86,7 @@ function moverTarea(S, t, desde, hacia, tipo, op) {
   return nuevaTarea(S, hacia, {
     txt: op.txt || t.txt, ambito: t.ambito, origen: t.origen || t.id, creada: t.creada || desde,
     migraciones: (t.migraciones || 0) + (postergada ? 1 : 0),
-    bocadoSugerido: !!(op.comoBocado || (t.esSapo && postergada)),
+    bocadoSugerido: !!(op.comoBocado || (t.esSapo && postergada)), prioridad: t.prioridad,
   });
 }
 /* Deshace un movimiento si la copia sigue intacta (pendiente) */
@@ -204,7 +206,7 @@ function tareaRowHtml(t, iso, op) {
     : (tareaMovida(t) ? `<button class="icon-btn" data-action="tarea-deshacer" data-fecha="${iso}" data-id="${t.id}" title="Deshacer" aria-label="Deshacer">↶</button>` : "");
   return `<div class="item-row tarea-row ${viva ? "" : "is-moved"} ${t.esSapo ? "is-bocado" : ""}" style="padding:${op.compacto ? "8px 10px" : "9px 11px"}">
     ${marca}
-    <div class="item-row__main"><div class="item-row__title text-sm ${hecha || e === "soltada" ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : ""}${escapeHtml(t.txt)}</div>
+    <div class="item-row__main"><div class="item-row__title text-sm ${hecha || e === "soltada" ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : t.prioridad ? '<span title="Prioridad de la semana">🎯</span> ' : ""}${escapeHtml(t.txt)}</div>
       ${t.esSapo && !op.compacto && viva ? `<div class="item-row__sub hl-coral">${BOCADO.titulo} · ${BOCADO.accion}</div>` : ""}
       ${meta ? `<div class="tarea-meta">${meta}</div>` : ""}</div>
     ${acciones}</div>`;
@@ -226,7 +228,8 @@ const TRIAGE_OPC = {
 };
 const CRONICA = 3;   // regla del bullet journal: a la tercera postergación, pregúntate si vale la pena
 
-/* items: [{ t, iso }] · cfg: { mover: "manana" | "hoy" | "semana", base: fecha de referencia, min: fecha mínima para "Otro día" } */
+/* items: [{ t, iso }] · cfg: { mover: "manana" | "hoy" | "semana", base: fecha de referencia, min: fecha mínima para "Otro día",
+   moverLabel?: texto del botón principal, conDia?: mostrar siempre el día de cada tarea } */
 function triageHtml(items, cfg) {
   const opciones = [cfg.mover, "otro", "delegar", "soltar", "hecha"];
   const rows = items.map(({ t, iso }) => {
@@ -237,7 +240,7 @@ function triageHtml(items, cfg) {
           <input class="input mt-8 tr-paso" placeholder="O escribe un primer paso más chico (opcional)"></div>` : "";
     return `<div class="triage-row" data-iso="${iso}" data-id="${t.id}">
       <div class="triage-t">${t.esSapo ? BOCADO.emoji + " " : AMBITOS[ambitoDe(t)].icon + " "}${escapeHtml(t.txt)} ${chipMigraciones(t)}
-        ${iso !== cfg.base ? `<span class="text-xs muted">· ${diaCorto(iso)}</span>` : ""}</div>
+        ${cfg.conDia || iso !== cfg.base ? `<span class="text-xs muted">· ${diaCorto(iso)}</span>` : ""}</div>
       <div class="seg seg--triage" role="group" aria-label="Qué hacer con esta tarea">${opciones.map(v =>
         `<button type="button" class="${v === cfg.mover ? "is-active" : ""}" data-v="${v}" onclick="triagePick(this)"><b>${TRIAGE_OPC[v].sig}</b> ${v === cfg.mover && cfg.moverLabel ? cfg.moverLabel : TRIAGE_OPC[v].label}</button>`).join("")}</div>
       <input type="hidden" class="tr-v" value="${cfg.mover}">
@@ -276,6 +279,19 @@ function leerTriage(cont) {
     bocado: !!(row.querySelector(".tr-bocado") || {}).checked,
     paso: ((row.querySelector(".tr-paso") || {}).value || "").trim(),
   }));
+}
+/* Vuelve a marcar decisiones ya tomadas (al ir y volver entre pasos de un asistente) */
+function restaurarTriage(cont, decisiones) {
+  if (!cont) return;
+  (decisiones || []).forEach(x => {
+    const row = Array.from(cont.querySelectorAll(".triage-row")).find(r => r.dataset.iso === x.iso && r.dataset.id === x.id);
+    if (!row) return;
+    const b = row.querySelector(`.seg--triage button[data-v="${x.v}"]`); if (b) triagePick(b);
+    if (x.fecha) row.querySelector(".tr-fecha").value = x.fecha;
+    if (x.quien) row.querySelector(".tr-quien").value = x.quien;
+    const bo = row.querySelector(".tr-bocado"); if (bo) bo.checked = !!x.bocado;
+    const pa = row.querySelector(".tr-paso"); if (pa) pa.value = x.paso || "";
+  });
 }
 /* Aplica las decisiones. Devuelve un conteo para el mensaje final. */
 function aplicarTriage(S, decisiones, cfg) {

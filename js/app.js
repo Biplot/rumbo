@@ -767,6 +767,15 @@ function onClick(e) {
     case "mes-prev": mesWizMover(-1); break;
     case "mes-finish": mesWizFinish(); break;
     case "mes-hab-add": mesHabAdd(); break;
+    case "sem-ritual": openSemanaRitual(d.cierre, d.apertura); break;
+    case "sem-open": openSemApertura(d.lunes); break;
+    case "sem-close": openSemCierre(d.lunes); break;
+    case "semw-next": semWizMover(1); break;
+    case "semw-prev": semWizMover(-1); break;
+    case "semw-finish": semWizFinish(); break;
+    case "semw-add": semWizAdd(d.fecha, +d.i); break;
+    case "semw-del": semWizDel(d.fecha, +d.i); break;
+    case "sem-dia": guardarDiaRitualSemanal(+d.v); break;
 
     /* Bitácora */
     case "bita-toggle": BITA_OPEN[d.iso] = !BITA_OPEN[d.iso]; rerender(); break;
@@ -1279,6 +1288,7 @@ function renderInicio() {
   return `
   ${renderPendingYesterday()}
   ${renderMesBanner()}
+  ${renderSemanaBanner()}
   ${renderDayHero()}
   <div class="grid grid-4">
     ${statCard("💰", "Ahorro de " + MESES[mIdx], fmtCLP(ahorroMes), `Meta ${fmtCLP(metaMes)} · ${pctAhorro}%`, pctAhorro)}

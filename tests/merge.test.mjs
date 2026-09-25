@@ -172,7 +172,7 @@ test("mergeStates no usa Math.max de saldos (ambos viejos → menor)", () => {
 });
 
 /* Tests adicionales registrados por otras fases (hábitos, ritual de mes, registro diario…) */
-for (const f of ["extra.test.mjs", "agenda.test.mjs"]) {
+for (const f of ["extra.test.mjs", "agenda.test.mjs", "semana.test.mjs"]) {
   const p = path.join(root, "tests", f);
   if (!fs.existsSync(p)) continue;
   const mod = await import(p);

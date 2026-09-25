@@ -617,6 +617,20 @@ textarea.input { resize: vertical; min-height: 84px; }
 .mes-actual { border-color: var(--cian); }
 .modal__body .mes-wiz { max-height: 58vh; overflow-y: auto; padding-right: 2px; }
 
+/* ============================================================
+   RITUAL DE SEMANA
+   ============================================================ */
+.semw-dia { padding: 10px 0; border-top: 1px solid var(--line); }
+.semw-dia.is-pasado { opacity: .55; }
+.semw-dia.is-hoy b { color: var(--cian); }
+.semw-dia .row .input { flex: 1; min-width: 0; }
+.chip-x { background: none; border: 0; color: inherit; padding: 0 0 0 2px; margin-left: 2px; cursor: pointer; font-size: 11px; opacity: .7; line-height: 1; }
+.chip-x:hover { opacity: 1; }
+.sem-mini { background: var(--surface-2); border: 1px dashed var(--line); border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 14px; }
+.delta { font-size: 11px; margin-left: 6px; vertical-align: middle; }
+.delta.is-up { color: var(--cian); }
+.delta.is-down { color: var(--coral); }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .grid-4 { grid-template-columns: repeat(2, 1fr); }

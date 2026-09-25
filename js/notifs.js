@@ -50,6 +50,9 @@ function renderNotificaciones() {
         <input class="input" type="time" id="notif-noche" value="${n.noche || "21:00"}"></div>
     </div>
     <button class="btn btn--cian btn-block mt-16" data-action="notif-times">Guardar horarios</button>
+    <p class="text-xs muted mt-16">📅 Ritual semanal: ${diaRitualSemanal() === 1
+      ? "el <b>lunes</b> a tu hora de la mañana, y el martes si aún no planificas tu semana."
+      : "el <b>domingo</b> a tu hora de la noche, y el lunes en la mañana si aún no planificas tu semana."} Cambia el día en Ritual → Semana.</p>
   </div>
 
   ${perm === "granted" ? `<button class="btn-ghost btn-block mt-16" data-action="notif-test">Enviar una notificación de prueba</button>` : ""}

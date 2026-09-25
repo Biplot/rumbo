@@ -252,6 +252,11 @@ function mergeStates(server, local) {
     const iv = Math.max(local.settings.introVersion || 0, server.settings.introVersion || 0);
     if (iv) out.settings.introVersion = iv;
   }
+  // Día del ritual semanal: gana el cambio más reciente
+  if (local.settings && server.settings && out.settings) {
+    const lr = local.settings.ritualSemanal, sr = server.settings.ritualSemanal;
+    if (sr && (!lr || (sr.ts || 0) > (lr.ts || 0))) out.settings.ritualSemanal = JSON.parse(JSON.stringify(sr));
+  }
   // El resto (profile, settings, salud, rueda, ritual.pilares, entrenamiento) lo gana local.
   return out;
 }

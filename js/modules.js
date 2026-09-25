@@ -194,10 +194,12 @@ function metaRow(m, bucket, idx) {
   let tri = null;
   if (bucket === "mes" && m.triId) tri = (STATE.metas.trimestres[Math.floor(idx / 3)] || []).find(t => t.id === m.triId);
   const estado = m.estadoCierre === "parcial" ? '<span class="chip chip--coral">parcial</span>' : m.estadoCierre === "no" ? '<span class="chip">no cumplido</span>' : "";
+  const nPrio = bucket === "mes" ? prioridadesDeObjetivo(m.id) : 0;   // semanas que lo empujaron
   return `<div class="item-row">
     <span class="check ${m.done ? "is-on" : ""}" data-action="meta-toggle" data-bucket="${bucket}" data-idx="${idx}" data-id="${m.id}">${m.done ? "✓" : ""}</span>
     <div class="item-row__main"><div class="item-row__title ${m.done ? "strike" : ""}">${m.ambito ? AMBITOS[ambitoDe(m)].icon + " " : ""}${escapeHtml(m.texto)} ${estado}</div>
-      ${tri ? `<div class="item-row__sub">↳ 🎯 ${escapeHtml(tri.texto)}</div>` : ""}</div>
+      ${tri ? `<div class="item-row__sub">↳ 🎯 ${escapeHtml(tri.texto)}</div>` : ""}
+      ${nPrio ? `<div class="item-row__sub">📅 ${nPrio} prioridad${nPrio === 1 ? "" : "es"} semanal${nPrio === 1 ? "" : "es"}</div>` : ""}</div>
     <button class="icon-btn" data-action="meta-del" data-bucket="${bucket}" data-idx="${idx}" data-id="${m.id}">🗑</button>
   </div>`;
 }

@@ -25,12 +25,14 @@ function openPilaresInfo() {
 /* ============================================================
    RITUAL MATUTINO
    ============================================================ */
-let RITUAL_VIEW = "dia";   // dia | mes
+let RITUAL_VIEW = "dia";   // dia | semana | mes
 function renderRitual() {
-  const seg = `<div class="seg" style="margin-bottom:16px">${[["dia", "🌅 Día"], ["mes", "🗓️ Mes"]].map(([k, l]) =>
+  const seg = `<div class="seg" style="margin-bottom:16px">${[["dia", "🌅 Día"], ["semana", "📅 Semana"], ["mes", "🗓️ Mes"]].map(([k, l]) =>
     `<button class="${RITUAL_VIEW === k ? "is-active" : ""}" data-action="ritual-view" data-v="${k}">${l}</button>`).join("")}</div>`;
-  if (RITUAL_VIEW === "mes") return seg + renderMesBanner() + renderRitualMes();
-  return seg + renderMesBanner() + renderRitualDia();
+  const avisos = renderMesBanner() + renderSemanaBanner();
+  if (RITUAL_VIEW === "mes") return seg + avisos + renderRitualMes();
+  if (RITUAL_VIEW === "semana") return seg + avisos + renderRitualSemana();
+  return seg + avisos + renderRitualDia();
 }
 function renderRitualDia() {
   const iso = todayISO();
@@ -122,6 +124,7 @@ function openRitualModal() {
   openModal("Ritual de apertura", `
     <div class="field"><label>Misión de hoy</label><input class="input" id="r-mision" value="${escapeAttr(misionDefault)}" placeholder="¿Qué hará hoy un gran día?"></div>
 
+    ${prioridadesSemanaMini()}
     <div class="field"><label>📋 Tareas del día</label>
       <div style="background:var(--coral-soft);border:1px solid var(--coral);border-radius:var(--r-sm);padding:12px;margin-bottom:10px">
         <label style="color:var(--coral);margin-bottom:6px">${BOCADO.emoji} ${BOCADO.titulo} — la tarea más importante (empieza por aquí)</label>
@@ -421,11 +424,10 @@ function renderSemana() {
   fechas.forEach(iso => { const r = resumenDia(STATE, iso); hechas += r.hechas; pend += r.pendientes; mov += r.migradas + r.programadas; solt += r.soltadas + r.delegadas; });
   const vivas = hechas + pend;
   const pSem = tmResumen(STATE, lunes, fechas[6]);
-  const plan = ((STATE.ritual.semanas || {})[lunes] || {}).plan || {};
-  const dL = agDate(lunes), dD = agDate(fechas[6]);
-  const rango = dL.getMonth() === dD.getMonth()
-    ? `${dL.getDate()} al ${dD.getDate()} de ${MESES[dD.getMonth()].toLowerCase()}`
-    : `${dL.getDate()} de ${MESES[dL.getMonth()].toLowerCase()} al ${dD.getDate()} de ${MESES[dD.getMonth()].toLowerCase()}`;
+  const rs = (STATE.ritual.semanas || {})[lunes] || {};
+  const plan = rs.plan || {}, ap = rs.apertura;
+  const planificable = semanaPlanificable(lunes);
+  const rango = rangoSemanaTxt(lunes);
 
   return `
   <div class="sem-nav">
@@ -435,7 +437,13 @@ function renderSemana() {
     ${esActual ? "" : `<button class="btn-ghost" data-action="sem-nav" data-dir="0">Ir a hoy</button>`}
   </div>
   <div class="grid grid-2 mt-16">
-    <div class="card"><div class="text-xs muted" style="text-transform:uppercase">🏆 Tu premio de la semana</div>
+    <div class="card">
+      <div class="flex-between" style="gap:8px"><div class="text-xs muted" style="text-transform:uppercase">📅 Plan de la semana</div>
+        ${planificable ? `<button class="btn-ghost" data-action="sem-open" data-lunes="${lunes}">${ap ? "Editar" : "Planificar"}</button>` : ""}</div>
+      ${ap ? `${ap.foco ? `<div class="card__title mt-8">${escapeHtml(ap.foco)}</div>` : ""}
+        ${(ap.prioridades || []).map(p => `<div class="text-sm mt-8">🎯 ${escapeHtml(p.texto)}${prioridadHecha(p, lunes) ? ' <span class="chip chip--done">✓</span>' : ""}</div>`).join("")}`
+        : `<div class="text-sm muted mt-8">${planificable ? "Aún no planificas esta semana: elige tu foco y tus 3 prioridades (+75 ⭐)." : "Esta semana no tuvo plan."}</div>`}
+      <div class="text-xs muted mt-16" style="text-transform:uppercase">🏆 Tu premio</div>
       <input class="input mt-8" id="sem-premio" value="${escapeAttr(plan.premio || "")}" placeholder="¿Con qué te vas a premiar al cumplir?"
         onchange="guardarPremioSemana('${lunes}', this.value)"></div>
     <div class="card"><div class="text-xs muted" style="text-transform:uppercase">Avance semanal</div>

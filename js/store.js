@@ -55,6 +55,8 @@ const LocalBackend = {
   async logout() { localStorage.removeItem("rumbo_session"); },
   async googleDisponible() { return false; },
   async loginGoogle() { return { error: "Iniciar sesión con Google no está disponible en modo local." }; },
+  async identidades() { return []; },
+  async vincularGoogle() { return { error: "Vincular Google no está disponible en modo local." }; },
   async loadState(uid) {
     try { const raw = localStorage.getItem("rumbo_cloud_" + uid); return raw ? JSON.parse(raw) : null; }
     catch { return null; }
@@ -84,6 +86,13 @@ const LocalBackend = {
 const SUPABASE_URL = "https://eakkoggblavtaudbzzos.supabase.co";
 const SUPABASE_KEY = "sb_publishable_HQfNYK25HuN1cI9KgrKiyw_cJ6_osLk";
 
+/* Errores al vincular Google a una cuenta existente */
+function _traducirVinculo(m) {
+  m = m || "";
+  if (/manual linking/i.test(m)) return "Falta activar \"Allow manual linking\" en Supabase (Authentication).";
+  if (/already.*(linked|exists|in use)|identity.*exists/i.test(m)) return "Ese Google ya está en otra cuenta de Rumbo. Entra con Google, elimina esa cuenta (Cuenta → Eliminar mi cuenta) y vuelve a vincular desde aquí.";
+  return _traducir(m);
+}
 function _traducir(m) {
   m = m || "";
   if (/already registered|already exists|User already/i.test(m)) return "Ya existe una cuenta con ese correo. Inicia sesión.";
@@ -354,6 +363,21 @@ const SupabaseBackend = {
       options: { redirectTo: location.origin + location.pathname, queryParams: { prompt: "select_account" } },
     });
     return error ? { error: _traducir(error.message) } : { ok: true };
+  },
+  /* Formas de entrar de la cuenta actual: [{ provider: "email" | "google", email }] */
+  async identidades() {
+    const { data, error } = await this._client().auth.getUserIdentities();
+    if (error || !data) return [];
+    return (data.identities || []).map(i => ({ provider: i.provider, email: (i.identity_data && i.identity_data.email) || "" }));
+  },
+  /* Agrega Google como otra forma de entrar a ESTA cuenta (aunque el correo sea distinto).
+     Requiere "Allow manual linking" en Supabase. Va a Google y vuelve a Cuenta. */
+  async vincularGoogle() {
+    const { error } = await this._client().auth.linkIdentity({
+      provider: "google",
+      options: { redirectTo: location.origin + location.pathname + "?vincular=1", queryParams: { prompt: "select_account" } },
+    });
+    return error ? { error: _traducirVinculo(error.message) } : { ok: true };
   },
   async loadState(uid) {
     const { data, error } = await this._client().from("estado_usuario").select("data, updated_at").eq("user_id", uid).maybeSingle();

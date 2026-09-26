@@ -74,8 +74,16 @@ async function boot() {
   const vuelta = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
   const errGoogle = vuelta.get("error_description") || vuelta.get("error");
   const user = await BACKEND.getSession();
-  if (user) await enterApp(user);
-  else {
+  if (user) {
+    const deVincular = /(^|&)vincular=1/.test(location.search.slice(1));
+    await enterApp(user);
+    // Al volver de vincular Google: quedarse en Cuenta y avisar si falló (p. ej. ese Google ya tiene otra cuenta)
+    if (deVincular || errGoogle) {
+      history.replaceState(null, "", location.pathname + "#cuenta"); onRoute();
+      if (errGoogle) toast(_traducirVinculo(errGoogle), true);
+      else toast("🔗 Listo: ahora puedes entrar también con Google");
+    }
+  } else {
     showAuth();
     if (errGoogle) { authError(vuelta.get("error") === "access_denied" || /denied|cancel/i.test(errGoogle) ? "Se canceló el inicio de sesión con Google." : "Google: " + errGoogle); history.replaceState(null, "", location.pathname); }
   }
@@ -733,6 +741,7 @@ function onClick(e) {
     case "auth-tab": switchAuthTab(d.tab); break;
     case "auth-login": doLogin(); break;
     case "auth-google": doLoginGoogle(); break;
+    case "acc-vincular-google": vincularGoogle(); break;
     case "auth-register": doRegister(); break;
     case "auth-forgot": doForgot(); break;
     case "logout": if (confirm("¿Cerrar sesión?")) doLogout(); break;
@@ -1515,13 +1524,33 @@ function saveProfile() {
 /* ============================================================
    CUENTA · seguridad, datos y sesión
    ============================================================ */
+/* Cuenta: ¿se puede entrar con Google? Si no, ofrece vincularlo (se completa después de dibujar) */
+async function cargarVinculoGoogle() {
+  const caja = document.getElementById("acc-google");
+  if (!caja || !BACKEND.googleDisponible || !(await BACKEND.googleDisponible())) return;
+  const ids = await BACKEND.identidades();
+  const g = ids.find(i => i.provider === "google");
+  if (!document.body.contains(caja)) return;
+  caja.innerHTML = `<div class="card mt-16"><div class="flex-between" style="flex-wrap:wrap;gap:10px">
+    <div style="min-width:0"><div class="card__title" style="font-size:15px">🔗 Entrar con Google</div>
+      <div class="text-sm muted mt-8">${g ? `✅ Vinculada con <b>${escapeHtml(g.email || "tu Google")}</b>: puedes entrar con tu correo o con Google, es la misma cuenta.`
+        : "Agrega tu Google como otra forma de entrar a esta misma cuenta (aunque sea otro correo). Tus datos no cambian."}</div></div>
+    ${g ? "" : `<button class="btn btn--soft" data-action="acc-vincular-google">Vincular con Google</button>`}</div></div>`;
+}
+async function vincularGoogle() {
+  const res = await BACKEND.vincularGoogle();   // si todo va bien, la página se va a Google y vuelve a Cuenta
+  if (res && res.error) toast(res.error, true);
+}
 function renderCuenta() {
   const email = (CURRENT_USER && CURRENT_USER.email) || "";
+  setTimeout(cargarVinculoGoogle, 0);
   return `
   <div class="card">
     <div class="card__title">👤 Tu cuenta</div>
     <div class="mt-8 text-sm soft">Sesión iniciada como <b>${escapeHtml(email)}</b></div>
   </div>
+
+  <div id="acc-google"></div>
 
   ${renderGcalCard()}
 

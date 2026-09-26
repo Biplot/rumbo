@@ -910,3 +910,4 @@ html[data-theme^="bosque"] .big-num { font-size: 30px; }
 .btn-google:hover { background: #F7F8F8; }
 .auth__o { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text-muted); font-size: 12px; }
 .auth__o::before, .auth__o::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.auth__note a { color: var(--text-muted); }

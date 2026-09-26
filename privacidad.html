@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Política de Privacidad · Rumbo</title>
+  <link rel="icon" type="image/png" href="assets/icon-180.png">
+  <style>
+    :root { --bg: #F3F6F6; --surface: #FFFFFF; --ink: #0E2A47; --ink-2: #34495E; --muted: #5A6B7B; --line: #D6E0E3; --cian: #0E8277; }
+    @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg: #08121F; --surface: #0F1E30; --ink: #EAF0F6; --ink-2: #C3D0DD; --muted: #93A2B5; --line: #223750; --cian: #2BB6A5; } }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink-2); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 720px; margin: 0 auto; padding: 40px 20px 64px; }
+    h1, h2 { color: var(--ink); line-height: 1.2; text-wrap: balance; }
+    h1 { font-size: 2rem; margin: 8px 0 4px; }
+    h2 { font-size: 1.15rem; margin: 32px 0 8px; }
+    p, li { max-width: 68ch; }
+    ul { padding-left: 1.2rem; }
+    a { color: var(--cian); }
+    .marca { display: flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 700; text-decoration: none; }
+    .fecha { color: var(--muted); font-size: .9rem; }
+    .caja { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+    footer { margin-top: 40px; font-size: .9rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+<main>
+  <a class="marca" href="./"><img src="assets/icon-180.png" alt="" width="28" height="28"> Rumbo</a>
+  <h1>Política de Privacidad</h1>
+  <p class="fecha">Vigente desde el 26 de septiembre de 2026</p>
+
+  <p>Rumbo (<a href="https://rumbo.biplot.cl">rumbo.biplot.cl</a>) es una aplicación de organización personal hecha por BiPlot. Esta política explica qué datos guarda Rumbo, para qué los usa y cómo puedes borrarlos. Si tienes preguntas, escríbenos a <b>cmaulen@biplot.cl</b>.</p>
+
+  <h2>Qué datos guarda Rumbo</h2>
+  <ul>
+    <li><b>Tu cuenta:</b> tu correo, tu nombre y, si creas la cuenta con correo, tu contraseña (guardada de forma cifrada por nuestro proveedor de autenticación; nunca la vemos). Si entras con Google, recibimos de Google solo tu nombre, tu correo y tu foto de perfil.</li>
+    <li><b>Lo que escribes en la app:</b> tus tareas, hábitos, objetivos, rituales, diario, finanzas, salud, lecturas, relaciones, notas y demás contenido que ingresas.</li>
+    <li><b>Preferencias:</b> tema, menú, horarios de recordatorios y, si activas las notificaciones, los datos técnicos que tu navegador entrega para poder enviarlas.</li>
+  </ul>
+
+  <h2>Para qué se usan</h2>
+  <p>Solo para que Rumbo funcione: mostrarte tu información, sincronizarla entre tus dispositivos, calcular tus métricas y recompensas, y enviarte los recordatorios que actives. No usamos tus datos para publicidad, no los vendemos y no los compartimos con terceros, salvo con los proveedores que hacen funcionar la app (abajo).</p>
+
+  <h2>Google Calendar</h2>
+  <div class="caja">
+    <p>Si conectas Google Calendar, Rumbo pide permiso de <b>solo lectura</b> (<code>calendar.readonly</code>) para mostrarte tus eventos en Inicio, Semana, Calendario y al abrir tu día. Rumbo <b>nunca crea, cambia ni borra</b> nada en tu calendario.</p>
+    <ul>
+      <li>Tus eventos y el permiso de Google se guardan <b>solo en tu dispositivo</b> (en el almacenamiento del navegador). No se suben a nuestros servidores.</li>
+      <li>En tu cuenta de Rumbo solo queda si conectaste Google Calendar y qué calendarios elegiste ver.</li>
+      <li>Puedes desconectarlo cuando quieras en Rumbo (Calendario → ⚙️ Calendarios → Desconectar): eso revoca el permiso y borra los eventos del dispositivo. También puedes quitar el acceso en <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+    </ul>
+    <p>El uso que hace Rumbo de la información recibida de las API de Google cumple la <a href="https://developers.google.com/terms/api-services-user-data-policy">Política de Datos de Usuario de los Servicios de API de Google</a>, incluidos los requisitos de Uso Limitado. No usamos datos de Google para publicidad ni para entrenar modelos de inteligencia artificial, y no los transferimos a terceros.</p>
+  </div>
+
+  <h2>Dónde se guardan</h2>
+  <ul>
+    <li><b>Supabase:</b> guarda tu cuenta y el contenido que escribes en Rumbo, para sincronizarlo entre tus dispositivos. El acceso está restringido a tu propia cuenta.</li>
+    <li><b>GitHub Pages:</b> sirve los archivos de la aplicación (no guarda tus datos).</li>
+    <li><b>Google:</b> solo si eliges entrar con Google o conectar Google Calendar, según sus propias condiciones.</li>
+    <li><b>Tu dispositivo:</b> una copia local para que la app funcione sin conexión.</li>
+  </ul>
+
+  <h2>Tus derechos y cómo borrar tus datos</h2>
+  <p>Puedes descargar una copia de tus datos en el menú (<b>Respaldar datos</b>) y eliminar tu cuenta y todo su contenido en <b>Cuenta → Eliminar mi cuenta</b>. También puedes pedirnos acceso, corrección o eliminación escribiendo a <b>cmaulen@biplot.cl</b>.</p>
+
+  <h2>Seguridad</h2>
+  <p>La conexión con Rumbo es cifrada (HTTPS) y cada cuenta solo puede leer y escribir sus propios datos. Ningún sistema es infalible: si detectamos un problema que afecte tus datos, te avisaremos.</p>
+
+  <h2>Menores de edad</h2>
+  <p>Rumbo no está dirigida a menores de 14 años.</p>
+
+  <h2>Cambios</h2>
+  <p>Si cambiamos esta política, actualizaremos la fecha de arriba y, si el cambio es importante, te avisaremos dentro de la app.</p>
+  <footer>Rumbo es un producto de <b>BiPlot</b> (biplot.cl) · <a href="privacidad.html">Privacidad</a> · <a href="terminos.html">Términos</a> · <a href="./">Volver a Rumbo</a></footer>
+</main>
+</body>
+</html>

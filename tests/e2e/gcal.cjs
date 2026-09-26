@@ -32,6 +32,7 @@ module.exports = async ({ b, ok, errs }) => {
   await registrar(p, "gcal@test.cl");
 
   // Sin ID de cliente configurado, no aparece nada
+  await p.evaluate(() => { GCAL.clientId = ""; });
   await p.goto(URL + "#calendario"); await p.waitForTimeout(250);
   ok(!(await p.locator("#view").innerText()).includes("Google Calendar"), "sin ID de cliente, Google Calendar queda oculto");
 

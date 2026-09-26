@@ -97,7 +97,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 9;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 10;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -202,6 +202,9 @@ const NOVEDADES = {
   ],
   9: [
     ["🎓", "Tutorial interactivo", "Un recorrido guiado sobre tu propia app, ayuda en cada pantalla (botón ? arriba) y todos los recorridos en el menú → 🎓 Tutoriales."],
+  ],
+  10: [
+    ["📆", "Google Calendar", "Conecta tu Google Calendar y ve tus reuniones junto a tus tareas: en Inicio, en Semana, en Calendario y al abrir tu día. Solo lectura: Rumbo nunca cambia nada en tu calendario. En Calendario → Conectar."],
   ],
 };
 function openNovedades() {

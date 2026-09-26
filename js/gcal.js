@@ -11,7 +11,7 @@
    ============================================================ */
 
 const GCAL = {
-  clientId: "",   // ID de cliente OAuth de Google Cloud (tipo "Aplicación web"); vacío = función oculta
+  clientId: "686189112913-j7ekhutggk3c6tc04jatto3udrd88g1g.apps.googleusercontent.com",   // ID de cliente OAuth (proyecto "Rumbo" en Google Cloud, tipo "Aplicación web"); vacío = función oculta
   scope: "https://www.googleapis.com/auth/calendar.readonly",
   api: "https://www.googleapis.com/calendar/v3",
   gis: "https://accounts.google.com/gsi/client",

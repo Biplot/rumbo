@@ -96,7 +96,7 @@ module.exports = async ({ b, ok, errs }) => {
     ok((await p.locator("#modalBody").innerText()).includes("Tutorial interactivo") && await p.evaluate(() => STATE.settings.tutorial.mision) === "oculta",
       "Novedades anuncia el tutorial; la misión queda oculta para quien ya usaba la app");
     await p.click('[data-action="tour-start"][data-id="general"]'); await p.waitForTimeout(400);
-    ok(await p.locator("#tour").count() === 1 && await p.evaluate(() => STATE.settings.introVersion) === 9, "Hacer el recorrido lo inicia y no vuelve a mostrar Novedades");
+    ok(await p.locator("#tour").count() === 1 && await p.evaluate(() => STATE.settings.introVersion) === 10, "Hacer el recorrido lo inicia y no vuelve a mostrar Novedades");
     await ctx.close();
   }
 };

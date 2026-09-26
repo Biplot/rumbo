@@ -9,7 +9,6 @@
                ajustar, premioGanado, nota, numeros, ts } }
    Día del ritual: STATE.settings.ritualSemanal.dia (0 = domingo, 1 = lunes). Ese día se
    hace todo seguido: primero se cierra la semana y luego se planifica la siguiente.
-   // TODO año: los objetivos del mes viven en metas.mensuales del año fijo.
    ============================================================ */
 
 const SEM_CIERRE_VIERNES_HORA = 14;   // la semana se puede cerrar desde el viernes a las 14:00
@@ -44,7 +43,7 @@ function semanaConActividad(lunes, S) {
 /* Objetivo del mes por id (en cualquier mes del año fijo) */
 function objetivoDe(id, S) {
   if (!id) return null;
-  for (const lista of (S || STATE).metas.mensuales || []) { const o = (lista || []).find(x => x.id === id); if (o) return o; }
+  for (const lista of todosLosMensuales(S)) { const o = (lista || []).find(x => x.id === id); if (o) return o; }
   return null;
 }
 /* Cuántas prioridades semanales empujan un objetivo del mes (para Objetivos) */
@@ -238,7 +237,7 @@ function semAperturaPaso(w) {
   if (w.paso === 1) {
     // Los objetivos son los del mes al que pertenece la semana (el de su jueves)
     const jue = agDate(agSumar(w.lunes, 3)), y = jue.getFullYear(), m = jue.getMonth();
-    const objs = mesEnAnio(y) ? (STATE.metas.mensuales[m] || []) : [];   // TODO año:
+    const objs = datosAnio(STATE, y).metas.mensuales[m] || [];
     const pc = (ritualSemana(prev) || {}).cierre || {};
     const rows = d.prioridades.map((p, i) => `<div class="mes-obj">
         <input type="hidden" id="sp-id-${i}" value="${escapeAttr(p.id || "")}">

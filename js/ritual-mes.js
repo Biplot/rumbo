@@ -1,9 +1,8 @@
 /* ============================================================
    RUMBO · Ritual de Mes (apertura y cierre), conectado con Objetivos
    Datos: STATE.ritual.meses["YYYY-MM"] = { apertura: {…, ts}, cierre: {…, ts} }
-   Los objetivos viven en STATE.metas.mensuales[m] (índice 0-11 del año fijo).
-   // TODO año: metas.mensuales, finanzas.meses y rueda.meses usan el año fijo
-   // (settings.year). El cruce diciembre → enero no tiene año siguiente.
+   Los objetivos, las finanzas y la rueda de cada mes viven en datosAnio(año)
+   (ver anios.js), así que el cruce diciembre → enero funciona como cualquier otro.
    ============================================================ */
 
 const MES_APERTURA_HASTA = 5;   // la apertura se ofrece del día 1 al 5
@@ -14,8 +13,6 @@ function mesKey(y, m) { return `${y}-${String(m + 1).padStart(2, "0")}`; }
 function mesDeKey(key) { const [y, m] = key.split("-").map(Number); return { y, m: m - 1 }; }
 function mesPrev(y, m) { return m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 }; }
 function mesNext(y, m) { return m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 }; }
-/* ¿El mes cae en el año fijo? (solo ahí hay metas/finanzas/rueda) // TODO año: */
-function mesEnAnio(y) { return y === STATE.settings.year; }
 function ritualMes(key) { STATE.ritual.meses = STATE.ritual.meses || {}; return STATE.ritual.meses[key] || null; }
 function mesAbierto(key) { const r = ritualMes(key); return !!(r && r.apertura); }
 function mesCerrado(key) { const r = ritualMes(key); return !!(r && r.cierre); }
@@ -64,9 +61,9 @@ function resumenMes(y, m) {
     else { const r = S.ritual.dias[iso]; sumar(r && r.cierre && r.cierre.tareas); }
   }
   const desde = isoLocal(new Date(y, m, 1)), hasta = isoLocal(new Date(y, m + 1, 0));
-  const enAnio = mesEnAnio(y);
-  const objetivos = enAnio ? (S.metas.mensuales[m] || []) : [];
-  const fin = enAnio ? (S.finanzas.meses[m] || {}) : {};
+  const D = datosAnio(S, y);
+  const objetivos = D.metas.mensuales[m] || [];
+  const fin = D.finanzas.meses[m] || {};
   const ahorro = (fin.ingreso || 0) - (fin.gasto || 0);
   const post = tmResumen(S, desde, hasta);
   return {
@@ -98,6 +95,56 @@ function resumenMesHtml(r) {
   </div>`;
 }
 
+/* Resumen de un año completo ("Tu 2026 en números"). notaDic: la nota de diciembre recién elegida. */
+function resumenAnio(S, y, notaDic) {
+  const pref = y + "-", desde = `${y}-01-01`, hasta = `${y}-12-31`;
+  const dias = Object.entries(S.ritual.dias || {}).filter(([k]) => k.startsWith(pref)).map(([, r]) => r || {});
+  const D = datosAnio(S, y);
+  const mens = D.metas.mensuales.flat(), tris = D.metas.trimestres.flat();
+  const tm = tmResumen(S, desde, hasta);
+  const notas = [];
+  for (let m = 0; m < 12; m++) {
+    const c = ((S.ritual.meses || {})[mesKey(y, m)] || {}).cierre;
+    const nota = m === 11 && notaDic ? notaDic : c && c.nota;
+    if (nota) notas.push({ m, nota });
+  }
+  const mejor = notas.reduce((a, b) => (!a || b.nota > a.nota ? b : a), null);
+  return {
+    anio: y,
+    abiertos: dias.filter(r => r.hecho).length, cerrados: dias.filter(r => r.cerrado).length,
+    habitos: cumplimientoGrupo(S.habitos.defs, desde, hasta, S).pct,
+    objetivos: [mens.filter(o => o.done).length, mens.length], trimestrales: [tris.filter(o => o.done).length, tris.length],
+    tareas: tm.cumplimiento, postergacion: tm.tareas ? tm.indice : null,
+    ahorro: D.finanzas.meses.reduce((a, m) => a + ((m.ingreso || 0) - (m.gasto || 0)), 0), metaAhorro: D.finanzas.metaAnual || 0,
+    libros: (S.lecturas || []).filter(l => l.estado === "terminado" && (l.fin || "").startsWith(pref)).length,
+    entrenados: D.salud.meses.reduce((a, m) => a + (m.diasEntren || 0), 0),
+    semanas: Object.keys(S.ritual.semanas || {}).filter(k => k.startsWith(pref) && S.ritual.semanas[k].apertura && S.ritual.semanas[k].cierre).length,
+    nota: notas.length ? Math.round((notas.reduce((a, b) => a + b.nota, 0) / notas.length) * 10) / 10 : null,
+    mesesCerrados: notas.length, mejorMes: mejor ? { m: mejor.m, nota: mejor.nota } : null,
+  };
+}
+function resumenAnioHtml(r, enTendencias) {
+  const n = (ico, label, v) => `<div class="mes-num"><div class="mes-num__v">${v}</div><div class="mes-num__l">${ico} ${label}</div></div>`;
+  const pct = v => (v == null ? "—" : v + "%");
+  return `<div class="card__title">🎆 Tu ${r.anio} en números</div>
+    ${r.mejorMes ? `<p class="text-sm soft mt-8">Tu mejor mes fue <b>${MESES[r.mejorMes.m].toLowerCase()}</b> (${r.mejorMes.nota}/10).${r.nota != null ? ` Nota promedio del año: <b>${String(r.nota).replace(".", ",")}</b>.` : ""}</p>` : ""}
+    <div class="mes-nums mt-16">
+      ${n("🌙", "días cerrados", r.cerrados)}
+      ${n("📊", "hábitos", pct(r.habitos))}
+      ${n("🎯", "objetivos del mes", `${r.objetivos[0]}/${r.objetivos[1]}`)}
+      ${n("🧭", "metas trimestrales", `${r.trimestrales[0]}/${r.trimestrales[1]}`)}
+      ${n("✓", "tareas completadas", pct(r.tareas))}
+      ${n("↪", "postergación", pct(r.postergacion))}
+      ${n("📅", "semanas redondas", r.semanas)}
+      ${n("🗓️", "meses cerrados", `${r.mesesCerrados}/12`)}
+      ${n("💰", "ahorro" + (r.metaAhorro ? " / meta " + fmtCLP(r.metaAhorro) : ""), fmtCLP(r.ahorro))}
+      ${n("📚", "libros", r.libros)}
+      ${n("🏋️", "días entrenados", r.entrenados)}
+      ${n("🌅", "días abiertos", r.abiertos)}
+    </div>
+    ${enTendencias ? "" : `<p class="text-xs muted mt-16">Queda guardado con tu cierre de diciembre. ¡Gracias por este año!</p>`}`;
+}
+
 /* ============================================================
    Asistente por pasos (apertura / cierre)
    ============================================================ */
@@ -106,15 +153,17 @@ const MES_PASOS = {
   apertura: ["Mirada atrás", "Foco del mes", "Objetivos", "Hábitos", "Finanzas"],
   cierre: ["Objetivos", "Números", "Rueda de la vida", "Reflexión", "Nota del mes"],
 };
+/* Al cerrar diciembre se suma "Tu año en números" */
+function pasosMes(w) { return w.tipo === "cierre" && w.m === 11 ? MES_PASOS.cierre.concat("Tu año") : MES_PASOS[w.tipo]; }
 
 function openMesApertura(key) {
   const { y, m } = mesDeKey(key);
   const prev = mesPrev(y, m), prevKey = mesKey(prev.y, prev.m);
   const r = ritualMes(key) || {}, a = r.apertura || {};
   const pc = (ritualMes(prevKey) || {}).cierre || {};
-  const lista = mesEnAnio(y) ? (STATE.metas.mensuales[m] || []) : [];
+  const lista = datosAnio(STATE, y).metas.mensuales[m] || [];
   const objetivos = lista.filter(o => o.origen === "ritual-mes").map(o => ({ id: o.id, texto: o.texto, ambito: o.ambito || "per", triId: o.triId || "" }));
-  const fin = mesEnAnio(y) ? STATE.finanzas.meses[m] || {} : {};
+  const fin = datosAnio(STATE, y).finanzas.meses[m] || {};
   const habitos = {};
   STATE.habitos.defs.forEach(h => { const f = hmFreq(h); habitos[h.id] = { tipo: f.tipo, veces: f.veces || 3, dias: f.dias, pausado: !!h.pausado }; });
   MES_WIZ = {
@@ -131,10 +180,10 @@ function openMesApertura(key) {
 function openMesCierre(key) {
   const { y, m } = mesDeKey(key);
   const c = (ritualMes(key) || {}).cierre || {};
-  const lista = mesEnAnio(y) ? (STATE.metas.mensuales[m] || []) : [];
+  const lista = datosAnio(STATE, y).metas.mensuales[m] || [];
   const estados = {};
   lista.forEach(o => { estados[o.id] = { estado: o.estadoCierre || (o.done ? "cumplido" : "no"), nota: o.notaCierre || "" }; });
-  const rueda = mesEnAnio(y) ? (STATE.rueda.meses[m] || []).slice() : [];
+  const rueda = (datosAnio(STATE, y).rueda.meses[m] || []).slice();
   MES_WIZ = {
     tipo: "cierre", y, m, key, paso: 0,
     draft: {
@@ -148,7 +197,7 @@ function openMesCierre(key) {
 
 function renderMesWiz() {
   const w = MES_WIZ; if (!w) return;
-  const pasos = MES_PASOS[w.tipo], ult = w.paso === pasos.length - 1;
+  const pasos = pasosMes(w), ult = w.paso === pasos.length - 1;
   const dots = pasos.map((p, i) => `<span class="onb-dot ${i === w.paso ? "is-on" : ""}" title="${p}"></span>`).join("");
   const body = (w.tipo === "apertura" ? mesAperturaPaso : mesCierrePaso)(w);
   const titulo = (w.tipo === "apertura" ? "Abrir " : "Cerrar ") + nombreMes(w.y, w.m);
@@ -185,7 +234,7 @@ function mesAperturaPaso(w) {
   }
   if (w.paso === 2) {
     const curTri = Math.floor(w.m / 3);
-    const tri = mesEnAnio(w.y) ? (STATE.metas.trimestres[curTri] || []) : [];
+    const tri = datosAnio(STATE, w.y).metas.trimestres[curTri] || [];
     const rows = Array.from({ length: Math.max(5, d.objetivos.length) }, (_, i) => {
       const o = d.objetivos[i] || { texto: "", ambito: "pro", triId: "" };
       return `<div class="mes-obj">
@@ -196,8 +245,8 @@ function mesAperturaPaso(w) {
           <select class="select" id="mo-tri-${i}"><option value="">— Sin vínculo trimestral —</option>${tri.map(t => `<option value="${t.id}" ${o.triId === t.id ? "selected" : ""}>🎯 ${escapeHtml(t.texto)}</option>`).join("")}</select>
         </div></div>`;
     }).join("");
-    const prevList = mesEnAnio(prev.y) ? (STATE.metas.mensuales[prev.m] || []).filter(o => !o.done) : [];
-    const lista = mesEnAnio(w.y) ? STATE.metas.mensuales[w.m] || [] : [];
+    const prevList = (datosAnio(STATE, prev.y).metas.mensuales[prev.m] || []).filter(o => !o.done);   // diciembre → enero incluido
+    const lista = datosAnio(STATE, w.y).metas.mensuales[w.m] || [];
     const pendientesArr = prevList.filter(o => !lista.some(x => x.arrastrado === o.id));
     const manuales = lista.filter(o => o.origen !== "ritual-mes").length;
     return `<p class="text-sm muted" style="margin-bottom:12px">Idealmente de 3 a 5. Vincúlalos a una meta del ${curTri + 1}° trimestre para que empujen en la misma dirección.</p>
@@ -229,18 +278,18 @@ function mesAperturaPaso(w) {
         <button class="btn btn--cian" data-action="mes-hab-add">+</button>
       </div>`;
   }
-  const fin = mesEnAnio(w.y) ? STATE.finanzas.meses[w.m] || {} : {};
+  const fin = datosAnio(STATE, w.y).finanzas.meses[w.m] || {};
   return `<div class="field"><label>Meta de ahorro de ${MESES[w.m]} (opcional)</label>
       <input class="input" id="mw-ahorro" inputmode="numeric" value="${d.metaAhorro || ""}" placeholder="Ej: 200000">
       <div class="text-xs muted mt-8">Tu meta mensual general es ${fmtCLP(STATE.finanzas.metaMensual || 0)}.${fin.ingreso || fin.gasto ? " Llevas " + fmtCLP((fin.ingreso || 0) - (fin.gasto || 0)) + " este mes." : ""}</div></div>
-    ${mesEnAnio(w.y) ? "" : `<p class="text-xs muted">Este mes está fuera del año ${STATE.settings.year}: objetivos y finanzas no se guardarán en tus metas.</p>`}`;
+    `;
 }
 
 /* -------- Cierre: pasos -------- */
 function mesCierrePaso(w) {
   const d = w.draft;
   if (w.paso === 0) {
-    const lista = mesEnAnio(w.y) ? (STATE.metas.mensuales[w.m] || []) : [];
+    const lista = datosAnio(STATE, w.y).metas.mensuales[w.m] || [];
     if (!lista.length) return `<div class="empty">No tenías objetivos para ${MESES[w.m]}. El próximo mes, defínelos al abrirlo 🎯</div>`;
     const segB = (id, v, label, cur) => `<button type="button" class="${cur === v ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'mc-e-${id}')">${label}</button>`;
     return lista.map(o => {
@@ -264,6 +313,7 @@ function mesCierrePaso(w) {
       <div class="field"><label>🛑 Qué dejar de hacer</label><input class="input" id="mc-dejar" value="${escapeAttr(d.dejar)}"></div>
       <div class="field"><label>🌱 Una cosa para el próximo mes</label><input class="input" id="mc-prox" value="${escapeAttr(d.proximo)}" placeholder="Se precargará al abrir el próximo mes"></div>`;
   }
+  if (w.paso === 5) return resumenAnioHtml(resumenAnio(STATE, w.y, d.nota));
   return `<div class="field"><label>Nota de ${MESES[w.m]}: <b id="mc-nl" style="font-size:20px">${d.nota}</b>/10</label>
     <input type="range" min="1" max="10" step="1" id="mc-nota" value="${d.nota}" style="width:100%;accent-color:var(--cian)"
       oninput="document.getElementById('mc-nl').textContent=this.value"></div>
@@ -297,7 +347,7 @@ function mesWizLeer() {
 function mesWizMover(delta) {
   mesWizLeer();
   const w = MES_WIZ; if (!w) return;
-  w.paso = Math.max(0, Math.min(MES_PASOS[w.tipo].length - 1, w.paso + delta));
+  w.paso = Math.max(0, Math.min(pasosMes(w).length - 1, w.paso + delta));
   renderMesWiz();
 }
 function mesHabAdd() {
@@ -320,8 +370,9 @@ function guardarMesApertura(w) {
   STATE.ritual.meses = STATE.ritual.meses || {};
   const rm = STATE.ritual.meses[w.key] = STATE.ritual.meses[w.key] || {};
   const ids = [];
-  if (mesEnAnio(w.y)) {
-    const lista = STATE.metas.mensuales[w.m] = STATE.metas.mensuales[w.m] || [];
+  {
+    const D = datosAnio(STATE, w.y, true);
+    const lista = D.metas.mensuales[w.m] = D.metas.mensuales[w.m] || [];
     // Objetivos del ritual: editar sin duplicar (por id); los vaciados se quitan
     const vivos = new Set();
     d.objetivos.filter(o => o.texto).forEach(o => {
@@ -329,17 +380,19 @@ function guardarMesApertura(w) {
       if (ex) { Object.assign(ex, { texto: o.texto, ambito: o.ambito, triId: o.triId || "", ts: now }); vivos.add(ex.id); }
       else { const n = { id: uid(), texto: o.texto, done: false, ambito: o.ambito, triId: o.triId || "", origen: "ritual-mes", ts: now }; lista.push(n); vivos.add(n.id); }
     });
-    STATE.metas.mensuales[w.m] = lista.filter(x => x.origen !== "ritual-mes" || vivos.has(x.id) || x.done);
-    // Arrastrar no cumplidos del mes anterior (una sola vez cada uno)
+    D.metas.mensuales[w.m] = lista.filter(x => x.origen !== "ritual-mes" || vivos.has(x.id) || x.done);
+    // Arrastrar no cumplidos del mes anterior (una sola vez cada uno), también de diciembre a enero.
+    // En enero el vínculo trimestral del año anterior ya no aplica.
     const prev = mesPrev(w.y, w.m);
-    if (mesEnAnio(prev.y)) d.arrastrar.forEach(pid => {
-      const po = (STATE.metas.mensuales[prev.m] || []).find(x => x.id === pid);
-      if (!po || STATE.metas.mensuales[w.m].some(x => x.arrastrado === pid)) return;
-      const n = { id: uid(), texto: po.texto, done: false, ambito: po.ambito || "per", triId: po.triId || "", origen: "ritual-mes", arrastrado: pid, ts: now };
-      STATE.metas.mensuales[w.m].push(n); vivos.add(n.id);
+    d.arrastrar.forEach(pid => {
+      const po = (datosAnio(STATE, prev.y).metas.mensuales[prev.m] || []).find(x => x.id === pid);
+      if (!po || D.metas.mensuales[w.m].some(x => x.arrastrado === pid)) return;
+      const n = { id: uid(), texto: po.texto, done: false, ambito: po.ambito || "per", triId: prev.y === w.y ? (po.triId || "") : "", origen: "ritual-mes", arrastrado: pid, ts: now };
+      D.metas.mensuales[w.m].push(n); vivos.add(n.id);
     });
     vivos.forEach(id => ids.push(id));
-    STATE.finanzas.meses[w.m].metaAhorro = d.metaAhorro || 0;
+    D.finanzas.meses[w.m].metaAhorro = d.metaAhorro || 0;
+    tocarAnio(STATE, w.y, "finanzas");
   }
   // Hábitos: frecuencia / pausa / nuevos
   STATE.habitos.defs.forEach(h => {
@@ -360,17 +413,20 @@ function guardarMesCierre(w) {
   const d = w.draft, now = Date.now();
   STATE.ritual.meses = STATE.ritual.meses || {};
   const rm = STATE.ritual.meses[w.key] = STATE.ritual.meses[w.key] || {};
-  if (mesEnAnio(w.y)) {
-    (STATE.metas.mensuales[w.m] || []).forEach(o => {
+  {
+    const D = datosAnio(STATE, w.y, true);
+    (D.metas.mensuales[w.m] || []).forEach(o => {
       const e = d.estados[o.id]; if (!e) return;
       o.estadoCierre = e.estado; o.notaCierre = e.nota;
       if (e.estado === "cumplido") o.done = true;
       o.ts = now;
     });
-    STATE.rueda.meses[w.m] = d.rueda.slice();
+    D.rueda.meses[w.m] = d.rueda.slice();
+    tocarAnio(STATE, w.y, "rueda");
   }
   const numeros = resumenMes(w.y, w.m);
   rm.cierre = { mejor: d.mejor, aprendizaje: d.aprendizaje, dejar: d.dejar, proximo: d.proximo, nota: d.nota, rueda: d.rueda.slice(), numeros, ts: now };
+  if (w.m === 11) rm.cierre.anio = resumenAnio(STATE, w.y, d.nota);   // "Tu año en números" queda guardado
   // Entrada en el Diario (una por mes, actualizable)
   STATE.vida.diario = STATE.vida.diario || [];
   let e = STATE.vida.diario.find(x => x.fromRitualMes && x.mes === w.key);
@@ -392,7 +448,7 @@ function guardarMesCierre(w) {
 function renderRitualMes() {
   const now = new Date(), y = now.getFullYear(), m = now.getMonth(), key = mesKey(y, m);
   const r = ritualMes(key) || {}, a = r.apertura;
-  const lista = mesEnAnio(y) ? (STATE.metas.mensuales[m] || []) : [];
+  const lista = datosAnio(STATE, y).metas.mensuales[m] || [];
   const acciones = [];
   acciones.push(`<button class="btn ${a ? "btn--soft" : "btn--primary"}" data-action="mes-open" data-key="${key}">${a ? "Editar apertura" : "🗓️ Abrir " + MESES[m]}</button>`);
   if (mesCerrable(y, m)) acciones.push(`<button class="btn ${r.cierre ? "btn--soft" : "btn--primary"}" data-action="mes-close" data-key="${key}">${r.cierre ? "Editar cierre" : "🌙 Cerrar " + MESES[m]}</button>`);
@@ -417,7 +473,7 @@ function renderRitualMes() {
   </div>
   <div class="grid grid-2 mt-24">
     <div class="card"><div class="card__head"><div class="card__title">🎯 Objetivos de ${MESES[m]}</div><a class="card__hint" href="#metas">Ver objetivos →</a></div>
-      ${lista.length ? lista.map(o => metaRow(o, "mes", m)).join("") : '<div class="empty">Define tus objetivos al abrir el mes.</div>'}</div>
+      ${lista.length ? lista.map(o => metaRow(o, "mes", m, y)).join("") : '<div class="empty">Define tus objetivos al abrir el mes.</div>'}</div>
     <div class="card"><div class="card__title">📊 ${MESES[m]} hasta hoy</div><div class="mt-16">${resumenMesHtml(resumenMes(y, m))}</div></div>
   </div>
   ${hist ? `<div class="section-title">Meses anteriores</div><div class="card">${hist}</div>` : ""}`;

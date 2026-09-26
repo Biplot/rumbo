@@ -111,6 +111,7 @@ a { color: var(--cian-ink); }
 .nav__item.is-active .nav__ico { color: var(--cian-ink); }
 .nav__ico { width: 20px; text-align: center; font-size: 16px; }
 .nav__sep { height: 1px; background: var(--line); margin: 8px 6px; }
+.nav__item--sub { font-size: 13px; color: var(--text-muted); }
 .nav__label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--text-muted); padding: 12px 12px 4px; }
 
 .sidebar__foot { padding-top: 12px; border-top: 1px solid var(--line); margin-top: 8px; }

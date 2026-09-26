@@ -3,40 +3,39 @@
    ============================================================ */
 
 /* -------- Configuración de navegación -------- */
+/* Principal: siempre visible. "Más" (mas: true): se puede ocultar en Personalizar menú (settings.menu.ocultos). */
 const ROUTES = [
   { grupo: "Principal" },
   { id: "inicio", label: "Inicio", icon: "🏠", render: renderInicio, subtitle: "Tu centro de control diario." },
-  { id: "ritual", label: "Ritual Matutino", icon: "🌅", render: renderRitual, subtitle: "Empieza el día con intención y foco." },
-  { id: "diario", label: "Diario", icon: "📔", render: renderDiario, subtitle: "Tu día a día: ánimo, reflexión e historial del ritual." },
-  { grupo: "Análisis" },
-  { id: "tendencias", label: "Tendencias", icon: "📈", render: renderTendencias, subtitle: "Tu evolución del año en gráficos." },
-  { id: "recompensas", label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus insignias y la tienda de cosméticos." },
-  { grupo: "Organización" },
-  { id: "metas", label: "Objetivos y metas", icon: "🎯", render: renderMetas, subtitle: "Tus metas trimestrales y mensuales." },
-  { id: "semana", label: "Planificador semanal", icon: "🗂️", render: renderSemana, subtitle: "Tus tareas de lunes a domingo." },
+  { id: "ritual", label: "Ritual", icon: "🌅", render: renderRitual, subtitle: "Abre y cierra tu día, tu semana y tu mes." },
+  { id: "semana", label: "Semana", icon: "🗂️", render: renderSemana, subtitle: "Tu plan y tus tareas de lunes a domingo." },
   { id: "habitos", label: "Hábitos", icon: "📊", render: renderHabitos, subtitle: "Marca cada día y cuida tu racha." },
-  { id: "lecturas", label: "Lecturas", icon: "📚", render: renderLecturas, subtitle: "Tu biblioteca personal de lectura." },
-  { id: "calendario", label: "Calendario", icon: "🗓️", render: renderCalendario, subtitle: "Tu mes de un vistazo." },
-  { grupo: "Vida" },
-  { id: "relaciones", label: "Relaciones", icon: "👥", render: renderRelaciones, subtitle: "Cumpleaños y con quién no hablas hace rato." },
-  { id: "listas", label: "Listas", icon: "🧾", render: renderListas, subtitle: "Compras, películas, viajes y más." },
-  { grupo: "Bienestar" },
-  { id: "salud", label: "Salud y bienestar", icon: "💪", render: renderSalud, subtitle: "Entrenamiento, cocina y peso." },
-  { id: "entrenamiento", label: "Entrenamiento", icon: "🏋️", render: renderEntrenamiento, subtitle: "Tu rutina por bloques." },
-  { id: "rueda", label: "Rueda de la vida", icon: "🧭", render: renderRueda, subtitle: "Puntúa cada área del 0 al 10." },
-  { grupo: "Recursos" },
-  { id: "finanzas", label: "Finanzas", icon: "💰", render: renderFinanzas, subtitle: "Ahorro, gastos y seguimiento mensual." },
-  { id: "aprendizajes", label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
-  { id: "notas", label: "Notas", icon: "📝", render: renderNotas, subtitle: "Captura rápida y notas organizadas por categoría." },
-  { grupo: "Personalización" },
+  { id: "metas", label: "Objetivos", icon: "🎯", render: renderMetas, subtitle: "Tus metas trimestrales y mensuales." },
+  { id: "diario", label: "Diario", icon: "📔", render: renderDiario, subtitle: "Tu día a día: ánimo, reflexión e historial del ritual." },
+  { grupo: "Más" },
+  { id: "tendencias", mas: true, label: "Tendencias", icon: "📈", render: renderTendencias, subtitle: "Tu evolución del año en gráficos." },
+  { id: "calendario", mas: true, label: "Calendario", icon: "🗓️", render: renderCalendario, subtitle: "Tu mes de un vistazo." },
+  { id: "finanzas", mas: true, label: "Finanzas", icon: "💰", render: renderFinanzas, subtitle: "Ahorro, gastos y seguimiento mensual." },
+  { id: "salud", mas: true, label: "Salud y bienestar", icon: "💪", render: renderSalud, subtitle: "Entrenamiento, cocina y peso." },
+  { id: "entrenamiento", mas: true, label: "Entrenamiento", icon: "🏋️", render: renderEntrenamiento, subtitle: "Tu rutina por bloques." },
+  { id: "rueda", mas: true, label: "Rueda de la vida", icon: "🧭", render: renderRueda, subtitle: "Puntúa cada área del 0 al 10." },
+  { id: "lecturas", mas: true, label: "Lecturas", icon: "📚", render: renderLecturas, subtitle: "Tu biblioteca personal de lectura." },
+  { id: "relaciones", mas: true, label: "Relaciones", icon: "👥", render: renderRelaciones, subtitle: "Cumpleaños y con quién no hablas hace rato." },
+  { id: "listas", mas: true, label: "Listas", icon: "🧾", render: renderListas, subtitle: "Compras, películas, viajes y más." },
+  { id: "aprendizajes", mas: true, label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
+  { id: "notas", mas: true, label: "Notas", icon: "📝", render: renderNotas, subtitle: "Captura rápida y notas organizadas por categoría." },
+  { id: "recompensas", mas: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus insignias y la tienda de cosméticos." },
+  { grupo: "Ajustes" },
   { id: "tienda", label: "Tienda", icon: "🛒", render: renderTienda, subtitle: "Desbloquea temas, títulos y detalles con tus ⭐." },
   { id: "cuenta", label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
   { id: "notif", label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
 ];
 const ROUTE_MAP = {};
 ROUTES.forEach(r => { if (r.id) ROUTE_MAP[r.id] = r; });
-/* Orden de secciones para el gesto de deslizar (mismo orden del menú) */
-const SECTION_ORDER = ROUTES.filter(r => r.id).map(r => r.id);
+/* Módulos ocultos por la persona (settings.menu.ocultos) */
+function moduloOculto(id) { const m = STATE && STATE.settings && STATE.settings.menu; return !!(m && (m.ocultos || []).includes(id) && ROUTE_MAP[id] && ROUTE_MAP[id].mas); }
+/* Orden de secciones para el gesto de deslizar (mismo orden del menú, sin las ocultas) */
+function seccionesVisibles() { return ROUTES.filter(r => r.id && !moduloOculto(r.id)).map(r => r.id); }
 
 let CURRENT = "inicio";
 let CURRENT_USER = null;
@@ -138,7 +137,7 @@ function renderOnboardingStep() {
     const ultima = ONB_STEP === ONB_SLIDES.length - 1;
     let cuerpo = s.cuerpo;
     if (cuerpo === "__GRID__") {
-      const areas = [["📔", "Diario"], ["🎯", "Objetivos"], ["🗂️", "Planificador"], ["📊", "Hábitos"], ["📚", "Lecturas"], ["💰", "Finanzas"],
+      const areas = [["📔", "Diario"], ["🎯", "Objetivos"], ["🗂️", "Semana"], ["📊", "Hábitos"], ["📚", "Lecturas"], ["💰", "Finanzas"],
         ["💪", "Salud"], ["👥", "Relaciones"], ["🧾", "Listas"], ["📝", "Notas"], ["📈", "Tendencias"], ["🧭", "Rueda"]];
       cuerpo = `Rumbo reúne lo que hoy tienes disperso:
         <div class="onb-grid">${areas.map(a => `<div class="onb-area"><span>${a[0]}</span>${a[1]}</div>`).join("")}</div>`;
@@ -354,7 +353,10 @@ async function doLogout() {
 function buildNav() {
   const nav = document.getElementById("nav");
   nav.innerHTML = ROUTES.map(r => {
+    if (r.grupo === "Ajustes") return `<button class="nav__item nav__item--sub" data-action="menu-personalizar"><span class="nav__ico">⚙️</span><span>Personalizar menú</span></button>
+      <div class="nav__label">${r.grupo}</div>`;
     if (r.grupo) return `<div class="nav__label">${r.grupo}</div>`;
+    if (moduloOculto(r.id)) return "";
     return `<button class="nav__item" data-route="${r.id}">
       <span class="nav__ico">${r.icon}</span><span>${r.label}</span></button>`;
   }).join("");
@@ -363,7 +365,7 @@ function buildNav() {
 }
 
 /* Barra inferior en móvil: accesos directos + Menú (abre el lateral) */
-const BOTTOM_NAV = ["inicio", "ritual", "habitos", "diario"];
+const BOTTOM_NAV = ["inicio", "semana", "habitos", "metas"];
 function buildBottomNav() {
   const bar = document.getElementById("bottombar");
   if (!bar) return;
@@ -373,7 +375,7 @@ function buildBottomNav() {
       <span class="bico">${r.icon}</span>${r.label.split(" ")[0]}</button>`;
   }).join("");
   bar.innerHTML = items + `<button class="bottombar__item" data-action="open-menu">
-    <span class="bico">☰</span>Menú</button>`;
+    <span class="bico">☰</span>Más</button>`;
 }
 
 function onRoute() {
@@ -390,6 +392,25 @@ function onRoute() {
 }
 
 function go(id) { location.hash = id; }
+
+/* -------- Personalizar menú: ocultar módulos de "Más" (los datos no se tocan) -------- */
+function openPersonalizarMenu() {
+  setSidebar(false);
+  const ocultos = new Set(((STATE.settings.menu || {}).ocultos) || []);
+  openModal("Personalizar menú", `
+    <p class="text-sm muted" style="margin-bottom:12px">Elige qué módulos ver en el menú. Ocultar uno no borra nada: vuelve a mostrarlo cuando quieras y todo seguirá ahí.</p>
+    ${ROUTES.filter(r => r.mas).map(r => `<label class="mes-hab" style="cursor:pointer"><span class="mes-hab__n">${r.icon} ${r.label}</span>
+      <input type="checkbox" class="menu-mod" value="${r.id}" ${ocultos.has(r.id) ? "" : "checked"}></label>`).join("")}
+    <p class="text-xs muted mt-8">Inicio, Ritual, Semana, Hábitos, Objetivos y Diario siempre se ven.</p>
+    <button class="btn btn--primary btn-block mt-16" data-action="menu-guardar">Guardar</button>`);
+}
+function guardarPersonalizarMenu() {
+  const ocultos = Array.from(document.querySelectorAll(".menu-mod")).filter(c => !c.checked).map(c => c.value);
+  STATE.settings.menu = { ocultos, ts: Date.now() };
+  saveState(); closeModal(); buildNav();
+  if (moduloOculto(CURRENT)) go("inicio"); else onRoute();
+  toast(ocultos.length ? `Menú actualizado · ${ocultos.length} módulo${ocultos.length === 1 ? "" : "s"} oculto${ocultos.length === 1 ? "" : "s"}` : "Menú actualizado");
+}
 
 /* Menú lateral en móvil: abrir/cerrar con fondo oscuro */
 function setSidebar(open) {
@@ -420,11 +441,12 @@ function startsInScrollableX(el) {
   return false;
 }
 function navigateSection(dir) {
-  const i = SECTION_ORDER.indexOf(CURRENT);
+  const orden = seccionesVisibles();
+  const i = orden.indexOf(CURRENT);
   if (i === -1) return;
   const j = i + dir;
-  if (j < 0 || j >= SECTION_ORDER.length) return; // sin dar la vuelta en los extremos
-  go(SECTION_ORDER[j]);
+  if (j < 0 || j >= orden.length) return; // sin dar la vuelta en los extremos
+  go(orden[j]);
 }
 function attachSwipe(el, onSwipe) {
   if (!el) return;
@@ -811,6 +833,8 @@ function onClick(e) {
     case "semw-add": semWizAdd(d.fecha, +d.i); break;
     case "semw-del": semWizDel(d.fecha, +d.i); break;
     case "sem-dia": guardarDiaRitualSemanal(+d.v); break;
+    case "menu-personalizar": openPersonalizarMenu(); break;
+    case "menu-guardar": guardarPersonalizarMenu(); break;
     case "anio-nav": if (+d.dir === 0) { ANIO_VISTA = null; rerender(); } else cambiarAnioVista(+d.dir); break;
 
     /* Bitácora */

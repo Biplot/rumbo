@@ -70,7 +70,7 @@ module.exports = async ({ b, ok, errs }) => {
 
   // Planificador: chip de la semana
   await p.goto(URL + "#semana"); await p.waitForTimeout(300);
-  ok(await p.locator(".chip", { hasText: "Postergación" }).count() === 1, "el planificador muestra la postergación de la semana");
+  ok(await p.locator(".mes-num", { hasText: "postergación" }).count() === 1, "la pantalla Semana muestra la postergación de la semana");
 
   // Apertura: aviso de capacidad
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);

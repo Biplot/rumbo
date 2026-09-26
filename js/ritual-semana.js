@@ -479,13 +479,24 @@ function prioridadesSemanaMini() {
     <div class="row-wrap mt-8" style="gap:6px">${a.prioridades.map(p => `<span class="chip ${prioridadHecha(p, L) ? "chip--done" : ""}">🎯 ${escapeHtml(p.texto)}</span>`).join("")}</div></div>`;
 }
 
-function renderRitualSemana() {
-  const hoy = todayISO(), L = agLunes(hoy), prevL = agSumar(L, -7), sigL = agSumar(L, 7);
+/* ============================================================
+   Pantalla Semana (una sola): plan de la semana arriba, los 7 días abajo.
+   Reemplaza al Planificador y a Ritual → Semana (que muestra lo mismo).
+   ============================================================ */
+function renderRitualSemana() { return renderSemana(); }
+function renderSemana() {
+  const hoy = todayISO(), actual = agLunes(hoy);
+  const L = SEM_LUNES || actual, esActual = L === actual;
+  const prevL = agSumar(L, -7), sigL = agSumar(L, 7);
+  const fechas = Array.from({ length: 7 }, (_, i) => agSumar(L, i));
   const r = ritualSemana(L) || {}, a = r.apertura, plan = r.plan || {}, c = r.cierre;
-  const acciones = [`<button class="btn ${a ? "btn--soft" : "btn--primary"}" data-action="sem-open" data-lunes="${L}">${a ? "Editar plan" : "📅 Planificar esta semana"}</button>`];
+
+  // Acciones según la semana que se mira
+  const acciones = [];
+  if (semanaPlanificable(L)) acciones.push(`<button class="btn ${a ? "btn--soft" : "btn--primary"}" data-action="sem-open" data-lunes="${L}">${a ? "Editar plan" : "📅 Planificar la semana"}</button>`);
   if (semanaCerrable(L)) acciones.push(`<button class="btn ${c ? "btn--soft" : "btn--primary"}" data-action="sem-close" data-lunes="${L}">${c ? "Editar cierre" : "🌙 Cerrar la semana"}</button>`);
-  if (!semanaCerrada(prevL) && semanaConActividad(prevL)) acciones.push(`<button class="btn-ghost" data-action="sem-close" data-lunes="${prevL}">Cerrar la semana anterior</button>`);
-  if (semanaPlanificable(sigL)) acciones.push(`<button class="btn-ghost" data-action="sem-open" data-lunes="${sigL}">${semanaAbierta(sigL) ? "Editar plan de la próxima" : "Planificar la próxima"}</button>`);
+  if (esActual && !semanaCerrada(prevL) && semanaConActividad(prevL)) acciones.push(`<button class="btn-ghost" data-action="sem-close" data-lunes="${prevL}">Cerrar la semana anterior</button>`);
+  if (esActual && semanaPlanificable(sigL)) acciones.push(`<button class="btn-ghost" data-action="sem-open" data-lunes="${sigL}">${semanaAbierta(sigL) ? "Editar plan de la próxima" : "Planificar la próxima"}</button>`);
 
   const ev = (c && c.evaluacion) || {};
   const estadoP = p => ev[p.id] === "cumplida" ? '<span class="chip chip--done">✅ cumplida</span>'
@@ -497,7 +508,7 @@ function renderRitualSemana() {
     const obj = objetivoDe(p.objId);
     return `<div class="item-row"><div class="item-row__main"><div class="item-row__title">🎯 ${escapeHtml(p.texto)}</div>
       ${obj ? `<div class="item-row__sub">↳ ${escapeHtml(obj.texto)}</div>` : ""}</div>${estadoP(p)}</div>`;
-  }).join("") : `<div class="empty">Elige tus 3 prioridades al planificar la semana.</div>`;
+  }).join("") : `<div class="empty">${semanaPlanificable(L) ? "Elige tu foco y tus 3 prioridades al planificar la semana (+75 ⭐)." : "Esta semana no tuvo plan."}</div>`;
 
   const habs = ((a && a.habitosFoco) || []).map(id => STATE.habitos.defs.find(h => h.id === id)).filter(Boolean);
   const habsHtml = habs.length ? habs.map(h => {
@@ -506,10 +517,20 @@ function renderRitualSemana() {
       <div class="bar"><div class="bar__fill" style="width:${pct}%"></div></div><span class="chip">${p.hecho}/${p.meta}</span></div>`;
   }).join("") : `<div class="empty">Elige hasta 3 hábitos en foco al planificar la semana.</div>`;
 
+  const cols = fechas.map((iso, i) => {
+    const d = agDate(iso), tareas = tareasDelDia(iso), inputId = `sem-${i}`;
+    return `<div class="week-col card ${iso === hoy ? "is-hoy" : ""}">
+      <div class="flex-between"><div class="card__title" style="font-size:14px">${DIAS_SEMANA[i]}</div>
+        <span class="dia-badge">${d.getDate()}/${MESES_CORTO[d.getMonth()]}</span></div>
+      <div class="mt-8">${tareas.length ? tareas.map(t => tareaRowHtml(t, iso, { compacto: true })).join("") : '<div class="text-xs muted" style="padding:6px">Sin tareas.</div>'}</div>
+      <div class="row mt-8">${ambitoPicker(inputId + "-amb", "per", true)}<input class="input" id="${inputId}" placeholder="Nueva tarea..." style="padding:8px 10px">
+        <button class="btn btn--cian" data-action="tarea-add" data-fecha="${iso}" data-input="${inputId}" data-amb="${inputId}-amb" style="padding:8px 12px">+</button></div>
+    </div>`;
+  }).join("");
+
   const dia = diaRitualSemanal();
   const segDia = [[0, "Domingo"], [1, "Lunes"]].map(([v, l]) => `<button class="${dia === v ? "is-active" : ""}" data-action="sem-dia" data-v="${v}">${l}</button>`).join("");
-
-  const hist = Object.keys(STATE.ritual.semanas || {}).filter(k => k < L && (STATE.ritual.semanas[k].apertura || STATE.ritual.semanas[k].cierre))
+  const hist = Object.keys(STATE.ritual.semanas || {}).filter(k => k < actual && (STATE.ritual.semanas[k].apertura || STATE.ritual.semanas[k].cierre))
     .sort().reverse().slice(0, 8).map(k => {
       const x = STATE.ritual.semanas[k];
       return `<div class="item-row"><div class="item-row__main"><div class="item-row__title">${rangoSemanaCorto(k)}${x.apertura && x.apertura.foco ? ` · <span class="hl-cian">${escapeHtml(x.apertura.foco)}</span>` : ""}</div>
@@ -518,27 +539,39 @@ function renderRitualSemana() {
     }).join("");
 
   return `
-  <div class="card" style="background:linear-gradient(120deg, var(--cian-soft), var(--surface))">
+  <div class="sem-nav">
+    <button class="icon-btn" data-action="sem-nav" data-dir="-1" aria-label="Semana anterior">‹</button>
+    <div class="sem-nav__t"><b>${esActual ? "Esta semana" : L < actual ? "Semana pasada" : "Semana próxima"}</b> · ${rangoSemanaTxt(L)}</div>
+    <button class="icon-btn" data-action="sem-nav" data-dir="1" aria-label="Semana siguiente">›</button>
+    ${esActual ? "" : `<button class="btn-ghost" data-action="sem-nav" data-dir="0">Ir a esta semana</button>`}
+  </div>
+  <div class="card mt-16" style="background:linear-gradient(120deg, var(--cian-soft), var(--surface))">
     <div class="flex-between" style="flex-wrap:wrap;gap:12px">
-      <div style="min-width:0"><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">Semana del ${rangoSemanaTxt(L)}</div>
+      <div style="min-width:0"><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">📅 Plan de la semana</div>
         <div class="big-num">${a && a.foco ? escapeHtml(a.foco) : "Sin foco definido"}</div>
-        ${plan.premio ? `<div class="text-sm soft mt-8">🏆 Premio: ${escapeHtml(plan.premio)}${c && c.premioGanado ? " · ¡ganado! 🎉" : ""}</div>` : ""}</div>
-      <div class="row-wrap">${acciones.join("")}</div>
+        ${plan.premio && c && c.premioGanado ? `<div class="text-sm soft mt-8">🏆 Premio ganado: ${escapeHtml(plan.premio)} 🎉</div>` : ""}</div>
+      ${acciones.length ? `<div class="row-wrap">${acciones.join("")}</div>` : ""}
     </div>
   </div>
-  <div class="grid grid-2 mt-24">
-    <div class="card"><div class="card__head"><div class="card__title">🎯 Prioridades de la semana</div><a class="card__hint" href="#semana">Planificador →</a></div>${prios}</div>
-    <div class="card"><div class="card__title">📊 Esta semana hasta hoy</div>
+  <div class="grid grid-2 mt-16">
+    <div class="card"><div class="card__title">🎯 Prioridades</div><div class="mt-8">${prios}</div></div>
+    <div class="card"><div class="card__title">📊 ${esActual ? "Esta semana hasta hoy" : "Números de la semana"}</div>
       <div class="mt-16">${resumenSemanaHtml(resumenSemanaRitual(L, STATE, c ? ev : null), resumenSemanaRitual(prevL))}</div></div>
   </div>
-  <div class="grid grid-2 mt-24">
+  <div class="week-scroll mt-24">${cols}</div>
+  <p class="text-xs muted mt-8">Signos: ✓ hecha · &gt; movida a otro día · &lt; programada · @ delegada · ✕ soltada · ↪ n veces postergada.</p>
+  <div class="grid grid-2 mt-16">
     <div class="card"><div class="card__title">✨ Hábitos en foco</div><div class="mt-16">${habsHtml}</div></div>
-    <div class="card"><div class="card__title">⚙️ Tu día de ritual semanal</div>
-      <div class="seg mt-16" style="display:inline-flex">${segDia}</div>
-      <p class="text-xs muted mt-16">Ese día cierras la semana y planificas la siguiente, todo seguido. Puedes cerrar desde el viernes en la tarde.
-        ${STATE.settings.notif && STATE.settings.notif.enabled ? `Te avisaremos el ${dia ? "lunes en la mañana" : "domingo en la noche"}${dia ? " y el martes" : " y el lunes en la mañana"} si aún no planificas.` : "Activa las notificaciones en tu perfil para que te lo recordemos."}</p></div>
+    <div class="card"><div class="card__title">🏆 Tu premio de la semana</div>
+      <input class="input mt-16" id="sem-premio" value="${escapeAttr(plan.premio || "")}" placeholder="¿Con qué te vas a premiar al cumplir?"
+        onchange="guardarPremioSemana('${L}', this.value)"></div>
   </div>
-  ${hist ? `<div class="section-title">Semanas anteriores</div><div class="card">${hist}</div>` : ""}`;
+  <details class="hb-more mt-16"><summary>⚙️ Tu día de ritual semanal${hist ? " y semanas anteriores" : ""}</summary>
+    <div class="card mt-16"><div class="seg" style="display:inline-flex">${segDia}</div>
+      <p class="text-xs muted mt-16">Ese día cierras la semana y planificas la siguiente, todo seguido. Puedes cerrar desde el viernes en la tarde.
+        ${STATE.settings.notif && STATE.settings.notif.enabled ? `Te avisaremos el ${dia ? "lunes en la mañana" : "domingo en la noche"}${dia ? " y el martes" : " y el lunes en la mañana"} si aún no planificas.` : "Activa las notificaciones para que te lo recordemos."}</p></div>
+    ${hist ? `<div class="card mt-16">${hist}</div>` : ""}
+  </details>`;
 }
 
 /* Insignias: semanas "redondas" (planificadas y cerradas) */

@@ -130,8 +130,10 @@ module.exports = async ({ b, ok, errs }) => {
   const vista = await p.locator("#view").innerText();
   ok(vista.includes("Lanzamiento") && vista.includes("Publicar la web") && vista.includes("Editar plan de la próxima"), "Ritual → Semana muestra foco, prioridades y acciones");
   await shot(p, "f4-vista-semana", { fullPage: true });
+  await p.locator("details.hb-more summary", { hasText: "día de ritual" }).click();
   await p.click('[data-action="sem-dia"][data-v="1"]'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => STATE.settings.ritualSemanal.dia) === 1, "se puede cambiar el día del ritual a lunes");
+  await p.locator("details.hb-more summary", { hasText: "día de ritual" }).click().catch(() => {});
   await p.click('[data-action="sem-dia"][data-v="0"]'); await p.waitForTimeout(200);
 
   await p.goto(URL + "#diario"); await p.waitForTimeout(300);

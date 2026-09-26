@@ -36,6 +36,7 @@ function defaultState() {
       appName: "Rumbo", year: YEAR, theme: "navy", onboarded: false, introVersion: 0, metaLibros: 12,
       notif: { enabled: false, manana: "08:00", noche: "21:00", subs: [] },
       ritualSemanal: { dia: 0 },   // día del ritual semanal: 0 = domingo, 1 = lunes
+      menu: { ocultos: [] },       // módulos de "Más" que la persona ocultó del menú
     },
 
     finanzas: {
@@ -238,6 +239,7 @@ function migrate(s) {
   if (s.settings && !s.settings.notif) s.settings.notif = { enabled: false, manana: "08:00", noche: "21:00", subs: [] };
   if (s.settings && s.settings.notif && !Array.isArray(s.settings.notif.subs)) s.settings.notif.subs = [];
   if (s.settings && (!s.settings.ritualSemanal || typeof s.settings.ritualSemanal !== "object")) s.settings.ritualSemanal = { dia: 0 };
+  if (s.settings && (!s.settings.menu || !Array.isArray(s.settings.menu.ocultos))) s.settings.menu = { ocultos: [] };
   const g = s.gamif;
   if (g.xp == null) g.xp = g.puntos || 0;
   if (!g.badges) g.badges = [];

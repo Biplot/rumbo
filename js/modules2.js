@@ -144,7 +144,7 @@ function openRitualModal() {
       ${vienen.length ? `<div class="vienen mt-8"><div class="text-xs muted">↪ Vienen de días anteriores (${vienen.length}) · ya están en tu lista de hoy</div>
         <div class="row-wrap mt-8" style="gap:6px">${vienen.map(t => `<span class="chip">${AMBITOS[ambitoDe(t)].icon} ${escapeHtml(t.txt)}${t.migraciones ? ` · ↪ ${t.migraciones}` : ""}</span>`).join("")}</div></div>` : ""}
       <div class="text-xs muted mt-8" id="r-cap">${capacidadHint(contarTareasRitual(sapoDefault, tareasDe("pro"), tareasDe("per"), RITUAL_VIENEN), tmCapacidad(STATE, todayISO()))}</div>
-      <div class="text-xs muted mt-8">Tu primer bocado y estas tareas aparecen juntos en Inicio y en tu Planificador.</div></div>
+      <div class="text-xs muted mt-8">Tu primer bocado y estas tareas aparecen juntos en Inicio y en tu Semana.</div></div>
 
     <div class="field"><label>Pilar de hoy</label>
       <select class="select" id="r-pilar">${PILARES.map(p => `<option ${r.pilar === p ? "selected" : ""}>${p}</option>`).join("")}</select></div>
@@ -374,7 +374,7 @@ function renderBitacora() {
 
   if (!total) {
     return header + `<div class="mt-24"><div class="card"><div class="empty">
-      Tu bitácora está vacía por ahora.<br>Abre y cierra tu día en el <b>Ritual Matutino</b> y cada jornada quedará guardada aquí 📓
+      Tu bitácora está vacía por ahora.<br>Abre y cierra tu día en el <b>Ritual</b> y cada jornada quedará guardada aquí 📓
       <div class="mt-16"><button class="btn btn--primary" data-action="day-open">🌅 Abrir mi día</button></div>
     </div></div></div>`;
   }
@@ -400,63 +400,7 @@ function renderBitacora() {
    PLANIFICADOR SEMANAL
    ============================================================ */
 let SEM_LUNES = null;   // lunes de la semana que muestra el planificador (null = la actual)
-function renderSemana() {
-  const hoy = todayISO();
-  const lunes = SEM_LUNES || agLunes(hoy);
-  const esActual = lunes === agLunes(hoy);
-  const fechas = Array.from({ length: 7 }, (_, i) => agSumar(lunes, i));
-
-  const cols = fechas.map((iso, i) => {
-    const d = agDate(iso);
-    const tareas = tareasDelDia(iso);
-    const inputId = `sem-${i}`;
-    return `<div class="week-col card ${iso === hoy ? "is-hoy" : ""}">
-      <div class="flex-between"><div class="card__title" style="font-size:14px">${DIAS_SEMANA[i]}</div>
-        <span class="dia-badge">${d.getDate()}/${MESES_CORTO[d.getMonth()]}</span></div>
-      <div class="mt-8">
-        ${tareas.length ? tareas.map(t => tareaRowHtml(t, iso, { compacto: true })).join("")
-        : '<div class="text-xs muted" style="padding:6px">Sin tareas.</div>'}
-      </div>
-      <div class="row mt-8">${ambitoPicker(inputId + "-amb", "per", true)}<input class="input" id="${inputId}" placeholder="Nueva tarea..." style="padding:8px 10px">
-        <button class="btn btn--cian" data-action="tarea-add" data-fecha="${iso}" data-input="${inputId}" data-amb="${inputId}-amb" style="padding:8px 12px">+</button></div>
-    </div>`;
-  }).join("");
-
-  let hechas = 0, pend = 0, mov = 0, solt = 0;
-  fechas.forEach(iso => { const r = resumenDia(STATE, iso); hechas += r.hechas; pend += r.pendientes; mov += r.migradas + r.programadas; solt += r.soltadas + r.delegadas; });
-  const vivas = hechas + pend;
-  const pSem = tmResumen(STATE, lunes, fechas[6]);
-  const rs = (STATE.ritual.semanas || {})[lunes] || {};
-  const plan = rs.plan || {}, ap = rs.apertura;
-  const planificable = semanaPlanificable(lunes);
-  const rango = rangoSemanaTxt(lunes);
-
-  return `
-  <div class="sem-nav">
-    <button class="icon-btn" data-action="sem-nav" data-dir="-1" aria-label="Semana anterior">‹</button>
-    <div class="sem-nav__t"><b>${esActual ? "Esta semana" : "Semana"}</b> · ${rango}</div>
-    <button class="icon-btn" data-action="sem-nav" data-dir="1" aria-label="Semana siguiente">›</button>
-    ${esActual ? "" : `<button class="btn-ghost" data-action="sem-nav" data-dir="0">Ir a hoy</button>`}
-  </div>
-  <div class="grid grid-2 mt-16">
-    <div class="card">
-      <div class="flex-between" style="gap:8px"><div class="text-xs muted" style="text-transform:uppercase">📅 Plan de la semana</div>
-        ${planificable ? `<button class="btn-ghost" data-action="sem-open" data-lunes="${lunes}">${ap ? "Editar" : "Planificar"}</button>` : ""}</div>
-      ${ap ? `${ap.foco ? `<div class="card__title mt-8">${escapeHtml(ap.foco)}</div>` : ""}
-        ${(ap.prioridades || []).map(p => `<div class="text-sm mt-8">🎯 ${escapeHtml(p.texto)}${prioridadHecha(p, lunes) ? ' <span class="chip chip--done">✓</span>' : ""}</div>`).join("")}`
-        : `<div class="text-sm muted mt-8">${planificable ? "Aún no planificas esta semana: elige tu foco y tus 3 prioridades (+75 ⭐)." : "Esta semana no tuvo plan."}</div>`}
-      <div class="text-xs muted mt-16" style="text-transform:uppercase">🏆 Tu premio</div>
-      <input class="input mt-8" id="sem-premio" value="${escapeAttr(plan.premio || "")}" placeholder="¿Con qué te vas a premiar al cumplir?"
-        onchange="guardarPremioSemana('${lunes}', this.value)"></div>
-    <div class="card"><div class="text-xs muted" style="text-transform:uppercase">Avance semanal</div>
-      <div class="big-num">${hechas}<span class="text-sm muted">/${vivas} tareas</span></div>
-      <div class="bar mt-8"><div class="bar__fill" style="width:${vivas ? Math.round(hechas / vivas * 100) : 0}%"></div></div>
-      ${mov || solt ? `<div class="row-wrap mt-8" style="gap:6px">${mov ? `<span class="chip">↪ ${mov} movida${mov === 1 ? "" : "s"}</span>` : ""}${solt ? `<span class="chip">✕ ${solt} soltada${solt === 1 ? "" : "s"} o delegada${solt === 1 ? "" : "s"}</span>` : ""}${pSem.tareas >= 3 ? `<span class="chip ${pSem.indice >= 40 ? "chip--coral" : ""}" title="Tareas de la semana que moviste de día al menos una vez">Postergación ${pSem.indice}%</span>` : ""}</div>` : ""}
-    </div>
-  </div>
-  <div class="week-scroll mt-24">${cols}</div>
-  <p class="text-xs muted mt-16">Signos: ✓ hecha · &gt; movida a otro día · &lt; programada · @ delegada · ✕ soltada · ↪ n veces postergada.</p>`;
-}
+/* La pantalla Semana vive en ritual-semana.js (renderSemana) */
 function guardarPremioSemana(lunes, v) {
   STATE.ritual.semanas = STATE.ritual.semanas || {};
   const w = STATE.ritual.semanas[lunes] = STATE.ritual.semanas[lunes] || {};

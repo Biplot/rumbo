@@ -171,17 +171,19 @@ function mergeStates(server, local) {
     });
     out.ritual.dias = md;
 
-    // ritual.meses: por clave "YYYY-MM"; apertura y cierre se fusionan por separado (gana ts)
-    const sm = server.ritual.meses || {}, lm = local.ritual.meses || {}, mm = {};
-    new Set([...Object.keys(sm), ...Object.keys(lm)]).forEach(k => {
-      const s = sm[k] || {}, l = lm[k] || {}, r = {};
-      ["apertura", "cierre"].forEach(p => {
-        const a = l[p], b = s[p];
-        if (a || b) r[p] = !b ? a : !a ? b : ((a.ts || 0) >= (b.ts || 0) ? a : b);
+    // ritual.meses ("YYYY-MM") y ritual.trimestres ("YYYY-Qn"): apertura y cierre por separado (gana ts)
+    ["meses", "trimestres"].forEach(campo => {
+      const sm = server.ritual[campo] || {}, lm = local.ritual[campo] || {}, mm = {};
+      new Set([...Object.keys(sm), ...Object.keys(lm)]).forEach(k => {
+        const s = sm[k] || {}, l = lm[k] || {}, r = {};
+        ["apertura", "cierre"].forEach(p => {
+          const a = l[p], b = s[p];
+          if (a || b) r[p] = !b ? a : !a ? b : ((a.ts || 0) >= (b.ts || 0) ? a : b);
+        });
+        mm[k] = r;
       });
-      mm[k] = r;
+      out.ritual[campo] = mm;
     });
-    out.ritual.meses = mm;
 
     // ritual.semanas: por lunes ISO; plan, apertura y cierre se fusionan por separado (gana ts)
     const ss = server.ritual.semanas || {}, ls = local.ritual.semanas || {}, ws = {};

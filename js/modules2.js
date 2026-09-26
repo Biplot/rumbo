@@ -27,9 +27,10 @@ function openPilaresInfo() {
    ============================================================ */
 let RITUAL_VIEW = "dia";   // dia | semana | mes
 function renderRitual() {
-  const seg = `<div class="seg" style="margin-bottom:16px">${[["dia", "🌅 Día"], ["semana", "📅 Semana"], ["mes", "🗓️ Mes"]].map(([k, l]) =>
+  const seg = `<div class="seg" style="margin-bottom:16px">${[["dia", "🌅 Día"], ["semana", "📅 Semana"], ["mes", "🗓️ Mes"], ["trimestre", "🧭 Trimestre"]].map(([k, l]) =>
     `<button class="${RITUAL_VIEW === k ? "is-active" : ""}" data-action="ritual-view" data-v="${k}">${l}</button>`).join("")}</div>`;
-  const avisos = renderMesBanner() + renderSemanaBanner();
+  const avisos = renderTrimestreBanner() + renderMesBanner() + renderSemanaBanner();
+  if (RITUAL_VIEW === "trimestre") return seg + avisos + renderRitualTrimestre();
   if (RITUAL_VIEW === "mes") return seg + avisos + renderRitualMes();
   if (RITUAL_VIEW === "semana") return seg + avisos + renderRitualSemana();
   return seg + avisos + renderRitualDia();

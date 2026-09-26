@@ -115,6 +115,7 @@ function defaultState() {
     ritual: {
       dias: {}, // "2026-09-20": { mision, pilar, sapo, sapoAmbito, energia, servir, proyectos:[], hecho:true }
       meses: {}, // ritual de mes: "2026-10": { apertura: {…, ts}, cierre: {…, ts} }
+      trimestres: {}, // revisión trimestral: "2026-Q4": { apertura: {…, ts}, cierre: {…, ts} }
       semanas: {}, // ritual de semana, clave = lunes ISO: { plan: {…, ts}, apertura: {…, ts}, cierre: {…, ts} }
       pilares: { "Psicología": 0, "Fisiología": 0, "Productividad": 0, "Magnetismo": 0, "Presencia": 0, "Propósito": 0 },
     },
@@ -221,6 +222,7 @@ function migrate(s) {
   ["gamif", "ritual", "semana", "entrenamiento", "vida"].forEach(k => { if (!s[k]) s[k] = d[k]; });
   if (s.ritual && !s.ritual.pilares) s.ritual.pilares = d.ritual.pilares;
   if (s.ritual && (!s.ritual.meses || typeof s.ritual.meses !== "object")) s.ritual.meses = {};
+  if (s.ritual && (!s.ritual.trimestres || typeof s.ritual.trimestres !== "object")) s.ritual.trimestres = {};
   if (s.ritual && (!s.ritual.semanas || typeof s.ritual.semanas !== "object")) s.ritual.semanas = {};
   migrarAgenda(s);   // tareas → registro diario por fecha (idempotente)
   compactarAgenda(s); // historia de más de 90 días en formato corto (idempotente, no pierde nada)

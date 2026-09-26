@@ -4,7 +4,7 @@ const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   // 1) Novedades: quien quedó en la 1 ve las de la 3 y "también llegó antes"; quien quedó en la 2, solo las de la 3
   const casos = [[1, ["Tareas recurrentes", "Rumbo, año tras año", "Modo express", "Ritual de semana", "Temas nuevos"], []], [2, ["Tareas recurrentes", "Modo express", "Ritual de semana"], ["Temas nuevos"]],
-    [4, ["Tareas recurrentes", "Tu año en números"], ["Modo express"]], [5, ["Menú más simple", "Tareas recurrentes"], ["Tu año en números"]]];
+    [4, ["Tareas recurrentes", "Tu año en números"], ["Modo express"]], [5, ["Revisión trimestral", "Menú más simple"], ["Tu año en números"]], [6, ["Revisión trimestral"], ["Menú más simple"]]];
   for (const [iv, si, no] of casos) {
     const ctx = await nuevoContexto(b, { fecha: "2026-09-25T10:00:00" });
     const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
@@ -15,7 +15,7 @@ module.exports = async ({ b, ok, errs }) => {
     ok(si.every(x => t.includes(x)) && no.every(x => !t.includes(x)), `novedades para quien quedó en la versión ${iv}: ${si.join(", ")}`);
     if (iv === 1) await shot(p, "f5-novedades");
     await p.click('[data-action="onb-done"]'); await p.waitForTimeout(200);
-    ok(await p.evaluate(() => STATE.settings.introVersion) === 6, "al cerrar, queda en la versión 6");
+    ok(await p.evaluate(() => STATE.settings.introVersion) === 7, "al cerrar, queda en la versión 7");
     await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(900);
     ok(await p.locator("#modalOverlay").isHidden(), "no se vuelve a mostrar");
     await ctx.close();

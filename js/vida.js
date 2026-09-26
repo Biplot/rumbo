@@ -79,10 +79,11 @@ function diarioDayCard(fecha) {
   const dash = "<span class='muted'>—</span>";
 
   const chip = r ? (r.cerrado ? `<span class="chip chip--done">🌙 Cerrado</span>` : `<span class="chip chip--coral">🌅 Abierto</span>`) : "";
-  const manual = es.find(e => !e.fromRitual && !e.fromRitualMes && !e.fromRitualSemana);
+  const manual = es.find(e => !e.fromRitual && !e.fromRitualMes && !e.fromRitualSemana && !e.fromRitualTri);
+  const triE = es.find(e => e.fromRitualTri);
   const mesE = es.find(e => e.fromRitualMes);
   const semE = es.find(e => e.fromRitualSemana);
-  const gratitud = (r ? c.mejor : "") || (es.find(e => e.gratitud && !e.fromRitualMes && !e.fromRitualSemana) || {}).gratitud || "";
+  const gratitud = (r ? c.mejor : "") || (es.find(e => e.gratitud && !e.fromRitualMes && !e.fromRitualSemana && !e.fromRitualTri) || {}).gratitud || "";
   const nota = (r ? c.nota : "") || (manual && manual.texto) || "";
 
   const rows = [];
@@ -97,6 +98,12 @@ function diarioDayCard(fecha) {
     rows.unshift(`<div class="bita-row"><span class="bita-k">🗓️ Cierre de mes</span><span class="bita-v"><b>${MESES[mm]} ${my}</b> <span class="chip chip--done">${mesE.nota}/10</span></span></div>`
       + (mesE.gratitud ? `<div class="bita-row"><span class="bita-k">🌟 Lo mejor</span><span class="bita-v">${escapeHtml(mesE.gratitud)}</span></div>` : "")
       + (mesE.texto ? `<div class="bita-row"><span class="bita-k">🧠 Reflexión</span><span class="bita-v">${escapeHtml(mesE.texto)}</span></div>` : ""));
+  }
+  if (triE) {
+    const t = triDeKey(triE.trimestre);
+    rows.unshift(`<div class="bita-row"><span class="bita-k">🧭 Cierre de trimestre</span><span class="bita-v"><b>${triNombre(t.y, t.q)}</b> <span class="chip chip--done">${triE.nota}/10</span></span></div>`
+      + (triE.gratitud ? `<div class="bita-row"><span class="bita-k">🏆 Logro</span><span class="bita-v">${escapeHtml(triE.gratitud)}</span></div>` : "")
+      + (triE.texto ? `<div class="bita-row"><span class="bita-k">🧠 Reflexión</span><span class="bita-v">${escapeHtml(triE.texto)}</span></div>` : ""));
   }
   if (semE) {
     rows.unshift(`<div class="bita-row"><span class="bita-k">📅 Cierre de semana</span><span class="bita-v"><b>${rangoSemanaCorto(semE.semana)}</b> <span class="chip chip--done">${semE.nota}/10</span></span></div>`

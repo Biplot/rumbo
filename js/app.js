@@ -95,7 +95,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 6;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 7;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -202,6 +202,9 @@ const NOVEDADES = {
     ["🗂️", "Una sola pantalla de Semana", "Tu plan (foco, prioridades y números) y tus 7 días juntos. Abajo, 📆 Más adelante: lo que tienes programado en los próximos meses."],
     ["🔁", "Tareas recurrentes", "Pagar el arriendo el día 5, la reunión de los lunes: créalas una vez en Semana → 🔁 Recurrentes y aparecen solas."],
     ["👆", "Tareas más cómodas", "En el celular, desliza una tarea a la derecha para marcarla o a la izquierda para posponerla. Toca su texto para editarlo."],
+  ],
+  7: [
+    ["🧭", "Revisión trimestral", "Cada 3 meses cierras el trimestre (tus metas, tus números, lo aprendido) y abres el siguiente con su foco y de 3 a 5 metas. +200 ⭐ cada parte. En Ritual → Trimestre."],
   ],
 };
 function openNovedades() {
@@ -851,6 +854,13 @@ function onClick(e) {
     case "sem-dia": guardarDiaRitualSemanal(+d.v); break;
     case "menu-personalizar": openPersonalizarMenu(); break;
     case "rec-open": openRecurrentes(); break;
+    case "tri-ritual": openTriRitual(d.cierre, d.apertura); break;
+    case "tri-open": openTriApertura(d.key); break;
+    case "tri-close": openTriCierre(d.key, null); break;
+    case "triw-next": triWizMover(1); break;
+    case "triw-prev": triWizMover(-1); break;
+    case "triw-finish": triWizFinish(); break;
+    case "triw-mas": triWizMas(); break;
     case "rec-save": guardarRecurrente(); break;
     case "rec-del": eliminarRecurrente(d.id); break;
     case "sem-ir": SEM_LUNES = d.lunes === agLunes(todayISO()) ? null : d.lunes; if (CURRENT !== "semana") go("semana"); else rerender(); window.scrollTo(0, 0); break;
@@ -1376,6 +1386,7 @@ function renderInicio() {
 
   return `
   ${renderPendingYesterday()}
+  ${renderTrimestreBanner()}
   ${renderMesBanner()}
   ${renderSemanaBanner()}
   ${renderDayHero()}

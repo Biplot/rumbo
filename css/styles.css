@@ -887,3 +887,19 @@ html[data-theme^="bosque"] .big-num { font-size: 30px; }
 .mision__paso.is-ok { opacity: .6; cursor: default; }
 .mision__paso.is-ok span:last-child { text-decoration: line-through; }
 @media (prefers-reduced-motion: reduce) { .tour-hueco, .tour-pop, .tour-barra > div { transition: none; animation: none; } }
+
+/* ============================================================
+   Google Calendar (gcal.js): eventos de solo lectura
+   ============================================================ */
+.gcal-ev { display: flex; gap: 10px; align-items: baseline; padding: 7px 10px; border-radius: 10px;
+  background: var(--surface-2); border-left: 3px solid var(--cian); margin-top: 6px; font-size: 14px; min-width: 0; }
+.gcal-ev__h { flex: 0 0 auto; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.gcal-ev__t { min-width: 0; overflow-wrap: anywhere; color: var(--text); }
+.gcal-ev--c { padding: 4px 8px; font-size: 12.5px; gap: 6px; }
+.gcal-ev--c .gcal-ev__h { font-size: 11px; }
+.gcal-dia { margin-top: 6px; }
+.gcal-apertura { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; }
+.gcal-apertura .gcal-ev { background: var(--surface); }
+.gcal-refrescar { margin-top: 10px; width: 100%; }
+.gcal-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+.cal-ev--gcal { background: var(--surface-2); color: var(--text); border-left: 2px solid var(--cian); }

@@ -38,6 +38,7 @@ function defaultState() {
       ritualSemanal: { dia: 0 },   // día del ritual semanal: 0 = domingo, 1 = lunes
       menu: { ocultos: [] },       // módulos de "Más" que la persona ocultó del menú
       tutorial: { vistos: {}, mision: "activa", auto: true, ts: 0 },   // recorridos vistos, misión Primeros pasos y ayuda automática
+      gcal: { conectado: false, calendarios: null, ts: 0 },         // Google Calendar: si está conectado y qué calendarios ver (los eventos quedan en el equipo)
     },
 
     finanzas: {
@@ -248,6 +249,7 @@ function migrate(s) {
   // Tutorial: quienes ya usaban la app no ven la misión Primeros pasos (la activan en 🎓 Tutoriales)
   if (s.settings && (!s.settings.tutorial || typeof s.settings.tutorial !== "object")) s.settings.tutorial = { vistos: {}, mision: s.settings.onboarded ? "oculta" : "activa", auto: true, ts: 0 };
   if (s.settings && (!s.settings.tutorial.vistos || typeof s.settings.tutorial.vistos !== "object")) s.settings.tutorial.vistos = {};
+  if (s.settings && (!s.settings.gcal || typeof s.settings.gcal !== "object")) s.settings.gcal = { conectado: false, calendarios: null, ts: 0 };
   const g = s.gamif;
   if (g.xp == null) g.xp = g.puntos || 0;
   if (!g.badges) g.badges = [];

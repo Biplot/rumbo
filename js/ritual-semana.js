@@ -587,6 +587,7 @@ function renderSemana() {
     return `<div class="week-col card ${iso === hoy ? "is-hoy" : ""}">
       <div class="flex-between"><div class="card__title" style="font-size:14px">${DIAS_SEMANA[i]}</div>
         <span class="dia-badge">${d.getDate()}/${MESES_CORTO[d.getMonth()]}</span></div>
+      ${gcalDiaHtml(iso)}
       <div class="mt-8">${tareas.length ? tareas.map(t => tareaRowHtml(t, iso, { compacto: true })).join("") : '<div class="text-xs muted" style="padding:6px">Sin tareas.</div>'}</div>
       <div class="row mt-8">${ambitoPicker(inputId + "-amb", "per", true)}<input class="input" id="${inputId}" placeholder="Nueva tarea..." style="padding:8px 10px">
         <button class="btn btn--cian" data-action="tarea-add" data-fecha="${iso}" data-input="${inputId}" data-amb="${inputId}-amb" style="padding:8px 12px">+</button></div>

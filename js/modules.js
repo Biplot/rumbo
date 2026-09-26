@@ -920,6 +920,11 @@ function calMonthItems(year, m) {
     if (p[0] === year && p[1] === m + 1)
       (STATE.eventos[iso] || []).forEach(e => push(p[2], { icon: "📌", label: e, cls: "cian", type: "evento", date: iso }));
   }
+  // Google Calendar (solo lectura, desde este equipo)
+  if (gcalConectado()) for (let d = 1; d <= nDays; d++) {
+    gcalEventosDia(`${year}-${mm}-${String(d).padStart(2, "0")}`).forEach(e =>
+      push(d, { icon: "📆", label: (e.todoDia ? "" : e.hora + " ") + e.titulo, cls: "gcal", type: "gcal" }));
+  }
   // Rituales (abierto / cerrado)
   for (let d = 1; d <= nDays; d++) {
     const iso = `${year}-${mm}-${String(d).padStart(2, "0")}`;
@@ -966,8 +971,8 @@ function renderCalendario() {
       const iso = `${year}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
       const its = items[d] || [];
       const isToday = iso === todayISO();
-      const dots = its.filter(x => x.type !== "evento");
-      const evs = its.filter(x => x.type === "evento");
+      const dots = its.filter(x => x.type !== "evento" && x.type !== "gcal");
+      const evs = its.filter(x => x.type === "evento" || x.type === "gcal");
       tr += `<td class="cal-cell ${isToday ? "cal-cell--today" : ""}" data-action="cal-add" data-date="${iso}">
         <div class="cal-num">${d}</div>
         ${dots.length ? `<div class="cal-dots">${dots.map(x => `<span title="${escapeAttr(x.label)}">${x.icon}</span>`).join("")}</div>` : ""}
@@ -1009,12 +1014,14 @@ function renderCalendario() {
   ${selectorAnio()}
   ${monthNav(m, "cal-goto", "cal")}
   ${resumen}
+  ${renderGcalCard()}
   <div class="card mt-16" style="overflow-x:auto">
     <table class="cal-table">
       <thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
     <div class="cal-legend">
-      <span>🌅 Día abierto</span><span>🌙 Ritual cerrado</span><span>🎂 Cumpleaños</span><span>📖 Libro terminado</span><span>📌 Evento</span>
+      <span>🌅 Día abierto</span><span>🌙 Ritual cerrado</span><span>🎂 Cumpleaños</span><span>📖 Libro terminado</span><span>📌 Evento</span>${gcalConectado() ? "<span>📆 Google Calendar</span>" : ""}
     </div>
+    ${gcalAvisoActualizar()}
   </div>
   <div class="section-title">Agenda de ${MESES[m]}</div>
   <div class="card">${agendaHtml}</div>`;

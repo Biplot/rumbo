@@ -62,7 +62,7 @@ async function boot() {
   window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
   // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube;
   // al ocultarla/cerrarla, subir de inmediato lo pendiente (no perder el cierre recién hecho).
-  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else syncFromCloud(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); } });
   window.addEventListener("focus", () => syncFromCloud());
   window.addEventListener("pagehide", () => flushCloudSave());
   window.addEventListener("hashchange", onRoute);
@@ -91,6 +91,7 @@ async function enterApp(user) {
   document.getElementById("app").hidden = false;
   updateTopbar();
   onRoute();
+  gcalAlIniciar();   // eventos de Google Calendar al día (solo si el permiso sigue vigente)
   if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
   else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
 }
@@ -1007,6 +1008,11 @@ function onClick(e) {
     case "tour-start":
       if ((STATE.settings.introVersion || 0) < INTRO_VERSION) { STATE.settings.introVersion = INTRO_VERSION; saveState(); }
       tourIniciar(d.id); break;
+    case "gcal-conectar": gcalConectar(); break;
+    case "gcal-actualizar": gcalActualizar(true); break;
+    case "gcal-config": openGcalConfig(); break;
+    case "gcal-guardar": gcalGuardarConfig(); break;
+    case "gcal-desconectar": gcalDesconectar(); break;
     case "tour-pantalla": if (tourDePantalla(CURRENT)) tourIniciar(tourDePantalla(CURRENT)); break;
     case "tour-next": tourMover(1); break;
     case "tour-prev": tourMover(-1); break;
@@ -1405,6 +1411,7 @@ function renderInicio() {
   ${renderSemanaBanner()}
   <div data-tour="dia">${renderDayHero()}</div>
   ${renderMisionCard()}
+  ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
   <div class="grid grid-4">
     ${statCard("💰", "Ahorro de " + MESES[mIdx], fmtCLP(ahorroMes), metaMes ? `Meta ${fmtCLP(metaMes)} · ${pctAhorro}%` : "Sin meta mensual (en Finanzas)", pctAhorro)}
     ${statCard("🔥", "Racha de hábitos", computeStreak() + (computeStreak() === 1 ? " día" : " días"), doneToday + "/" + habToca.length + " hoy")}
@@ -1497,6 +1504,8 @@ function renderCuenta() {
     <div class="card__title">👤 Tu cuenta</div>
     <div class="mt-8 text-sm soft">Sesión iniciada como <b>${escapeHtml(email)}</b></div>
   </div>
+
+  ${renderGcalCard()}
 
   <div class="card mt-16">
     <div class="flex-between" style="flex-wrap:wrap;gap:10px"><div><div class="card__title" style="font-size:15px">📖 Introducción</div>

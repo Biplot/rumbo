@@ -278,9 +278,9 @@ function mergeStates(server, local) {
     });
     out.anios = ma;
   }
-  // Día del ritual semanal y módulos ocultos del menú: gana el cambio más reciente
+  // Día del ritual semanal, módulos ocultos del menú y Google Calendar: gana el cambio más reciente
   if (local.settings && server.settings && out.settings) {
-    ["ritualSemanal", "menu"].forEach(k => {
+    ["ritualSemanal", "menu", "gcal"].forEach(k => {
       const lr = local.settings[k], sr = server.settings[k];
       if (sr && (!lr || (sr.ts || 0) > (lr.ts || 0))) out.settings[k] = JSON.parse(JSON.stringify(sr));
     });

@@ -21,12 +21,12 @@ function rankFor(xp) {
 }
 
 /* -------- Helpers para condiciones de insignias -------- */
-function g_ahorroAcum(s) { return s.finanzas.meses.reduce((a, m) => a + ((m.ingreso || 0) - (m.gasto || 0)), 0); }
-function g_pesoActual(s) { const p = s.salud.meses.map(m => m.peso).filter(x => x != null); return p.length ? p[p.length - 1] : null; }
+function g_ahorroAcum(s) { return datosAnio(s, anioActual()).finanzas.meses.reduce((a, m) => a + ((m.ingreso || 0) - (m.gasto || 0)), 0); }
+function g_pesoActual(s) { return pesoActualGlobal(s); }
 function g_habitMarks(s) { let c = 0; for (const k in s.habitos.log) { const mm = s.habitos.log[k]; for (const h in mm) c += Object.keys(mm[h]).length; } return c; }
 function g_ritualesHechos(s) { return Object.values(s.ritual.dias).filter(d => d.hecho).length; }
 function g_sapos(s) { return Object.values(s.ritual.dias).filter(d => d.cierre && d.cierre.sapo).length; }
-function g_diasEntren(s) { return s.salud.meses.reduce((a, m) => a + (m.diasEntren || 0), 0); }
+function g_diasEntren(s) { return aniosConDatos(s).reduce((t, y) => t + datosAnio(s, y).salud.meses.reduce((a, m) => a + (m.diasEntren || 0), 0), 0); }
 /* Semana Perfecta: en alguna semana ISO reciente, todos los hábitos (no mensuales,
    no pausados) cumplieron su objetivo. Ver semanaPerfecta() en habitos-motor.js */
 function g_semanaPerfecta(s) {
@@ -44,8 +44,8 @@ const BADGES = [
   { id: "cazador-sapos", icon: "🐘", nombre: "Bocado a Bocado", desc: "Completa 10 primeros bocados", reward: 50, check: s => g_sapos(s) >= 10 },
   { id: "semana-perfecta", icon: "📊", nombre: "Semana Perfecta", desc: "Todos tus hábitos cumplen su objetivo en una semana", reward: 60, check: s => g_semanaPerfecta(s) },
   { id: "centurion", icon: "🎖️", nombre: "Centurión", desc: "Marca 100 hábitos", reward: 40, check: s => g_habitMarks(s) >= 100 },
-  { id: "primer-peso", icon: "💰", nombre: "Primer Peso", desc: "Registra tu primer ahorro mensual", reward: 20, check: s => s.finanzas.meses.some(m => (m.ingreso || 0) - (m.gasto || 0) > 0) },
-  { id: "medio-camino", icon: "💵", nombre: "A Medio Camino", desc: "Llega al 50% de tu meta anual", reward: 80, check: s => s.finanzas.metaAnual > 0 && g_ahorroAcum(s) >= s.finanzas.metaAnual * 0.5 },
+  { id: "primer-peso", icon: "💰", nombre: "Primer Peso", desc: "Registra tu primer ahorro mensual", reward: 20, check: s => aniosConDatos(s).some(y => datosAnio(s, y).finanzas.meses.some(m => (m.ingreso || 0) - (m.gasto || 0) > 0)) },
+  { id: "medio-camino", icon: "💵", nombre: "A Medio Camino", desc: "Llega al 50% de tu meta anual", reward: 80, check: s => { const meta = datosAnio(s, anioActual()).finanzas.metaAnual; return meta > 0 && g_ahorroAcum(s) >= meta * 0.5; } },
   { id: "pagina-uno", icon: "📖", nombre: "Página Uno", desc: "Termina tu primer libro", reward: 20, check: s => s.lecturas.some(l => l.estado === "terminado") },
   { id: "devorador", icon: "📚", nombre: "Devorador de Libros", desc: "Termina 3 libros", reward: 60, check: s => s.lecturas.filter(l => l.estado === "terminado").length >= 3 },
   { id: "peso-pluma", icon: "⚖️", nombre: "Peso Pluma", desc: "Alcanza tu peso objetivo", reward: 100, check: s => { const p = g_pesoActual(s); return p != null && p <= s.salud.pesoObjetivo; } },

@@ -682,17 +682,20 @@ function onClick(e) {
     case "meta-add": {
       const input = document.getElementById(d.input);
       const txt = input.value.trim(); if (!txt) return;
-      const bucket = d.bucket === "tri" ? STATE.metas.trimestres : STATE.metas.mensuales;
-      bucket[+d.idx].push({ id: uid(), texto: txt, done: false });
+      const metas = datosAnio(STATE, +d.anio || anioActual(), true).metas;
+      const bucket = d.bucket === "tri" ? metas.trimestres : metas.mensuales;
+      bucket[+d.idx].push({ id: uid(), texto: txt, done: false, ts: Date.now() });
       saveState(); rerender(); break;
     }
     case "meta-toggle": {
-      const bucket = d.bucket === "tri" ? STATE.metas.trimestres : STATE.metas.mensuales;
+      const metas = datosAnio(STATE, +d.anio || anioActual(), true).metas;
+      const bucket = d.bucket === "tri" ? metas.trimestres : metas.mensuales;
       const it = bucket[+d.idx].find(x => x.id === d.id); it.done = !it.done; it.ts = Date.now();
       saveState(); rerender(); break;
     }
     case "meta-del": {
-      const bucket = d.bucket === "tri" ? STATE.metas.trimestres : STATE.metas.mensuales;
+      const metas = datosAnio(STATE, +d.anio || anioActual(), true).metas;
+      const bucket = d.bucket === "tri" ? metas.trimestres : metas.mensuales;
       bucket[+d.idx] = bucket[+d.idx].filter(x => x.id !== d.id);
       saveState(); rerender(); break;
     }
@@ -738,7 +741,7 @@ function onClick(e) {
 
     /* Salud receta toggle */
     case "receta-toggle": {
-      STATE.salud.meses[+d.idx].recetaHecha = !STATE.salud.meses[+d.idx].recetaHecha;
+      { const y = anioVista(), mes = datosAnio(STATE, y, true).salud.meses[+d.idx]; mes.recetaHecha = !mes.recetaHecha; tocarAnio(STATE, y, "salud"); }
       saveState(); rerender(); break;
     }
     case "salud-month": SALUD_MONTH = +d.m; rerender(); break;
@@ -1120,11 +1123,11 @@ function toggleHabitDate(habitId, year, monthIdx, day) {
   rerender();
 }
 // Grilla mensual: usa el mes seleccionado
-function toggleHabitCell(habitId, day) { toggleHabitDate(habitId, STATE.settings.year, HABIT_MONTH, day); }
+function toggleHabitCell(habitId, day) { toggleHabitDate(habitId, anioVista(), HABIT_MONTH, day); }
 // Toggle del día de hoy (vista Diario e Inicio)
 function toggleHabitToday(habitId) { const n = new Date(); toggleHabitDate(habitId, n.getFullYear(), n.getMonth(), n.getDate()); }
-function habitDone(habitId, monthIdx, day) {
-  const key = monthKey(STATE.settings.year, monthIdx);
+function habitDone(habitId, monthIdx, day, year) {
+  const key = monthKey(year || anioActual(), monthIdx);
   return !!(STATE.habitos.log[key] && STATE.habitos.log[key][habitId] && STATE.habitos.log[key][habitId][day]);
 }
 /* +20 ⭐ al cumplir la cuota del período (semana, o mes si es mensual).
@@ -1267,13 +1270,14 @@ function renderInicio() {
   const day = new Date().getDate();
 
   // stats
-  const mesFin = s.finanzas.meses[mIdx];
+  const anioHoy = datosAnio(s, anioActual());
+  const mesFin = anioHoy.finanzas.meses[mIdx];
   const ahorroMes = (mesFin.ingreso || 0) - (mesFin.gasto || 0);
   const metaMes = s.finanzas.metaMensual || 1;
   const pctAhorro = Math.min(100, Math.round((ahorroMes / metaMes) * 100));
 
   const libro = s.lecturas.find(l => l.estado === "leyendo") || s.lecturas.find(l => l.titulo);
-  const pesos = s.salud.meses.map(m => m.peso).filter(p => p != null);
+  const pesos = [pesoActualGlobal(s)].filter(p => p != null);
   const pesoActual = pesos.length ? pesos[pesos.length - 1] : null;
 
   const habBtn = h => {
@@ -1290,7 +1294,7 @@ function renderInicio() {
       <div class="grid mt-8" style="gap:8px">${habCumplidos.map(habBtn).join("")}</div></details>` : "");
   const doneToday = habToca.filter(h => habitDone(h.id, mIdx, day)).length;
 
-  const metasMes = (s.metas.mensuales[mIdx] || []).filter(m => !m.done);
+  const metasMes = (anioHoy.metas.mensuales[mIdx] || []).filter(m => !m.done);
 
   const hoyISO = todayISO();
   const tareasHoy = tareasDelDia(hoyISO);

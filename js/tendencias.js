@@ -224,34 +224,61 @@ function renderDescubrimientos() {
   return `<div class="section-title">💡 Tus descubrimientos</div>${cuerpo}`;
 }
 
+/* Totales de un año para compararlo con el anterior */
+function totalesAnio(S, y) {
+  const D = datosAnio(S, y);
+  const ahorro = D.finanzas.meses.reduce((a, m) => a + ((m.ingreso || 0) - (m.gasto || 0)), 0);
+  const habitos = cumplimientoGrupo(S.habitos.defs, `${y}-01-01`, `${y}-12-31`, S).pct;
+  const entreno = D.salud.meses.reduce((a, m) => a + (m.diasEntren || 0), 0);
+  const cerrados = Object.keys(S.ritual.dias || {}).filter(k => k.startsWith(y + "-") && S.ritual.dias[k].cerrado).length;
+  const libros = (S.lecturas || []).filter(l => l.estado === "terminado" && (l.fin || "").startsWith(y + "-")).length;
+  return { ahorro, habitos, entreno, cerrados, libros, hay: !!(ahorro || entreno || cerrados || libros) };
+}
+/* Fila "Comparado con el año anterior" (solo si el anterior tiene datos) */
+function comparacionAnios(S, y) {
+  const a = totalesAnio(S, y), b = totalesAnio(S, y - 1);
+  if (!b.hay) return "";
+  const chip = (ico, label, va, vb, fmt) => {
+    const dif = va == null || vb == null ? "" : va > vb ? ' <span class="delta is-up">▲</span>' : va < vb ? ' <span class="delta is-down">▼</span>' : "";
+    return `<span class="chip">${ico} ${label}: <b>${fmt(va)}</b> <span class="muted">vs ${fmt(vb)}</span>${dif}</span>`;
+  };
+  const pct = v => (v == null ? "—" : v + "%"), n = v => v;
+  return `<div class="row-wrap" style="gap:8px;margin-bottom:16px"><span class="text-xs muted" style="width:100%">Comparado con ${y - 1}</span>
+    ${chip("🌙", "días cerrados", a.cerrados, b.cerrados, n)}${chip("📊", "hábitos", a.habitos, b.habitos, pct)}
+    ${chip("💰", "ahorro", a.ahorro, b.ahorro, fmtCLP)}${chip("🏋️", "días entrenados", a.entreno, b.entreno, n)}${chip("📚", "libros", a.libros, b.libros, n)}</div>`;
+}
+
 function renderTendencias() {
   const S = STATE;
   const now = new Date();
   const curM = now.getMonth();
+  const y = anioVista(), D = datosAnio(S, y);   // la evolución es del año que se mira (‹ año ›)
 
-  const pesos = S.salud.meses.map(m => (m.peso != null ? m.peso : null));
-  const pesoActual = pesos.filter(p => p != null).slice(-1)[0];
+  const pesos = D.salud.meses.map(m => (m.peso != null ? m.peso : null));
+  const pesoActual = pesoActualGlobal(S);
+  // Tarjetas de arriba: siempre el año actual (el selector ‹ año › solo cambia "Tu evolución")
+  const H = datosAnio(S, anioActual());
 
-  const ahorroVals = S.finanzas.meses.map(m => ((m.ingreso || m.gasto) ? (m.ingreso || 0) - (m.gasto || 0) : null));
-  const ahorroAcum = ahorroVals.reduce((a, v) => a + (v || 0), 0);
-  const pctAnual = S.finanzas.metaAnual ? Math.min(100, Math.round((ahorroAcum / S.finanzas.metaAnual) * 100)) : 0;
+  const ahorroVals = D.finanzas.meses.map(m => ((m.ingreso || m.gasto) ? (m.ingreso || 0) - (m.gasto || 0) : null));
+  const ahorroAcum = H.finanzas.meses.reduce((a, m) => a + ((m.ingreso || 0) - (m.gasto || 0)), 0);
+  const pctAnual = H.finanzas.metaAnual ? Math.min(100, Math.round((ahorroAcum / H.finanzas.metaAnual) * 100)) : 0;
 
   // % de cumplimiento real por mes (contra la frecuencia de cada hábito)
   const habPct = MESES.map((_, m) => cumplimientoGrupo(S.habitos.defs, ...mesRango(m), S).pct);
 
-  const ruedaAvg = S.rueda.meses.map(a => {
+  const ruedaAvg = D.rueda.meses.map(a => {
     const sum = a.reduce((x, y) => x + y, 0);
     return sum > 0 ? +(sum / a.length).toFixed(1) : null;
   });
 
   const libros = S.lecturas.filter(l => l.estado === "terminado").length;
-  const deTot = S.salud.meses.reduce((a, m) => a + (m.diasEntren || 0), 0);
+  const deTot = H.salud.meses.reduce((a, m) => a + (m.diasEntren || 0), 0);
 
   /* Libros terminados por mes (según fecha de término) */
   const librosMes = MESES.map((_, m) => S.lecturas.filter(l => {
     if (l.estado !== "terminado" || !l.fin) return false;
     const d = new Date(l.fin + "T00:00:00");
-    return d.getFullYear() === S.settings.year && d.getMonth() === m;
+    return d.getFullYear() === y && d.getMonth() === m;
   }).length);
 
   /* Estado de ánimo por mes (desde el Diario de vida) */
@@ -260,7 +287,7 @@ function renderTendencias() {
     const es = diario.filter(e => {
       if (!e.mood || !e.fecha) return false;
       const d = new Date(e.fecha + "T00:00:00");
-      return d.getFullYear() === S.settings.year && d.getMonth() === m;
+      return d.getFullYear() === y && d.getMonth() === m;
     });
     return es.length ? +(es.reduce((a, e) => a + e.mood, 0) / es.length).toFixed(1) : null;
   });
@@ -299,9 +326,9 @@ function renderTendencias() {
   ${renderDescubrimientos()}
 
   <div class="grid grid-4 mt-24">
-    ${statCard("💰", "Ahorro acumulado", fmtCLP(ahorroAcum), "Meta " + fmtCLP(S.finanzas.metaAnual), pctAnual)}
-    ${statCard("⚖️", "Peso actual", (pesoActual != null ? pesoActual + " kg" : "—"), "Meta " + S.salud.pesoObjetivo + " kg")}
-    ${statCard("🏋️", "Días entrenados", deTot, "en el año")}
+    ${statCard("💰", "Ahorro acumulado", fmtCLP(ahorroAcum), "Meta " + fmtCLP(H.finanzas.metaAnual), pctAnual)}
+    ${statCard("⚖️", "Peso actual", (pesoActual != null ? pesoActual + " kg" : "—"), S.salud.pesoObjetivo != null ? "Meta " + S.salud.pesoObjetivo + " kg" : "Define tu meta en Salud")}
+    ${statCard("🏋️", "Días entrenados", deTot, "en " + anioActual())}
     ${statCard("🔥", "Racha de días", computeClosedStreak() + " días", "cerrados seguidos")}
   </div>
 
@@ -309,10 +336,12 @@ function renderTendencias() {
 
   ${renderFocoPostergacion()}
 
-  <div class="section-title">Tu evolución ${S.settings.year}</div>
+  <div class="section-title">Tu evolución</div>
+  ${selectorAnio()}
+  ${comparacionAnios(S, y)}
   <div class="grid grid-2">
     <div class="card">
-      <div class="card__head"><div class="card__title">⚖️ Peso (kg)</div><span class="card__hint">objetivo ${S.salud.pesoObjetivo} kg</span></div>
+      <div class="card__head"><div class="card__title">⚖️ Peso (kg)</div><span class="card__hint">${S.salud.pesoObjetivo != null ? "objetivo " + S.salud.pesoObjetivo + " kg" : ""}</span></div>
       ${svgLine(pesos, { color: "var(--cian)", goal: S.salud.pesoObjetivo, fmt: v => v })}
     </div>
     <div class="card">

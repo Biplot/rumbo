@@ -20,7 +20,7 @@ function monthNav(current, action, sel) {
     <button class="mnav__arrow" data-action="${action}" data-m="${prev}" aria-label="Mes anterior">‹</button>
     <label class="mnav__center">
       <select class="mnav__sel" data-month-nav="${sel}" aria-label="Elegir mes">${opts}</select>
-      <span class="mnav__year">${STATE.settings.year}</span>
+      <span class="mnav__year">${anioVista()}</span>
     </label>
     <button class="mnav__arrow" data-action="${action}" data-m="${next}" aria-label="Mes siguiente">›</button>
   </div>`;
@@ -30,17 +30,19 @@ function monthNav(current, action, sel) {
    FINANZAS
    ============================================================ */
 function renderFinanzas() {
-  const f = STATE.finanzas;
+  const f = STATE.finanzas;                                   // lo global: meta mensual, porqué y gastos
+  const y = anioVista(), fy = datosAnio(STATE, y).finanzas, pre = rutaAnio(y);   // lo del año
   const totalGastos = f.gastos.reduce((s, g) => s + g.monto, 0);
-  const ahorroAnual = f.meses.reduce((s, m) => s + ((m.ingreso || 0) - (m.gasto || 0)), 0);
-  const pctAnual = f.metaAnual ? Math.min(100, Math.round((ahorroAnual / f.metaAnual) * 100)) : 0;
+  const ahorroAnual = fy.meses.reduce((s, m) => s + ((m.ingreso || 0) - (m.gasto || 0)), 0);
+  const pctAnual = fy.metaAnual ? Math.min(100, Math.round((ahorroAnual / fy.metaAnual) * 100)) : 0;
 
   return `
+  ${selectorAnio()}
   <div class="grid grid-3">
     <div class="card">
-      <div class="stat"><div class="stat__label">💰 Meta de ahorro anual</div></div>
-      <input class="input mt-8" type="text" inputmode="numeric" data-bind="finanzas.metaAnual" data-type="num" value="${f.metaAnual}">
-      <div class="text-xs muted mt-8">Este año ahorraré</div>
+      <div class="stat"><div class="stat__label">💰 Meta de ahorro ${y}</div></div>
+      <input class="input mt-8" type="text" inputmode="numeric" data-bind="${pre}finanzas.metaAnual" data-type="num" value="${fy.metaAnual}">
+      <div class="text-xs muted mt-8">En ${y} ahorraré</div>
     </div>
     <div class="card">
       <div class="stat"><div class="stat__label">📆 Meta mensual</div></div>
@@ -56,12 +58,12 @@ function renderFinanzas() {
 
   <div class="card mt-24">
     <div class="card__head">
-      <div class="card__title">Progreso del año</div>
+      <div class="card__title">Progreso ${y}</div>
       <span class="chip chip--cian">${pctAnual}%</span>
     </div>
     <div class="flex-between mb-0" style="align-items:flex-end">
       <div class="big-num hl-cian">${fmtCLP(ahorroAnual)}</div>
-      <div class="text-sm muted">de ${fmtCLP(f.metaAnual)}</div>
+      <div class="text-sm muted">de ${fmtCLP(fy.metaAnual)}</div>
     </div>
     <div class="bar mt-16"><div class="bar__fill" style="width:${pctAnual}%"></div></div>
   </div>
@@ -90,12 +92,12 @@ function renderFinanzas() {
         <table>
           <thead><tr><th class="name"></th><th>Ingreso</th><th>Gasto</th><th>Ahorro</th></tr></thead>
           <tbody>
-            ${f.meses.map((m, i) => {
+            ${fy.meses.map((m, i) => {
               const ahorro = (m.ingreso || 0) - (m.gasto || 0);
               return `<tr>
                 <td class="name">${MESES_CORTO[i]}</td>
-                <td><input class="input" style="padding:6px 8px;width:96px;text-align:right" type="text" inputmode="numeric" data-bind="finanzas.meses.${i}.ingreso" data-type="num" value="${m.ingreso || 0}"></td>
-                <td><input class="input" style="padding:6px 8px;width:96px;text-align:right" type="text" inputmode="numeric" data-bind="finanzas.meses.${i}.gasto" data-type="num" value="${m.gasto || 0}"></td>
+                <td><input class="input" style="padding:6px 8px;width:96px;text-align:right" type="text" inputmode="numeric" data-bind="${pre}finanzas.meses.${i}.ingreso" data-type="num" value="${m.ingreso || 0}"></td>
+                <td><input class="input" style="padding:6px 8px;width:96px;text-align:right" type="text" inputmode="numeric" data-bind="${pre}finanzas.meses.${i}.gasto" data-type="num" value="${m.gasto || 0}"></td>
                 <td style="font-weight:600;color:${ahorro >= 0 ? 'var(--cian)' : 'var(--coral)'}">${fmtCLP(ahorro)}</td>
               </tr>`;
             }).join("")}
@@ -123,60 +125,63 @@ function saveGasto() {
    METAS (trimestrales + mensuales)
    ============================================================ */
 function renderMetas() {
-  const tri = STATE.metas.trimestres;
+  const y = anioVista(), metas = datosAnio(STATE, y).metas, esActual = y === anioActual();
+  const tri = metas.trimestres;
   const totalT = tri.flat().length;
   const doneT = tri.flat().filter(m => m.done).length;
   const pct = totalT ? Math.round((doneT / totalT) * 100) : 0;
-  const curM = new Date().getMonth();
-  const curTri = Math.floor(curM / 3);
+  // Mes "actual" para ocultar lo pasado vacío: en años anteriores todo es pasado; en los futuros, nada
+  const curM = esActual ? new Date().getMonth() : y < anioActual() ? 12 : -1;
+  const curTri = curM < 0 ? -1 : curM === 12 ? 4 : Math.floor(curM / 3);
 
   const triCards = tri.map((list, i) => {
     if (i < curTri && list.length === 0) return ""; // ocultar trimestres pasados vacíos
     const inputId = `mt-tri-${i}`;
     const done = list.filter(m => m.done).length;
     // Objetivos mensuales que alimentan las metas de este trimestre
-    const alimentan = STATE.metas.mensuales.slice(i * 3, i * 3 + 3).flat().filter(o => o.triId && list.some(t => t.id === o.triId)).length;
+    const alimentan = metas.mensuales.slice(i * 3, i * 3 + 3).flat().filter(o => o.triId && list.some(t => t.id === o.triId)).length;
     return `<div class="card">
       <div class="card__head"><div class="card__title">${i + 1}° Trimestre</div>
         <div class="row" style="gap:6px">${alimentan ? `<span class="chip chip--cian" title="Objetivos mensuales vinculados">↳ ${alimentan} mensual${alimentan === 1 ? "" : "es"}</span>` : ""}
         <span class="chip">${done}/${list.length}</span></div></div>
-      ${list.map(m => metaRow(m, "tri", i)).join("") || '<div class="empty">Sin metas aún.</div>'}
+      ${list.map(m => metaRow(m, "tri", i, y)).join("") || '<div class="empty">Sin metas aún.</div>'}
       <div class="row mt-8">
         <input class="input" id="${inputId}" placeholder="Nueva meta...">
-        <button class="btn btn--cian" data-action="meta-add" data-bucket="tri" data-idx="${i}" data-input="${inputId}">+</button>
+        <button class="btn btn--cian" data-action="meta-add" data-bucket="tri" data-idx="${i}" data-anio="${y}" data-input="${inputId}">+</button>
       </div>
     </div>`;
   }).join("");
 
-  const mesCards = STATE.metas.mensuales.map((list, i) => {
+  const mesCards = metas.mensuales.map((list, i) => {
     if (i < curM && list.length === 0) return ""; // ocultar meses pasados vacíos
     const inputId = `mt-mes-${i}`;
-    const key = mesKey(STATE.settings.year, i); // TODO año:
+    const key = mesKey(y, i);
     const rm = (STATE.ritual.meses || {})[key] || {};
     const foco = rm.apertura && rm.apertura.foco;
     let accion = "";
     if (i === curM) accion = !rm.apertura
       ? `<button class="btn btn--primary btn-block mt-8" data-action="mes-open" data-key="${key}">🗓️ Abrir mes</button>`
-      : (!rm.cierre && mesCerrable(STATE.settings.year, i) ? `<button class="btn btn--soft btn-block mt-8" data-action="mes-close" data-key="${key}">🌙 Cerrar mes</button>` : "");
+      : (!rm.cierre && mesCerrable(y, i) ? `<button class="btn btn--soft btn-block mt-8" data-action="mes-close" data-key="${key}">🌙 Cerrar mes</button>` : "");
     else if (i === curM - 1 && !rm.cierre) accion = `<button class="btn-ghost btn-block mt-8" data-action="mes-close" data-key="${key}">🌙 Cerrar ${MESES[i]}</button>`;
     return `<div class="card ${i === curM ? "mes-actual" : ""}">
       <div class="card__head"><div class="card__title" style="font-size:14px">${MESES[i]}</div>
         <div class="row" style="gap:6px">${rm.apertura ? '<span class="chip chip--done">Abierto ✓</span>' : ""}${rm.cierre ? '<span class="chip chip--done">Cerrado ✓</span>' : ""}
         <span class="chip">${list.filter(m => m.done).length}/${list.length}</span></div></div>
       ${foco ? `<div class="text-xs muted" style="margin:-6px 0 8px">Foco: <b class="hl-cian">${escapeHtml(foco)}</b></div>` : ""}
-      ${list.map(m => metaRow(m, "mes", i)).join("") || '<div class="empty" style="padding:12px">—</div>'}
+      ${list.map(m => metaRow(m, "mes", i, y)).join("") || '<div class="empty" style="padding:12px">—</div>'}
       <div class="row mt-8">
         <input class="input" id="${inputId}" placeholder="Meta de ${MESES_CORTO[i]}...">
-        <button class="btn btn--cian" data-action="meta-add" data-bucket="mes" data-idx="${i}" data-input="${inputId}">+</button>
+        <button class="btn btn--cian" data-action="meta-add" data-bucket="mes" data-idx="${i}" data-anio="${y}" data-input="${inputId}">+</button>
       </div>
       ${accion}
     </div>`;
   }).join("");
 
   return `
+  ${selectorAnio()}
   <div class="card" style="background:linear-gradient(120deg, var(--surface), var(--surface-2))">
     <div class="flex-between" style="flex-wrap:wrap;gap:12px">
-      <div><div class="text-xs soft" style="text-transform:uppercase;letter-spacing:.08em">Resumen ${STATE.settings.year}</div>
+      <div><div class="text-xs soft" style="text-transform:uppercase;letter-spacing:.08em">Resumen ${y}</div>
         <div class="big-num">${doneT} <span class="text-sm muted">de ${totalT} metas trimestrales</span></div></div>
       <div style="min-width:160px;flex:1;max-width:320px"><div class="flex-between"><span class="text-sm soft">Completadas</span><span class="hl-cian">${pct}%</span></div>
         <div class="bar mt-8"><div class="bar__fill" style="width:${pct}%"></div></div></div>
@@ -189,18 +194,19 @@ function renderMetas() {
   <div class="section-title">Metas mensuales clave</div>
   <div class="grid grid-3">${mesCards}</div>`;
 }
-function metaRow(m, bucket, idx) {
+function metaRow(m, bucket, idx, y) {
+  y = y || anioActual();
   // Vínculo con la meta trimestral y ámbito (objetivos del ritual de mes)
   let tri = null;
-  if (bucket === "mes" && m.triId) tri = (STATE.metas.trimestres[Math.floor(idx / 3)] || []).find(t => t.id === m.triId);
+  if (bucket === "mes" && m.triId) tri = (datosAnio(STATE, y).metas.trimestres[Math.floor(idx / 3)] || []).find(t => t.id === m.triId);
   const estado = m.estadoCierre === "parcial" ? '<span class="chip chip--coral">parcial</span>' : m.estadoCierre === "no" ? '<span class="chip">no cumplido</span>' : "";
   const nPrio = bucket === "mes" ? prioridadesDeObjetivo(m.id) : 0;   // semanas que lo empujaron
   return `<div class="item-row">
-    <span class="check ${m.done ? "is-on" : ""}" data-action="meta-toggle" data-bucket="${bucket}" data-idx="${idx}" data-id="${m.id}">${m.done ? "✓" : ""}</span>
+    <span class="check ${m.done ? "is-on" : ""}" data-action="meta-toggle" data-bucket="${bucket}" data-idx="${idx}" data-anio="${y}" data-id="${m.id}">${m.done ? "✓" : ""}</span>
     <div class="item-row__main"><div class="item-row__title ${m.done ? "strike" : ""}">${m.ambito ? AMBITOS[ambitoDe(m)].icon + " " : ""}${escapeHtml(m.texto)} ${estado}</div>
       ${tri ? `<div class="item-row__sub">↳ 🎯 ${escapeHtml(tri.texto)}</div>` : ""}
       ${nPrio ? `<div class="item-row__sub">📅 ${nPrio} prioridad${nPrio === 1 ? "" : "es"} semanal${nPrio === 1 ? "" : "es"}</div>` : ""}</div>
-    <button class="icon-btn" data-action="meta-del" data-bucket="${bucket}" data-idx="${idx}" data-id="${m.id}">🗑</button>
+    <button class="icon-btn" data-action="meta-del" data-bucket="${bucket}" data-idx="${idx}" data-anio="${y}" data-id="${m.id}">🗑</button>
   </div>`;
 }
 
@@ -223,9 +229,9 @@ function donutSvg(pct, color = "var(--cian)") {
       stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 36 36)"/>
     <text x="36" y="41" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">${pct}%</text></svg>`;
 }
-/* Rango ISO de un mes del año fijo */
+/* Rango ISO de un mes del año que se está mirando */
 function mesRango(m) {
-  const y = STATE.settings.year; // TODO año: usa el año fijo de settings
+  const y = anioVista();
   return [isoLocal(new Date(y, m, 1)), isoLocal(new Date(y, m + 1, 0))];
 }
 function freqChip(h) {
@@ -311,7 +317,7 @@ function habitViewDiario() {
 }
 
 function habitGrid(m) {
-  const year = STATE.settings.year; // TODO año:
+  const year = anioVista();
   const nDays = daysInMonth(year, m);
   const defs = STATE.habitos.defs;
   const [desde, hasta] = mesRango(m);
@@ -323,7 +329,7 @@ function habitGrid(m) {
   const rows = defs.map(h => {
     const esDias = hmFreq(h).tipo === "dias";
     const cells = Array.from({ length: nDays }, (_, k) => {
-      const d = k + 1; const on = habitDone(h.id, m, d);
+      const d = k + 1; const on = habitDone(h.id, m, d, year);
       const iso = isoLocal(new Date(year, m, d));
       const prog = esDias && hmProgramado(h, iso) && iso >= hmCreado(h);
       return `<td><span class="cell ${on ? "on" : ""} ${d === todayD ? "today" : ""} ${prog ? "prog" : ""}" data-action="habit-cell" data-id="${h.id}" data-day="${d}"></span></td>`;
@@ -344,7 +350,7 @@ function habitViewMensual() {
     .map(h => ({ h, c: cumplimiento(h, desde, hasta) }))
     .sort((a, b) => (b.c.pct ?? -1) - (a.c.pct ?? -1));
 
-  return `${monthsSelector(m, "habit-month")}
+  return `${selectorAnio()}${monthsSelector(m, "habit-month")}
   <div class="grid grid-2">
     <div class="card"><div class="card__title">Cumplimiento de ${MESES[m]}</div>
       <div class="row" style="gap:16px;align-items:center;margin-top:14px">${donutSvg(g.pct || 0)}
@@ -360,7 +366,7 @@ function habitViewMensual() {
 }
 
 function habitViewAnual() {
-  const year = STATE.settings.year, defs = STATE.habitos.defs; // TODO año:
+  const year = anioVista(), defs = STATE.habitos.defs;
   const porMes = MESES.map((_, m) => { const [a, b] = mesRango(m); return cumplimientoGrupo(defs, a, b).pct; });
   const anio = cumplimientoGrupo(defs, `${year}-01-01`, `${year}-12-31`);
   const conDatos = porMes.map((v, m) => ({ v, m })).filter(x => x.v != null);
@@ -369,6 +375,7 @@ function habitViewAnual() {
     .map(h => ({ h, c: cumplimiento(h, `${year}-01-01`, `${year}-12-31`), r: rachaPeriodos(h) }))
     .sort((a, b) => (b.c.pct ?? -1) - (a.c.pct ?? -1));
   return `
+  ${selectorAnio()}
   <div class="grid grid-3">
     ${statCard("✅", "Cumplimiento del año", anio.pct == null ? "—" : anio.pct + "%", "contra tu objetivo", anio.pct)}
     ${statCard("📅", "Mejor mes", mejor ? MESES[mejor.m] : "—", mejor ? mejor.v + "%" : "")}
@@ -507,7 +514,7 @@ function libroCoverClear() {
 
 function renderLecturas() {
   const libros = STATE.lecturas;
-  const year = STATE.settings.year;
+  const year = anioActual();
   const terminados = libros.filter(l => l.estado === "terminado");
   const leyendo = libros.filter(l => l.estado === "leyendo");
   const porLeer = libros.filter(l => l.estado === "por-leer");
@@ -663,19 +670,21 @@ function saveLibro() {
    ============================================================ */
 function renderSalud() {
   const i = SALUD_MONTH;
-  const s = STATE.salud;
-  const mes = s.meses[i];
-  const deTot = s.meses.reduce((a, m) => a + (m.diasEntren || 0), 0);
-  const dcTot = s.meses.reduce((a, m) => a + (m.diasCocina || 0), 0);
-  const pesos = s.meses.map(m => m.peso).filter(p => p != null);
+  const s = STATE.salud;                                   // global: peso objetivo
+  const y = anioVista(), sy = datosAnio(STATE, y).salud, pre = rutaAnio(y);   // meses del año
+  const mes = sy.meses[i];
+  const deTot = sy.meses.reduce((a, m) => a + (m.diasEntren || 0), 0);
+  const dcTot = sy.meses.reduce((a, m) => a + (m.diasCocina || 0), 0);
+  const pesos = sy.meses.map(m => m.peso).filter(p => p != null);
   const pesoActual = pesos.length ? pesos[pesos.length - 1] : null;
   const pePct = mes.diasEntrenTotal ? Math.round((mes.diasEntren / mes.diasEntrenTotal) * 100) : 0;
   const pcPct = mes.diasCocinaTotal ? Math.round((mes.diasCocina / mes.diasCocinaTotal) * 100) : 0;
 
   return `
+  ${selectorAnio()}
   <div class="grid grid-4">
-    ${statCard("🏋️", "Días entrenados (año)", deTot, "Total acumulado")}
-    ${statCard("🍳", "Días cocinando (año)", dcTot, "Total acumulado")}
+    ${statCard("🏋️", `Días entrenados (${y})`, deTot, "Total acumulado")}
+    ${statCard("🍳", `Días cocinando (${y})`, dcTot, "Total acumulado")}
     ${statCard("⚖️", "Peso actual", pesoActual != null ? pesoActual + " kg" : "—", s.pesoObjetivo != null ? "Meta " + s.pesoObjetivo + " kg" : "Define tu meta")}
     ${statCard("🎯", "Peso objetivo", `<input class="input" style="width:90px" type="text" inputmode="numeric" data-bind="salud.pesoObjetivo" data-type="num" value="${s.pesoObjetivo ?? ""}" placeholder="—">`, "kg")}
   </div>
@@ -685,33 +694,33 @@ function renderSalud() {
   <div class="grid grid-2">
     <div class="card">
       <div class="card__title mb-0">${MESES[i]} · Objetivo</div>
-      <textarea class="input mt-8" data-bind="salud.meses.${i}.objetivo" placeholder="¿Qué quieres lograr este mes?">${escapeHtml(mes.objetivo)}</textarea>
+      <textarea class="input mt-8" data-bind="${pre}salud.meses.${i}.objetivo" placeholder="¿Qué quieres lograr este mes?">${escapeHtml(mes.objetivo)}</textarea>
       <div class="row mt-16">
         <div style="flex:1">
           <label class="text-xs muted">Días entrenados</label>
-          <div class="row"><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="salud.meses.${i}.diasEntren" data-type="num" value="${mes.diasEntren}">
-            <span class="muted">/</span><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="salud.meses.${i}.diasEntrenTotal" data-type="num" value="${mes.diasEntrenTotal}"></div>
+          <div class="row"><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="${pre}salud.meses.${i}.diasEntren" data-type="num" value="${mes.diasEntren}">
+            <span class="muted">/</span><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="${pre}salud.meses.${i}.diasEntrenTotal" data-type="num" value="${mes.diasEntrenTotal}"></div>
           <div class="bar mt-8"><div class="bar__fill" style="width:${pePct}%"></div></div>
         </div>
         <div style="flex:1">
           <label class="text-xs muted">Días cocinando</label>
-          <div class="row"><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="salud.meses.${i}.diasCocina" data-type="num" value="${mes.diasCocina}">
-            <span class="muted">/</span><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="salud.meses.${i}.diasCocinaTotal" data-type="num" value="${mes.diasCocinaTotal}"></div>
+          <div class="row"><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="${pre}salud.meses.${i}.diasCocina" data-type="num" value="${mes.diasCocina}">
+            <span class="muted">/</span><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="${pre}salud.meses.${i}.diasCocinaTotal" data-type="num" value="${mes.diasCocinaTotal}"></div>
           <div class="bar mt-8"><div class="bar__fill bar__fill--coral" style="width:${pcPct}%"></div></div>
         </div>
       </div>
     </div>
     <div class="card">
       <div class="card__title mb-0">Notas del mes</div>
-      <textarea class="input mt-8" style="min-height:90px" data-bind="salud.meses.${i}.notas" placeholder="¿Cómo te sentiste?">${escapeHtml(mes.notas)}</textarea>
+      <textarea class="input mt-8" style="min-height:90px" data-bind="${pre}salud.meses.${i}.notas" placeholder="¿Cómo te sentiste?">${escapeHtml(mes.notas)}</textarea>
       <div class="divider"></div>
       <div class="card__title mb-0" style="font-size:14px">🍽️ Receta del mes</div>
       <div class="row mt-8">
         <span class="check ${mes.recetaHecha ? "is-on" : ""}" data-action="receta-toggle" data-idx="${i}">${mes.recetaHecha ? "✓" : ""}</span>
-        <input class="input" data-bind="salud.meses.${i}.recetaNombre" placeholder="Nombre de la receta" value="${escapeAttr(mes.recetaNombre)}">
+        <input class="input" data-bind="${pre}salud.meses.${i}.recetaNombre" placeholder="Nombre de la receta" value="${escapeAttr(mes.recetaNombre)}">
       </div>
       <div class="row mt-8"><label class="text-xs muted" style="width:90px">Peso (kg)</label>
-        <input class="input" style="width:110px" type="text" inputmode="decimal" data-bind="salud.meses.${i}.peso" data-type="num" value="${mes.peso ?? ""}"></div>
+        <input class="input" style="width:110px" type="text" inputmode="decimal" data-bind="${pre}salud.meses.${i}.peso" data-type="num" value="${mes.peso ?? ""}"></div>
     </div>
   </div>`;
 }
@@ -720,19 +729,20 @@ function renderSalud() {
    RUEDA DE LA VIDA (radar)
    ============================================================ */
 function renderRueda() {
-  const i = RUEDA_MONTH;
+  const i = RUEDA_MONTH, y = anioVista(), pre = rutaAnio(y);
   const areas = STATE.rueda.areas;
-  const vals = STATE.rueda.meses[i];
+  const vals = datosAnio(STATE, y).rueda.meses[i];
   const prom = (vals.reduce((a, b) => a + b, 0) / areas.length).toFixed(1);
 
   const sliders = areas.map((a, k) => `
     <div class="field" style="margin-bottom:12px">
       <div class="flex-between"><label style="margin:0">${a}</label><span class="chip chip--cian" id="rv-${k}">${vals[k]}</span></div>
       <input type="range" min="0" max="10" step="1" style="width:100%;accent-color:var(--cian)"
-        data-bind="rueda.meses.${i}.${k}" data-type="num" data-live value="${vals[k]}">
+        data-bind="${pre}rueda.meses.${i}.${k}" data-type="num" data-live value="${vals[k]}">
     </div>`).join("");
 
   return `
+  ${selectorAnio()}
   ${monthsSelector(i, "rueda-month")}
   <div class="grid grid-2">
     <div class="card">
@@ -776,7 +786,7 @@ function ptsPolygon(cx, cy, r, n) {
   return Array.from({ length: n }, (_, k) => pointAt(cx, cy, r, k, n).map(v => v.toFixed(1)).join(",")).join(" ");
 }
 function drawRadar() {
-  const i = RUEDA_MONTH, vals = STATE.rueda.meses[i], n = vals.length, cx = 180, cy = 180, R = 130;
+  const i = RUEDA_MONTH, vals = datosAnio(STATE, anioVista()).rueda.meses[i], n = vals.length, cx = 180, cy = 180, R = 130;
   const poly = document.getElementById("radarPoly");
   const dots = document.getElementById("radarDots");
   if (!poly) return;
@@ -935,7 +945,7 @@ function calMonthItems(year, m) {
 }
 
 function renderCalendario() {
-  const m = CAL_MONTH, year = STATE.settings.year;
+  const m = CAL_MONTH, year = anioVista();
   const first = new Date(year, m, 1);
   let startDow = (first.getDay() + 6) % 7; // lunes = 0
   const nDays = daysInMonth(year, m);
@@ -987,7 +997,7 @@ function renderCalendario() {
   const nCumple = agenda.filter(x => x.type === "cumple").length;
   const nLibro = agenda.filter(x => x.type === "libro").length;
   const nRitual = agenda.filter(x => x.type === "ritual").length;
-  const metasMes = (STATE.metas.mensuales[m] || []);
+  const metasMes = (datosAnio(STATE, year).metas.mensuales[m] || []);
   const resumen = `<div class="cal-summary">
     <span class="chip">🌙 ${nRitual} ${nRitual === 1 ? "ritual" : "rituales"}</span>
     <span class="chip">🎂 ${nCumple} cumpleaños</span>
@@ -996,6 +1006,7 @@ function renderCalendario() {
   </div>`;
 
   return `
+  ${selectorAnio()}
   ${monthNav(m, "cal-goto", "cal")}
   ${resumen}
   <div class="card mt-16" style="overflow-x:auto">

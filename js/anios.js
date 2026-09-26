@@ -69,6 +69,13 @@ function todosLosMensuales(S) {
   return aniosConDatos(S).flatMap(y => datosAnio(S, y).metas.mensuales || []);
 }
 
+/* Último peso registrado (el más reciente de todos los años) */
+function pesoActualGlobal(S) {
+  let p = null;
+  aniosConDatos(S).forEach(y => datosAnio(S, y).salud.meses.forEach(m => { if (m && m.peso != null) p = m.peso; }));
+  return p;
+}
+
 /* -------- Año que se está mirando en pantalla (Objetivos, Finanzas, Salud, Rueda, Hábitos, Calendario, Tendencias) -------- */
 let ANIO_VISTA = null;   // null = el año actual
 function anioVista() { return ANIO_VISTA || anioActual(); }

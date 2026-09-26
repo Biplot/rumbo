@@ -222,6 +222,7 @@ function migrate(s) {
   if (s.ritual && (!s.ritual.meses || typeof s.ritual.meses !== "object")) s.ritual.meses = {};
   if (s.ritual && (!s.ritual.semanas || typeof s.ritual.semanas !== "object")) s.ritual.semanas = {};
   migrarAgenda(s);   // tareas → registro diario por fecha (idempotente)
+  compactarAgenda(s); // historia de más de 90 días en formato corto (idempotente, no pierde nada)
   if (!s.anios || typeof s.anios !== "object" || Array.isArray(s.anios)) s.anios = {};   // años distintos al base
   if (s.finanzas && Array.isArray(s.finanzas.meses)) s.finanzas.meses.forEach(fm => { if (fm && fm.metaAhorro == null) fm.metaAhorro = 0; });
   // Temas: los existentes conservan el suyo. Retirados: bosque → bosque-claro; el resto → navy.

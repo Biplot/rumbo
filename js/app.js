@@ -90,7 +90,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 4;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 5;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -187,6 +187,10 @@ const NOVEDADES = {
   ],
   4: [
     ["⚡", "Modo express", "¿Día apretado? Abre y cierra tu día en 3 toques con el botón ⚡ Express: tu primer bocado, tu energía y tu ánimo. Tus pendientes pasan a mañana y la racha se mantiene (mitad de monedas)."],
+  ],
+  5: [
+    ["📆", "Rumbo, año tras año", "Objetivos, Finanzas, Salud, Rueda, Hábitos, Calendario y Tendencias tienen selector de año ‹ 2026 ›: revisa años anteriores o adelanta las metas del próximo. Tu 2026 queda intacto."],
+    ["🎆", "Tu año en números", "Al cerrar diciembre verás tu año completo: días cerrados, hábitos, objetivos, ahorro, libros y tu mejor mes."],
   ],
 };
 function openNovedades() {

@@ -168,6 +168,32 @@ function migrarAgenda(s) {
   return s;
 }
 
+/* -------- Historia antigua en formato corto -------- */
+/* Las tareas de hace más de `dias` días (90) pierden solo los campos que se pueden
+   deducir: done (sale de estado), origen = id, creada = su fecha, migraciones 0,
+   ámbito "per" (es el valor por defecto) y bocadoSugerido. Las borradas quedan como
+   { id, borrada, ts }. No cambia ts ni lo que se ve o se mide. Idempotente. */
+const COMPACTAR_DIAS = 90;
+function compactarAgenda(S, hoy, dias) {
+  const limite = agSumar(hoy || todayISO(), -(dias || COMPACTAR_DIAS));
+  const d = agendaDias(S);
+  Object.keys(d).forEach(iso => {
+    if (iso >= limite || !Array.isArray(d[iso])) return;
+    d[iso] = d[iso].map(t => {
+      if (!t) return t;
+      if (t.borrada) return { id: t.id, borrada: true, ts: t.ts };
+      if (t.estado) delete t.done;
+      if (t.origen === t.id) delete t.origen;
+      if (t.creada === iso) delete t.creada;
+      if (!t.migraciones) delete t.migraciones;
+      if (t.ambito !== "pro") delete t.ambito;
+      if (!t.bocadoSugerido) delete t.bocadoSugerido;
+      return t;
+    });
+  });
+  return S;
+}
+
 /* -------- UI compartida (Inicio y Planificador) -------- */
 /* Etiqueta del signo de una tarea resuelta sin hacer: "> jue 26", "@ Ana", "✕ soltada" */
 function signoTarea(t) {

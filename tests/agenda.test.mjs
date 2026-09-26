@@ -134,6 +134,26 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(r.porDia[3].planificadas, 1); assert.equal(r.porDia[3].postergadas, 0);
   });
 
+  test("compactar la historia antigua no cambia lo que se ve ni lo que se mide", () => {
+    const tmResumen = G("tmResumen"), compactar = G("compactarAgenda");
+    const s = migrate(defaultState());
+    const a = nuevaTarea(s, "2026-01-05", { txt: "A", ambito: "per" }); marcarTarea(a, "hecha");
+    const b = nuevaTarea(s, "2026-01-05", { txt: "B", ambito: "pro" });
+    const b1 = moverTarea(s, b, "2026-01-05", "2026-01-06", "migrada", { hoy: "2026-01-05" }); marcarTarea(b1, "hecha");
+    const c = nuevaTarea(s, "2026-01-06", { txt: "C" }); borrarTarea(c);
+    const r = nuevaTarea(s, "2026-09-20", { txt: "Reciente" });
+    const antes = JSON.stringify(tmResumen(s, "2026-01-01", "2026-12-31")), resAntes = JSON.stringify(resumenDia(s, "2026-01-05"));
+    compactar(s, "2026-09-26");
+    assert.equal(JSON.stringify(tmResumen(s, "2026-01-01", "2026-12-31")), antes);
+    assert.equal(JSON.stringify(resumenDia(s, "2026-01-05")), resAntes);
+    assert.equal(a.done, undefined); assert.equal(a.origen, undefined); assert.equal(a.ambito, undefined); assert.equal(G("estadoTarea")(a), "hecha");
+    assert.equal(b1.creada, "2026-01-05"); assert.equal(b1.migraciones, 1);          // lo que no se deduce se queda
+    assert.equal(JSON.stringify(Object.keys(s.agenda.dias["2026-01-06"].find(t => t.id === c.id)).sort()), '["borrada","id","ts"]');
+    assert.equal(r.origen, r.id); assert.equal(r.done, false);                         // lo reciente queda igual
+    const una = JSON.stringify(s); compactar(s, "2026-09-26");
+    assert.equal(JSON.stringify(s), una);                                              // idempotente
+  });
+
   test("resumen del día y bandeja de pendientes anteriores", () => {
     const s = migrate(defaultState());
     const a = nuevaTarea(s, "2026-09-22", { txt: "Vieja" });

@@ -104,6 +104,8 @@ function mergeStates(server, local) {
   if (!server) return local;
   if (!local) return server;
   const out = JSON.parse(JSON.stringify(local));
+  // Lo que solo existe en la nube (p. ej. datos de una versión más nueva) se conserva
+  Object.keys(server).forEach(k => { if (!(k in out)) out[k] = JSON.parse(JSON.stringify(server[k])); });
 
   // Une dos arrays de objetos por id. Conserva los solo-server; en conflicto gana
   // el más nuevo por `ts` (si existe), y si no hay ts gana local (a).
@@ -251,6 +253,27 @@ function mergeStates(server, local) {
   if (local.settings && server.settings && out.settings) {
     const iv = Math.max(local.settings.introVersion || 0, server.settings.introVersion || 0);
     if (iv) out.settings.introVersion = iv;
+  }
+  // Años distintos al base (anios.js): por año. Metas se unen por id (como las del año base);
+  // finanzas, salud y rueda: gana la sección editada más recientemente (ts).
+  if (local.anios || server.anios) {
+    const la = local.anios || {}, sa = server.anios || {}, ma = {};
+    const cl = o => JSON.parse(JSON.stringify(o));
+    new Set([...Object.keys(la), ...Object.keys(sa)]).forEach(y => {
+      const l = la[y], s = sa[y];
+      if (!l || !s) { ma[y] = cl(l || s); return; }
+      const r = cl(l);
+      r.metas = {
+        trimestres: buckets((l.metas || {}).trimestres || [[], [], [], []], (s.metas || {}).trimestres),
+        mensuales: buckets((l.metas || {}).mensuales || Array.from({ length: 12 }, () => []), (s.metas || {}).mensuales),
+      };
+      ["finanzas", "salud", "rueda"].forEach(k => {
+        const a = l[k], b = s[k];
+        if (b && (!a || (b.ts || 0) > (a.ts || 0))) r[k] = cl(b);
+      });
+      ma[y] = r;
+    });
+    out.anios = ma;
   }
   // Día del ritual semanal: gana el cambio más reciente
   if (local.settings && server.settings && out.settings) {

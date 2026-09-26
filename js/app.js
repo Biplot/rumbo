@@ -628,6 +628,7 @@ function onBind(e) {
   const path = el.dataset.bind;
   let val = el.type === "checkbox" ? el.checked : el.value;
   if (el.dataset.type === "num") val = parseNum(val);
+  prepararRutaAnio(path);   // año distinto al base: se crea al escribir y se marca su hora
   setPath(STATE, path, val);
   saveState();
   if (el.dataset.render !== "no") { updateTopbar(); rerender(); }
@@ -636,6 +637,7 @@ function onBind(e) {
 function onBindLive(e) {
   const el = e.target.closest("[data-bind][data-live]");
   if (!el) return;
+  prepararRutaAnio(el.dataset.bind);
   setPath(STATE, el.dataset.bind, el.dataset.type === "num" ? parseNum(el.value) : el.value);
   saveState();
   if (typeof LIVE_HOOK === "function") LIVE_HOOK(el);
@@ -802,6 +804,7 @@ function onClick(e) {
     case "semw-add": semWizAdd(d.fecha, +d.i); break;
     case "semw-del": semWizDel(d.fecha, +d.i); break;
     case "sem-dia": guardarDiaRitualSemanal(+d.v); break;
+    case "anio-nav": if (+d.dir === 0) { ANIO_VISTA = null; rerender(); } else cambiarAnioVista(+d.dir); break;
 
     /* Bitácora */
     case "bita-toggle": BITA_OPEN[d.iso] = !BITA_OPEN[d.iso]; rerender(); break;

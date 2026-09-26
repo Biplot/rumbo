@@ -8,7 +8,6 @@ const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto"
 const MESES_CORTO = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 const DIAS_CORTO = ["D","L","M","M","J","V","S"];
 
-const YEAR = 2026;
 
 /* Textos del "Primer Bocado" (¿cómo te comes un elefante? Un bocado a la vez).
    Los nombres internos de datos siguen siendo sapo / esSapo / cierre.sapo. */
@@ -26,6 +25,7 @@ const LECT_COLORS = ["#17C3B2", "#FF6B4A", "#0E2A47", "#6C63FF", "#F4A63B", "#2E
 
 /* -------- Datos por defecto (precargados desde tu bullet journal) -------- */
 function defaultState() {
+  const YEAR = new Date().getFullYear();   // año base: el año en que empiezas a usar Rumbo (ver anios.js)
   const s = {
     profile: {
       name: "",
@@ -120,6 +120,9 @@ function defaultState() {
 
     // registro diario (bullet journal): tareas por fecha, con su historia (ver agenda.js)
     agenda: { dias: {} },
+
+    // metas, finanzas, salud y rueda de los años distintos al año base (ver anios.js)
+    anios: {},
 
     // planificador semanal ANTIGUO (solo para clientes viejos; las tareas viven en agenda)
     semana: {
@@ -219,6 +222,7 @@ function migrate(s) {
   if (s.ritual && (!s.ritual.meses || typeof s.ritual.meses !== "object")) s.ritual.meses = {};
   if (s.ritual && (!s.ritual.semanas || typeof s.ritual.semanas !== "object")) s.ritual.semanas = {};
   migrarAgenda(s);   // tareas → registro diario por fecha (idempotente)
+  if (!s.anios || typeof s.anios !== "object" || Array.isArray(s.anios)) s.anios = {};   // años distintos al base
   if (s.finanzas && Array.isArray(s.finanzas.meses)) s.finanzas.meses.forEach(fm => { if (fm && fm.metaAhorro == null) fm.metaAhorro = 0; });
   // Temas: los existentes conservan el suyo. Retirados: bosque → bosque-claro; el resto → navy.
   if (s.settings) {

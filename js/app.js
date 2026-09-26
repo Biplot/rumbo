@@ -95,7 +95,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 7;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 8;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -205,6 +205,9 @@ const NOVEDADES = {
   ],
   7: [
     ["🧭", "Revisión trimestral", "Cada 3 meses cierras el trimestre (tus metas, tus números, lo aprendido) y abres el siguiente con su foco y de 3 a 5 metas. +200 ⭐ cada parte. En Ritual → Trimestre."],
+  ],
+  8: [
+    ["📤", "Comparte tu mes", "Una imagen con tus números del mes (días cerrados, primeros bocados, objetivos, tareas) lista para tus historias. Tú eliges qué mostrar; el ahorro va oculto. En Ritual → Mes."],
   ],
 };
 function openNovedades() {
@@ -854,6 +857,9 @@ function onClick(e) {
     case "sem-dia": guardarDiaRitualSemanal(+d.v); break;
     case "menu-personalizar": openPersonalizarMenu(); break;
     case "rec-open": openRecurrentes(); break;
+    case "informe-open": openInformeMes(d.key); break;
+    case "informe-compartir": compartirInforme(); break;
+    case "informe-descargar": descargarInforme(); break;
     case "tri-ritual": openTriRitual(d.cierre, d.apertura); break;
     case "tri-open": openTriApertura(d.key); break;
     case "tri-close": openTriCierre(d.key, null); break;

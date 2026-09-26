@@ -454,12 +454,14 @@ function renderRitualMes() {
   if (mesCerrable(y, m)) acciones.push(`<button class="btn ${r.cierre ? "btn--soft" : "btn--primary"}" data-action="mes-close" data-key="${key}">${r.cierre ? "Editar cierre" : "🌙 Cerrar " + MESES[m]}</button>`);
   const prev = mesPrev(y, m), pk = mesKey(prev.y, prev.m);
   if (!mesCerrado(pk)) acciones.push(`<button class="btn-ghost" data-action="mes-close" data-key="${pk}">Cerrar ${MESES[prev.m]}</button>`);
+  acciones.push(`<button class="btn-ghost" data-action="informe-open" data-key="${key}">📤 Compartir mi mes</button>`);
 
   const hist = Object.keys(STATE.ritual.meses || {}).sort().reverse().slice(0, 12).map(k => {
     const { y: hy, m: hm } = mesDeKey(k), x = STATE.ritual.meses[k];
     return `<div class="item-row"><div class="item-row__main"><div class="item-row__title">${nombreMes(hy, hm)}${x.apertura && x.apertura.foco ? ` · <span class="hl-cian">${escapeHtml(x.apertura.foco)}</span>` : ""}</div>
       <div class="item-row__sub">${x.cierre && x.cierre.mejor ? escapeHtml(x.cierre.mejor) : ""}</div></div>
-      ${x.apertura ? '<span class="chip chip--done">Abierto ✓</span>' : ""} ${x.cierre ? `<span class="chip chip--done">Cerrado ✓ ${x.cierre.nota}/10</span>` : ""}</div>`;
+      ${x.apertura ? '<span class="chip chip--done">Abierto ✓</span>' : ""} ${x.cierre ? `<span class="chip chip--done">Cerrado ✓ ${x.cierre.nota}/10</span>
+        <button class="icon-btn" data-action="informe-open" data-key="${k}" title="Compartir este mes" aria-label="Compartir ${nombreMes(hy, hm)}">📤</button>` : ""}</div>`;
   }).join("");
 
   return `

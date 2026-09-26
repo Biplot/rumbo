@@ -484,7 +484,72 @@ function prioridadesSemanaMini() {
    Reemplaza al Planificador y a Ritual → Semana (que muestra lo mismo).
    ============================================================ */
 function renderRitualSemana() { return renderSemana(); }
+let SEM_FUTURO_ABIERTO = false;
+
+/* -------- 🔁 Tareas recurrentes -------- */
+function openRecurrentes() {
+  const lista = recurrentes(STATE).filter(r => !r.borrada);
+  const dias = ["L", "M", "M", "J", "V", "S", "D"];
+  openModal("🔁 Tareas recurrentes", `
+    <p class="text-sm muted" style="margin-bottom:12px">Se agregan solas a tus próximas dos semanas. Si mueves o borras una, esa decisión se respeta.</p>
+    ${lista.length ? lista.map(r => `<div class="item-row"><div class="item-row__main"><div class="item-row__title">${AMBITOS[ambitoDe(r)].icon} ${escapeHtml(r.txt)}</div>
+      <div class="item-row__sub">${textoRegla(r.regla)}</div></div>
+      <button class="icon-btn" data-action="rec-del" data-id="${r.id}" aria-label="Borrar">🗑</button></div>`).join("") : `<div class="empty" style="padding:12px">Aún no tienes tareas recurrentes.</div>`}
+    <div class="divider"></div>
+    <div class="field"><label>Nueva tarea recurrente</label>
+      <div class="row" style="gap:8px">${ambitoPicker("rec-amb", "pro", true)}<input class="input" id="rec-txt" placeholder="Ej: Pagar el arriendo" style="flex:1;min-width:0"></div></div>
+    <div class="field"><label>¿Cada cuánto?</label>
+      <div class="seg" id="rec-tipo-seg" style="display:inline-flex">
+        <button type="button" data-v="semanal" class="is-active" onclick="recTipo(this)">Días de la semana</button>
+        <button type="button" data-v="diaria" onclick="recTipo(this)">Todos los días</button>
+        <button type="button" data-v="mensual" onclick="recTipo(this)">Una vez al mes</button></div>
+      <input type="hidden" id="rec-tipo" value="semanal">
+      <div class="row-wrap mt-8" id="rec-dias" style="gap:6px">${dias.map((d, i) => `<label class="chip" style="cursor:pointer"><input type="checkbox" class="rec-dia" value="${i}" ${i === 0 ? "checked" : ""}> ${d}</label>`).join("")}</div>
+      <div class="row mt-8" id="rec-mes" hidden style="gap:8px"><span class="text-sm">El día</span><input class="input" id="rec-dia-mes" type="number" min="1" max="31" value="5" style="width:80px"><span class="text-sm">de cada mes</span></div></div>
+    <button class="btn btn--primary btn-block" data-action="rec-save">Agregar</button>`);
+}
+function recTipo(btn) {
+  segPick(btn, "rec-tipo");
+  document.getElementById("rec-dias").hidden = btn.dataset.v !== "semanal";
+  document.getElementById("rec-mes").hidden = btn.dataset.v !== "mensual";
+}
+function guardarRecurrente() {
+  const txt = val("rec-txt");
+  if (!txt) return toast("Escribe la tarea", true);
+  const tipo = val("rec-tipo");
+  const regla = tipo === "diaria" ? { tipo } : tipo === "mensual" ? { tipo, dia: Math.min(31, Math.max(1, parseNum(val("rec-dia-mes")) || 1)) }
+    : { tipo, dias: Array.from(document.querySelectorAll(".rec-dia:checked")).map(c => +c.value) };
+  if (tipo === "semanal" && !regla.dias.length) return toast("Elige al menos un día", true);
+  crearRecurrente(STATE, { txt, ambito: val("rec-amb"), regla });
+  saveState(); rerender(); openRecurrentes();
+  toast("🔁 Tarea recurrente agregada");
+}
+function eliminarRecurrente(id) {
+  borrarRecurrente(STATE, id);
+  saveState(); rerender(); openRecurrentes();
+  toast("Tarea recurrente borrada; lo ya hecho se conserva");
+}
+
+/* -------- 📆 Más adelante: lo programado después de esta semana (registro futuro) -------- */
+function registroFuturoHtml(desde, meses) {
+  const hasta = agSumar(desde, 31 * (meses || 6));
+  const grupos = {};
+  Object.keys(agendaDias(STATE)).filter(iso => iso >= desde && iso <= hasta).sort().forEach(iso => {
+    tareasDelDia(iso).filter(t => tareaAbierta(t) && !t.recurrente).forEach(t => {
+      const k = iso.slice(0, 7); (grupos[k] = grupos[k] || []).push({ t, iso });
+    });
+  });
+  const ks = Object.keys(grupos);
+  if (!ks.length) return `<div class="empty" style="padding:12px">Nada programado más adelante. Cuando muevas una tarea a "Otro día", aparecerá aquí.</div>`;
+  return ks.map(k => { const { y, m } = mesDeKey(k);
+    return `<div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px">${nombreMes(y, m)}</div>
+      ${grupos[k].map(({ t, iso }) => `<div class="flex-between" style="gap:8px;padding:6px 0;border-top:1px solid var(--line)">
+        <span class="text-sm"><b class="text-xs muted" style="display:inline-block;min-width:52px">${diaCorto(iso)}</b> ${AMBITOS[ambitoDe(t)].icon} ${escapeHtml(t.txt)} ${chipMigraciones(t)}</span>
+        <button class="btn-ghost" data-action="sem-ir" data-lunes="${agLunes(iso)}">Ver semana</button></div>`).join("")}`; }).join("");
+}
+
 function renderSemana() {
+  generarRecurrentes(STATE);   // por si cambió el día con la app abierta
   const hoy = todayISO(), actual = agLunes(hoy);
   const L = SEM_LUNES || actual, esActual = L === actual;
   const prevL = agSumar(L, -7), sigL = agSumar(L, 7);
@@ -559,13 +624,19 @@ function renderSemana() {
       <div class="mt-16">${resumenSemanaHtml(resumenSemanaRitual(L, STATE, c ? ev : null), resumenSemanaRitual(prevL))}</div></div>
   </div>
   <div class="week-scroll mt-24">${cols}</div>
-  <p class="text-xs muted mt-8">Signos: ✓ hecha · &gt; movida a otro día · &lt; programada · @ delegada · ✕ soltada · ↪ n veces postergada.</p>
+  <div class="flex-between mt-8" style="gap:8px;flex-wrap:wrap">
+    <p class="text-xs muted">Signos: ✓ hecha · &gt; movida a otro día · &lt; programada · @ delegada · ✕ soltada · ↪ n veces postergada · 🔁 recurrente.</p>
+    <button class="btn-ghost" data-action="rec-open">🔁 Recurrentes (${recurrentes(STATE).filter(r => !r.borrada).length})</button>
+  </div>
   <div class="grid grid-2 mt-16">
     <div class="card"><div class="card__title">✨ Hábitos en foco</div><div class="mt-16">${habsHtml}</div></div>
     <div class="card"><div class="card__title">🏆 Tu premio de la semana</div>
       <input class="input mt-16" id="sem-premio" value="${escapeAttr(plan.premio || "")}" placeholder="¿Con qué te vas a premiar al cumplir?"
         onchange="guardarPremioSemana('${L}', this.value)"></div>
   </div>
+  <details class="hb-more mt-16" ${SEM_FUTURO_ABIERTO ? "open" : ""} ontoggle="SEM_FUTURO_ABIERTO = this.open"><summary>📆 Más adelante (después de esta semana)</summary>
+    <div class="card mt-16">${registroFuturoHtml(agSumar(L, 7), 6)}</div>
+  </details>
   <details class="hb-more mt-16"><summary>⚙️ Tu día de ritual semanal${hist ? " y semanas anteriores" : ""}</summary>
     <div class="card mt-16"><div class="seg" style="display:inline-flex">${segDia}</div>
       <p class="text-xs muted mt-16">Ese día cierras la semana y planificas la siguiente, todo seguido. Puedes cerrar desde el viernes en la tarde.

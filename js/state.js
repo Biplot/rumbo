@@ -120,7 +120,7 @@ function defaultState() {
     },
 
     // registro diario (bullet journal): tareas por fecha, con su historia (ver agenda.js)
-    agenda: { dias: {} },
+    agenda: { dias: {}, recurrentes: [] },
 
     // metas, finanzas, salud y rueda de los años distintos al año base (ver anios.js)
     anios: {},
@@ -224,6 +224,8 @@ function migrate(s) {
   if (s.ritual && (!s.ritual.semanas || typeof s.ritual.semanas !== "object")) s.ritual.semanas = {};
   migrarAgenda(s);   // tareas → registro diario por fecha (idempotente)
   compactarAgenda(s); // historia de más de 90 días en formato corto (idempotente, no pierde nada)
+  recurrentes(s);     // agenda.recurrentes por defecto
+  generarRecurrentes(s); // tareas recurrentes de las próximas 2 semanas (id fijo: no duplica)
   if (!s.anios || typeof s.anios !== "object" || Array.isArray(s.anios)) s.anios = {};   // años distintos al base
   if (s.finanzas && Array.isArray(s.finanzas.meses)) s.finanzas.meses.forEach(fm => { if (fm && fm.metaAhorro == null) fm.metaAhorro = 0; });
   // Temas: los existentes conservan el suyo. Retirados: bosque → bosque-claro; el resto → navy.

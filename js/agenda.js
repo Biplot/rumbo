@@ -168,6 +168,69 @@ function migrarAgenda(s) {
   return s;
 }
 
+/* -------- Tareas recurrentes -------- */
+/* STATE.agenda.recurrentes = [{ id, txt, ambito, regla, desde, ts, borrada? }]
+   regla: { tipo: "diaria" } | { tipo: "semanal", dias: [0..6] (0 = lunes) } | { tipo: "mensual", dia: 1..31 }
+   Cada regla genera sus tareas para los próximos 14 días con id fijo "rec:<regla>:<fecha>":
+   dos dispositivos generan la misma tarea (la fusión no duplica) y lo que borres o
+   muevas no se vuelve a generar. Las generadas llevan ts 1: cualquier cambio tuyo gana. */
+const RECURRENTES_DIAS = 14;
+function recurrentes(S) { const a = agendaDias(S) && S.agenda; a.recurrentes = Array.isArray(a.recurrentes) ? a.recurrentes : []; return a.recurrentes; }
+function reglaToca(regla, iso) {
+  const d = agDate(iso);
+  if (!regla) return false;
+  if (regla.tipo === "diaria") return true;
+  if (regla.tipo === "semanal") return (regla.dias || []).includes((d.getDay() + 6) % 7);
+  if (regla.tipo === "mensual") {
+    const ultimo = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    return d.getDate() === Math.min(regla.dia || 1, ultimo);   // el 31 cae en el último día de los meses cortos
+  }
+  return false;
+}
+function textoRegla(regla) {
+  if (!regla) return "";
+  if (regla.tipo === "diaria") return "Todos los días";
+  if (regla.tipo === "mensual") return `El día ${regla.dia} de cada mes`;
+  const n = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
+  const d = (regla.dias || []).slice().sort();
+  if (d.join() === "0,1,2,3,4") return "De lunes a viernes";
+  return "Cada " + d.map(i => n[i]).join(", ");
+}
+/* Crea las tareas de las reglas activas entre hoy y hoy + 13 días. Devuelve cuántas creó. */
+function generarRecurrentes(S, hoy) {
+  hoy = hoy || todayISO();
+  let n = 0;
+  recurrentes(S).filter(r => r && !r.borrada && r.txt).forEach(r => {
+    for (let i = 0; i < RECURRENTES_DIAS; i++) {
+      const iso = agSumar(hoy, i);
+      if (iso < (r.desde || hoy) || !reglaToca(r.regla, iso)) continue;
+      const id = `rec:${r.id}:${iso}`;
+      const dia = agendaDia(S, iso);
+      if (dia.some(t => t && t.id === id)) continue;
+      dia.push({ id, txt: r.txt, ambito: r.ambito === "pro" ? "pro" : "per", estado: "pendiente", done: false,
+        creada: iso, migraciones: 0, origen: id, recurrente: r.id, ts: 1 });
+      n++;
+    }
+  });
+  return n;
+}
+function crearRecurrente(S, p) {
+  const r = { id: uid(), txt: String(p.txt || "").trim(), ambito: p.ambito === "pro" ? "pro" : "per", regla: p.regla, desde: p.desde || todayISO(), ts: Date.now() };
+  recurrentes(S).push(r);
+  generarRecurrentes(S, p.desde);
+  return r;
+}
+/* Borra la regla (queda marcada para que no reviva) y sus tareas futuras que sigan intactas */
+function borrarRecurrente(S, id, hoy) {
+  hoy = hoy || todayISO();
+  const r = recurrentes(S).find(x => x.id === id); if (!r) return;
+  r.borrada = true; r.ts = Date.now();
+  Object.keys(agendaDias(S)).forEach(iso => {
+    if (iso <= hoy) return;
+    tareasDelDia(iso, S).filter(t => t.recurrente === id && tareaAbierta(t) && t.ts === 1).forEach(borrarTarea);
+  });
+}
+
 /* -------- Historia antigua en formato corto -------- */
 /* Las tareas de hace más de `dias` días (90) pierden solo los campos que se pueden
    deducir: done (sale de estado), origen = id, creada = su fecha, migraciones 0,
@@ -232,7 +295,7 @@ function tareaRowHtml(t, iso, op) {
     : (tareaMovida(t) ? `<button class="icon-btn" data-action="tarea-deshacer" data-fecha="${iso}" data-id="${t.id}" title="Deshacer" aria-label="Deshacer">↶</button>` : "");
   return `<div class="item-row tarea-row ${viva ? "" : "is-moved"} ${t.esSapo ? "is-bocado" : ""}" style="padding:${op.compacto ? "8px 10px" : "9px 11px"}">
     ${marca}
-    <div class="item-row__main"><div class="item-row__title text-sm ${hecha || e === "soltada" ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : t.prioridad ? '<span title="Prioridad de la semana">🎯</span> ' : ""}${escapeHtml(t.txt)}</div>
+    <div class="item-row__main"><div class="item-row__title text-sm ${hecha || e === "soltada" ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : t.prioridad ? '<span title="Prioridad de la semana">🎯</span> ' : t.recurrente ? '<span title="Tarea recurrente">🔁</span> ' : ""}${escapeHtml(t.txt)}</div>
       ${t.esSapo && !op.compacto && viva ? `<div class="item-row__sub hl-coral">${BOCADO.titulo} · ${BOCADO.accion}</div>` : ""}
       ${meta ? `<div class="tarea-meta">${meta}</div>` : ""}</div>
     ${acciones}</div>`;

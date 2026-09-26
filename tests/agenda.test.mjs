@@ -154,6 +154,30 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(JSON.stringify(s), una);                                              // idempotente
   });
 
+  test("recurrentes: generan 2 semanas sin duplicar, respetan lo borrado y el día 31", () => {
+    const crear = G("crearRecurrente"), generar = G("generarRecurrentes"), borrarRec = G("borrarRecurrente"), toca = G("reglaToca");
+    const s = migrate(defaultState());
+    const r = crear(s, { txt: "Reunión de equipo", ambito: "pro", regla: { tipo: "semanal", dias: [0, 2] }, desde: "2026-09-28" });   // lun y mié
+    const fechas = Object.keys(s.agenda.dias).filter(k => tareasDelDia(k, s).some(t => t.recurrente === r.id)).sort();
+    assert.equal(fechas.join(), "2026-09-28,2026-09-30,2026-10-05,2026-10-07");
+    assert.equal(generar(s, "2026-09-28"), 0);                                        // idempotente
+    borrarTarea(tareasDelDia("2026-09-30", s).find(t => t.recurrente === r.id));
+    assert.equal(generar(s, "2026-09-28"), 0);                                        // lo borrado no vuelve
+    assert.equal(tareasDelDia("2026-09-30", s).filter(t => t.recurrente).length, 0);
+    assert.equal(toca({ tipo: "mensual", dia: 31 }, "2027-02-28"), true);              // el 31 cae el último día
+    assert.equal(toca({ tipo: "mensual", dia: 31 }, "2027-03-30"), false);
+    // dos dispositivos generan la misma tarea: la fusión no duplica
+    const otro = clone(s); generar(otro, "2026-09-28");
+    const m = migrate(mergeStates(clone(otro), clone(s)));
+    assert.equal(tareasDelDia("2026-10-05", m).filter(t => t.recurrente === r.id).length, 1);
+    // borrar la regla quita solo lo futuro que sigue intacto
+    marcarTarea(tareasDelDia("2026-10-05", s).find(t => t.recurrente === r.id), "hecha");
+    borrarRec(s, r.id, "2026-09-28");
+    assert.equal(tareasDelDia("2026-10-05", s).filter(t => t.recurrente).length, 1);  // hecha: se queda
+    assert.equal(tareasDelDia("2026-10-07", s).filter(t => t.recurrente).length, 0);
+    assert.equal(generar(s, "2026-09-28"), 0);
+  });
+
   test("resumen del día y bandeja de pendientes anteriores", () => {
     const s = migrate(defaultState());
     const a = nuevaTarea(s, "2026-09-22", { txt: "Vieja" });

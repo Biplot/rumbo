@@ -834,6 +834,10 @@ function onClick(e) {
     case "semw-del": semWizDel(d.fecha, +d.i); break;
     case "sem-dia": guardarDiaRitualSemanal(+d.v); break;
     case "menu-personalizar": openPersonalizarMenu(); break;
+    case "rec-open": openRecurrentes(); break;
+    case "rec-save": guardarRecurrente(); break;
+    case "rec-del": eliminarRecurrente(d.id); break;
+    case "sem-ir": SEM_LUNES = d.lunes === agLunes(todayISO()) ? null : d.lunes; if (CURRENT !== "semana") go("semana"); else rerender(); window.scrollTo(0, 0); break;
     case "menu-guardar": guardarPersonalizarMenu(); break;
     case "anio-nav": if (+d.dir === 0) { ANIO_VISTA = null; rerender(); } else cambiarAnioVista(+d.dir); break;
 
@@ -1292,6 +1296,7 @@ function segPick(btn, hiddenId) {
 function renderInicio() {
   const s = STATE;
   ensureCurrentWeek();
+  generarRecurrentes(s);   // tareas recurrentes al día (por si cambió la fecha con la app abierta)
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
   const mIdx = new Date().getMonth();

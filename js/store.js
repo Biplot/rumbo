@@ -202,7 +202,8 @@ function mergeStates(server, local) {
     const la = (local.agenda && local.agenda.dias) || {}, sa = (server.agenda && server.agenda.dias) || {};
     const dias = {};
     new Set([...Object.keys(la), ...Object.keys(sa)]).forEach(k => { dias[k] = byId(la[k] || [], sa[k] || []); });
-    out.agenda = Object.assign({}, out.agenda || {}, { dias });
+    out.agenda = Object.assign({}, out.agenda || {}, { dias,
+      recurrentes: byId((local.agenda && local.agenda.recurrentes) || [], (server.agenda && server.agenda.recurrentes) || []) });
   }
 
   // eventos: dict por fecha -> unión de arrays de texto

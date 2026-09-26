@@ -903,3 +903,10 @@ html[data-theme^="bosque"] .big-num { font-size: 30px; }
 .gcal-refrescar { margin-top: 10px; width: 100%; }
 .gcal-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
 .cal-ev--gcal { background: var(--surface-2); color: var(--text); border-left: 2px solid var(--cian); }
+
+/* Iniciar sesión con Google (pantalla de acceso) */
+.btn-google { display: flex; align-items: center; justify-content: center; gap: 10px; background: #FFFFFF; color: #1F1F1F;
+  border: 1px solid #DADCE0; font-weight: 600; }
+.btn-google:hover { background: #F7F8F8; }
+.auth__o { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text-muted); font-size: 12px; }
+.auth__o::before, .auth__o::after { content: ""; flex: 1; height: 1px; background: var(--line); }

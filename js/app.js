@@ -70,14 +70,23 @@ async function boot() {
     if (e.key === "Enter") { e.preventDefault(); (document.getElementById("form-register").hidden ? doLogin : doRegister)(); }
   });
 
+  // Si Google devolvió un error al iniciar sesión (p. ej. se canceló), mostrarlo en la pantalla de acceso
+  const vuelta = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
+  const errGoogle = vuelta.get("error_description") || vuelta.get("error");
   const user = await BACKEND.getSession();
   if (user) await enterApp(user);
-  else showAuth();
+  else {
+    showAuth();
+    if (errGoogle) { authError(vuelta.get("error") === "access_denied" || /denied|cancel/i.test(errGoogle) ? "Se canceló el inicio de sesión con Google." : "Google: " + errGoogle); history.replaceState(null, "", location.pathname); }
+  }
 }
 
 function showAuth() {
   document.getElementById("app").hidden = true;
   document.getElementById("authScreen").hidden = false;
+  // "Continuar con Google" solo si está activo en Supabase
+  const g = document.getElementById("auth-google");
+  if (g && BACKEND.googleDisponible) BACKEND.googleDisponible().then(ok => { g.hidden = !ok; });
 }
 
 async function enterApp(user) {
@@ -352,6 +361,11 @@ async function doLogin() {
   const res = await BACKEND.login({ email: val("log-email"), password: document.getElementById("log-pass").value });
   if (res.error) return authError(res.error);
   await enterApp(res); toast("¡Hola de nuevo!");
+}
+async function doLoginGoogle() {
+  authError("");
+  const res = await BACKEND.loginGoogle();   // si todo va bien, la página se va a Google
+  if (res && res.error) authError(res.error);
 }
 async function doForgot() {
   const email = val("log-email");
@@ -718,6 +732,7 @@ function onClick(e) {
     /* Portal de usuarios */
     case "auth-tab": switchAuthTab(d.tab); break;
     case "auth-login": doLogin(); break;
+    case "auth-google": doLoginGoogle(); break;
     case "auth-register": doRegister(); break;
     case "auth-forgot": doForgot(); break;
     case "logout": if (confirm("¿Cerrar sesión?")) doLogout(); break;

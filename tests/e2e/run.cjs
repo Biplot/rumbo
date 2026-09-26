@@ -10,7 +10,7 @@ const http = require("http");
 const fs = require("fs");
 const { chromium, URL } = require("./lib.cjs");
 
-const SPECS = ["registro", "posponer", "metricas", "semana", "express", "anios", "cruce", "etapa3", "trimestre", "informe", "tutorial", "gcal", "general"];
+const SPECS = ["registro", "posponer", "metricas", "semana", "express", "anios", "cruce", "etapa3", "trimestre", "informe", "tutorial", "gcal", "google-login", "general"];
 const arriba = () => new Promise(res => http.get(URL, r => { r.resume(); res(true); }).on("error", () => res(false)));
 
 (async () => {

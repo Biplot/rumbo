@@ -53,6 +53,8 @@ const LocalBackend = {
     return this._pub(u);
   },
   async logout() { localStorage.removeItem("rumbo_session"); },
+  async googleDisponible() { return false; },
+  async loginGoogle() { return { error: "Iniciar sesión con Google no está disponible en modo local." }; },
   async loadState(uid) {
     try { const raw = localStorage.getItem("rumbo_cloud_" + uid); return raw ? JSON.parse(raw) : null; }
     catch { return null; }
@@ -333,6 +335,26 @@ const SupabaseBackend = {
     return this._pub(data.user);
   },
   async logout() { this._ver = {}; await this._client().auth.signOut(); },
+  /* ¿Está activo "Iniciar sesión con Google" en Supabase? (Authentication → Providers → Google).
+     Se consulta al mostrar la pantalla de acceso: así el botón aparece solo cuando funciona. */
+  async googleDisponible() {
+    if (this._google != null) return this._google;
+    try {
+      const r = await fetch(SUPABASE_URL + "/auth/v1/settings", { headers: { apikey: SUPABASE_KEY } });
+      const d = r.ok ? await r.json() : {};
+      this._google = !!(d.external && d.external.google);
+    } catch (e) { return false; }   // sin conexión: se vuelve a preguntar la próxima vez
+    return this._google;
+  },
+  /* Va a Google y vuelve a Rumbo; supabase-js termina la sesión al volver (detectSessionInUrl).
+     Si el correo de Google ya tiene cuenta en Rumbo, Supabase las une: son los mismos datos. */
+  async loginGoogle() {
+    const { error } = await this._client().auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: location.origin + location.pathname, queryParams: { prompt: "select_account" } },
+    });
+    return error ? { error: _traducir(error.message) } : { ok: true };
+  },
   async loadState(uid) {
     const { data, error } = await this._client().from("estado_usuario").select("data, updated_at").eq("user_id", uid).maybeSingle();
     if (error) { console.warn("loadState", error.message); return null; }

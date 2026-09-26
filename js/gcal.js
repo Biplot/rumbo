@@ -15,10 +15,14 @@ const GCAL = {
   scope: "https://www.googleapis.com/auth/calendar.readonly",
   api: "https://www.googleapis.com/calendar/v3",
   gis: "https://accounts.google.com/gsi/client",
+  auth: "https://accounts.google.com/o/oauth2/v2/auth",
+  callback: "gcal-callback.html",    // página que recibe el permiso cuando se va y vuelve de Google
+  redireccion: null,                 // null = automático (iPhone/iPad: ir y volver; resto: ventana de Google)
   diasAtras: 31, diasAdelante: 62,   // rango de eventos que se trae
   refrescoMin: 30,                   // cada cuánto se actualizan solos (si el permiso sigue vigente)
 };
 let GCAL_CARGANDO = false;
+let GCAL_CLIENTE = null, GCAL_PENDIENTE = null;
 
 function gcalDisponible() { return !!GCAL.clientId; }
 function gcalState(S) {
@@ -68,32 +72,90 @@ function gcalEventosDia(iso) {
   return ((l.eventos || {})[iso] || []).filter(e => !elegidos || elegidos.includes(e.cal));
 }
 
-/* -------- Google Identity Services (se carga solo al conectar) -------- */
+/* -------- Pedir el permiso a Google --------
+   · Computador y Android: ventana de Google (Google Identity Services). La librería se precarga al
+     mostrar el botón, para que la ventana se abra en el mismo toque (si no, el navegador la bloquea).
+   · iPhone y iPad (sobre todo con Rumbo instalado en la pantalla de inicio): iOS bloquea esas ventanas,
+     así que se va a la página de Google y se vuelve a gcal-callback.html, que guarda el permiso. */
+function gcalUsarRedireccion() {
+  if (GCAL.redireccion != null) return !!GCAL.redireccion;
+  const ua = navigator.userAgent || "";
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
 function gcalCargarGIS() {
   if (window.google && google.accounts && google.accounts.oauth2) return Promise.resolve();
-  return new Promise((ok, mal) => {
+  if (gcalCargarGIS.p) return gcalCargarGIS.p;
+  gcalCargarGIS.p = new Promise((ok, mal) => {
     const s = document.createElement("script");
     s.src = GCAL.gis; s.async = true;
-    s.onload = () => ok(); s.onerror = () => mal(new Error("No se pudo cargar el inicio de sesión de Google"));
+    s.onload = () => ok(); s.onerror = () => { gcalCargarGIS.p = null; mal(new Error("No se pudo cargar el inicio de sesión de Google")); };
     document.head.appendChild(s);
   });
+  return gcalCargarGIS.p;
 }
-/* Pide el permiso a Google (debe venir de un toque de la persona: abre una ventana de Google) */
-async function gcalPedirToken(prompt) {
-  await gcalCargarGIS();
-  return new Promise((ok, mal) => {
-    const cliente = google.accounts.oauth2.initTokenClient({
+/* Deja listo el cliente de Google antes del toque (no hace nada en iPhone ni sin ID) */
+function gcalPrecargar() {
+  if (!gcalDisponible() || gcalUsarRedireccion()) return Promise.resolve();
+  if (GCAL_CLIENTE) return Promise.resolve();
+  return gcalCargarGIS().then(() => {
+    if (GCAL_CLIENTE) return;
+    GCAL_CLIENTE = google.accounts.oauth2.initTokenClient({
       client_id: GCAL.clientId, scope: GCAL.scope,
       callback: r => {
-        if (!r || r.error || !r.access_token) return mal(new Error((r && r.error) || "sin permiso"));
+        const p = GCAL_PENDIENTE; GCAL_PENDIENTE = null;
+        if (!p) return;
+        if (!r || r.error || !r.access_token) return p.mal(new Error((r && r.error) || "sin permiso"));
         const l = gcalLocal();
         l.token = r.access_token; l.exp = Date.now() + (Number(r.expires_in) || 3600) * 1000;
-        gcalGuardarLocal(l); ok(r.access_token);
+        gcalGuardarLocal(l); p.ok(r.access_token);
       },
-      error_callback: e => mal(new Error((e && e.type) || "ventana cerrada")),
+      error_callback: e => { const p = GCAL_PENDIENTE; GCAL_PENDIENTE = null; if (p) p.mal(new Error((e && e.type) === "popup_failed_to_open" ? "el navegador bloqueó la ventana de Google" : "se cerró la ventana de Google")); },
     });
-    cliente.requestAccessToken({ prompt: prompt == null ? "" : prompt });
   });
+}
+/* Pide el permiso (debe llamarse directo desde un toque). prompt "consent" = primera vez */
+function gcalPedirToken(prompt) {
+  if (gcalUsarRedireccion()) { gcalRedirigir(prompt); return new Promise(() => {}); }   // la página se va a Google
+  return new Promise((ok, mal) => {
+    GCAL_PENDIENTE = { ok, mal };
+    const pedir = () => GCAL_CLIENTE.requestAccessToken({ prompt: prompt == null ? "" : prompt });
+    if (GCAL_CLIENTE) pedir();                     // en el mismo toque: el navegador no la bloquea
+    else gcalPrecargar().then(pedir, mal);         // respaldo (puede que el navegador la bloquee)
+  });
+}
+function gcalRedirectUri() { return new URL(GCAL.callback, location.href.split("#")[0]).href; }
+function gcalRedirigir(prompt) {
+  const estado = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  try {
+    localStorage.setItem("rumbo-gcal-oauth", JSON.stringify({ estado, clave: gcalClave(), conectar: prompt === "consent", ruta: CURRENT, ts: Date.now() }));
+  } catch (e) { toast("No se puede guardar en este equipo (¿modo privado?)", true); return; }
+  const q = new URLSearchParams({ client_id: GCAL.clientId, redirect_uri: gcalRedirectUri(), response_type: "token", scope: GCAL.scope, include_granted_scopes: "true", state: estado });
+  if (prompt) q.set("prompt", prompt);
+  location.href = GCAL.auth + "?" + q.toString();
+}
+/* Al volver de Google (iPhone): gcal-callback.html dejó el resultado en "rumbo-gcal-vuelta" */
+function gcalRetorno() {
+  if (!gcalDisponible()) return false;
+  let v = null;
+  try { v = JSON.parse(localStorage.getItem("rumbo-gcal-vuelta") || "null"); localStorage.removeItem("rumbo-gcal-vuelta"); } catch (e) { v = null; }
+  if (!v) return false;
+  if (!v.ok) { toast("No se conectó Google Calendar: " + (v.error || "intenta de nuevo"), true); return true; }
+  if (v.conectar) { const g = gcalState(); g.conectado = true; g.ts = Date.now(); saveState(); }
+  gcalTerminar(!!v.conectar, gcalTokenVigente());
+  return true;
+}
+/* Con el permiso en mano: traer calendarios y eventos */
+async function gcalTerminar(conectar, token) {
+  if (!token) return;
+  GCAL_CARGANDO = true;
+  try {
+    await gcalTraer(token);
+    toast(conectar ? "📆 Google Calendar conectado" : "📆 Calendario actualizado");
+    rerender();
+    if (conectar) openGcalConfig();
+  } catch (e) {
+    toast("No se pudieron traer tus eventos de Google", true);
+  } finally { GCAL_CARGANDO = false; }
 }
 async function gcalGet(ruta, token) {
   const r = await fetch(GCAL.api + ruta, { headers: { Authorization: "Bearer " + token } });
@@ -124,15 +186,12 @@ async function gcalTraer(token) {
 async function gcalConectar() {
   if (!gcalDisponible() || GCAL_CARGANDO) return;
   GCAL_CARGANDO = true;
-  try {
-    const token = await gcalPedirToken("consent");
-    const g = gcalState(); g.conectado = true; g.ts = Date.now(); saveState();
-    await gcalTraer(token);
-    toast("📆 Google Calendar conectado");
-    rerender(); openGcalConfig();
-  } catch (e) {
-    toast("No se conectó Google Calendar: " + e.message, true);
-  } finally { GCAL_CARGANDO = false; }
+  let token;
+  try { token = await gcalPedirToken("consent"); }
+  catch (e) { GCAL_CARGANDO = false; return toast("No se conectó Google Calendar: " + e.message, true); }
+  const g = gcalState(); g.conectado = true; g.ts = Date.now(); saveState();
+  GCAL_CARGANDO = false;
+  await gcalTerminar(true, token);
 }
 /* interactivo = viene de un toque (puede abrir la ventana de Google si el permiso venció) */
 async function gcalActualizar(interactivo) {
@@ -166,6 +225,7 @@ function gcalDesconectar() {
   toast("Google Calendar desconectado. Tus eventos se borraron de este equipo.");
 }
 function openGcalConfig() {
+  gcalPrecargar().catch(() => {});
   const l = gcalLocal(), g = gcalState(), lista = l.lista || [];
   const elegidos = new Set(g.calendarios || []);
   openModal("📆 Google Calendar", `
@@ -199,6 +259,7 @@ function gcalAvisoActualizar() {
   if (!gcalConectado()) return "";
   const l = gcalLocal();
   if (gcalTokenVigente() && l.ts) return "";
+  gcalPrecargar().catch(() => {});
   return `<button class="btn-ghost gcal-refrescar" data-action="gcal-actualizar">🔄 ${l.ts ? "Actualizar" : "Traer"} eventos de Google</button>`;
 }
 /* Inicio: los eventos de hoy */
@@ -228,6 +289,7 @@ function gcalAperturaHtml() {
 /* Calendario: tarjeta para conectar o configurar */
 function renderGcalCard() {
   if (!gcalDisponible()) return "";
+  gcalPrecargar().catch(() => {});
   if (!gcalConectado()) {
     return `<div class="card mt-16"><div class="flex-between" style="flex-wrap:wrap;gap:12px">
       <div style="min-width:0"><div class="card__title" style="font-size:15px">📆 Google Calendar</div>

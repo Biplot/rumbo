@@ -85,4 +85,40 @@ module.exports = async ({ b, ok, errs }) => {
   ok(!d.con && d.local === null && String(d.rev).startsWith("tok-") && await p.locator('[data-tour="gcal"]').count() === 0,
     "desconectar revoca el permiso, borra los eventos del equipo y los saca de Inicio");
   await ctx.close();
+
+  // iPhone (sobre todo con Rumbo instalado): sin ventana emergente; se va a Google y se vuelve
+  const ios = await nuevoContexto(b, { fecha: "2026-09-28T08:00:00", w: 390, h: 844, dpr: 2 });
+  const llamadasIos = [];
+  await simularGoogle(ios, llamadasIos);
+  let negar = false, pedidos = [];
+  await ios.route("https://accounts.google.com/o/oauth2/v2/auth**", r => {
+    const u = new globalThis.URL(r.request().url()); pedidos.push(u.searchParams);
+    const vuelta = u.searchParams.get("redirect_uri") + "#" + (negar ? "error=access_denied" : "access_token=tok-ios&token_type=Bearer&expires_in=3599") + "&state=" + u.searchParams.get("state");
+    r.fulfill({ status: 302, headers: { location: vuelta } });
+  });
+  const q = await ios.newPage(); q.on("pageerror", e => errs.push(e.message));
+  await registrar(q, "gcal-ios@test.cl");
+  await q.addInitScript(() => { Object.defineProperty(navigator, "userAgent", { get: () => "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148" }); });
+  await q.reload(); await q.waitForSelector("#app:not([hidden])"); await q.waitForTimeout(400);
+  await q.goto(URL + "#calendario"); await q.waitForTimeout(300);
+  ok(await q.evaluate(() => gcalUsarRedireccion() && !window.google), "en iPhone no se usa la ventana emergente de Google");
+  // Rechazar el permiso
+  negar = true;
+  await q.click('[data-action="gcal-conectar"]'); await q.waitForURL(/#calendario/); await q.waitForSelector("#app:not([hidden])"); await q.waitForTimeout(700);
+  ok(await q.evaluate(() => !STATE.settings.gcal.conectado && localStorage.getItem("rumbo-gcal-vuelta") === null), "si no das el permiso, vuelve a Calendario sin conectar");
+  // Aceptar el permiso
+  negar = false;
+  await q.click('[data-action="gcal-conectar"]'); await q.waitForURL(/#calendario/); await q.waitForSelector("#app:not([hidden])"); await q.waitForTimeout(1200);
+  const pr = pedidos[pedidos.length - 1];
+  ok(pr.get("response_type") === "token" && pr.get("prompt") === "consent" && pr.get("scope").endsWith("calendar.readonly") && /gcal-callback\.html$/.test(pr.get("redirect_uri")),
+    "pide a Google solo lectura y vuelve a gcal-callback.html");
+  const vi = await q.evaluate(() => ({ con: STATE.settings.gcal.conectado, tok: gcalTokenVigente(), modal: document.getElementById("modalBody").innerText }));
+  ok(vi.con && vi.tok === "tok-ios" && vi.modal.includes("Personal"), "vuelve a Rumbo conectado y muestra tus calendarios");
+  await q.click('[data-action="gcal-guardar"]'); await q.waitForTimeout(400);
+  await q.goto(URL + "#inicio"); await q.waitForTimeout(300);
+  ok((await q.locator('[data-tour="gcal"]').innerText()).includes("Reunión con cliente"), "iPhone: los eventos de hoy en Inicio");
+  // Una respuesta que no se pidió (state distinto) se rechaza
+  await q.goto(URL + "gcal-callback.html#access_token=falso&state=otro"); await q.waitForURL(/#calendario/); await q.waitForTimeout(700);
+  ok(await q.evaluate(() => gcalTokenVigente()) === "tok-ios", "una respuesta de Google que no se pidió no reemplaza el permiso");
+  await ios.close();
 };

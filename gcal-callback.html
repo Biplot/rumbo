@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Rumbo · Google Calendar</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { background: #0C1B2C; color: #EAF2F8; font: 16px system-ui, -apple-system, "Segoe UI", sans-serif; display: grid; place-items: center; }
+  </style>
+</head>
+<body>
+  <p>Volviendo a Rumbo…</p>
+  <script>
+    /* Google vuelve aquí con el permiso en el # (flujo de ir y volver, para iPhone y iPad).
+       Se revisa que la respuesta sea la que se pidió (state), se guarda el permiso SOLO en este equipo
+       y se vuelve a la app, que termina de conectar (gcalRetorno en js/gcal.js). */
+    (function () {
+      var p = new URLSearchParams(location.hash.slice(1)), pend = null, vuelta = { ok: false };
+      try { pend = JSON.parse(localStorage.getItem("rumbo-gcal-oauth") || "null"); localStorage.removeItem("rumbo-gcal-oauth"); } catch (e) { pend = null; }
+      if (!pend || !p.get("state") || p.get("state") !== pend.estado || Date.now() - pend.ts > 15 * 60 * 1000) {
+        vuelta.error = "la respuesta de Google no coincide con lo que se pidió. Intenta de nuevo desde Rumbo.";
+      } else if (p.get("error") || !p.get("access_token")) {
+        vuelta.error = p.get("error") === "access_denied" ? "no diste el permiso." : "Google no entregó el permiso (" + (p.get("error") || "sin detalle") + ").";
+      } else {
+        try {
+          var l = JSON.parse(localStorage.getItem(pend.clave) || "{}") || {};
+          l.token = p.get("access_token");
+          l.exp = Date.now() + (Number(p.get("expires_in")) || 3600) * 1000;
+          localStorage.setItem(pend.clave, JSON.stringify(l));
+          vuelta = { ok: true, conectar: !!pend.conectar };
+        } catch (e) { vuelta.error = "no se pudo guardar el permiso en este equipo."; }
+      }
+      try { localStorage.setItem("rumbo-gcal-vuelta", JSON.stringify(vuelta)); } catch (e) {}
+      location.replace("./#" + ((pend && pend.ruta) || "calendario"));
+    })();
+  </script>
+</body>
+</html>

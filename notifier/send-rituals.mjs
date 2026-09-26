@@ -1,5 +1,5 @@
 /* ============================================================
-   Rumbo · Envío de recordatorios de ritual (mañana / noche, semana y mes)
+   Rumbo · Envío de recordatorios de ritual (mañana / noche, semana, mes y trimestre)
    Corre en GitHub Actions cada ~15 min y manda Web Push a quien
    le toque su hora local. Idempotente vía la tabla notif_sent.
 
@@ -9,6 +9,7 @@
    ============================================================ */
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
+import { ultimoDiaMes, lunesDe, avisoSemana, avisoTrimestre } from "./reglas.mjs";
 
 const trim = v => (v == null ? "" : String(v).trim());
 const SUPABASE_URL = trim(process.env.SUPABASE_URL);
@@ -45,29 +46,13 @@ const MSGS = {
   "mes-cierre": { title: "🗓️ Último día del mes", body: "Cierra tu mes: revisa tus objetivos y reflexiona.", url: "./#ritual", tag: "rumbo-mes-cierre" },
   "semana-cierre": { title: "📅 Tu ritual semanal", body: "Cierra tu semana y planifica la que viene. Toma 10 minutos.", url: "./#ritual", tag: "rumbo-semana-cierre" },
   "semana-apertura": { title: "📅 Planifica tu semana", body: "Elige tu foco, tus 3 prioridades y reparte tus tareas en los días.", url: "./#ritual", tag: "rumbo-semana-apertura" },
+  "tri-cierre": { title: "🧭 Termina el trimestre", body: "Cierra tu trimestre: revisa tus metas, tus números y lo que aprendiste (+200 ⭐).", url: "./#ritual", tag: "rumbo-tri-cierre" },
+  "tri-apertura": { title: "🧭 Empieza un trimestre nuevo", body: "Abre tu trimestre: define tu foco y de 3 a 5 metas (+200 ⭐).", url: "./#ritual", tag: "rumbo-tri-apertura" },
 };
+const TRI_APERTURA_CON_CIERRE = "Cierra el trimestre que terminó y abre este: tu foco y de 3 a 5 metas (+200 ⭐ cada parte).";
 /* Ritual de mes: apertura el día 1 (hora de "mañana"), cierre el último día (hora de "noche").
-   Clave de mes "YYYY-MM" igual que STATE.ritual.meses en la app. */
+   Clave de mes "YYYY-MM" igual que STATE.ritual.meses en la app. Semana y trimestre: ver reglas.mjs */
 const MES_TIPOS = { "mes-apertura": { hora: "manana", parte: "apertura" }, "mes-cierre": { hora: "noche", parte: "cierre" } };
-function ultimoDiaMes(iso) { const [y, m] = iso.split("-").map(Number); return new Date(Date.UTC(y, m, 0)).getUTCDate(); }
-
-/* Ritual de semana (clave = lunes "YYYY-MM-DD", igual que STATE.ritual.semanas).
-   Día del ritual: settings.ritualSemanal.dia (0 = domingo, 1 = lunes).
-   · semana-cierre: el día del ritual (domingo en la noche / lunes en la mañana), si falta cerrar o planificar
-   · semana-apertura: el día siguiente en la mañana, si la semana aún no se planifica
-   Devuelve la hora a usar ("manana" | "noche") o null si hoy no toca. */
-function sumarDias(iso, n) { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
-function lunesDe(iso) { const dow = new Date(iso + "T12:00:00Z").getUTCDay(); return sumarDias(iso, -((dow + 6) % 7)); }
-function avisoSemana(tipo, hoy, diaSem, semanas) {
-  const dow = new Date(hoy + "T12:00:00Z").getUTCDay(), L = lunesDe(hoy), w = k => semanas[k] || {};
-  if (tipo === "semana-cierre") {
-    if (diaSem === 0 && dow === 0) return w(L).cierre && w(sumarDias(L, 7)).apertura ? null : "noche";
-    if (diaSem === 1 && dow === 1) return w(sumarDias(L, -7)).cierre && w(L).apertura ? null : "manana";
-    return null;
-  }
-  if ((diaSem === 0 && dow === 1) || (diaSem === 1 && dow === 2)) return w(L).apertura ? null : "manana";
-  return null;
-}
 
 function localMinutes(tz) {
   const p = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date());
@@ -95,10 +80,11 @@ for (const row of usuarios || []) {
   const ritualMes = ((row.data.ritual || {}).meses || {})[mes] || {};
   const semanas = (row.data.ritual || {}).semanas || {};
   const diaSem = (((row.data.settings || {}).ritualSemanal) || {}).dia === 1 ? 1 : 0;
+  const trimestres = (row.data.ritual || {}).trimestres || {};
 
-  for (const tipo of ["manana", "noche", "mes-apertura", "mes-cierre", "semana-cierre", "semana-apertura"]) {
+  for (const tipo of ["manana", "noche", "mes-apertura", "mes-cierre", "semana-cierre", "semana-apertura", "tri-cierre", "tri-apertura"]) {
     const mt = MES_TIPOS[tipo];
-    let hora = tipo;
+    let hora = tipo, tri = null;
     if (mt) {
       if (tipo === "mes-apertura" && dia !== 1) continue;
       if (tipo === "mes-cierre" && dia !== ultimoDiaMes(hoy)) continue;
@@ -109,6 +95,11 @@ for (const row of usuarios || []) {
       hora = avisoSemana(tipo, hoy, diaSem, semanas);
       if (!hora) continue;                        // hoy no toca o ya está hecho
     }
+    if (tipo.startsWith("tri-")) {
+      tri = avisoTrimestre(tipo, hoy, trimestres);
+      if (!tri) continue;                         // hoy no toca o ya está hecho
+      hora = tri.hora;
+    }
     const diff = nowMin - toMin(notif[hora]);
     if (diff < 0 || diff >= WINDOW_MIN) continue; // fuera de la ventana
 
@@ -116,8 +107,9 @@ for (const row of usuarios || []) {
     const { error: insErr } = await sb.from("notif_sent").insert({ user_id: row.user_id, tipo, fecha: hoy });
     if (insErr) { saltados++; continue; }
 
-    const sufijo = mt ? mes : tipo.startsWith("semana-") ? lunesDe(hoy) : "";
-    const payload = JSON.stringify(sufijo ? { ...MSGS[tipo], tag: MSGS[tipo].tag + "-" + sufijo } : MSGS[tipo]);
+    const sufijo = mt ? mes : tipo.startsWith("semana-") ? lunesDe(hoy) : tri ? tri.clave : "";
+    const msg = tri && tri.pendienteAnterior ? { ...MSGS[tipo], body: TRI_APERTURA_CON_CIERRE } : MSGS[tipo];
+    const payload = JSON.stringify(sufijo ? { ...msg, tag: msg.tag + "-" + sufijo } : msg);
     for (const sub of notif.subs) {
       try {
         await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);

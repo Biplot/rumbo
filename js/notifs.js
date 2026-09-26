@@ -53,6 +53,8 @@ function renderNotificaciones() {
     <p class="text-xs muted mt-16">📅 Ritual semanal: ${diaRitualSemanal() === 1
       ? "el <b>lunes</b> a tu hora de la mañana, y el martes si aún no planificas tu semana."
       : "el <b>domingo</b> a tu hora de la noche, y el lunes en la mañana si aún no planificas tu semana."} Cambia el día en Ritual → Semana.</p>
+    <p class="text-xs muted mt-8">🗓️ Mes: el día 1 en la mañana para abrirlo y el último día en la noche para cerrarlo.
+      🧭 Trimestre: el penúltimo día del trimestre en la noche para cerrarlo y el día 2 del siguiente en la mañana para abrirlo. Solo si aún no lo haces.</p>
   </div>
 
   ${perm === "granted" ? `<button class="btn-ghost btn-block mt-16" data-action="notif-test">Enviar una notificación de prueba</button>` : ""}

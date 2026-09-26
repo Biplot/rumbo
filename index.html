@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=51" />
+  <link rel="stylesheet" href="css/styles.css?v=52" />
 </head>
 <body>
   <!-- PORTAL DE USUARIOS -->
@@ -86,7 +86,7 @@
         <button class="btn-ghost btn-block" data-action="export" title="Descargar una copia de tus datos">⭳ Respaldar datos</button>
         <div class="row" style="gap:6px;margin-top:6px">
           <button class="btn-ghost" data-action="logout" style="flex:1">↩ Cerrar sesión</button>
-          <button class="btn-ghost" data-action="show-tutorial" title="Ver introducción" aria-label="Ver introducción">❔</button>
+          <button class="btn-ghost" data-route="tutoriales" title="Tutoriales" aria-label="Tutoriales">🎓</button>
         </div>
         <p class="foot-note">Sincronizado con tu cuenta.</p>
       </div>
@@ -104,6 +104,7 @@
             <h1 id="pageTitle">Inicio</h1>
             <p id="pageSubtitle" class="muted"></p>
           </div>
+          <button class="tour-help" id="helpBtn" data-action="tour-pantalla" title="Ayuda de esta pantalla" aria-label="Ayuda de esta pantalla" hidden>?</button>
           <div class="topbar__meta">
             <div class="save-status" id="saveStatus" hidden></div>
             <div class="pill pill--date" id="todayPill"></div>
@@ -139,24 +140,25 @@
 
   <!-- supabase-js 2.117.2 guardada en el repositorio: una versión nueva del CDN ya no puede romper el inicio de sesión -->
   <script src="js/vendor/supabase-2.117.2.js"></script>
-  <script src="js/store.js?v=51"></script>
-  <script src="js/state.js?v=51"></script>
-  <script src="js/anios.js?v=51"></script>
-  <script src="js/agenda.js?v=51"></script>
-  <script src="js/tareas-motor.js?v=51"></script>
-  <script src="js/habitos-motor.js?v=51"></script>
-  <script src="js/modules.js?v=51"></script>
-  <script src="js/modules2.js?v=51"></script>
-  <script src="js/ritual-mes.js?v=51"></script>
-  <script src="js/ritual-semana.js?v=51"></script>
-  <script src="js/ritual-trimestre.js?v=51"></script>
-  <script src="js/informe-mes.js?v=51"></script>
-  <script src="js/ritual-express.js?v=51"></script>
-  <script src="js/tendencias.js?v=51"></script>
-  <script src="js/recompensas.js?v=51"></script>
-  <script src="js/vida.js?v=51"></script>
-  <script src="js/notifs.js?v=51"></script>
-  <script src="js/app.js?v=51"></script>
+  <script src="js/store.js?v=52"></script>
+  <script src="js/state.js?v=52"></script>
+  <script src="js/anios.js?v=52"></script>
+  <script src="js/agenda.js?v=52"></script>
+  <script src="js/tareas-motor.js?v=52"></script>
+  <script src="js/habitos-motor.js?v=52"></script>
+  <script src="js/modules.js?v=52"></script>
+  <script src="js/modules2.js?v=52"></script>
+  <script src="js/ritual-mes.js?v=52"></script>
+  <script src="js/ritual-semana.js?v=52"></script>
+  <script src="js/ritual-trimestre.js?v=52"></script>
+  <script src="js/informe-mes.js?v=52"></script>
+  <script src="js/tutorial.js?v=52"></script>
+  <script src="js/ritual-express.js?v=52"></script>
+  <script src="js/tendencias.js?v=52"></script>
+  <script src="js/recompensas.js?v=52"></script>
+  <script src="js/vida.js?v=52"></script>
+  <script src="js/notifs.js?v=52"></script>
+  <script src="js/app.js?v=52"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));

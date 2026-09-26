@@ -16,7 +16,7 @@ const ctx = vm.createContext({
   console, Math, Date, JSON,
   localStorage: { getItem: k => mem[k] ?? null, setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } },
 });
-for (const f of ["js/store.js", "js/state.js", "js/anios.js", "js/agenda.js", "js/habitos-motor.js", "js/tareas-motor.js", "js/ritual-mes.js", "js/ritual-semana.js", "js/ritual-express.js", "js/ritual-trimestre.js"]) {
+for (const f of ["js/store.js", "js/state.js", "js/anios.js", "js/agenda.js", "js/habitos-motor.js", "js/tareas-motor.js", "js/ritual-mes.js", "js/ritual-semana.js", "js/ritual-express.js", "js/ritual-trimestre.js", "js/tutorial.js"]) {
   const p = path.join(root, f);
   if (fs.existsSync(p)) vm.runInContext(fs.readFileSync(p, "utf8"), ctx, { filename: f });
 }
@@ -172,7 +172,7 @@ test("mergeStates no usa Math.max de saldos (ambos viejos → menor)", () => {
 });
 
 /* Tests adicionales registrados por otras fases (hábitos, ritual de mes, registro diario…) */
-for (const f of ["extra.test.mjs", "agenda.test.mjs", "semana.test.mjs", "express.test.mjs", "anios.test.mjs", "trimestre.test.mjs"]) {
+for (const f of ["extra.test.mjs", "agenda.test.mjs", "semana.test.mjs", "express.test.mjs", "anios.test.mjs", "trimestre.test.mjs", "tutorial.test.mjs"]) {
   const p = path.join(root, "tests", f);
   if (!fs.existsSync(p)) continue;
   const mod = await import(p);

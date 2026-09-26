@@ -52,6 +52,7 @@ const BADGES = [
   { id: "mes-redondo", icon: "🗓️", nombre: "Mes Redondo", desc: "Abre y cierra el mismo mes", reward: 100, check: s => g_mesesRedondos(s).length >= 1 },
   { id: "semana-redonda", icon: "📅", nombre: "Semana Redonda", desc: "Planifica y cierra la misma semana", reward: 75, check: s => g_semanasRedondas(s).length >= 1 },
   { id: "cuatro-semanas", icon: "📆", nombre: "4 Semanas Seguidas", desc: "Planifica y cierra 4 semanas seguidas", reward: 200, check: s => g_semanasSeguidas(s, 4) },
+  { id: "explorador", icon: "🧭", nombre: "Explorador", desc: "Completa tus primeros pasos en Rumbo", reward: 100, check: s => typeof misionCompleta === "function" && misionCompleta(s) },
   { id: "estratega", icon: "♟️", nombre: "Estratega", desc: "Haz tu primera revisión trimestral", reward: 100, check: s => g_trimestresCerrados(s) >= 1 },
   { id: "trimestre-rumbo", icon: "🧭", nombre: "Trimestre con Rumbo", desc: "3 meses seguidos abiertos y cerrados", reward: 250, check: s => g_trimestreConRumbo(s) },
   { id: "guerrero", icon: "💪", nombre: "Guerrero", desc: "Acumula 50 días entrenados", reward: 60, check: s => g_diasEntren(s) >= 50 },

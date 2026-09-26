@@ -4,8 +4,8 @@ const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   // 1) Novedades: quien quedó en la 1 ve las de la 3 y "también llegó antes"; quien quedó en la 2, solo las de la 3
   const casos = [[1, ["Tareas recurrentes", "Rumbo, año tras año", "Modo express", "Ritual de semana", "Temas nuevos"], []], [2, ["Tareas recurrentes", "Modo express", "Ritual de semana"], ["Temas nuevos"]],
-    [4, ["Tareas recurrentes", "Tu año en números"], ["Modo express"]], [5, ["Comparte tu mes", "Revisión trimestral", "Menú más simple"], ["Tu año en números"]], [6, ["Comparte tu mes", "Revisión trimestral"], ["Menú más simple"]],
-    [7, ["Comparte tu mes"], ["Revisión trimestral"]]];
+    [4, ["Tareas recurrentes", "Tu año en números"], ["Modo express"]], [5, ["Tutorial interactivo", "Comparte tu mes", "Revisión trimestral", "Menú más simple"], ["Tu año en números"]], [6, ["Tutorial interactivo", "Revisión trimestral"], ["Menú más simple"]],
+    [7, ["Tutorial interactivo", "Comparte tu mes"], ["Revisión trimestral"]], [8, ["Tutorial interactivo"], ["Comparte tu mes"]]];
   for (const [iv, si, no] of casos) {
     const ctx = await nuevoContexto(b, { fecha: "2026-09-25T10:00:00" });
     const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
@@ -16,7 +16,7 @@ module.exports = async ({ b, ok, errs }) => {
     ok(si.every(x => t.includes(x)) && no.every(x => !t.includes(x)), `novedades para quien quedó en la versión ${iv}: ${si.join(", ")}`);
     if (iv === 1) await shot(p, "f5-novedades");
     await p.click('[data-action="onb-done"]'); await p.waitForTimeout(200);
-    ok(await p.evaluate(() => STATE.settings.introVersion) === 8, "al cerrar, queda en la versión 8");
+    ok(await p.evaluate(() => STATE.settings.introVersion) === 9, "al cerrar, queda en la versión 9");
     await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(900);
     ok(await p.locator("#modalOverlay").isHidden(), "no se vuelve a mostrar");
     await ctx.close();
@@ -37,7 +37,7 @@ module.exports = async ({ b, ok, errs }) => {
       titulos.push(t);
       await p.click('[data-action="onb-next"]'); await p.waitForTimeout(120);
     }
-    ok(titulos.includes("Tu registro diario") && titulos.includes("Ritual de semana") && titulos.length === 9, "la introducción tiene 9 láminas: " + titulos.join(" · "));
+    ok(titulos.join() === "Bienvenido a Rumbo,El ritual diario,Todo en un lugar", "la introducción tiene 3 láminas (el resto lo enseña el recorrido): " + titulos.join(" · "));
     ok(await p.locator("#ob-name").count() === 1, "termina en el formulario");
     await ctx.close();
   }

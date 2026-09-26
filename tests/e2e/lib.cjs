@@ -24,7 +24,7 @@ async function registrar(page, email) {
   await page.fill("#reg-name", "Prueba"); await page.fill("#reg-email", email); await page.fill("#reg-pass", "secreto123");
   await page.click('[data-action="auth-register"]');
   await page.waitForSelector("#app:not([hidden])"); await page.waitForTimeout(500);
-  await page.evaluate(() => { STATE.settings.onboarded = true; STATE.settings.introVersion = 9; ONB_ACTIVE = false; closeModal(); saveState(); });
+  await page.evaluate(() => { STATE.settings.onboarded = true; STATE.settings.introVersion = 9; STATE.settings.tutorial = { vistos: {}, mision: "oculta", auto: false, ts: 0 }; ONB_ACTIVE = false; closeModal(); saveState(); });
   await page.addStyleTag({ content: ".toast{display:none!important}" });
 }
 async function shot(page, nombre, op = {}) {

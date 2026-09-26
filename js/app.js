@@ -29,6 +29,7 @@ const ROUTES = [
   { id: "tienda", label: "Tienda", icon: "🛒", render: renderTienda, subtitle: "Desbloquea temas, títulos y detalles con tus ⭐." },
   { id: "cuenta", label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
   { id: "notif", label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
+  { id: "tutoriales", label: "Tutoriales", icon: "🎓", render: renderTutoriales, subtitle: "Recorridos guiados para aprender Rumbo a tu ritmo." },
 ];
 const ROUTE_MAP = {};
 ROUTES.forEach(r => { if (r.id) ROUTE_MAP[r.id] = r; });
@@ -95,7 +96,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 8;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 9;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -103,20 +104,8 @@ const ONB_SLIDES = [
   { icon: "👋", titulo: "Bienvenido a Rumbo",
     cuerpo: "Tu vida en un solo lugar: un centro de control personal para tu día, tus hábitos, tus objetivos, tus finanzas y tu bienestar. Simple, privado y sincronizado entre tus dispositivos." },
   { icon: "🌅", titulo: "El ritual diario",
-    cuerpo: `<b>Abre tu día</b> en la mañana: tu misión, tu ${BOCADO.corto.toLowerCase()}, tus tareas ${AMBITOS.pro.icon} profesionales y ${AMBITOS.per.icon} personales, y tu energía. De noche, <b>ciérralo</b>: decide qué pasa con lo pendiente, reflexiona y agradece.<br><br>La idea es usar la app lo <i>menos</i> posible: abrir y cerrar mantiene vivo todo tu sistema.` },
-  { icon: BOCADO.emoji, titulo: "Tu Primer Bocado",
-    cuerpo: `<i>¿Cómo te comes un elefante? Un bocado a la vez.</i><br><br>${BOCADO.titulo} es la tarea más importante del día: la que más mueve la aguja. <b>${BOCADO.accion}</b> y el resto del día fluye.` },
-  { icon: "📋", titulo: "Tu registro diario",
-    cuerpo: "Como en un bullet journal: cada tarea vive en su fecha y guarda su historia. Lo que no alcanzas lo decides al cerrar el día: <b>&gt;</b> mañana, <b>&lt;</b> otro día, <b>@</b> delegar o <b>✕</b> soltar.<br><br>Así ves cuánto postergas y qué se te repite, sin culpa: la métrica informa, no castiga. A la tercera postergación, Rumbo te pregunta si vale la pena." },
-  { icon: "📅", titulo: "Ritual de semana",
-    cuerpo: "El domingo (o el lunes, tú eliges) <b>cierras tu semana</b>: tus prioridades, tus números y tus pendientes. Y enseguida <b>planificas la siguiente</b>: un foco, 3 prioridades conectadas con tus objetivos del mes, tus días y tu premio." },
-  { icon: "🗓️", titulo: "Ritual de mes",
-    cuerpo: "Al empezar cada mes, <b>ábrelo</b>: mira cómo te fue, define un foco y 3 a 5 objetivos conectados con tus metas del trimestre. Al terminar, <b>ciérralo</b>: revisa tus objetivos, tus números y tu rueda de la vida." },
-  { icon: "📊", titulo: "Hábitos con frecuencia real",
-    cuerpo: "Cada hábito tiene su objetivo: <b>diario</b>, <b>X veces por semana</b>, <b>días fijos</b> o <b>X veces al mes</b>. Se miden contra ese objetivo, no contra 7 días: ir al gimnasio 3 veces por semana es un 100%." },
+    cuerpo: `<b>Abre tu día</b> en la mañana: tu enfoque, tus tareas y tu <b>${BOCADO.corto.toLowerCase()}</b> ${BOCADO.emoji}, la tarea más importante (<i>¿cómo te comes un elefante? Un bocado a la vez</i>). De noche, <b>ciérralo</b>: decide qué pasa con lo pendiente y reflexiona.<br><br>La idea es usar la app lo <i>menos</i> posible: abrir y cerrar mantiene vivo todo tu sistema.` },
   { icon: "🧭", titulo: "Todo en un lugar", cuerpo: "__GRID__" },
-  { icon: "🏆", titulo: "Recompensas",
-    cuerpo: "Ganas <b>monedas ⭐</b> abriendo y cerrando tus días, cumpliendo hábitos y objetivos. Las monedas se gastan en la <b>Tienda</b> (temas, títulos y detalles).<br><br>La <b>XP</b> es distinta: mide tu rango y <b>nunca baja</b>, aunque gastes. Además desbloqueas insignias por tus logros." },
 ];
 function openOnboarding(mode = "nuevo") { ONB_MODE = mode; ONB_STEP = 0; ONB_ACTIVE = true; renderOnboardingStep(); }
 function onbMover(delta) {
@@ -146,7 +135,8 @@ function renderOnboardingStep() {
       const areas = [["📔", "Diario"], ["🎯", "Objetivos"], ["🗂️", "Semana"], ["📊", "Hábitos"], ["📚", "Lecturas"], ["💰", "Finanzas"],
         ["💪", "Salud"], ["👥", "Relaciones"], ["🧾", "Listas"], ["📝", "Notas"], ["📈", "Tendencias"], ["🧭", "Rueda"]];
       cuerpo = `Rumbo reúne lo que hoy tienes disperso:
-        <div class="onb-grid">${areas.map(a => `<div class="onb-area"><span>${a[0]}</span>${a[1]}</div>`).join("")}</div>`;
+        <div class="onb-grid">${areas.map(a => `<div class="onb-area"><span>${a[0]}</span>${a[1]}</div>`).join("")}</div>
+        ${ONB_MODE === "nuevo" ? `<p class="text-sm muted mt-16">Al terminar te muestro la app con un recorrido guiado 🧭</p>` : ""}`;
     }
     openModal(ONB_MODE === "nuevo" ? "Bienvenido 🎉" : "Introducción a Rumbo", `
       <div class="onb-slide"><div class="onb-ico">${s.icon}</div>
@@ -209,6 +199,9 @@ const NOVEDADES = {
   8: [
     ["📤", "Comparte tu mes", "Una imagen con tus números del mes (días cerrados, primeros bocados, objetivos, tareas) lista para tus historias. Tú eliges qué mostrar; el ahorro va oculto. En Ritual → Mes."],
   ],
+  9: [
+    ["🎓", "Tutorial interactivo", "Un recorrido guiado sobre tu propia app, ayuda en cada pantalla (botón ? arriba) y todos los recorridos en el menú → 🎓 Tutoriales."],
+  ],
 };
 function openNovedades() {
   const desde = STATE.settings.introVersion || 1;
@@ -220,8 +213,8 @@ function openNovedades() {
   openModal("✨ Novedades de Rumbo", `
     ${cuerpo}
     <div class="onb-nav mt-16">
-      <button class="btn-ghost" data-action="intro-replay">📖 Ver la introducción</button>
-      <button class="btn btn--primary" data-action="onb-done">¡Entendido!</button>
+      <button class="btn-ghost" data-action="onb-done">Ahora no</button>
+      <button class="btn btn--primary" data-action="tour-start" data-id="general">🎓 Hacer el recorrido</button>
     </div>`);
 }
 function saveOnboarding() {
@@ -232,6 +225,7 @@ function saveOnboarding() {
   STATE.settings.introVersion = INTRO_VERSION;
   ONB_ACTIVE = false;
   saveState(); closeModal(); updateTopbar(); rerender();
+  setTimeout(() => tourIniciar("general"), 400);   // recorrido guiado sobre la app real
   toast("¡Listo! Bienvenido a Rumbo 🎉");
   if (typeof maybePromptNotif === "function") setTimeout(maybePromptNotif, 500);
 }
@@ -407,6 +401,7 @@ function onRoute() {
   setSidebar(false);
   document.querySelector(".main").scrollTo?.(0, 0);
   window.scrollTo(0, 0);
+  tourAuto(CURRENT);   // ayuda la primera vez que entras a esta pantalla
 }
 
 function go(id) { location.hash = id; }
@@ -572,6 +567,8 @@ function updateTopbar() {
   const route = ROUTE_MAP[CURRENT];
   document.getElementById("pageTitle").textContent = route.label;
   document.getElementById("pageSubtitle").textContent = route.subtitle || "";
+  const ayuda = document.getElementById("helpBtn");
+  if (ayuda) ayuda.hidden = !tourDePantalla(CURRENT);
   document.getElementById("todayPill").textContent = "📅 " + fechaLarga();
   document.getElementById("streakVal").textContent = computeClosedStreak();
   document.getElementById("ptsVal").textContent = STATE.gamif.puntos;
@@ -1007,6 +1004,17 @@ function onClick(e) {
     case "onb-prev": onbMover(-1); break;
     case "onb-skip": onbSaltar(); break;
     case "onb-done": onbTerminar(); break;
+    case "tour-start":
+      if ((STATE.settings.introVersion || 0) < INTRO_VERSION) { STATE.settings.introVersion = INTRO_VERSION; saveState(); }
+      tourIniciar(d.id); break;
+    case "tour-pantalla": if (tourDePantalla(CURRENT)) tourIniciar(tourDePantalla(CURRENT)); break;
+    case "tour-next": tourMover(1); break;
+    case "tour-prev": tourMover(-1); break;
+    case "tour-salir": tourTerminar(); break;
+    case "tour-reset": tourReiniciar(); break;
+    case "mision-ir": go(d.ruta); break;
+    case "mision-ocultar": misionMostrar(false); toast("Primeros pasos oculto · vuelve a mostrarlo en 🎓 Tutoriales"); break;
+    case "mision-cerrar": cambiarTutorial("mision", "completada"); rerender(); break;
     case "show-tutorial": case "intro-replay": setSidebar(false); openOnboarding(STATE.settings.onboarded ? "repetir" : "nuevo"); break;
     case "reset-data":
       if (confirm("¿Borrar TODOS tus datos y empezar de cero? Esto no se puede deshacer.")) {
@@ -1340,8 +1348,8 @@ function renderInicio() {
   const anioHoy = datosAnio(s, anioActual());
   const mesFin = anioHoy.finanzas.meses[mIdx];
   const ahorroMes = (mesFin.ingreso || 0) - (mesFin.gasto || 0);
-  const metaMes = s.finanzas.metaMensual || 1;
-  const pctAhorro = Math.min(100, Math.round((ahorroMes / metaMes) * 100));
+  const metaMes = s.finanzas.metaMensual || 0;
+  const pctAhorro = metaMes ? Math.max(0, Math.min(100, Math.round((ahorroMes / metaMes) * 100))) : null;
 
   const libro = s.lecturas.find(l => l.estado === "leyendo") || s.lecturas.find(l => l.titulo);
   const pesos = [pesoActualGlobal(s)].filter(p => p != null);
@@ -1395,12 +1403,13 @@ function renderInicio() {
   ${renderTrimestreBanner()}
   ${renderMesBanner()}
   ${renderSemanaBanner()}
-  ${renderDayHero()}
+  <div data-tour="dia">${renderDayHero()}</div>
+  ${renderMisionCard()}
   <div class="grid grid-4">
-    ${statCard("💰", "Ahorro de " + MESES[mIdx], fmtCLP(ahorroMes), `Meta ${fmtCLP(metaMes)} · ${pctAhorro}%`, pctAhorro)}
+    ${statCard("💰", "Ahorro de " + MESES[mIdx], fmtCLP(ahorroMes), metaMes ? `Meta ${fmtCLP(metaMes)} · ${pctAhorro}%` : "Sin meta mensual (en Finanzas)", pctAhorro)}
     ${statCard("🔥", "Racha de hábitos", computeStreak() + (computeStreak() === 1 ? " día" : " días"), doneToday + "/" + habToca.length + " hoy")}
     ${statCard("📚", "Leyendo ahora", libro && libro.titulo ? libro.titulo : "—", libro && libro.estado === "leyendo" ? "En curso" : "Sin libro activo")}
-    ${statCard("⚖️", "Peso actual", pesoActual != null ? pesoActual + " kg" : "—", "Meta " + s.salud.pesoObjetivo + " kg")}
+    ${statCard("⚖️", "Peso actual", pesoActual != null ? pesoActual + " kg" : "—", s.salud.pesoObjetivo != null && s.salud.pesoObjetivo !== "" ? "Meta " + s.salud.pesoObjetivo + " kg" : "Sin meta de peso")}
   </div>
 
   <div class="grid grid-3 mt-24">

@@ -37,6 +37,7 @@ function defaultState() {
       notif: { enabled: false, manana: "08:00", noche: "21:00", subs: [] },
       ritualSemanal: { dia: 0 },   // día del ritual semanal: 0 = domingo, 1 = lunes
       menu: { ocultos: [] },       // módulos de "Más" que la persona ocultó del menú
+      tutorial: { vistos: {}, mision: "activa", auto: true, ts: 0 },   // recorridos vistos, misión Primeros pasos y ayuda automática
     },
 
     finanzas: {
@@ -244,6 +245,9 @@ function migrate(s) {
   if (s.settings && s.settings.notif && !Array.isArray(s.settings.notif.subs)) s.settings.notif.subs = [];
   if (s.settings && (!s.settings.ritualSemanal || typeof s.settings.ritualSemanal !== "object")) s.settings.ritualSemanal = { dia: 0 };
   if (s.settings && (!s.settings.menu || !Array.isArray(s.settings.menu.ocultos))) s.settings.menu = { ocultos: [] };
+  // Tutorial: quienes ya usaban la app no ven la misión Primeros pasos (la activan en 🎓 Tutoriales)
+  if (s.settings && (!s.settings.tutorial || typeof s.settings.tutorial !== "object")) s.settings.tutorial = { vistos: {}, mision: s.settings.onboarded ? "oculta" : "activa", auto: true, ts: 0 };
+  if (s.settings && (!s.settings.tutorial.vistos || typeof s.settings.tutorial.vistos !== "object")) s.settings.tutorial.vistos = {};
   const g = s.gamif;
   if (g.xp == null) g.xp = g.puntos || 0;
   if (!g.badges) g.badges = [];

@@ -77,7 +77,7 @@ function renderRitualDia() {
     <div class="pill pill--streak">🔥 Racha de ritual: ${computeRitualStreak()} días</div>
     <div class="pill pill--pts">🏆 ${logros} rituales completados</div>
   </div>
-  <div class="mt-16">${renderPendingYesterday()}${banner}</div>
+  <div class="mt-16">${renderPendingYesterday()}<div data-tour="ritual-dia">${banner}</div></div>
 
   <div class="grid grid-3 mt-24">
     ${box("Misión de hoy", r && escapeHtml(r.mision), "Todavía no defines tu misión.")}

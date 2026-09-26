@@ -860,3 +860,30 @@ html[data-theme^="bosque"] .big-num { font-size: 30px; }
   display: grid; place-items: center; font-weight: 700; flex-shrink: 0; }
 .account__name { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .account__email { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ============================================================
+   Tutorial interactivo (tutorial.js): recorrido guiado, botón ? y misión
+   ============================================================ */
+.tour { position: fixed; inset: 0; z-index: 150; }
+.tour-hueco { position: fixed; border-radius: 14px; pointer-events: none;
+  box-shadow: 0 0 0 2px var(--cian), 0 0 0 200vmax rgba(4, 14, 26, 0.72);
+  transition: left .25s ease, top .25s ease, width .25s ease, height .25s ease; }
+.tour-pop { position: fixed; background: var(--surface); color: var(--text); border: 1px solid var(--line);
+  border-radius: 18px; padding: 16px 18px; box-shadow: var(--shadow); animation: pop .18s ease;
+  transition: left .25s ease, top .25s ease; }
+.tour-pop__t { font-weight: 700; font-size: 17px; margin: 6px 0 6px; }
+.tour-pop__b { font-size: 14px; line-height: 1.5; color: var(--text-soft); }
+.tour-barra { height: 4px; border-radius: 4px; background: var(--surface-2); margin: 14px 0 12px; overflow: hidden; }
+.tour-barra > div { height: 100%; background: var(--cian); border-radius: 4px; transition: width .25s ease; }
+.tour-help { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--surface-2); color: var(--text-muted); font-weight: 700; font-size: 15px; cursor: pointer; margin-left: 8px; }
+.tour-help:hover { color: var(--cian); border-color: var(--cian); }
+.mision { border-left: 3px solid var(--cian); }
+.mision--ok { background: linear-gradient(120deg, var(--cian-soft), var(--surface)); }
+.mision__lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.mision__paso { display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.mision__paso:hover:not(:disabled) { border-color: var(--cian); }
+.mision__paso.is-ok { opacity: .6; cursor: default; }
+.mision__paso.is-ok span:last-child { text-decoration: line-through; }
+@media (prefers-reduced-motion: reduce) { .tour-hueco, .tour-pop, .tour-barra > div { transition: none; animation: none; } }

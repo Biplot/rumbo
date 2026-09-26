@@ -285,6 +285,18 @@ function mergeStates(server, local) {
       if (sr && (!lr || (sr.ts || 0) > (lr.ts || 0))) out.settings[k] = JSON.parse(JSON.stringify(sr));
     });
   }
+  // Tutorial: los recorridos vistos se suman (salvo los anteriores a un "volver a mostrar la ayuda");
+  // misión y ayuda automática: gana el cambio más reciente
+  if (local.settings && server.settings && out.settings && (local.settings.tutorial || server.settings.tutorial)) {
+    const lt = local.settings.tutorial || {}, st = server.settings.tutorial || {};
+    const gana = !local.settings.tutorial || (server.settings.tutorial && (st.ts || 0) > (lt.ts || 0)) ? st : lt;
+    const r = JSON.parse(JSON.stringify(gana));
+    const reset = Math.max(lt.reset || 0, st.reset || 0), vistos = {};
+    [lt.vistos || {}, st.vistos || {}].forEach(v => Object.keys(v).forEach(k => { if (v[k] > reset) vistos[k] = Math.max(vistos[k] || 0, v[k]); }));
+    r.vistos = vistos;
+    if (reset) r.reset = reset;
+    out.settings.tutorial = r;
+  }
   // El resto (profile, settings, salud, rueda, ritual.pilares, entrenamiento) lo gana local.
   return out;
 }

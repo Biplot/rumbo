@@ -46,6 +46,12 @@ document.addEventListener("DOMContentLoaded", () => { boot(); });
 async function boot() {
   // Listeners globales (una sola vez)
   document.addEventListener("click", onClick);
+  // Teclado: Enter o Espacio activan los controles que no son botones (checkboxes de tareas, texto editable)
+  document.addEventListener("keydown", e => {
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches('[data-action][tabindex]:not(button):not(input):not(textarea)')) {
+      e.preventDefault(); e.target.click();
+    }
+  });
   document.getElementById("view").addEventListener("change", onBind);
   document.getElementById("view").addEventListener("input", onBindLive);
   document.getElementById("hamburger").addEventListener("click", () =>
@@ -89,7 +95,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 5;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 6;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -190,6 +196,12 @@ const NOVEDADES = {
   5: [
     ["📆", "Rumbo, año tras año", "Objetivos, Finanzas, Salud, Rueda, Hábitos, Calendario y Tendencias tienen selector de año ‹ 2026 ›: revisa años anteriores o adelanta las metas del próximo. Tu 2026 queda intacto."],
     ["🎆", "Tu año en números", "Al cerrar diciembre verás tu año completo: días cerrados, hábitos, objetivos, ahorro, libros y tu mejor mes."],
+  ],
+  6: [
+    ["🧭", "Menú más simple", "Arriba lo del día a día (Inicio, Ritual, Semana, Hábitos, Objetivos y Diario); el resto en Más. Con ⚙️ Personalizar menú ocultas lo que no uses, sin perder nada."],
+    ["🗂️", "Una sola pantalla de Semana", "Tu plan (foco, prioridades y números) y tus 7 días juntos. Abajo, 📆 Más adelante: lo que tienes programado en los próximos meses."],
+    ["🔁", "Tareas recurrentes", "Pagar el arriendo el día 5, la reunión de los lunes: créalas una vez en Semana → 🔁 Recurrentes y aparecen solas."],
+    ["👆", "Tareas más cómodas", "En el celular, desliza una tarea a la derecha para marcarla o a la izquierda para posponerla. Toca su texto para editarlo."],
   ],
 };
 function openNovedades() {
@@ -468,6 +480,7 @@ function initGestures() {
     if (!document.getElementById("modalOverlay").hidden) return;
     if (document.getElementById("sidebar").classList.contains("is-open")) return;
     if (startsInScrollableX(e.target) || isFormEl(e.target)) return;
+    if (e.target.closest && e.target.closest("[data-swipe]")) return;   // deslizar una tarea no cambia de sección
     sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); valid = true;
   }, { passive: true });
   view.addEventListener("touchend", e => {
@@ -476,6 +489,9 @@ function initGestures() {
     const dx = t.clientX - sx, dy = t.clientY - sy, dt = Date.now() - st;
     if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2 && dt < 600) navigateSection(dx < 0 ? 1 : -1);
   }, { passive: true });
+
+  // (3) Deslizar una tarea: → hecha, ← posponer
+  initSwipeTareas(view);
 
   // (4) Deslizar el modal hacia abajo para cerrarlo
   const overlay = document.getElementById("modalOverlay");
@@ -859,6 +875,8 @@ function onClick(e) {
       hecha ? registrarMovimiento("tarea:" + t.id, 15, 15, "Tarea") : anularMovimiento("tarea:" + t.id);
       saveState(); rerender(); break;
     }
+    case "tarea-editar": openEditarTarea(d.fecha, d.id); break;
+    case "tarea-editar-save": guardarEditarTarea(); break;
     case "tarea-ambito": {
       const t = buscarTarea(STATE, d.fecha, d.id);
       if (t) { t.ambito = ambitoDe(t) === "pro" ? "per" : "pro"; t.ts = Date.now(); saveState(); rerender(); }

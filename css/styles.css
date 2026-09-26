@@ -628,6 +628,11 @@ textarea.input { resize: vertical; min-height: 84px; }
 .semw-dia .row .input { flex: 1; min-width: 0; }
 .chip-x { background: none; border: 0; color: inherit; padding: 0 0 0 2px; margin-left: 2px; cursor: pointer; font-size: 11px; opacity: .7; line-height: 1; }
 .chip-x:hover { opacity: 1; }
+.tarea-row[data-swipe] { transition: transform .18s ease, background .18s; touch-action: pan-y; }
+.tarea-row.swipe-hecha { background: var(--cian-soft); }
+.tarea-row.swipe-posponer { background: var(--coral-soft); }
+.tarea-row [data-action="tarea-editar"] { cursor: text; }
+.check[tabindex]:focus-visible, [data-action="tarea-editar"]:focus-visible { outline: 2px solid var(--cian); outline-offset: 2px; }
 .anio-nav { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; }
 .anio-nav b { font-family: var(--font-display); font-size: 18px; min-width: 3ch; text-align: center; font-variant-numeric: tabular-nums; }
 .anio-nav .icon-btn[disabled] { opacity: .35; cursor: default; }

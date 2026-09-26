@@ -286,16 +286,19 @@ function tareaRowHtml(t, iso, op) {
   const hecha = e === "hecha";
   const meta = (viva ? "" : `<span class="chip chip--sig">${signoTarea(t)}</span>`) + chipMigraciones(t);
   const marca = viva
-    ? `<span class="check ${hecha ? "is-on" : ""}" data-action="tarea-toggle" data-fecha="${iso}" data-id="${t.id}" role="checkbox" aria-checked="${hecha}">${hecha ? "✓" : ""}</span>`
+    ? `<span class="check ${hecha ? "is-on" : ""}" data-action="tarea-toggle" data-fecha="${iso}" data-id="${t.id}" role="checkbox" tabindex="0" aria-checked="${hecha}" aria-label="${hecha ? "Desmarcar" : "Marcar como hecha"}: ${escapeAttr(t.txt)}">${hecha ? "✓" : ""}</span>`
     : `<span class="sig" aria-label="${ESTADOS_TAREA[e].label}">${ESTADOS_TAREA[e].sig}</span>`;
   const acciones = viva
     ? `${op.conAmbito === false || (op.ambitoSoloBocado && !t.esSapo) ? "" : ambitoChip(t, iso, op.compacto)}
        ${e === "pendiente" ? `<button class="icon-btn" data-action="tarea-posponer" data-fecha="${iso}" data-id="${t.id}" title="Posponer" aria-label="Posponer">↪</button>` : ""}
        <button class="icon-btn" data-action="tarea-del" data-fecha="${iso}" data-id="${t.id}" title="Borrar" aria-label="Borrar">✕</button>`
     : (tareaMovida(t) ? `<button class="icon-btn" data-action="tarea-deshacer" data-fecha="${iso}" data-id="${t.id}" title="Deshacer" aria-label="Deshacer">↶</button>` : "");
-  return `<div class="item-row tarea-row ${viva ? "" : "is-moved"} ${t.esSapo ? "is-bocado" : ""}" style="padding:${op.compacto ? "8px 10px" : "9px 11px"}">
+  // Viva: se puede deslizar (→ hecha, ← posponer) y tocar el texto para editarlo
+  const swipe = viva ? ` data-swipe="1" data-fecha="${iso}" data-id="${t.id}" data-pendiente="${e === "pendiente" ? 1 : 0}"` : "";
+  const editar = viva ? ` data-action="tarea-editar" data-fecha="${iso}" data-id="${t.id}" role="button" tabindex="0" title="Tocar para editar"` : "";
+  return `<div class="item-row tarea-row ${viva ? "" : "is-moved"} ${t.esSapo ? "is-bocado" : ""}"${swipe} style="padding:${op.compacto ? "8px 10px" : "9px 11px"}">
     ${marca}
-    <div class="item-row__main"><div class="item-row__title text-sm ${hecha || e === "soltada" ? "strike" : ""}">${t.esSapo ? BOCADO.emoji + " " : t.prioridad ? '<span title="Prioridad de la semana">🎯</span> ' : t.recurrente ? '<span title="Tarea recurrente">🔁</span> ' : ""}${escapeHtml(t.txt)}</div>
+    <div class="item-row__main"><div class="item-row__title text-sm ${hecha || e === "soltada" ? "strike" : ""}"${editar}>${t.esSapo ? BOCADO.emoji + " " : t.prioridad ? '<span title="Prioridad de la semana">🎯</span> ' : t.recurrente ? '<span title="Tarea recurrente">🔁</span> ' : ""}${escapeHtml(t.txt)}</div>
       ${t.esSapo && !op.compacto && viva ? `<div class="item-row__sub hl-coral">${BOCADO.titulo} · ${BOCADO.accion}</div>` : ""}
       ${meta ? `<div class="tarea-meta">${meta}</div>` : ""}</div>
     ${acciones}</div>`;
@@ -441,6 +444,55 @@ function guardarBandeja() {
   const n = aplicarTriage(STATE, leerTriage(document.getElementById("bandeja-triage")), { base: hoy, min: hoy });
   saveState(); closeModal(); updateTopbar(); rerender();
   toast(textoTriage(n) || "Listo");
+}
+
+/* -------- ✎ Editar el texto de una tarea -------- */
+function openEditarTarea(iso, id) {
+  const t = buscarTarea(STATE, iso, id);
+  if (!t || t.borrada) return;
+  openModal("Editar tarea", `
+    <div class="field"><input class="input" id="te-txt" value="${escapeAttr(t.txt)}" data-fecha="${iso}" data-id="${id}"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();guardarEditarTarea()}"></div>
+    <button class="btn btn--primary btn-block" data-action="tarea-editar-save">Guardar</button>`);
+  const el = document.getElementById("te-txt"); if (el) { el.focus(); el.select(); }
+}
+function guardarEditarTarea() {
+  const el = document.getElementById("te-txt"); if (!el) return;
+  const t = buscarTarea(STATE, el.dataset.fecha, el.dataset.id), txt = el.value.trim();
+  if (!t || !txt) return closeModal();
+  const antes = t.txt;
+  t.txt = txt; t.ts = Date.now();
+  const r = STATE.ritual.dias[el.dataset.fecha];   // si era el primer bocado, el ritual también lo muestra
+  if (t.esSapo && r && r.sapo === antes) { r.sapo = txt; r.ts = Date.now(); }
+  saveState(); closeModal(); rerender();
+}
+
+/* -------- Deslizar una tarea en el celular: → hecha · ← posponer -------- */
+function initSwipeTareas(view) {
+  let row = null, sx = 0, sy = 0, dx = 0, activo = false;
+  view.addEventListener("touchstart", e => {
+    row = e.target.closest && e.target.closest("[data-swipe]");
+    if (!row || e.touches.length !== 1 || e.target.closest("button, input, .check")) { row = null; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; activo = false;
+  }, { passive: true });
+  view.addEventListener("touchmove", e => {
+    if (!row) return;
+    const mx = e.touches[0].clientX - sx, my = e.touches[0].clientY - sy;
+    if (!activo && Math.abs(mx) > 12 && Math.abs(mx) > Math.abs(my) * 1.5) { activo = true; row.style.transition = "none"; }
+    if (!activo) return;
+    dx = Math.max(-90, Math.min(90, mx));
+    if (dx < 0 && row.dataset.pendiente !== "1") dx = 0;   // solo las pendientes se posponen
+    row.style.transform = `translateX(${dx}px)`;
+    row.classList.toggle("swipe-hecha", dx > 55); row.classList.toggle("swipe-posponer", dx < -55);
+  }, { passive: true });
+  view.addEventListener("touchend", () => {
+    if (!row) return;
+    const r = row, d = dx; row = null;
+    r.style.transition = ""; r.style.transform = ""; r.classList.remove("swipe-hecha", "swipe-posponer");
+    if (!activo) return;
+    if (d > 70) { const c = r.querySelector('[data-action="tarea-toggle"]'); if (c) c.click(); }
+    else if (d < -70) openPosponerTarea(r.dataset.fecha, r.dataset.id);
+  });
 }
 
 /* -------- ↪ Posponer una tarea puntual -------- */

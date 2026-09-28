@@ -31,6 +31,18 @@ export function avisoSemana(tipo, hoy, diaSem, semanas) {
    Devuelve { hora, clave, pendienteAnterior } o null si hoy no toca. */
 /* Día libre reservado en la Tienda (gamif.usos): ese día no se avisan los rituales diarios */
 export function esDiaLibre(usos, hoy) { return Array.isArray(usos) && usos.some(u => u && u.id === "libre:" + hoy && !u.anulado); }
+/* ¿Compró una función de la Tienda? (movimiento "compra:fun-<id>" vigente en el ledger) */
+export function tieneFuncion(gamif, id) { return !!(gamif && Array.isArray(gamif.ledger) && gamif.ledger.some(m => m && m.id === "compra:fun-" + id && !m.anulado)); }
+/* Aviso de mediodía: solo con la función, una hora elegida, y si el día está abierto y sin cerrar */
+export function avisoMediodia(data, hoy) {
+  const notif = data && data.settings && data.settings.notif;
+  if (!notif || !notif.mediodia || !tieneFuncion(data.gamif, "mediodia")) return null;
+  if (esDiaLibre((data.gamif || {}).usos, hoy)) return null;
+  const r = ((data.ritual || {}).dias || {})[hoy];
+  if (r && r.cerrado) return null;
+  const sapo = r && r.hecho && r.sapo ? String(r.sapo).slice(0, 80) : "";
+  return { body: sapo ? `¿Cómo va tu primer bocado? “${sapo}”` : "¿Cómo va tu primer bocado? Un paso chico ya cuenta." };
+}
 export function triClave(y, q) { return `${y}-Q${q}`; }
 export function avisoTrimestre(tipo, hoy, trimestres) {
   const y = +hoy.slice(0, 4), m = +hoy.slice(5, 7), d = +hoy.slice(8, 10), q = Math.ceil(m / 3);

@@ -336,10 +336,14 @@ function renderTendencias() {
 
   ${renderFocoPostergacion()}
 
+  ${renderFocoTendencias()}
+  ${renderCompararMeses()}
+
   <div class="section-title">Tu evolución</div>
   ${selectorAnio()}
   ${comparacionAnios(S, y)}
   ${y < anioActual() ? `<div class="card" style="margin-bottom:18px">${resumenAnioHtml(resumenAnio(S, y), true)}</div>` : ""}
+  ${informeAnioDisponible(y) ? `<div class="row" style="margin-bottom:18px;justify-content:flex-end"><button class="btn ${funcion("informe-anio") ? "btn--cian" : "btn--soft"}" data-action="informe-anio" data-y="${y}">🗂️ Informe de ${y}${funcion("informe-anio") ? "" : " · 400 ⭐"}</button></div>` : ""}
   <div class="grid grid-2">
     <div class="card">
       <div class="card__head"><div class="card__title">⚖️ Peso (kg)</div><span class="card__hint">${S.salud.pesoObjetivo != null ? "objetivo " + S.salud.pesoObjetivo + " kg" : ""}</span></div>

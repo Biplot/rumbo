@@ -257,6 +257,7 @@ function renderHabitos() {
     <div class="pill pill--streak" title="Días seguidos cumpliendo todos los hábitos que tocaban">🔥 Racha: ${computeStreak()} días</div>
     <div class="row" style="gap:10px;flex-wrap:wrap">
       <div class="seg">${tabs.map(([k, l]) => `<button class="${HABIT_VIEW === k ? "is-active" : ""}" data-action="habit-view" data-v="${k}">${l}</button>`).join("")}</div>
+      <button class="btn btn--soft" data-action="plantillas-open" title="Plantillas de rutina">📋 Plantillas</button>
       <button class="btn btn--primary" data-action="habit-add">+ Nuevo hábito</button>
     </div>
   </div>`;
@@ -401,7 +402,7 @@ function openHabitModal(id) {
   const h = id ? STATE.habitos.defs.find(x => x.id === id) : null;
   HABIT_EDIT = h ? h.id : null;
   const f = h ? hmFreq(h) : { tipo: "diario" };
-  const iconos = ["🏋️","📖","✏️","🎵","🥗","💧","🧘","💊","🏃","☀️","🛏️","🚭","🧹","💻","📞","🙏"];
+  const iconos = Array.from(new Set(["🏋️","📖","✏️","🎵","🥗","💧","🧘","💊","🏃","☀️","🛏️","🚭","🧹","💻","📞","🙏"].concat(iconosExtra(), h ? [h.icon] : [])));
   const icon = h ? h.icon : "🏋️";
   const tipos = [["diario", "Diario"], ["semanal", "X por semana"], ["dias", "Días fijos"], ["mensual", "X al mes"]];
   const dias = f.tipo === "dias" ? f.dias : [0, 2, 4];
@@ -410,7 +411,8 @@ function openHabitModal(id) {
     <div class="field"><label>Ícono</label>
       <div class="row-wrap" id="h-iconos">${iconos.map(ic =>
         `<button type="button" class="btn--soft btn ${ic === icon ? "btn--cian" : ""}" style="padding:8px 12px" data-ic="${ic}" onclick="pickIcon(this)">${ic}</button>`).join("")}</div>
-      <input type="hidden" id="h-icon" value="${icon}"></div>
+      <input type="hidden" id="h-icon" value="${icon}">
+      ${PACKS_ICONOS.some(p => !funcion("iconos-" + p.id)) ? `<div class="text-xs muted mt-8">🎨 Más íconos (deporte, estudio, hogar, bienestar) en la Tienda.</div>` : ""}</div>
     <div class="field"><label>Frecuencia objetivo</label>
       <div class="seg" id="h-tipo-seg" style="flex-wrap:wrap">${tipos.map(([k, l]) => `<button type="button" class="${f.tipo === k ? "is-active" : ""}" data-v="${k}" onclick="habitTipoPick(this)">${l}</button>`).join("")}</div>
       <input type="hidden" id="h-tipo" value="${f.tipo}">

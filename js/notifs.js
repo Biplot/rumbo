@@ -48,7 +48,10 @@ function renderNotificaciones() {
         <input class="input" type="time" id="notif-manana" value="${n.manana || "08:00"}"></div>
       <div class="notif-hora"><label class="text-xs muted">🌙 Noche · cerrar</label>
         <input class="input" type="time" id="notif-noche" value="${n.noche || "21:00"}"></div>
+      ${funcion("mediodia") ? `<div class="notif-hora"><label class="text-xs muted">☀️ Mediodía · primer bocado</label>
+        <input class="input" type="time" id="notif-mediodia" value="${n.mediodia || ""}" placeholder="13:00"></div>` : ""}
     </div>
+    ${funcion("mediodia") ? `<p class="text-xs muted mt-8">☀️ Déjalo en blanco para no recibir el aviso de mediodía.</p>` : `<p class="text-xs muted mt-8">🔔 ¿Quieres un aviso a mediodía para tu primer bocado? Desbloquéalo en la <a href="#tienda">Tienda</a>.</p>`}
     <button class="btn btn--cian btn-block mt-16" data-action="notif-times">Guardar horarios</button>
     <p class="text-xs muted mt-16">📅 Ritual semanal: ${diaRitualSemanal() === 1
       ? "el <b>lunes</b> a tu hora de la mañana, y el martes si aún no planificas tu semana."
@@ -110,6 +113,8 @@ function saveNotifTimes() {
   STATE.settings.notif = STATE.settings.notif || { subs: [] };
   STATE.settings.notif.manana = m;
   STATE.settings.notif.noche = no;
+  const md = document.getElementById("notif-mediodia");
+  if (md) STATE.settings.notif.mediodia = md.value || null;
   saveState();
   rerender();
   toast("Horarios guardados ⏰");

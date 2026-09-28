@@ -9,7 +9,7 @@
    ============================================================ */
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
-import { ultimoDiaMes, lunesDe, avisoSemana, avisoTrimestre, esDiaLibre } from "./reglas.mjs";
+import { ultimoDiaMes, lunesDe, avisoSemana, avisoTrimestre, esDiaLibre, avisoMediodia } from "./reglas.mjs";
 
 const trim = v => (v == null ? "" : String(v).trim());
 const SUPABASE_URL = trim(process.env.SUPABASE_URL);
@@ -41,6 +41,7 @@ const WINDOW_MIN = 30; // tolerancia en minutos DESPUÉS de la hora objetivo
 
 const MSGS = {
   manana: { title: "🌅 Buenos días", body: "Inicia tu ritual y define tu enfoque del día.", url: "./#ritual", tag: "rumbo-manana" },
+  mediodia: { title: "☀️ Mediodía", body: "¿Cómo va tu primer bocado?", url: "./#inicio", tag: "rumbo-mediodia" },
   noche: { title: "🌙 Cierra tu día", body: "Tómate un momento para reflexionar y cerrar tu día.", url: "./#ritual", tag: "rumbo-noche" },
   "mes-apertura": { title: "🗓️ Empieza un mes nuevo", body: "Abre tu mes: mira el anterior, define tu foco y tus objetivos.", url: "./#ritual", tag: "rumbo-mes-apertura" },
   "mes-cierre": { title: "🗓️ Último día del mes", body: "Cierra tu mes: revisa tus objetivos y reflexiona.", url: "./#ritual", tag: "rumbo-mes-cierre" },
@@ -83,10 +84,11 @@ for (const row of usuarios || []) {
   const trimestres = (row.data.ritual || {}).trimestres || {};
   const libre = esDiaLibre((row.data.gamif || {}).usos, hoy);
 
-  for (const tipo of ["manana", "noche", "mes-apertura", "mes-cierre", "semana-cierre", "semana-apertura", "tri-cierre", "tri-apertura"]) {
+  for (const tipo of ["manana", "mediodia", "noche", "mes-apertura", "mes-cierre", "semana-cierre", "semana-apertura", "tri-cierre", "tri-apertura"]) {
     const mt = MES_TIPOS[tipo];
     if (libre && (tipo === "manana" || tipo === "noche")) continue;   // 🌴 día libre: sin ritual diario
-    let hora = tipo, tri = null;
+    let hora = tipo, tri = null, medio = null;
+    if (tipo === "mediodia") { medio = avisoMediodia(row.data, hoy); if (!medio) continue; }
     if (mt) {
       if (tipo === "mes-apertura" && dia !== 1) continue;
       if (tipo === "mes-cierre" && dia !== ultimoDiaMes(hoy)) continue;
@@ -110,7 +112,7 @@ for (const row of usuarios || []) {
     if (insErr) { saltados++; continue; }
 
     const sufijo = mt ? mes : tipo.startsWith("semana-") ? lunesDe(hoy) : tri ? tri.clave : "";
-    const msg = tri && tri.pendienteAnterior ? { ...MSGS[tipo], body: TRI_APERTURA_CON_CIERRE } : MSGS[tipo];
+    const msg = tri && tri.pendienteAnterior ? { ...MSGS[tipo], body: TRI_APERTURA_CON_CIERRE } : medio ? { ...MSGS[tipo], body: medio.body } : MSGS[tipo];
     const payload = JSON.stringify(sufijo ? { ...msg, tag: msg.tag + "-" + sufijo } : msg);
     for (const sub of notif.subs) {
       try {

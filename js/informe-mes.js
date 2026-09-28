@@ -10,6 +10,7 @@ let INFORME_OP = null;   // { key, foco, mejor, nota, ahorro }
 
 /* Datos del informe de un mes */
 function datosInforme(key) {
+  if (String(key).startsWith("anio:")) return datosInformeAnio(+key.slice(5));   // 🗂️ Informe del año (funciones.js)
   const { y, m } = mesDeKey(key);
   const r = resumenMes(y, m), rm = ritualMes(key) || {};
   const diasMes = daysInMonth(y, m);
@@ -61,11 +62,11 @@ function dibujarInforme(d, op) {
   x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.stroke();
   pts.forEach(([a, b], i) => { x.fillStyle = i === 3 ? CORAL : CIAN; x.beginPath(); x.arc(a, b, i === 3 ? 8 : 6, 0, Math.PI * 2); x.fill(); });
   x.fillStyle = TXT; x.font = F(700, 48); x.textBaseline = "alphabetic"; x.fillText("Rumbo", mx + M + 28, my + 58);
-  x.fillStyle = SUAVE; x.font = F(500, 28); x.fillText("Mi mes" + (d.nombre ? " · " + d.nombre : ""), mx + M + 30, my + 96);
+  x.fillStyle = SUAVE; x.font = F(500, 28); x.fillText((d.sub || "Mi mes") + (d.nombre ? " · " + d.nombre : ""), mx + M + 30, my + 96);
 
   // Título: el mes
   let y = 390;
-  x.fillStyle = CIAN; x.font = F(600, 34); x.fillText(String(d.y), 90, y - 96);
+  x.fillStyle = CIAN; x.font = F(600, 34); x.fillText(d.etiqueta || String(d.y), 90, y - 96);
   x.font = F(700, 150);
   const tam = Math.min(150, Math.floor(150 * (W - 180) / x.measureText(d.mes).width));
   x.fillStyle = TXT; x.font = F(700, tam); x.fillText(d.mes, 84, y + 40);
@@ -78,12 +79,13 @@ function dibujarInforme(d, op) {
     x.lineWidth = 16; x.strokeStyle = "rgba(255,255,255,0.10)"; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.stroke();
     x.strokeStyle = CORAL; x.beginPath(); x.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * d.nota) / 10); x.stroke();
     x.fillStyle = TXT; x.textAlign = "center"; x.font = F(700, 72); x.fillText(String(d.nota), cx, cy + 25);
-    x.fillStyle = SUAVE; x.font = F(500, 24); x.fillText("nota del mes", cx, cy + r + 44); x.textAlign = "left";
+    x.fillStyle = SUAVE; x.font = F(500, 24); x.fillText(d.notaLabel || "nota del mes", cx, cy + r + 44); x.textAlign = "left";
   }
 
   // Tarjetas: 2 columnas × 3 filas
   const pct = v => (v == null ? "—" : v + "%");
-  const tarjetas = [
+  const COL = { cian: CIAN, coral: CORAL, suave: SUAVE };
+  const tarjetas = d.tarjetas ? d.tarjetas.map(t => ({ v: t.v, l: t.l, color: COL[t.c] || CIAN })).filter(t => t.v !== "—") : [
     { v: pct(d.habitos), l: "hábitos cumplidos", color: CIAN },
     { v: `${d.cerrados}/${d.dias}`, l: "días cerrados", color: CIAN },
     { v: String(d.bocados), l: "primeros bocados 🐘", color: CORAL },
@@ -91,7 +93,7 @@ function dibujarInforme(d, op) {
     { v: pct(d.tareas), l: "tareas completadas", color: CIAN },
     { v: pct(d.postergacion), l: "postergación", color: SUAVE },
   ].filter(t => t.v !== "—");   // sin datos no se muestra
-  if (op.ahorro) tarjetas.push({ v: fmtCLP(d.ahorro), l: "ahorro del mes", color: CIAN });
+  if (op.ahorro) tarjetas.push({ v: fmtCLP(d.ahorro), l: d.tarjetas ? "ahorro del año" : "ahorro del mes", color: CIAN });
   if (tarjetas.length % 2) tarjetas[tarjetas.length - 1].ancho = true;   // la última sola ocupa todo el ancho
   const top = 640, gap = 28, cw = (W - 180 - gap) / 2, ch = 230;
   tarjetas.forEach((t, i) => {
@@ -138,7 +140,8 @@ function renderInformeModal() {
     <img src="${url}" alt="Vista previa del informe de ${d.mes}" class="informe-prev">
     <div class="text-xs muted mt-16">Qué mostrar</div>
     <div class="row-wrap mt-8" style="gap:6px">
-      ${chk("foco", "Foco")}${chk("nota", "Nota del mes", d.nota ? "" : " (al cerrar)")}${chk("mejor", "Lo mejor del mes")}${chk("ahorro", "Ahorro 💰")}
+      ${d.tarjetas ? chk("nota", "Nota del año") + chk("ahorro", "Ahorro 💰")
+        : chk("foco", "Foco") + chk("nota", "Nota del mes", d.nota ? "" : " (al cerrar)") + chk("mejor", "Lo mejor del mes") + chk("ahorro", "Ahorro 💰")}
     </div>
     <div class="row mt-16" style="gap:8px">
       <button class="btn btn--primary" style="flex:1" data-action="informe-compartir">Compartir</button>
@@ -151,7 +154,9 @@ function informeBlob() {
   const c = dibujarInforme(datosInforme(INFORME_OP.key), INFORME_OP);
   return new Promise(res => c.toBlob(res, "image/png"));
 }
-function nombreArchivoInforme() { const { y, m } = mesDeKey(INFORME_OP.key); return `rumbo-${MESES[m].toLowerCase()}-${y}.png`; }
+function nombreArchivoInforme() {
+  if (String(INFORME_OP.key).startsWith("anio:")) return `rumbo-${INFORME_OP.key.slice(5)}.png`;
+  const { y, m } = mesDeKey(INFORME_OP.key); return `rumbo-${MESES[m].toLowerCase()}-${y}.png`; }
 async function compartirInforme() {
   const blob = await informeBlob(), nombre = nombreArchivoInforme();
   const file = typeof File === "function" ? new File([blob], nombre, { type: "image/png" }) : null;

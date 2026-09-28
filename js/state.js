@@ -102,6 +102,9 @@ function defaultState() {
     // calendario: eventos { "YYYY-MM-DD": [textos] }
     eventos: {},
 
+    // modo enfoque (Tienda): sesiones [{ id, fecha, ts, min, real, completa, tareaId?, titulo }]
+    enfoque: { sesiones: [] },
+
     // gamificación
     gamif: {
       puntos: 0,   // DERIVADO del ledger: monedas gastables
@@ -240,6 +243,8 @@ function migrate(s) {
     if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "navy";
   }
   if (s.gamif && !Array.isArray(s.gamif.usos)) s.gamif.usos = [];   // consumibles de la Tienda
+  if (!s.enfoque || typeof s.enfoque !== "object" || Array.isArray(s.enfoque)) s.enfoque = {};
+  if (!Array.isArray(s.enfoque.sesiones)) s.enfoque.sesiones = [];   // modo enfoque
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
   // Versión de la introducción vista: los existentes quedan en 1 (verán "Novedades" una vez)
   if (s.settings && s.settings.introVersion == null) s.settings.introVersion = s.settings.onboarded ? 1 : 0;

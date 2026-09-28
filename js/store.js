@@ -257,6 +257,8 @@ function mergeStates(server, local) {
       out.gamif.owned = Array.from(new Set([...(server.gamif.owned || []), ...(local.gamif.owned || [])]));
     }
   }
+  // Sesiones de enfoque: por id (cada sesión se crea en un solo equipo)
+  if (local.enfoque || server.enfoque) out.enfoque = { ...(out.enfoque || {}), sesiones: JSON.parse(JSON.stringify(usosMerge((local.enfoque || {}).sesiones, (server.enfoque || {}).sesiones))) };
   // Suscripciones push: unir por endpoint (cada dispositivo tiene la suya)
   const ln = local.settings && local.settings.notif, sn = server.settings && server.settings.notif;
   if (ln && sn && out.settings && out.settings.notif) {

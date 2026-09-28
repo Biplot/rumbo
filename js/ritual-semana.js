@@ -265,10 +265,12 @@ function semAperturaPaso(w) {
       const prios = conTexto.filter(({ p }) => p.dia === iso && !ex.some(t => t.prioridad === p.id || t.txt === p.texto)).map(x => x.p);
       const nuevas = d.nuevas[iso] || [];
       const n = ex.filter(tareaAbierta).length + prios.length + nuevas.length;
-      const pasado = iso < hoy, sobre = lim && n > lim;
+      const pasado = iso < hoy;
+      const pr = !pasado && funcion("pronostico") ? pronosticoDia(iso, STATE, cap) : null;   // 🔮 descuenta reuniones de Google Calendar
+      const tope = pr ? pr.capacidad * 1.25 : lim, sobre = tope && n > tope;
       return `<div class="semw-dia ${pasado ? "is-pasado" : ""} ${iso === hoy ? "is-hoy" : ""}">
         <div class="flex-between" style="gap:8px"><b class="text-sm">${DIAS_SEMANA[i]} ${agDate(iso).getDate()}</b>
-          <span class="text-xs ${sobre ? "hl-coral" : "muted"}">${n} pendiente${n === 1 ? "" : "s"}${sobre ? " · ⚠ más de lo que sueles completar" : ""}</span></div>
+          <span class="text-xs ${sobre ? "hl-coral" : "muted"}">${n} pendiente${n === 1 ? "" : "s"}${pr && pr.reun ? ` · 📅 ${String(pr.reun).replace(".", ",")} h de reuniones` : ""}${sobre ? ` · ${pr ? "🔮 sobrecargado" : "⚠ más de lo que sueles completar"}` : ""}</span></div>
         ${ex.length || prios.length || nuevas.length ? `<div class="row-wrap mt-8" style="gap:6px">
           ${ex.map(t => `<span class="chip ${estadoTarea(t) === "hecha" ? "chip--done" : ""}">${t.prioridad ? "🎯 " : AMBITOS[ambitoDe(t)].icon + " "}${escapeHtml(t.txt)}${t.migraciones ? ` · ↪ ${t.migraciones}` : ""}</span>`).join("")}
           ${prios.map(p => `<span class="chip chip--cian">🎯 ${escapeHtml(p.texto)}</span>`).join("")}
@@ -582,11 +584,13 @@ function renderSemana() {
       <div class="bar"><div class="bar__fill" style="width:${pct}%"></div></div><span class="chip">${p.hecho}/${p.meta}</span></div>`;
   }).join("") : `<div class="empty">Elige hasta 3 hábitos en foco al planificar la semana.</div>`;
 
+  const PRONO = {}; if (funcion("pronostico")) pronosticoSemana(L).forEach(p => { PRONO[p.iso] = p; });
   const cols = fechas.map((iso, i) => {
     const d = agDate(iso), tareas = tareasDelDia(iso), inputId = `sem-${i}`;
     return `<div class="week-col card ${iso === hoy ? "is-hoy" : ""}">
       <div class="flex-between"><div class="card__title" style="font-size:14px">${DIAS_SEMANA[i]}</div>
         <span class="dia-badge">${d.getDate()}/${MESES_CORTO[d.getMonth()]}</span></div>
+      ${PRONO[iso] ? `<div class="mt-8">${chipPronostico(PRONO[iso])}</div>` : ""}
       ${gcalDiaHtml(iso)}
       <div class="mt-8">${tareas.length ? tareas.map(t => tareaRowHtml(t, iso, { compacto: true })).join("") : '<div class="text-xs muted" style="padding:6px">Sin tareas.</div>'}</div>
       <div class="row mt-8">${ambitoPicker(inputId + "-amb", "per", true)}<input class="input" id="${inputId}" placeholder="Nueva tarea..." style="padding:8px 10px">
@@ -624,6 +628,7 @@ function renderSemana() {
     <div class="card"><div class="card__title">📊 ${esActual ? "Esta semana hasta hoy" : "Números de la semana"}</div>
       <div class="mt-16">${resumenSemanaHtml(resumenSemanaRitual(L, STATE, c ? ev : null), resumenSemanaRitual(prevL))}</div></div>
   </div>
+  ${renderPronosticoSemana(L)}
   <div class="week-scroll mt-24">${cols}</div>
   <div class="flex-between mt-8" style="gap:8px;flex-wrap:wrap">
     <p class="text-xs muted">Signos: ✓ hecha · &gt; movida a otro día · &lt; programada · @ delegada · ✕ soltada · ↪ n veces postergada · 🔁 recurrente.</p>

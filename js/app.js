@@ -62,7 +62,7 @@ async function boot() {
   window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
   // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube;
   // al ocultarla/cerrarla, subir de inmediato lo pendiente (no perder el cierre recién hecho).
-  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); revisarProtectores(); } });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); revisarProtectores(); retomarEnfoque(); } });
   window.addEventListener("focus", () => syncFromCloud());
   window.addEventListener("pagehide", () => flushCloudSave());
   window.addEventListener("hashchange", onRoute);
@@ -109,6 +109,7 @@ async function enterApp(user) {
   updateTopbar();
   onRoute();
   revisarProtectores();   // 🛡️ protector de racha automático
+  retomarEnfoque();       // ⏱️ sesión de enfoque en curso en este equipo
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
   if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
   else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
@@ -795,6 +796,17 @@ function onClick(e) {
     case "habit-today": toggleHabitToday(d.id); break;
     case "habit-daycell": toggleHabitDate(d.id, +d.y, +d.m, +d.d); break;
 
+    /* Tienda · funciones */
+    case "fun-buy": comprarFuncion(d.id); break;
+    case "enfoque-open": openEnfoque(); break;
+    case "enfoque-iniciar": iniciarEnfoque(); break;
+    case "enfoque-pausa": pausarEnfoque(); break;
+    case "enfoque-terminar": terminarEnfoque(false); break;
+    case "enfoque-hecha": enfoqueTareaHecha(d.fecha, d.id); break;
+    case "plantillas-open": openPlantillas(); break;
+    case "plantilla-aplicar": aplicarPlantillaUI(d.id); break;
+    case "informe-anio": openInformeAnio(+d.y); break;
+
     /* Tienda · útiles (consumibles) */
     case "util-buy": comprarConsumibleUI(d.id); break;
     case "libre-open": openDiaLibre(); break;
@@ -1185,6 +1197,8 @@ function renderTienda() {
 
   ${renderUtilesTienda()}
 
+  ${renderFuncionesTienda()}
+
   <div class="section-title">🎨 Temas <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· toca la miniatura para la vista previa</span></div>
   <div class="grid grid-3">${themeCards}</div>
 
@@ -1459,7 +1473,8 @@ function renderInicio() {
       <span>↪ Postergación 7 días: <b>${p7.indice}%</b>${cronicasAbiertas ? ` · <span class="hl-coral">${cronicasAbiertas} postergada${cronicasAbiertas === 1 ? "" : "s"} 3+ veces</span>` : ""}</span>
       <a href="#tendencias">Ver métricas →</a></div>` : "";
   const tareasCard = `<div class="card">
-    <div class="card__head"><div class="card__title">📋 Tareas de hoy</div><a class="card__hint" href="#semana">Ver semana →</a></div>
+    <div class="card__head"><div class="card__title">📋 Tareas de hoy</div>
+      <div class="row" style="gap:10px">${funcion("enfoque") ? `<button class="btn-ghost" data-action="enfoque-open" style="padding:4px 10px">⏱️ Enfocarme</button>` : ""}<a class="card__hint" href="#semana">Ver semana →</a></div></div>
     ${renderBandejaPendientes()}
     ${tareasHoy.length ? (bocado ? tareaRowHtml(bocado, hoyISO) : "") + grupo("pro") + grupo("per")
     : '<div class="empty" style="padding:14px">Sin tareas para hoy. Defínelas en tu ritual de apertura.</div>'}

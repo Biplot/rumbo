@@ -6,7 +6,8 @@
    ============================================================ */
 
 const INFORME = { ancho: 1080, alto: 1920 };
-let INFORME_OP = null;   // { key, foco, mejor, nota, ahorro }
+let INFORME_OP = null;
+let INFORME_ELE = null;   // imagen de tu elefante (se prepara al abrir el informe)   // { key, foco, mejor, nota, ahorro }
 
 /* Datos del informe de un mes */
 function datosInforme(key) {
@@ -123,14 +124,8 @@ function dibujarInforme(d, op) {
     informeTexto(x, d.mejor, 170, y + 80, W - 260, 56, 4);
   }
 
-  // Tu elefante (etapa según tu XP), sobre el pie a la derecha
-  if (typeof etapaElefante === "function" && STATE && STATE.gamif) {
-    const e = etapaElefante(STATE.gamif.xp || 0).etapa, tam = Math.round(40 + e.tam * 0.6);
-    x.textAlign = "right"; x.font = `${tam}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
-    x.fillText("🐘", W - 90, H - 190);
-    if (e.corona) { x.font = `${Math.round(tam * 0.45)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; x.fillText("👑", W - 90 - tam * 0.45, H - 190 - tam * 0.8); }
-    x.textAlign = "left";
-  }
+  // Tu elefante (con su tipo, etapa y ropa), sobre el pie a la derecha
+  if (INFORME_ELE) x.drawImage(INFORME_ELE, W - 90 - 230, H - 190 - 212, 230, 212);
   // Pie
   x.fillStyle = P.borde; x.fillRect(90, H - 170, W - 180, 2);
   x.fillStyle = TXT; x.font = F(600, 32); x.fillText("Hecho con Rumbo", 90, H - 104);
@@ -146,6 +141,7 @@ async function openInformeMes(key) {
   const ultima = (STATE.gamif.equipped || {}).plantilla;
   INFORME_OP = { key, foco: true, mejor: !!(rm.cierre && rm.cierre.mejor), nota: true, ahorro: false, plantilla: pal.includes(ultima) ? ultima : "navy" };
   if (typeof loadThemeFonts === "function") pal.forEach(p => loadThemeFonts(p));
+  INFORME_ELE = typeof elefanteImagen === "function" ? await elefanteImagen() : null;
   if (document.fonts && document.fonts.load) { try { await Promise.all(['700 40px "Fraunces"', '500 30px "Karla"', '700 40px "IBM Plex Mono"'].map(f => document.fonts.load(f))); } catch (e) {} }
   if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
   renderInformeModal();

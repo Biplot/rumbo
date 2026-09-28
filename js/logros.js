@@ -1,6 +1,6 @@
 /* ============================================================
    RUMBO · Logros (Entrega 4): insignias con niveles y secretas, títulos que piden
-   una insignia y 🐘 tu elefante (crece con tu XP; sus accesorios se compran).
+   una insignia. (🐘 Tu elefante vive en elefante.js.)
    Las insignias se suman a BADGES (recompensas.js): cada nivel es una insignia con
    su propio movimiento "insignia:<id>" en el ledger, así nunca se paga dos veces.
    ============================================================ */
@@ -196,85 +196,3 @@ const TITULOS_LOGRO = [
 (function registrarTitulos() { if (typeof TITULOS !== "undefined" && !TITULOS.some(t => t.id === "tit-madrugador")) TITULOS.push(...TITULOS_LOGRO); })();
 function requisitoTitulo(it) { return !it.requiere || (STATE.gamif.badges || []).includes(it.requiere); }
 function nombreRequisito(it) { const b = findBadge(it.requiere); return b ? b.nombre : it.requiere; }
-
-/* ============================================================
-   🐘 TU ELEFANTE
-   ============================================================ */
-const ETAPAS_ELEFANTE = [
-  { min: 0, nombre: "Cría", tam: 44 },
-  { min: 900, nombre: "Joven", tam: 58 },
-  { min: 4000, nombre: "Adulto", tam: 72 },
-  { min: 12000, nombre: "Sabio", tam: 84, corona: true },
-];
-const ACCESORIOS = [
-  { id: "acc-gorro", icon: "🧢", nombre: "Gorro", costo: 150, pos: "cabeza" },
-  { id: "acc-bufanda", icon: "🧣", nombre: "Bufanda", costo: 200, pos: "cuello" },
-  { id: "acc-lentes", icon: "🕶️", nombre: "Lentes", costo: 250, pos: "cara" },
-  { id: "acc-mochila", icon: "🎒", nombre: "Mochila", costo: 400, pos: "lomo" },
-];
-function etapaElefante(xp) {
-  let e = ETAPAS_ELEFANTE[0], sig = null;
-  ETAPAS_ELEFANTE.forEach((x, i) => { if (xp >= x.min) { e = x; sig = ETAPAS_ELEFANTE[i + 1] || null; } });
-  return { etapa: e, sig, idx: ETAPAS_ELEFANTE.indexOf(e) };
-}
-/* Con sueño: ayer y hoy sin cerrar (y ya tenía historia). Nunca retrocede de etapa. */
-function elefanteConSueno(s) {
-  s = s || STATE;
-  const hoy = todayISO(), ayer = agSumar(hoy, -1), c = iso => !!(s.ritual.dias[iso] && s.ritual.dias[iso].cerrado) || diaCubierto(s, iso);
-  return Object.values(s.ritual.dias || {}).some(r => r && r.cerrado) && !c(hoy) && !c(ayer) && !c(agSumar(hoy, -2));
-}
-function accesoriosPuestos() { const eq = STATE.gamif.equipped || {}; return (Array.isArray(eq.acc) ? eq.acc : []).filter(id => isOwned(id)); }
-function elefanteHtml(op) {
-  op = op || {};
-  const { etapa } = etapaElefante(STATE.gamif.xp || 0), sueno = elefanteConSueno();
-  const tam = op.tam || etapa.tam, acc = op.acc || accesoriosPuestos();
-  const pieza = id => { const a = ACCESORIOS.find(x => x.id === id); return a ? `<span class="ele-acc ele-acc--${a.pos}">${a.icon}</span>` : ""; };
-  return `<div class="ele ${sueno ? "is-sueno" : ""}" style="--t:${tam}px" aria-label="Tu elefante: ${etapa.nombre}${sueno ? ", con sueño" : ""}">
-    <span class="ele-cuerpo">🐘</span>${etapa.corona ? '<span class="ele-acc ele-acc--corona">👑</span>' : ""}${acc.map(pieza).join("")}${sueno ? '<span class="ele-zz">💤</span>' : ""}</div>`;
-}
-function renderElefanteCard() {
-  const xp = STATE.gamif.xp || 0, { etapa, sig } = etapaElefante(xp), sueno = elefanteConSueno();
-  const prog = sig ? Math.min(100, Math.round(((xp - etapa.min) / (sig.min - etapa.min)) * 100)) : 100;
-  return `<div class="card ele-card" data-tour="elefante"><div class="row" style="gap:16px;align-items:center">
-    ${elefanteHtml()}
-    <div style="flex:1;min-width:0"><div class="card__title" style="font-size:15px">🐘 Tu elefante · ${etapa.nombre}${etapa.corona ? " 👑" : ""}</div>
-      <div class="text-xs muted mt-8">${sueno ? "Tiene sueño: cierra tu día para despertarlo. Nunca pierde lo que creció." : sig ? `Crece con tu constancia: ${sig.nombre} a los ${sig.min.toLocaleString("es-CL")} XP.` : "Llegó a su última etapa. ¡Sabio como tú!"}</div>
-      ${sig ? `<div class="bar mt-8"><div class="bar__fill" style="width:${prog}%"></div></div>` : ""}
-      <button class="btn-ghost mt-8" data-action="elefante-open" style="padding:4px 10px">🎒 Accesorios</button></div></div></div>`;
-}
-function openElefante() {
-  const puestos = accesoriosPuestos();
-  openModal("🐘 Tu elefante", `
-    <div style="display:grid;place-items:center;padding:8px 0 4px">${elefanteHtml({ tam: 96 })}</div>
-    <p class="text-sm soft" style="text-align:center">Nace como cría y cambia de etapa con tu XP: se gana, no se compra. Lo que sí se compra son sus accesorios.</p>
-    <div class="grid grid-2 mt-16">${ACCESORIOS.map(a => {
-      const tiene = isOwned(a.id), on = puestos.includes(a.id);
-      return `<div class="card" style="padding:12px"><div class="row" style="gap:8px"><span style="font-size:24px">${a.icon}</span><b class="text-sm" style="flex:1">${a.nombre}</b></div>
-        ${tiene ? `<button class="btn ${on ? "btn--soft" : "btn--cian"} btn-block mt-8" data-action="acc-toggle" data-id="${a.id}">${on ? "✓ Puesto — quitar" : "Ponérselo"}</button>`
-          : `<button class="btn btn--primary btn-block mt-8" data-action="acc-buy" data-id="${a.id}">Comprar · ${a.costo} ⭐</button>`}</div>`;
-    }).join("")}</div>
-    <div class="text-xs muted mt-16" style="text-align:center">${ETAPAS_ELEFANTE.map(e => `${e.nombre}${e.min ? " · " + e.min.toLocaleString("es-CL") + " XP" : ""}`).join(" → ")}</div>`);
-}
-function comprarAccesorio(id) {
-  const a = ACCESORIOS.find(x => x.id === id); if (!a || isOwned(id)) return;
-  recalcGamif(STATE);
-  if (STATE.gamif.puntos < a.costo) return toast("Te faltan " + (a.costo - STATE.gamif.puntos) + " ⭐", true);
-  if (!confirm(`¿Comprar ${a.nombre} para tu elefante por ${a.costo} ⭐?`)) return;
-  const res = ledgerComprar(STATE, id, a.costo);
-  if (!res.ok && !res.yaTenia) return toast("Te faltan " + res.falta + " ⭐", true);
-  const eq = STATE.gamif.equipped; eq.acc = Array.isArray(eq.acc) ? eq.acc : []; if (!eq.acc.includes(id)) eq.acc.push(id);
-  saveState(); updateTopbar(); rerender(); openElefante();
-  toast(`${a.icon} ${a.nombre} para tu elefante`);
-}
-function toggleAccesorio(id) {
-  const eq = STATE.gamif.equipped; eq.acc = Array.isArray(eq.acc) ? eq.acc : [];
-  eq.acc = eq.acc.includes(id) ? eq.acc.filter(x => x !== id) : eq.acc.concat(id);
-  saveState(); rerender(); openElefante();
-}
-function renderElefanteTienda() {
-  return `<div class="section-title">🐘 Tu elefante <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· crece con tu XP; sus accesorios se compran</span></div>
-  <div class="grid grid-2">${renderElefanteCard()}
-    <div class="card"><div class="card__title" style="font-size:14px">Accesorios</div>
-      <div class="row-wrap mt-8" style="gap:6px">${ACCESORIOS.map(a => `<span class="chip ${isOwned(a.id) ? "chip--cian" : ""}">${a.icon} ${a.nombre} · ${isOwned(a.id) ? "✓" : a.costo + " ⭐"}</span>`).join("")}</div>
-      <button class="btn btn--soft btn-block mt-16" data-action="elefante-open">Ver y comprar accesorios</button></div></div>`;
-}

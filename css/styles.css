@@ -1040,10 +1040,10 @@ html[data-check="sello"] .tarea-row.is-just .strike::after { animation: chkSello
 .fx-estrella { position: fixed; top: -40px; z-index: 10000; pointer-events: none; animation: fxEstrella 2.4s ease-in forwards; }
 @keyframes fxEstrella { to { transform: translateY(112vh) rotate(220deg); opacity: .4; } }
 .fx-elefante { position: fixed; bottom: 12vh; left: -160px; z-index: 10000; pointer-events: none; display: flex; align-items: center; gap: 8px; animation: fxElefante 3.4s linear forwards; }
-.fx-elefante span { font-size: 64px; display: inline-block; transform: scaleX(-1); animation: fxPaso .4s ease-in-out infinite alternate; }
+.fx-elefante .fx-ele { animation: fxPaso .4s ease-in-out infinite alternate; }
 .fx-elefante b { background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 12px; font-size: 14px; box-shadow: var(--shadow); }
 @keyframes fxElefante { to { left: 110vw; } }
-@keyframes fxPaso { from { transform: scaleX(-1) translateY(0); } to { transform: scaleX(-1) translateY(-8px); } }
+@keyframes fxPaso { from { transform: translateY(0); } to { transform: translateY(-8px); } }
 @media (prefers-reduced-motion: reduce) { .marco--llama::before, .marco--aurora::before { animation: none; } }
 
 /* ============================================================
@@ -1053,16 +1053,29 @@ html[data-check="sello"] .tarea-row.is-just .strike::after { animation: chkSello
 .badge-niveles { display: flex; gap: 6px; justify-content: center; }
 .badge-niveles span { font-size: 16px; filter: grayscale(1); opacity: .35; }
 .badge-niveles span.on { filter: none; opacity: 1; }
-.ele { position: relative; width: calc(var(--t) * 1.25); height: calc(var(--t) * 1.15); display: grid; place-items: end center; flex-shrink: 0; }
-.ele-cuerpo { font-size: var(--t); line-height: 1; transform: scaleX(-1); display: inline-block; animation: eleRespira 3.6s ease-in-out infinite; }
-.ele.is-sueno .ele-cuerpo { filter: saturate(.4) brightness(.85); animation-duration: 6s; }
-.ele-acc { position: absolute; line-height: 1; font-size: calc(var(--t) * .38); }
-.ele-acc--corona { top: -4%; right: 18%; font-size: calc(var(--t) * .36); transform: rotate(12deg); }
-.ele-acc--cabeza { top: 2%; right: 14%; transform: rotate(14deg); }
-.ele-acc--cara { top: 30%; right: 2%; font-size: calc(var(--t) * .3); }
-.ele-acc--cuello { bottom: 18%; right: 20%; font-size: calc(var(--t) * .34); }
-.ele-acc--lomo { top: 28%; left: 6%; font-size: calc(var(--t) * .34); }
-.ele-zz { position: absolute; top: -6%; left: 4%; font-size: calc(var(--t) * .3); animation: eleZz 2.4s ease-in-out infinite; }
-@keyframes eleRespira { 0%, 100% { transform: scaleX(-1) scaleY(1); } 50% { transform: scaleX(-1) scaleY(1.03); } }
-@keyframes eleZz { 0% { transform: translate(0, 4px); opacity: .2; } 50% { opacity: 1; } 100% { transform: translate(-6px, -8px); opacity: .1; } }
-@media (prefers-reduced-motion: reduce) { .ele-cuerpo, .ele-zz { animation: none; } }
+/* 🐘 Elefante vectorial (elefante.js) */
+.ele-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.ele-mini { width: 108px; flex-shrink: 0; border-radius: 14px; background: radial-gradient(120% 90% at 50% 20%, var(--surface-2), var(--surface)); padding: 4px; }
+.ele-mini.papel, .ele-probador.papel, .ele-lienzo.papel { background: repeating-linear-gradient(0deg, transparent 0 15px, rgba(47,75,124,.10) 15px 16px), #FBF7EE; }
+.ele-probador { max-width: 300px; margin: 0 auto; border-radius: 16px; background: radial-gradient(120% 90% at 50% 20%, var(--surface-2), var(--surface)); padding: 8px; }
+.ele-lienzo { border-radius: 12px; background: radial-gradient(120% 90% at 50% 20%, var(--surface-2), var(--surface)); padding: 4px; }
+.ele-slot { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.ele-slot__t { text-transform: uppercase; letter-spacing: .08em; }
+.ele-slot .chip { cursor: pointer; font: inherit; font-size: 13px; }
+.ele-slot .chip.is-no { border-style: dashed; }
+.ele-prueba { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; background: var(--coral-soft); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; font-size: 14px; }
+.ele-tipos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 520px) { .ele-tipos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ele-tipo { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 12px; padding: 8px; }
+.ele-tipo.is-actual { border-color: var(--cian); box-shadow: 0 0 0 2px var(--cian-soft); }
+.ele-tipo.is-lock .ele-lienzo { filter: grayscale(.85) brightness(.9); opacity: .75; }
+.ele-elige { display: flex; flex-direction: column; gap: 6px; }
+.fx-elefante .fx-ele { width: 96px; display: inline-block; }
+@media (prefers-reduced-motion: no-preference) {
+  .ele-anim .ele-breathe { animation: eleResp 4s ease-in-out infinite; transform-origin: 130px 222px; }
+  .ele-anim .ele-ear { animation: eleOreja 5s ease-in-out infinite; transform-origin: 158px 96px; }
+  .ele-anim .ele-zz { animation: eleZz 2.6s ease-in-out infinite; }
+}
+@keyframes eleResp { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.015); } }
+@keyframes eleOreja { 0%, 86%, 100% { transform: rotate(0); } 90% { transform: rotate(-7deg); } 94% { transform: rotate(3deg); } }
+@keyframes eleZz { 0% { opacity: .1; transform: translate(0, 6px); } 50% { opacity: 1; } 100% { opacity: 0; transform: translate(-8px, -10px); } }

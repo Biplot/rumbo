@@ -114,7 +114,7 @@ function defaultState() {
       perks: [],   // desbloqueos sin cobro (cuenta dueña); no generan movimientos
       ledger: [],  // libro de movimientos: [{ id, ts, delta, xp, motivo, anulado? }]
       usos: [],    // consumibles usados: [{ id, tipo, fecha, hid?, ts, anulado? }] (ver consumibles.js)
-      equipped: { titulo: null, insignia: null, acento: null, confeti: false },
+      equipped: { titulo: null, insignia: null, acento: null, confeti: false, ele: { tipo: null, ropa: {}, ts: 0 } },
     },
 
     // ritual matutino: días + 6 pilares del alto rendimiento
@@ -243,6 +243,7 @@ function migrate(s) {
     if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "navy";
   }
   if (s.gamif && !Array.isArray(s.gamif.usos)) s.gamif.usos = [];   // consumibles de la Tienda
+  migrarElefante(s);       // v62: accesorios de emoji → ropa del elefante vectorial
   retirarConsumibles(s);   // v61: protector, día libre, rescate y pase ya no se venden (se devuelve lo no usado)
   if (!s.enfoque || typeof s.enfoque !== "object" || Array.isArray(s.enfoque)) s.enfoque = {};
   if (!Array.isArray(s.enfoque.sesiones)) s.enfoque.sesiones = [];   // modo enfoque
@@ -351,6 +352,20 @@ function ledgerMerge(a, b) {
     if ((m.ts || 0) > (o.ts || 0)) map.set(m.id, m);
   });
   return Array.from(map.values());
+}
+
+/* Elefante vectorial (v62): gamif.equipped.ele = { tipo, ropa, ts }. Los accesorios de antes
+   (equipped.acc = ["acc-gorro", …]) pasan a su espacio. Idempotente: solo si aún no existe ele. */
+const ELE_ACC_A_ROPA = { "acc-gorro": ["cabeza", "gorro"], "acc-lentes": ["ojos", "sol"], "acc-bufanda": ["cuello", "bufanda"], "acc-mochila": ["espalda", "mochila"] };
+function migrarElefante(s) {
+  const g = s && s.gamif; if (!g) return s;
+  g.equipped = g.equipped || {};
+  const eq = g.equipped;
+  if (eq.ele && typeof eq.ele === "object") { if (!eq.ele.ropa || typeof eq.ele.ropa !== "object") eq.ele.ropa = {}; return s; }
+  const ropa = {};
+  (Array.isArray(eq.acc) ? eq.acc : []).forEach(id => { const m = ELE_ACC_A_ROPA[id]; if (m) ropa[m[0]] = m[1]; });
+  eq.ele = { tipo: null, ropa, ts: 0 };
+  return s;
 }
 
 /* Consumibles retirados de la Tienda (v61): proteger rachas y hábitos quitaba el foco.

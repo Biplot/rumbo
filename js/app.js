@@ -112,10 +112,11 @@ async function enterApp(user) {
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
   if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
   else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
+  else if (debeElegirElefante()) setTimeout(openElegirElefante, 600);
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 11;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 12;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -137,9 +138,12 @@ function onbSaltar() {
   else onbTerminar();
 }
 function onbTerminar() {
+  const eraNovedades = NOVEDADES_ABIERTAS;
+  NOVEDADES_ABIERTAS = false;
   ONB_ACTIVE = false;
   if ((STATE.settings.introVersion || 0) < INTRO_VERSION) { STATE.settings.introVersion = INTRO_VERSION; saveState(); }
   closeModal();
+  if (eraNovedades && debeElegirElefante()) setTimeout(openElegirElefante, 350);   // 🐘 primera vez: Clásico o Asiático
 }
 function renderOnboardingStep() {
   const conForm = ONB_MODE === "nuevo";
@@ -231,8 +235,15 @@ const NOVEDADES = {
     ["🎨", "6 temas nuevos", "Atardecer, Océano, Cuaderno, Terminal, Sakura y Alto contraste (gratis, para leer mejor). Además: celebraciones, checks, sonidos y marcos para tu avatar."],
     ["🐘", "Tu elefante e insignias con niveles", "Un elefante que crece con tu constancia, 16 insignias nuevas (algunas secretas) y series de bronce, plata y oro."],
   ],
+  12: [
+    ["🐘", "Elige tu elefante", "Tu elefante ahora es un dibujo propio que cambia en cada etapa, de cría a sabio. Elige entre el Clásico y el Asiático."],
+    ["🔓", "Cuatro elefantes para ganar", "Mamut, Peluche, Geométrico y Tinta se desbloquean con tu constancia. Mira cuánto te falta en Recompensas → Tu elefante."],
+    ["👕", "Ropa para tu elefante", "15 prendas en 6 espacios, con un probador para verlas puestas antes de comprarlas. Los accesorios que ya tenías siguen siendo tuyos."],
+  ],
 };
+let NOVEDADES_ABIERTAS = false;
 function openNovedades() {
+  NOVEDADES_ABIERTAS = true;
   const desde = STATE.settings.introVersion || 1;
   const versiones = Object.keys(NOVEDADES).map(Number).filter(v => v > desde && v <= INTRO_VERSION).sort((a, b) => b - a);
   const lista = items => `<div class="novedades">${items.map(([ic, t, d]) => `<div class="novedad"><span class="novedad__ico">${ic}</span>
@@ -812,9 +823,12 @@ function onClick(e) {
     case "plantillas-open": openPlantillas(); break;
     case "plantilla-aplicar": aplicarPlantillaUI(d.id); break;
     case "informe-anio": openInformeAnio(+d.y); break;
-    case "elefante-open": openElefante(); break;
-    case "acc-buy": comprarAccesorio(d.id); break;
-    case "acc-toggle": toggleAccesorio(d.id); break;
+    case "elefante-open": openElefante(d.v); break;
+    case "ele-elegir": openElegirElefante(); break;
+    case "ele-tipo": elegirTipoElefante(d.id); break;
+    case "ele-probar": probarPrenda(d.id); break;
+    case "ele-comprar": comprarPrenda(d.id); break;
+    case "ele-quitar": quitarEspacio(d.slot); break;
 
     /* Tienda · útiles (consumibles) */
     case "util-buy": comprarConsumibleUI(d.id); break;

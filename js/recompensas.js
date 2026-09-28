@@ -74,6 +74,7 @@ function checkBadges() {
       count++; last = b.nombre;
     }
   });
+  if (typeof avisarElefantes === "function") avisarElefantes();   // 🐘 tipos de elefante que se ganan
   if (count > 0) {
     saveState(); refreshPts();
     if (gained > 0) toast(count === 1 ? `🏅 ${last} · +${gained} ⭐` : `🏅 ${count} insignias · +${gained} ⭐`);
@@ -235,7 +236,7 @@ function renderRecompensas() {
   <div class="card mt-24">
     <div class="flex-between" style="flex-wrap:wrap;gap:10px">
       <div><div class="card__title">🛒 ¿Quieres gastar tus ⭐?</div>
-        <div class="text-sm muted mt-8">Útiles para tu racha, funciones, temas, cosméticos y accesorios para tu elefante.</div></div>
+        <div class="text-sm muted mt-8">Funciones, temas, cosméticos y ropa para tu elefante.</div></div>
       <a class="btn btn--cian" href="#tienda">Ir a la Tienda →</a>
     </div>
   </div>`;

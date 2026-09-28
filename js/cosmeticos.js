@@ -96,7 +96,7 @@ function lluviaEstrellas() {
 }
 function elefanteCruza() {
   const e = document.createElement("div");
-  e.className = "fx-elefante"; e.innerHTML = `<span>🐘</span><b>¡Tarea domada!</b>`;
+  e.className = "fx-elefante"; e.innerHTML = `<span class="fx-ele">${typeof elefanteSVG === "function" ? elefanteSVG({ animo: "feliz", anim: false }) : "🐘"}</span><b>¡Tarea domada!</b>`;
   document.body.appendChild(e); setTimeout(() => e.remove(), 3600);
 }
 

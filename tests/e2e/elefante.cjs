@@ -51,6 +51,31 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => STATE.gamif.equipped.ele.tipo === "peluche" && STATE.gamif.equipped.ele.ropa.cabeza === "jockey"), "cambiar de tipo es gratis y conserva la ropa");
   await shot(p, "elefante-recompensas");
 
+  // 5) Animaciones: tocarlo, cerrar el día, crecer y desbloquear
+  await p.evaluate(() => { localStorage.removeItem("rumbo-sin-escenas"); closeModal(); });
+  await p.goto(URL + "#inicio"); await p.waitForTimeout(400);
+  const reac = [];
+  for (let k = 0; k < 3; k++) { await p.click(".ele-card .ele-toca"); await p.waitForTimeout(120); reac.push(await p.evaluate(() => document.querySelector(".ele-card .ele-svg").getAttribute("class"))); await p.waitForTimeout(1100); }
+  ok(reac[0].includes("re-salta") && reac[1].includes("re-saluda") && reac[2].includes("re-corazones"), "al tocarlo salta, saluda y le salen corazones: " + reac.join(" | "));
+  await p.evaluate(() => { STATE.ritual.dias["2026-09-28"] = { hecho: true, mision: "x" }; saveState(); openCierreModal("2026-09-28"); });
+  await p.waitForTimeout(300); await p.click('[data-action="cierre-save"]'); await p.waitForTimeout(400);
+  ok(await p.locator("#eleEscena.is-cierre").isVisible(), "al cerrar el día aparece tu elefante feliz");
+  await shot(p, "elefante-cierre");
+  await p.waitForTimeout(3300);
+  ok(await p.locator("#eleEscena").count() === 0, "la escena del cierre se va sola");
+  await p.evaluate(() => { ledgerRegistrar(STATE, "xp-test", 0, 4000, "test"); saveState(); rerender(); });
+  await p.waitForTimeout(800);
+  ok((await p.locator("#eleEscena.is-crece").innerText().catch(() => "")).includes("Adulto"), "al subir de etapa: ¡Tu elefante creció! Ahora es Adulto");
+  await shot(p, "elefante-crece");
+  await p.click('#eleEscena [data-cerrar]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => STATE.gamif.equipped.ele.etapaVista) === 2 && await p.locator("#eleEscena").count() === 0, "la etapa queda vista y no se repite");
+  await p.evaluate(() => { for (let i = 1; i <= 30; i++) STATE.vida.diario.push({ id: "gr" + i, fecha: `2026-07-${String(i).padStart(2, "0")}`, gratitud: "Gracias" }); saveState(); rerender(); });
+  await p.waitForTimeout(800);
+  ok(await p.locator('#eleEscena.is-nuevo [data-action="ele-tipo"][data-id="tinta"]').isVisible(), "al desbloquear Tinta aparece su presentación con Elegirlo");
+  await shot(p, "elefante-nuevo");
+  await p.click('#eleEscena [data-action="ele-tipo"]'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => STATE.gamif.equipped.ele.tipo) === "tinta", "Elegirlo lo deja como tu elefante");
+
   // 5) Cuenta dueña: todo desbloqueado para revisar (tipos, ropa ganada, funciones y cosméticos)
   await p.evaluate(() => { closeModal(); OWNER_HASHES.push(_hash(CURRENT_USER.email.trim().toLowerCase())); grantOwnerPerks(); saveState(); rerender(); });
   const d = await p.evaluate(() => ({ tipos: Object.keys(TIPOS_ELEFANTE).every(t => tipoDesbloqueado(t)), corona: tienePrenda(prendaElefante("corona")),

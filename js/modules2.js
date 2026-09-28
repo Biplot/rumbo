@@ -319,7 +319,7 @@ function saveCierre() {
   if (!yaCerrado) registrarMovimiento("ritual-cierre:" + iso, 40, 40, "Ritual de cierre");
   saveState(); closeModal(); updateTopbar(); rerender();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
-  if (!yaCerrado) sonar("cierre");
+  if (!yaCerrado) { sonar("cierre"); if (typeof celebrarCierreElefante === "function") celebrarCierreElefante(); }
   const resumenTr = decid ? textoTriage(decid) : "";
   toast(resumenTr ? `Día cerrado 🌙 · ${resumenTr}` : "Día cerrado 🌙 ¡Descansa!");
 }

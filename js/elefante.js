@@ -14,7 +14,8 @@
 const ETAPAS_ELEFANTE = [ { n:"Cría", s:.62, cab:1.22, i:0 }, { n:"Joven", s:.8, cab:1.1, i:1 }, { n:"Adulto", s:1, cab:1, i:2 }, { n:"Sabio", s:1.04, cab:1, i:3, sabio:true } ];
 
 /* ---------- Piezas comunes ---------- */
-const eleOjo = (a, c, i) => { const r = i === 0 ? 8.6 : i === 1 ? 7.6 : 7;
+const eleOjo = (a, c, i) => `<g class="ele-ojo">${eleOjoTrazo(a, c, i)}</g>`;
+const eleOjoTrazo = (a, c, i) => { const r = i === 0 ? 8.6 : i === 1 ? 7.6 : 7;
   return a === "feliz" ? `<path d="M191 90 Q199 81 207 90" stroke="${c}" stroke-width="3.6" fill="none" stroke-linecap="round"/>`
   : a === "sueno" ? `<path d="M191 89 Q199 95 207 89" stroke="${c}" stroke-width="3.6" fill="none" stroke-linecap="round"/>`
   : `<circle cx="199" cy="88" r="${r}" fill="${c}"/><circle cx="${199 + r * .36}" cy="${88 - r * .36}" r="${r * .34}" fill="#fff"/>`; };
@@ -113,7 +114,7 @@ const TIPOS_ELEFANTE = {
       oreja:`<path d="M152 58 C116 56 104 96 114 126 C121 150 152 152 164 132 Z" fill="${k.s}"/><path d="M148 70 C126 72 120 100 126 120 C131 136 148 138 156 126 Z" fill="${k.o}"/><path d="M146 76 C130 80 126 102 131 118" stroke="${k.hilo}" stroke-width="1.5" stroke-dasharray="3 3" fill="none"/>`,
       cabeza:`<circle cx="185" cy="95" r="44" fill="${k.b}"/><path d="M152 80 C158 62 176 55 190 55" stroke="${k.hilo}" stroke-width="1.6" stroke-dasharray="4 4" fill="none" opacity=".7"/>${eleTrompa(k.b,21)}<path d="M216 128 C228 150 226 170 218 180" stroke="${k.hilo}" stroke-width="1.5" stroke-dasharray="3 4" fill="none" opacity=".7"/>${i===3?remiendo:""}`,
       colmillo: i>=2 ? eleColmillo(i, "#FFFFFF", `stroke="${k.hilo}" stroke-width="1" stroke-dasharray="2 2"`) : "",
-      cara:`<ellipse cx="211" cy="106" rx="8" ry="5" fill="#FF8FA3" opacity=".6"/>${ojo}${i===0?`<path d="M182 52 q0 -8 5 -10" stroke="${k.hilo}" stroke-width="2" fill="none" stroke-linecap="round"/>`:""}`,
+      cara:`<ellipse cx="211" cy="106" rx="8" ry="5" fill="#FF8FA3" opacity=".6"/><g class="ele-ojo">${ojo}</g>${i===0?`<path d="M182 52 q0 -8 5 -10" stroke="${k.hilo}" stroke-width="2" fill="none" stroke-linecap="round"/>`:""}`,
     }; }
   },
   geometrico: {
@@ -136,7 +137,7 @@ const TIPOS_ELEFANTE = {
       oreja:`<path d="M154 56 L112 74 L114 128 L150 150 L166 130 Z" fill="${k.s}"/><path d="M148 70 L122 84 L126 122 L150 136 Z" fill="${k.o}" opacity=".85"/>${i===3?`<path d="M154 56 L112 74 L114 128 L150 150" stroke="${k.oro}" stroke-width="1.6" fill="none"/>`:""}`,
       cabeza:`<path d="M168 52 L206 54 L228 80 L226 118 L204 138 L166 136 L144 112 L146 72 Z" fill="${k.b}"/>${i>=1?`<path d="M168 52 L206 54 L186 88 Z" fill="${k.l}"/>`:""}${i>=2?`<path d="M146 72 L168 52 L186 88 Z" fill="${k.l}" opacity=".7"/><path d="M144 112 L186 88 L166 136 Z" fill="${k.s}" opacity=".5"/>`:""}${i===3?`<path d="M168 52 L186 88 L206 54 M146 72 L186 88 L166 136 M186 88 L226 118" stroke="${k.oro}" stroke-width="1.6" fill="none"/>`:""}<path d="M212 110 L232 132 L234 164 L224 184 L238 190" stroke="${k.b}" stroke-width="19" fill="none" stroke-linejoin="miter" stroke-linecap="square"/>${i>=2?`<path d="M226 140 L236 138 M228 158 L238 158" stroke="${k.d}" stroke-width="2"/>`:""}`,
       colmillo: i===0 ? "" : i===1 ? `<path d="M205 122 L216 130 L207 127 Z" fill="#FFFFFF"/>` : i===2 ? `<path d="M205 122 L222 134 L208 128 Z" fill="#FFFFFF"/>` : `<path d="M204 122 L232 144 L208 130 Z" fill="#FFFFFF" stroke="${k.oro}" stroke-width="1.2"/>`,
-      cara:`<path d="M206 102 L216 104 L210 110 Z" fill="${k.o}" opacity=".8"/>${ojo}`,
+      cara:`<path d="M206 102 L216 104 L210 110 Z" fill="${k.o}" opacity=".8"/><g class="ele-ojo">${ojo}</g>`,
     }; }
   },
   tinta: {
@@ -283,10 +284,10 @@ function elefanteSVG(op) {
   const anim = op.anim === false ? "" : " ele-anim";
   return `<svg class="ele-svg${anim}" viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elefante ${T.n}, etapa ${e.n}${animo === "sueno" ? ", con sueño" : animo === "feliz" ? ", feliz" : ""}">
     <ellipse cx="128" cy="224" rx="${88 * s}" ry="${9 * s}" fill="#0E2A47" opacity="${T.papel ? .08 : .13}"/>
-    <g transform="translate(128 222) scale(${s}) translate(-128 -222)"><g class="ele-breathe"${sat}>
-      ${esp && esp.detras ? esp.svg : ""}${d.cola}${d.fondo}${d.cuerpo}${esp && !esp.detras ? esp.svg : ""}${d.frente}${g("pies")}
-      <g transform="${cab}"><g class="ele-ear">${d.oreja}</g>${d.cabeza}${d.colmillo}${d.cara}${g("ojos")}${g("cuello")}${g("cabeza")}${g("trompa")}${zz}</g>
-    </g></g></svg>`;
+    <g transform="translate(128 222) scale(${s}) translate(-128 -222)"><g class="ele-salto"><g class="ele-breathe"${sat}>
+      ${esp && esp.detras ? esp.svg : ""}<g class="ele-cola">${d.cola}</g>${d.fondo}${d.cuerpo}${esp && !esp.detras ? esp.svg : ""}${d.frente}${g("pies")}
+      <g transform="${cab}"><g class="ele-cab"><g class="ele-ear">${d.oreja}</g>${d.cabeza}${d.colmillo}${d.cara}${g("ojos")}${g("cuello")}${g("cabeza")}${g("trompa")}${zz}</g></g>
+    </g></g></g></svg>`;
 }
 /* Imagen para dibujar en canvas (informe del mes) */
 function elefanteImagen(op) {
@@ -303,7 +304,8 @@ function elefanteImagen(op) {
 function elegirTipoElefante(id) {
   if (!tipoDesbloqueado(id)) return toast("Ese elefante todavía no está desbloqueado", true);
   const primera = !eleEstado().tipo;
-  eleTocar().tipo = id;
+  const e = eleTocar(); e.tipo = id;
+  if (e.etapaVista == null) e.etapaVista = etapaElefante(STATE.gamif.xp || 0).idx;
   saveState(); closeModal(); rerender();
   toast(primera ? `🐘 ¡Bienvenido, tu elefante ${TIPOS_ELEFANTE[id].n}!` : `🐘 Ahora tu elefante es ${TIPOS_ELEFANTE[id].n}`);
 }
@@ -337,12 +339,77 @@ function cancelarPrueba() { ELE_PRUEBA = null; openElefante("ropa"); }
 /* Al abrir la app o en cada render: nuevos tipos desbloqueados */
 function avisarElefantes() {
   if (!STATE || !STATE.gamif) return;
+  revisarEtapaElefante();
   const nuevos = revisarElefantes(STATE);
   if (!nuevos.length) return;
   saveState();
-  const T = TIPOS_ELEFANTE[nuevos[0]];
-  toast(`🐘 Desbloqueaste el elefante ${T.n}. Elígelo en Recompensas → Tu elefante`);
+  setTimeout(() => escenaDesbloqueo(nuevos[0]), 400);
 }
+/* ============================================================
+   🎬 Animaciones y escenas
+   · En reposo (CSS): respira, parpadea, mueve la oreja y la cola.
+   · Al tocarlo: salta, saluda con la cabeza o le salen corazones.
+   · Escenas: cerrar el día, subir de etapa y desbloquear un tipo.
+   Todo se apaga con "reducir movimiento".
+   ============================================================ */
+function sinMovimiento() { return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+const REACCIONES = ["salta", "saluda", "corazones"];
+let ELE_REACCION = 0;
+function tocarElefante(el) {
+  const caja = el && el.closest ? el.closest(".ele-toca") : null; if (!caja) return;
+  const svg = caja.querySelector(".ele-svg"); if (!svg || sinMovimiento()) return;
+  const r = REACCIONES[ELE_REACCION++ % REACCIONES.length];
+  svg.classList.remove("re-salta", "re-saluda", "re-corazones"); void svg.getBoundingClientRect();
+  svg.classList.add("re-" + r);
+  if (r === "corazones") for (let k = 0; k < 4; k++) {
+    const h = document.createElement("span"); h.className = "ele-corazon"; h.textContent = k % 2 ? "💛" : "❤️";
+    h.style.left = (42 + Math.random() * 30) + "%"; h.style.animationDelay = (k * .12) + "s";
+    caja.appendChild(h); setTimeout(() => h.remove(), 1600);
+  }
+  setTimeout(() => svg.classList.remove("re-" + r), 1100);
+}
+/* Escena corta sobre la pantalla (no bloquea: se cierra sola o con un toque) */
+function escenaElefante({ svg, titulo, texto, botones, dura, clase }) {
+  try { if (localStorage.getItem("rumbo-sin-escenas")) return null; } catch (e) {}   // lo usan las pruebas automáticas
+  const prev = document.getElementById("eleEscena"); if (prev) prev.remove();
+  const el = document.createElement("div");
+  el.id = "eleEscena"; el.className = "ele-escena " + (clase || ""); el.setAttribute("role", "status");
+  el.innerHTML = `<div class="ele-escena__caja"><div class="ele-escena__ele">${svg}</div>
+    <div class="ele-escena__txt"><b>${titulo}</b>${texto ? `<span>${texto}</span>` : ""}</div>
+    ${botones ? `<div class="ele-escena__btns">${botones}</div>` : ""}</div>`;
+  el.addEventListener("click", ev => { if (!ev.target.closest("button") || ev.target.closest("[data-cerrar]")) el.remove(); });
+  document.body.appendChild(el);
+  if (dura) setTimeout(() => el.remove(), dura);
+  return el;
+}
+/* Al cerrar el día: el elefante se alegra */
+function celebrarCierreElefante() {
+  if (!STATE || !eleEstado().tipo || sinMovimiento()) return;
+  escenaElefante({ svg: elefanteSVG({ animo: "feliz" }).replace('class="ele-svg ele-anim"', 'class="ele-svg ele-anim re-festeja"'),
+    titulo: "¡Día cerrado!", texto: "Tu elefante está feliz. Mañana volvemos a empezar 🌙", dura: 3200, clase: "is-cierre" });
+}
+/* Subir de etapa: se guarda la última etapa vista; al pasar a una mayor, se celebra */
+function revisarEtapaElefante() {
+  if (!STATE || !STATE.gamif) return;
+  const e = eleEstado(); if (!e.tipo) return;
+  const idx = etapaElefante(STATE.gamif.xp || 0).idx;
+  if (e.etapaVista == null) { e.etapaVista = idx; saveState(); return; }   // primera vez: sin escena
+  if (idx <= e.etapaVista) return;
+  const antes = e.etapaVista;
+  eleTocar().etapaVista = idx; saveState();
+  const T = TIPOS_ELEFANTE[tipoElefante()], E = ETAPAS_ELEFANTE[idx];
+  setTimeout(() => escenaElefante({
+    svg: `<div class="ele-crece"><div class="ele-crece__antes">${elefanteSVG({ etapa: antes, animo: "normal", anim: false })}</div><div class="ele-crece__flecha">→</div><div class="ele-crece__ahora">${elefanteSVG({ etapa: idx, animo: "feliz" })}</div></div>`,
+    titulo: `¡Tu elefante creció! Ahora es ${E.n}${E.corona ? " 👑" : ""}`, texto: T.rasgos[idx] + ".",
+    botones: `<button class="btn btn--primary" data-cerrar="1">¡Genial!</button>`, clase: "is-crece" }), 500);
+}
+function escenaDesbloqueo(id) {
+  const T = TIPOS_ELEFANTE[id]; if (!T) return;
+  const etapa = etapaElefante(STATE.gamif.xp || 0).idx;
+  escenaElefante({ svg: elefanteSVG({ tipo: id, etapa, animo: "feliz" }), titulo: `🔓 Desbloqueaste el elefante ${T.n}`, texto: T.d,
+    botones: `<button class="btn-ghost" data-cerrar="1">Después</button><button class="btn btn--primary" data-action="ele-tipo" data-id="${id}" data-cerrar="1">Elegirlo</button>`, clase: "is-nuevo" });
+}
+
 /* Primera vez en esta versión: elegir entre Clásico y Asiático */
 function debeElegirElefante() { return !!(STATE && STATE.settings && STATE.settings.onboarded && !eleEstado().tipo); }
 function openElegirElefante() {
@@ -367,7 +434,7 @@ function renderElefanteCard() {
   const prog = sig ? Math.min(100, Math.round(((xp - etapa.min) / (sig.min - etapa.min)) * 100)) : 100;
   const sinElegir = !eleEstado().tipo, T = TIPOS_ELEFANTE[tipoElefante()];
   return `<div class="card ele-card" data-tour="elefante"><div class="row" style="gap:16px;align-items:center">
-    <div class="ele-mini ${T.papel ? "papel" : ""}">${elefanteSVG()}</div>
+    <div class="ele-mini ele-toca ${T.papel ? "papel" : ""}" data-action="ele-toca" title="Tócalo">${elefanteSVG()}</div>
     <div style="flex:1;min-width:0"><div class="card__title" style="font-size:15px">🐘 Tu elefante · ${sinElegir ? "¡elígelo!" : nombreElefante()}</div>
       <div class="text-xs muted mt-8">${sinElegir ? "Elige entre el Clásico y el Asiático. Crece contigo y cambia al pasar de cría a sabio."
         : animo === "sueno" ? "Tiene sueño: cierra tu día para despertarlo. Nunca pierde lo que creció."
@@ -388,7 +455,7 @@ function openElefante(tab) {
   if (prueba) ropa[prueba.slot] = prueba.id;
   const T = TIPOS_ELEFANTE[tipoElefante()], animo = animoElefante();
   const tabs = `<div class="seg vest-tabs"><button class="${tab === "ropa" ? "is-active" : ""}" data-action="elefante-open" data-v="ropa">👕 Ropa</button><button class="${tab === "tipo" ? "is-active" : ""}" data-action="elefante-open" data-v="tipo">🐘 Tipos</button></div>`;
-  const escenario = `<div class="vest-escena ${T.papel ? "papel" : ""}">${elefanteSVG({ ropa })}</div>
+  const escenario = `<div class="vest-escena ele-toca ${T.papel ? "papel" : ""}" data-action="ele-toca" title="Tócalo">${elefanteSVG({ ropa })}</div>
     <div class="vest-nombre"><b>${nombreElefante()}</b><span class="chip">${animo === "feliz" ? "😊 Feliz" : animo === "sueno" ? "😴 Con sueño" : "🙂 Normal"}</span></div>`;
   let panel;
   if (tab === "ropa") {

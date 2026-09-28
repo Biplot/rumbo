@@ -831,6 +831,7 @@ function onClick(e) {
     case "ele-quitar": quitarEspacio(d.slot); break;
     case "ele-espacio": espacioElefante(d.slot); break;
     case "ele-cancelar": cancelarPrueba(); break;
+    case "ele-toca": tocarElefante(el); break;
 
     /* Tienda · útiles (consumibles) */
     case "util-buy": comprarConsumibleUI(d.id); break;

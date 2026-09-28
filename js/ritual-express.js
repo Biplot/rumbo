@@ -159,6 +159,7 @@ function saveExpressCierre() {
   const pagado = nuevo && registrarMovimiento("ritual-cierre:" + iso, monedas, monedas, "Cierre express", true);
   saveState(); closeModal(); updateTopbar(); rerender();
   if (pagado && typeof sonar === "function") sonar("cierre");
+  if (nuevo && typeof celebrarCierreElefante === "function") celebrarCierreElefante();
   const t = textoTriage(n);
   toast(`⚡ Día cerrado${pagado ? ` · +${monedas} ⭐` : ""}${t ? " · " + t : ""}`);
 }

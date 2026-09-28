@@ -1,14 +1,7 @@
 /* Tests de las reglas del notificador (notifier/reglas.mjs): semana y trimestre */
 export default async function ({ test, assert }) {
   console.log("\nAvisos del servidor");
-  const { avisoSemana, avisoTrimestre, esDiaLibre } = await import("../notifier/reglas.mjs");
-
-  test("día libre: sin avisos de mañana y noche ese día (y un día libre cancelado sí avisa)", () => {
-    assert.equal(esDiaLibre([{ id: "libre:2026-09-28", tipo: "libre" }], "2026-09-28"), true);
-    assert.equal(esDiaLibre([{ id: "libre:2026-09-28", tipo: "libre", anulado: true }], "2026-09-28"), false);
-    assert.equal(esDiaLibre([{ id: "libre:2026-09-27" }], "2026-09-28"), false);
-    assert.equal(esDiaLibre(undefined, "2026-09-28"), false);
-  });
+  const { avisoSemana, avisoTrimestre } = await import("../notifier/reglas.mjs");
 
   test("trimestre: cierre el penúltimo día en la noche, solo si falta cerrarlo", () => {
     assert.equal(avisoTrimestre("tri-cierre", "2026-12-30", {}).clave, "2026-Q4");

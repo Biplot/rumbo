@@ -9,7 +9,7 @@
    ============================================================ */
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
-import { ultimoDiaMes, lunesDe, avisoSemana, avisoTrimestre, esDiaLibre, avisoMediodia } from "./reglas.mjs";
+import { ultimoDiaMes, lunesDe, avisoSemana, avisoTrimestre, avisoMediodia } from "./reglas.mjs";
 
 const trim = v => (v == null ? "" : String(v).trim());
 const SUPABASE_URL = trim(process.env.SUPABASE_URL);
@@ -82,11 +82,9 @@ for (const row of usuarios || []) {
   const semanas = (row.data.ritual || {}).semanas || {};
   const diaSem = (((row.data.settings || {}).ritualSemanal) || {}).dia === 1 ? 1 : 0;
   const trimestres = (row.data.ritual || {}).trimestres || {};
-  const libre = esDiaLibre((row.data.gamif || {}).usos, hoy);
 
   for (const tipo of ["manana", "mediodia", "noche", "mes-apertura", "mes-cierre", "semana-cierre", "semana-apertura", "tri-cierre", "tri-apertura"]) {
     const mt = MES_TIPOS[tipo];
-    if (libre && (tipo === "manana" || tipo === "noche")) continue;   // 🌴 día libre: sin ritual diario
     let hora = tipo, tri = null, medio = null;
     if (tipo === "mediodia") { medio = avisoMediodia(row.data, hoy); if (!medio) continue; }
     if (mt) {

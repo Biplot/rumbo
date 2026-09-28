@@ -421,8 +421,6 @@ textarea.input { resize: vertical; min-height: 84px; }
 .hb-today__prog { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
 .hb-today__edit { position: absolute; top: 6px; left: 6px; font-size: 13px; opacity: .55; }
 .hb-today__edit:hover { opacity: 1; color: var(--cian-ink); }
-.hb-today__pase { position: absolute; bottom: 6px; right: 6px; font-size: 11px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-soft); opacity: .8; }
-.hb-today__pase:hover { opacity: 1; color: var(--cian-ink); border-color: var(--cian); }
 .util-ico { font-size: 26px; line-height: 1; }
 /* Modo enfoque: pantalla completa con la tarea y el reloj */
 .enfoque { position: fixed; inset: 0; z-index: 90; background: var(--bg); background-image: var(--bg-grad); display: grid; place-items: center; padding: 24px 16px; }

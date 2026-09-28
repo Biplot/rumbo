@@ -62,7 +62,7 @@ async function boot() {
   window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
   // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube;
   // al ocultarla/cerrarla, subir de inmediato lo pendiente (no perder el cierre recién hecho).
-  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); revisarProtectores(); retomarEnfoque(); } });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); retomarEnfoque(); } });
   window.addEventListener("focus", () => syncFromCloud());
   window.addEventListener("pagehide", () => flushCloudSave());
   window.addEventListener("hashchange", onRoute);
@@ -108,7 +108,6 @@ async function enterApp(user) {
   document.getElementById("app").hidden = false;
   updateTopbar();
   onRoute();
-  revisarProtectores();   // 🛡️ protector de racha automático
   retomarEnfoque();       // ⏱️ sesión de enfoque en curso en este equipo
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
   if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
@@ -226,8 +225,8 @@ const NOVEDADES = {
     ["📆", "Google Calendar", "Conecta tu Google Calendar y ve tus reuniones junto a tus tareas: en Inicio, en Semana, en Calendario y al abrir tu día. Solo lectura: Rumbo nunca cambia nada en tu calendario. En Calendario → Conectar."],
   ],
   11: [
-    ["🛒", "Tienda nueva", "Tus ⭐ ahora valen mucho más: útiles para tu racha, funciones nuevas, temas, cosméticos y accesorios para tu elefante."],
-    ["🛡️", "Útiles para tu racha", "Protector de racha (se usa solo), día libre, rescate de cierre hasta las 23:59, pase de hábito y reabrir un día de la última semana."],
+    ["🛒", "Tienda nueva", "Tus ⭐ ahora valen mucho más: funciones nuevas, temas, cosméticos y accesorios para tu elefante."],
+    ["✏️", "Reabrir un día", "Corrige un día ya cerrado de la última semana: tu ánimo, tus notas o lo que decidiste con tus pendientes."],
     ["⏱️", "Modo enfoque y más", "Temporizador ligado a tu primer bocado, pronóstico de la semana, comparar meses, informe del año, plantillas de rutina y aviso de mediodía."],
     ["🎨", "6 temas nuevos", "Atardecer, Océano, Cuaderno, Terminal, Sakura y Alto contraste (gratis, para leer mejor). Además: celebraciones, checks, sonidos y marcos para tu avatar."],
     ["🐘", "Tu elefante e insignias con niveles", "Un elefante que crece con tu constancia, 16 insignias nuevas (algunas secretas) y series de bronce, plata y oro."],
@@ -612,7 +611,7 @@ function updateTopbar() {
 /* -------- Estado del día (ciclo apertura → cierre) -------- */
 function dayState() {
   const r = STATE.ritual.dias[todayISO()];
-  if (!r || !r.hecho) return diaLibre(STATE, todayISO()) ? "libre" : "por-abrir";
+  if (!r || !r.hecho) return "por-abrir";
   if (r.cerrado) return "cerrado";
   return new Date().getHours() >= 18 ? "por-cerrar" : "en-curso";
 }
@@ -645,7 +644,7 @@ function computeClosedStreak() {
     const iso = isoLocal(d);
     const r = STATE.ritual.dias[iso];
     if (r && r.cerrado) s++;
-    else if (b === 0 || diaCubierto(STATE, iso)) continue;   // hoy, día libre o protegido: no corta
+    else if (b === 0 || diaCubierto(STATE, iso)) continue;   // hoy, o un día libre/protegido de antes de v61: no corta
     else break;
   }
   return s;
@@ -819,11 +818,6 @@ function onClick(e) {
 
     /* Tienda · útiles (consumibles) */
     case "util-buy": comprarConsumibleUI(d.id); break;
-    case "libre-open": openDiaLibre(); break;
-    case "libre-reservar": reservarDiaLibre(); break;
-    case "libre-cancelar": cancelarDiaLibre(d.fecha); break;
-    case "rescate-usar": usarRescate(); break;
-    case "pase-usar": usarPase(d.id); break;
     case "reabrir-dia": usarReabrir(d.iso); break;
 
     /* Inicio: quick habit toggle hoy */
@@ -1201,7 +1195,7 @@ function renderTienda() {
   <div class="card">
     <div class="flex-between" style="flex-wrap:wrap;gap:10px">
       <div><div class="card__title">🛒 Tienda</div>
-        <div class="text-sm muted mt-8">Gasta tus ⭐ en herramientas que te salvan la racha y en personalizar tu app.</div></div>
+        <div class="text-sm muted mt-8">Gasta tus ⭐ en funciones que te ayudan a enfocarte y en personalizar tu app.</div></div>
       <div class="pill pill--pts" style="font-size:16px">⭐ ${saldo}</div>
     </div>
   </div>
@@ -1340,7 +1334,6 @@ function renderDayHero() {
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
 
-  if (st === "libre") return renderDiaLibreHero();
   if (st === "por-abrir")
     return heroCoral(`${saludo}, ${name}.`, "Antes de arrancar, define tu enfoque del día. Toma 30 segundos (o 3 toques en express).", "🌅 Abre tu día", "day-open", {}, { label: "⚡ Express", action: "day-open-express" });
 
@@ -1500,7 +1493,6 @@ function renderInicio() {
 
   return `
   ${renderPendingYesterday()}
-  ${renderRescateCard()}
   ${renderTrimestreBanner()}
   ${renderMesBanner()}
   ${renderSemanaBanner()}

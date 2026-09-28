@@ -272,12 +272,10 @@ function habitTodayCard(h) {
   const prog = progresoPeriodoActual(h), hoy = todayISO();
   const pase = !on && hmPase(h, hoy);
   const libre = hmLibre(hoy) && ["diario", "dias"].includes(hmFreq(h).tipo);
-  const paseBtn = !on && !pase && !libre && !h.pausado && typeof paseDisponibleSemana === "function" && paseDisponibleSemana(STATE, h.id, hoy)
-    ? `<button class="hb-today__pase" data-action="pase-usar" data-id="${h.id}" title="Pase de hábito: cuenta como cumplido hoy (80 ⭐)">🎟️ Pase</button>` : "";
   return `<div class="card hb-today ${on || pase ? "is-on" : ""}" data-action="habit-today" data-id="${h.id}" role="button" tabindex="0">
       <div class="hb-today__ico">${h.icon}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
       <div class="hb-today__prog">${pase ? "🎟️ Pase usado hoy" : libre ? "🌴 Día libre" : prog.texto}${rachaTxt(h) ? " · " + rachaTxt(h) : ""}</div>
-      <div class="hb-today__check">${on ? "✓" : pase ? "🎟️" : ""}</div>${paseBtn}
+      <div class="hb-today__check">${on ? "✓" : pase ? "🎟️" : ""}</div>
       <button class="hb-today__edit icon-btn" data-action="habit-edit" data-id="${h.id}" title="Editar hábito" aria-label="Editar">✎</button></div>`;
 }
 

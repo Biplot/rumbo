@@ -277,7 +277,7 @@ function openCierreModal(date) {
     <div class="field"><label>${mananaLabel}</label><input class="input" id="c-manana" value="${escapeAttr(c.manana || "")}" placeholder="Se sembrará como tu misión del día siguiente"></div>
     <div class="field"><label>Nota de cierre (libre)</label><textarea class="input" id="c-nota" placeholder="¿Cómo estuvo el día?">${escapeHtml(c.nota || "")}</textarea></div>
     <p class="text-xs muted" style="margin:-4px 0 12px">📔 Tu ánimo, esta nota y tu gratitud se guardan en tu <b>Diario de vida</b>.</p>
-    <button class="btn btn--primary btn-block" data-action="cierre-save">${r.cerrado ? "Guardar cambios" : `Cerrar el día (+${monedasCierre(iso, 40)} ⭐)`}</button>`);
+    <button class="btn btn--primary btn-block" data-action="cierre-save">${r.cerrado ? "Guardar cambios" : "Cerrar el día (+40 ⭐)"}</button>`);
 }
 function cierreMoodPick(btn) {
   document.getElementById("c-mood").value = btn.dataset.v;
@@ -316,7 +316,7 @@ function saveCierre() {
   dEntry.gratitud = r.cierre.mejor || "";
   dEntry.ts = Date.now();
 
-  if (!yaCerrado) registrarMovimiento("ritual-cierre:" + iso, monedasCierre(iso, 40), monedasCierre(iso, 40), cierreEsRescate(iso) ? "Ritual de cierre (rescate)" : "Ritual de cierre");
+  if (!yaCerrado) registrarMovimiento("ritual-cierre:" + iso, 40, 40, "Ritual de cierre");
   saveState(); closeModal(); updateTopbar(); rerender();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
   if (!yaCerrado) sonar("cierre");

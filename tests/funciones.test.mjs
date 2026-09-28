@@ -57,7 +57,5 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(avisoMediodia({ ...data, settings: { notif: { mediodia: null } } }, "2026-09-28"), null);
     const cerrado = clone(data); cerrado.ritual.dias["2026-09-28"].cerrado = true;
     assert.equal(avisoMediodia(cerrado, "2026-09-28"), null);
-    const libre = clone(data); libre.gamif.usos = [{ id: "libre:2026-09-28" }];
-    assert.equal(avisoMediodia(libre, "2026-09-28"), null);
   });
 }

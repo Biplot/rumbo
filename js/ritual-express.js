@@ -155,7 +155,7 @@ function saveExpressCierre() {
   const elecciones = {};
   document.querySelectorAll(".xc-cron").forEach(el => { elecciones[el.dataset.id] = el.value; });
   const { nuevo, n } = aplicarCierreExpress(STATE, iso, { mood: parseNum(val("xc-mood")), gratitud: val("xc-gratitud"), elecciones });
-  const monedas = monedasCierre(iso, EXPRESS_MONEDAS.cierre);
+  const monedas = EXPRESS_MONEDAS.cierre;
   const pagado = nuevo && registrarMovimiento("ritual-cierre:" + iso, monedas, monedas, "Cierre express", true);
   saveState(); closeModal(); updateTopbar(); rerender();
   if (pagado && typeof sonar === "function") sonar("cierre");

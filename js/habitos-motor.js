@@ -47,7 +47,7 @@ function hmFreqLabel(h) {
 function hmCreado(h) { return (h && h.creado) || "0000-01-01"; }
 function hmActivo(h) { return !!h && !h.pausado; }
 
-/* Consumibles de la Tienda (gamif.usos): día libre y pase de hábito */
+/* Días libres y pases de hábito usados antes de v61 (ya no se venden): se respetan en la historia */
 function hmUso(st, id) { const us = st && st.gamif && st.gamif.usos; return Array.isArray(us) && us.some(u => u && u.id === id && !u.anulado); }
 function hmLibre(iso, S) { return hmUso(S || (typeof STATE !== "undefined" ? STATE : null), "libre:" + iso); }
 function hmPase(h, iso, S) { return hmUso(S || (typeof STATE !== "undefined" ? STATE : null), "pase:" + h.id + ":" + iso); }

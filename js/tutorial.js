@@ -117,7 +117,7 @@ const TOURS = {
   tienda: {
     icon: "🛒", titulo: "Tienda", desc: "Útiles, funciones, temas y cosméticos.",
     pasos: [
-      { ruta: "tienda", el: "[data-util]", titulo: "Útiles", texto: "Se usan y se vuelven a comprar: el <b>protector</b> cuida tu racha solo, el <b>día libre</b> la pausa, y el rescate, el pase y reabrir te sacan de apuros." },
+      { ruta: "tienda", el: "[data-util]", titulo: "Útiles", texto: "Se usan y se vuelven a comprar: <b>reabrir un día</b> te deja corregir un día cerrado de la última semana." },
       { ruta: "tienda", el: "[data-fun]", titulo: "Funciones", texto: "Se desbloquean una vez: modo enfoque, pronóstico de la semana, comparar meses y más." },
       { ruta: "tienda", el: ".theme-card", titulo: "Temas y cosméticos", texto: "Toca la miniatura para ver un tema antes de comprarlo. Alto contraste es gratis." },
     ],

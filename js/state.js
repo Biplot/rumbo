@@ -243,6 +243,7 @@ function migrate(s) {
     if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "navy";
   }
   if (s.gamif && !Array.isArray(s.gamif.usos)) s.gamif.usos = [];   // consumibles de la Tienda
+  retirarConsumibles(s);   // v61: protector, día libre, rescate y pase ya no se venden (se devuelve lo no usado)
   if (!s.enfoque || typeof s.enfoque !== "object" || Array.isArray(s.enfoque)) s.enfoque = {};
   if (!Array.isArray(s.enfoque.sesiones)) s.enfoque.sesiones = [];   // modo enfoque
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
@@ -350,6 +351,30 @@ function ledgerMerge(a, b) {
     if ((m.ts || 0) > (o.ts || 0)) map.set(m.id, m);
   });
   return Array.from(map.values());
+}
+
+/* Consumibles retirados de la Tienda (v61): proteger rachas y hábitos quitaba el foco.
+   · Días libres reservados a futuro: se cancelan.
+   · Compras sin usar: se anulan (vuelven las ⭐). Se eligen ordenadas por id, así todos
+     los dispositivos anulan las mismas y la fusión no duplica ni pierde nada.
+   · Lo ya usado queda como está (no cambia rachas ni cumplimiento pasados).
+   Idempotente: una segunda pasada no encuentra nada que anular. */
+const CONSUMIBLES_RETIRADOS = ["protector", "libre", "rescate", "pase"];
+function retirarConsumibles(s, hoy) {
+  const g = s && s.gamif;
+  if (!g || !Array.isArray(g.ledger) || !Array.isArray(g.usos)) return s;
+  hoy = hoy || todayISO();
+  let cambio = false;
+  g.usos.forEach(u => { if (u && u.tipo === "libre" && !u.anulado && u.fecha > hoy) { u.anulado = true; u.ts = (u.ts || 0) + 1; cambio = true; } });
+  const cerrado = iso => !!(s.ritual && s.ritual.dias && s.ritual.dias[iso] && s.ritual.dias[iso].cerrado);
+  CONSUMIBLES_RETIRADOS.forEach(tipo => {
+    const compras = g.ledger.filter(m => m && !m.anulado && typeof m.id === "string" && m.id.startsWith("consumo:" + tipo + ":")).sort((a, b) => (a.id < b.id ? -1 : 1));
+    if (!compras.length) return;
+    const usados = g.usos.filter(u => u && u.tipo === tipo && !u.anulado && !(tipo === "protector" && cerrado(u.fecha))).length;
+    compras.slice(usados).forEach(m => { m.anulado = true; m.ts = (m.ts || 0) + 1; m.motivo = (m.motivo || "Compra") + " · devuelta"; cambio = true; });
+  });
+  if (cambio) recalcGamif(s);
+  return s;
 }
 
 /* Fusión de usos de consumibles: por id, gana el ts más reciente */

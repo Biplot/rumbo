@@ -296,7 +296,8 @@ function tareaRowHtml(t, iso, op) {
   // Viva: se puede deslizar (→ hecha, ← posponer) y tocar el texto para editarlo
   const swipe = viva ? ` data-swipe="1" data-fecha="${iso}" data-id="${t.id}" data-pendiente="${e === "pendiente" ? 1 : 0}"` : "";
   const editar = viva ? ` data-action="tarea-editar" data-fecha="${iso}" data-id="${t.id}" role="button" tabindex="0" title="Tocar para editar"` : "";
-  return `<div class="item-row tarea-row ${viva ? "" : "is-moved"} ${t.esSapo ? "is-bocado" : ""}"${swipe} style="padding:${op.compacto ? "8px 10px" : "9px 11px"}">
+  const just = hecha && typeof checkReciente === "function" && checkReciente(t.id) ? " is-just" : "";
+  return `<div class="item-row tarea-row ${viva ? "" : "is-moved"} ${hecha ? "is-hecha" : ""}${just} ${t.esSapo ? "is-bocado" : ""}"${swipe} style="padding:${op.compacto ? "8px 10px" : "9px 11px"}">
     ${marca}
     <div class="item-row__main"><div class="item-row__title text-sm ${hecha || e === "soltada" ? "strike" : ""}"${editar}>${t.esSapo ? BOCADO.emoji + " " : t.prioridad ? '<span title="Prioridad de la semana">🎯</span> ' : t.recurrente ? '<span title="Tarea recurrente">🔁</span> ' : ""}${escapeHtml(t.txt)}</div>
       ${t.esSapo && !op.compacto && viva ? `<div class="item-row__sub hl-coral">${BOCADO.titulo} · ${BOCADO.accion}</div>` : ""}

@@ -340,7 +340,7 @@ function renderAccountBox() {
   const box = document.getElementById("accountBox");
   if (!box || !CURRENT_USER) return;
   const initial = (CURRENT_USER.name || CURRENT_USER.email || "?").trim()[0].toUpperCase();
-  box.innerHTML = `<div class="account__avatar">${initial}</div>
+  box.innerHTML = `<div class="account__avatar${typeof marcoClase === "function" ? marcoClase() : ""}">${initial}</div>
     <div style="min-width:0;flex:1"><div class="account__name">${escapeHtml(CURRENT_USER.name || "")}</div>
     <div class="account__email">${escapeHtml(CURRENT_USER.email)}</div></div>`;
 }
@@ -936,6 +936,7 @@ function onClick(e) {
       const hecha = estadoTarea(t) !== "hecha";
       marcarTarea(t, hecha ? "hecha" : "pendiente");
       hecha ? registrarMovimiento("tarea:" + t.id, 15, 15, "Tarea") : anularMovimiento("tarea:" + t.id);
+      if (hecha) alCompletarTarea(t);   // sonido y celebraciones de la Tienda
       saveState(); rerender(); break;
     }
     case "tarea-editar": openEditarTarea(d.fecha, d.id); break;
@@ -1207,6 +1208,8 @@ function renderTienda() {
 
   <div class="section-title">✨ Detalles</div>
   <div class="grid grid-4">${DETALLES.map(cosmeticCard).join("")}</div>
+
+  ${renderCosmeticosTienda()}
 
   <p class="text-xs muted mt-24">Ganas ⭐ usando la app (cerrar el día, hábitos, rituales…).</p>`;
 }
@@ -1522,6 +1525,8 @@ function renderInicio() {
 
   <div class="card mt-24" style="background:linear-gradient(120deg, var(--surface), var(--surface-2))">
     <div class="flex-between" style="flex-wrap:wrap;gap:14px">
+      <div class="row" style="gap:14px;align-items:flex-start">
+      <div class="account__avatar avatar-lg${marcoClase()}" aria-hidden="true">${escapeHtml((s.profile.name || "R").trim()[0] || "R").toUpperCase()}</div>
       <div>
         <div class="text-xs soft" style="letter-spacing:.08em;text-transform:uppercase">${saludo}, ${escapeHtml(s.profile.name)}</div>
         <div class="big-num">${edadTexto(s.profile.birthDate)}</div>
@@ -1532,7 +1537,7 @@ function renderInicio() {
           ${insigniaDestacada() ? `<span class="chip chip--coral">${insigniaDestacada().icon} ${escapeHtml(insigniaDestacada().nombre)}</span>` : ""}
           <a class="chip" href="#recompensas" style="text-decoration:none">🏆 Ver recompensas</a>
         </div>
-      </div>
+      </div></div>
       <button class="btn-ghost" data-action="edit-profile">✎ Editar perfil</button>
     </div>
   </div>`;

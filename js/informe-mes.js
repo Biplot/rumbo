@@ -43,40 +43,46 @@ function dibujarInforme(d, op) {
   const W = INFORME.ancho, H = INFORME.alto;
   const c = document.createElement("canvas"); c.width = W; c.height = H;
   const x = c.getContext("2d");
-  const F = (peso, px) => `${peso} ${px}px "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif`;
-  const NAVY = "#0E2A47", NOCHE = "#081A2E", CIAN = "#17C3B2", CORAL = "#FF6B4A", TXT = "#EAF2F8", SUAVE = "#9FB3C8";
+  // Paleta: Navy incluida; Cuaderno, Atardecer y Terminal se compran en la Tienda (cosmeticos.js)
+  const P = (typeof PALETAS_INFORME !== "undefined" && PALETAS_INFORME[op.plantilla]) || { arriba: "#0E2A47", abajo: "#081A2E", marca: "#0E2A47", acento: "#17C3B2", acento2: "#FF6B4A", texto: "#EAF2F8", suave: "#9FB3C8",
+    halo1: "rgba(23,195,178,0.20)", halo2: "rgba(255,107,74,0.14)", tarjeta: "rgba(255,255,255,0.06)", borde: "rgba(255,255,255,0.10)", fuente: `"Space Grotesk", system-ui, sans-serif` };
+  const F = (peso, px, titulo) => `${peso} ${px}px ${titulo && P.titulo ? P.titulo : P.fuente}`;
+  const NAVY = P.arriba, NOCHE = P.abajo, CIAN = P.acento, CORAL = P.acento2, TXT = P.texto, SUAVE = P.suave;
+  const MAY = t => (P.mayus ? String(t).toUpperCase() : t);
 
   // Fondo: azul profundo con un halo cian arriba y coral abajo
   const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, NAVY); g.addColorStop(1, NOCHE);
   x.fillStyle = g; x.fillRect(0, 0, W, H);
   const halo = (cx, cy, r, color) => { const h = x.createRadialGradient(cx, cy, 0, cx, cy, r); h.addColorStop(0, color); h.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = h; x.fillRect(0, 0, W, H); };
-  halo(W * 0.85, 160, 620, "rgba(23,195,178,0.20)");
-  halo(W * 0.1, H - 180, 560, "rgba(255,107,74,0.14)");
+  halo(W * 0.85, 160, 620, P.halo1);
+  halo(W * 0.1, H - 180, 560, P.halo2);
+  if (P.puntos) { x.fillStyle = P.puntos; for (let py = 20; py < H; py += 44) for (let px = 20; px < W; px += 44) { x.beginPath(); x.arc(px, py, 2.2, 0, Math.PI * 2); x.fill(); } }
+  if (P.lineas) { x.fillStyle = "rgba(57,255,136,0.035)"; for (let py = 0; py < H; py += 6) x.fillRect(0, py, W, 2); }
 
   // Marca: el ícono de Rumbo (línea que sube) + nombre
   const M = 96, mx = 90, my = 110;
-  x.fillStyle = NAVY; x.strokeStyle = CIAN; x.lineWidth = 3;
-  x.beginPath(); x.roundRect(mx, my, M, M, 24); x.fill(); x.stroke();
+  x.fillStyle = P.marca; x.strokeStyle = CIAN; x.lineWidth = 3;
+  x.beginPath(); x.roundRect(mx, my, M, M, P.radio || 24); x.fill(); x.stroke();
   const pts = [[0.22, 0.72], [0.41, 0.53], [0.56, 0.62], [0.78, 0.31]].map(([a, b]) => [mx + a * M, my + b * M]);
   x.strokeStyle = CIAN; x.lineWidth = 6; x.lineJoin = "round"; x.lineCap = "round";
   x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.stroke();
   pts.forEach(([a, b], i) => { x.fillStyle = i === 3 ? CORAL : CIAN; x.beginPath(); x.arc(a, b, i === 3 ? 8 : 6, 0, Math.PI * 2); x.fill(); });
-  x.fillStyle = TXT; x.font = F(700, 48); x.textBaseline = "alphabetic"; x.fillText("Rumbo", mx + M + 28, my + 58);
+  x.fillStyle = TXT; x.font = F(700, 48, true); x.textBaseline = "alphabetic"; x.fillText("Rumbo", mx + M + 28, my + 58);
   x.fillStyle = SUAVE; x.font = F(500, 28); x.fillText((d.sub || "Mi mes") + (d.nombre ? " · " + d.nombre : ""), mx + M + 30, my + 96);
 
   // Título: el mes
   let y = 390;
   x.fillStyle = CIAN; x.font = F(600, 34); x.fillText(d.etiqueta || String(d.y), 90, y - 96);
-  x.font = F(700, 150);
-  const tam = Math.min(150, Math.floor(150 * (W - 180) / x.measureText(d.mes).width));
-  x.fillStyle = TXT; x.font = F(700, tam); x.fillText(d.mes, 84, y + 40);
+  x.font = F(700, 150, true);
+  const tam = Math.min(150, Math.floor(150 * (W - 180) / x.measureText(MAY(d.mes)).width));
+  x.fillStyle = TXT; x.font = F(700, tam, true); x.fillText(MAY(d.mes), 84, y + 40);
   y += 110;
   if (op.foco && d.foco) { x.fillStyle = SUAVE; x.font = F(500, 38); x.fillText("Foco: ", 90, y); const w = x.measureText("Foco: ").width; x.fillStyle = CORAL; x.font = F(700, 38); x.fillText(d.foco, 90 + w, y); y += 30; }
 
   // Nota del mes (círculo, arriba a la derecha junto a la marca)
   if (op.nota && d.nota) {
     const r = 78, cx = W - 90 - r, cy = my + M / 2 - 6;
-    x.lineWidth = 16; x.strokeStyle = "rgba(255,255,255,0.10)"; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.stroke();
+    x.lineWidth = 16; x.strokeStyle = P.borde; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.stroke();
     x.strokeStyle = CORAL; x.beginPath(); x.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * d.nota) / 10); x.stroke();
     x.fillStyle = TXT; x.textAlign = "center"; x.font = F(700, 72); x.fillText(String(d.nota), cx, cy + 25);
     x.fillStyle = SUAVE; x.font = F(500, 24); x.fillText(d.notaLabel || "nota del mes", cx, cy + r + 44); x.textAlign = "left";
@@ -99,12 +105,12 @@ function dibujarInforme(d, op) {
   tarjetas.forEach((t, i) => {
     const col = t.ancho ? 0 : i % 2, fila = Math.floor(i / 2);   // "ancho" solo puede ser la última
     const tx = 90 + col * (cw + gap), ty = top + fila * (ch + gap), tw = t.ancho ? W - 180 : cw;
-    x.fillStyle = "rgba(255,255,255,0.06)"; x.strokeStyle = "rgba(255,255,255,0.10)"; x.lineWidth = 2;
-    x.beginPath(); x.roundRect(tx, ty, tw, ch, 28); x.fill(); x.stroke();
+    x.fillStyle = P.tarjeta; x.strokeStyle = P.borde; x.lineWidth = 2;
+    x.beginPath(); x.roundRect(tx, ty, tw, ch, P.radio || 28); x.fill(); x.stroke();
     x.fillStyle = t.color; x.fillRect(tx + 36, ty + 40, 44, 6);
-    x.font = F(700, 88);
+    x.font = F(700, 88, true);
     const tv = Math.min(88, Math.floor(88 * (tw - 70) / x.measureText(t.v).width));   // que el número quepa en la tarjeta
-    x.fillStyle = TXT; x.font = F(700, tv); x.fillText(t.v, tx + 34, ty + 140);
+    x.fillStyle = TXT; x.font = F(700, tv, true); x.fillText(t.v, tx + 34, ty + 140);
     x.fillStyle = SUAVE; x.font = F(500, 30); x.fillText(t.l, tx + 36, ty + 192);
   });
   y = top + Math.ceil(tarjetas.length / 2) * (ch + gap) + 40;
@@ -118,7 +124,7 @@ function dibujarInforme(d, op) {
   }
 
   // Pie
-  x.fillStyle = "rgba(255,255,255,0.10)"; x.fillRect(90, H - 170, W - 180, 2);
+  x.fillStyle = P.borde; x.fillRect(90, H - 170, W - 180, 2);
   x.fillStyle = TXT; x.font = F(600, 32); x.fillText("Hecho con Rumbo", 90, H - 104);
   x.fillStyle = SUAVE; x.font = F(500, 28); x.fillText("rumbo.biplot.cl · by BiPlot", 90, H - 62);
   x.textAlign = "right"; x.fillStyle = CIAN; x.font = F(600, 28); x.fillText("un bocado a la vez", W - 90, H - 62); x.textAlign = "left";
@@ -128,7 +134,11 @@ function dibujarInforme(d, op) {
 /* -------- Modal: vista previa, qué mostrar, compartir o descargar -------- */
 async function openInformeMes(key) {
   const rm = ritualMes(key) || {};
-  INFORME_OP = { key, foco: true, mejor: !!(rm.cierre && rm.cierre.mejor), nota: true, ahorro: false };
+  const pal = typeof paletasDisponibles === "function" ? paletasDisponibles() : ["navy"];
+  const ultima = (STATE.gamif.equipped || {}).plantilla;
+  INFORME_OP = { key, foco: true, mejor: !!(rm.cierre && rm.cierre.mejor), nota: true, ahorro: false, plantilla: pal.includes(ultima) ? ultima : "navy" };
+  if (typeof loadThemeFonts === "function") pal.forEach(p => loadThemeFonts(p));
+  if (document.fonts && document.fonts.load) { try { await Promise.all(['700 40px "Fraunces"', '500 30px "Karla"', '700 40px "IBM Plex Mono"'].map(f => document.fonts.load(f))); } catch (e) {} }
   if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
   renderInformeModal();
 }
@@ -138,6 +148,12 @@ function renderInformeModal() {
   const chk = (k, label, extra) => `<label class="chip" style="cursor:pointer"><input type="checkbox" ${op[k] ? "checked" : ""} onchange="informeOpcion('${k}', this.checked)"> ${label}${extra || ""}</label>`;
   openModal(`📤 Compartir ${d.mes}`, `
     <img src="${url}" alt="Vista previa del informe de ${d.mes}" class="informe-prev">
+    ${typeof PALETAS_INFORME !== "undefined" ? `<div class="text-xs muted mt-16">Diseño</div>
+    <div class="row-wrap mt-8" style="gap:6px">${Object.keys(PALETAS_INFORME).map(k => {
+      const tiene = k === "navy" || isOwned("pla-" + k);
+      return tiene ? `<button type="button" class="chip ${op.plantilla === k ? "chip--cian" : ""}" onclick="informeOpcion('plantilla','${k}')">${PALETAS_INFORME[k].nombre}</button>`
+        : `<a class="chip" href="#tienda" onclick="closeModal()" title="Se desbloquea en la Tienda">🔒 ${PALETAS_INFORME[k].nombre}</a>`;
+    }).join("")}</div>` : ""}
     <div class="text-xs muted mt-16">Qué mostrar</div>
     <div class="row-wrap mt-8" style="gap:6px">
       ${d.tarjetas ? chk("nota", "Nota del año") + chk("ahorro", "Ahorro 💰")
@@ -149,7 +165,11 @@ function renderInformeModal() {
     </div>
     <p class="text-xs muted mt-8">La imagen se crea en tu equipo. Solo sale de la app si tú la compartes.</p>`);
 }
-function informeOpcion(k, v) { INFORME_OP[k] = v; renderInformeModal(); }
+function informeOpcion(k, v) {
+  INFORME_OP[k] = v;
+  if (k === "plantilla") { STATE.gamif.equipped.plantilla = v; saveState(); }   // recuerda la última elegida
+  renderInformeModal();
+}
 function informeBlob() {
   const c = dibujarInforme(datosInforme(INFORME_OP.key), INFORME_OP);
   return new Promise(res => c.toBlob(res, "image/png"));

@@ -439,6 +439,7 @@ function guardarMesCierre(w) {
   registrarMovimiento("ritual-mes-cierre:" + w.key, 150, 150, "Cierre de " + MESES[w.m]);
   saveState(); closeModal(); updateTopbar(); rerender();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
+  if (typeof celebrar === "function") celebrar("mes");   // 🎆 fuegos artificiales (Tienda)
   toast(`🗓️ ${MESES[w.m]} cerrado · nota ${d.nota}/10`);
 }
 

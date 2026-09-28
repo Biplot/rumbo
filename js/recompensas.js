@@ -93,11 +93,15 @@ const DETALLES = [
   { id: "det-acento-neon", nombre: "Acento Neón", icon: "💗", costo: 200, key: "acento", value: "#FF4FD8" },
   { id: "det-acento-verde", nombre: "Acento Verde", icon: "🟢", costo: 200, key: "acento", value: "#3BE38B" },
 ];
-function findCosmetic(id) { return TITULOS.concat(DETALLES).find(c => c.id === id); }
-function isOwned(id) { return (STATE.gamif.owned || []).includes(id); }
+function findCosmetic(id) { return TITULOS.concat(DETALLES, typeof COSMETICOS !== "undefined" ? COSMETICOS : []).find(c => c.id === id); }
+function isOwned(id) {
+  if (id === "mar-diamante") return (STATE.gamif.xp || 0) >= 7000;   // 💎 llega con el rango Élite, no se compra
+  return (STATE.gamif.owned || []).includes(id);
+}
 
 function buyItem(id) {
-  const it = findCosmetic(id); if (!it || isOwned(id)) return;
+  const it = findCosmetic(id); if (!it || isOwned(id) || it.rango) return;
+  if (typeof requisitoTitulo === "function" && !requisitoTitulo(it)) return toast("Primero gana la insignia que pide este título", true);
   recalcGamif(STATE);   // valida contra el saldo derivado del ledger
   if (STATE.gamif.puntos < it.costo) return toast("Te faltan " + (it.costo - STATE.gamif.puntos) + " ⭐", true);
   if (!confirm(`¿Comprar "${it.nombre}" por ${it.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - it.costo} ⭐.`)) return;
@@ -122,13 +126,15 @@ function cosmeticCard(it) {
 function equipItem(id) {
   const it = findCosmetic(id); if (!it || !isOwned(id)) return;
   const eq = STATE.gamif.equipped;
-  if (TITULOS.includes(it)) { eq.titulo = (eq.titulo === id ? null : id); }
+  if (typeof COSMETICOS !== "undefined" && COSMETICOS.includes(it)) equipCosmetico(it);
+  else if (TITULOS.includes(it)) { eq.titulo = (eq.titulo === id ? null : id); }
   else if (it.key === "confeti") { eq.confeti = !eq.confeti; }
   else if (it.key === "acento") { eq.acento = (eq.acento === it.value ? null : it.value); }
   applyCosmetics(); saveState(); rerender();
 }
 function isEquipped(it) {
   const eq = STATE.gamif.equipped;
+  if (typeof COSMETICOS !== "undefined" && COSMETICOS.includes(it)) return cosActivo(it.id);
   if (TITULOS.includes(it)) return eq.titulo === it.id;
   if (it.key === "confeti") return !!eq.confeti;
   if (it.key === "acento") return eq.acento === it.value;
@@ -141,6 +147,7 @@ function applyCosmetics() {
   const root = document.documentElement;
   if (eq.acento) root.style.setProperty("--coral", eq.acento);
   else root.style.removeProperty("--coral");
+  if (typeof applyCosmeticos2 === "function") applyCosmeticos2();
 }
 
 /* Confeti (detalle equipable) */

@@ -179,7 +179,7 @@ function enfoqueTareaHecha(fecha, id) {
   if (t && estadoTarea(t) !== "hecha") {
     marcarTarea(t, "hecha");
     registrarMovimiento("tarea:" + t.id, 15, 15, "Tarea");
-    if (t.esSapo && typeof celebrar === "function") celebrar("bocado");
+    if (typeof alCompletarTarea === "function") alCompletarTarea(t);
   }
   saveState(); closeModal(); rerender(); toast("✓ Tarea hecha");
 }

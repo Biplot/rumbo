@@ -318,6 +318,7 @@ function saveCierre() {
   if (!yaCerrado) registrarMovimiento("ritual-cierre:" + iso, monedasCierre(iso, 40), monedasCierre(iso, 40), cierreEsRescate(iso) ? "Ritual de cierre (rescate)" : "Ritual de cierre");
   saveState(); closeModal(); updateTopbar(); rerender();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
+  if (!yaCerrado) sonar("cierre");
   const resumenTr = decid ? textoTriage(decid) : "";
   toast(resumenTr ? `Día cerrado 🌙 · ${resumenTr}` : "Día cerrado 🌙 ¡Descansa!");
 }

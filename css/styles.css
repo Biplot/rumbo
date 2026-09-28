@@ -1005,3 +1005,45 @@ html[data-theme="alto-contraste"] :focus-visible { outline:3px solid #FFD400 !im
 .auth__o { display: flex; align-items: center; gap: 10px; margin: 16px 0; color: var(--text-muted); font-size: 12px; }
 .auth__o::before, .auth__o::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .auth__note a { color: var(--text-muted); }
+
+/* ============================================================
+   TIENDA · Cosméticos (Entrega 3): marcos, checks y celebraciones
+   ============================================================ */
+.account__avatar.avatar-lg { width: 52px; height: 52px; font-size: 22px; }
+.marco { position: relative; isolation: isolate; }
+.marco::before { content: ""; position: absolute; inset: -4px; border-radius: 50%; z-index: -1; }
+.marco::after { content: ""; position: absolute; inset: 0; border-radius: 50%; z-index: -1; background: var(--cian); box-shadow: 0 0 0 2px var(--bg); }   /* el fondo del avatar va sobre el anillo */
+.marco { background: transparent !important; }
+.marco--cian::before { background: var(--cian); box-shadow: 0 0 0 1px var(--bg); }
+.marco--oro::before { background: linear-gradient(135deg, #FFE08A, #C8962E 45%, #FFD35C 70%, #9C6B12); }
+.marco--llama::before { background: conic-gradient(from 0deg, #FF3D00, #FFB000, #FF6B4A, #FFE08A, #FF3D00); animation: marcoGira 3s linear infinite; filter: blur(.3px); }
+.marco--aurora::before { background: conic-gradient(from 0deg, #17C3B2, #8B93E8, #FF4FD8, #3BE38B, #17C3B2); animation: marcoGira 6s linear infinite; }
+.marco--diamante::before { background: conic-gradient(from 45deg, #E8FBFF, #8FF3E8, #FFFFFF, #B9C7FF, #E8FBFF); box-shadow: 0 0 10px rgba(143,243,232,.7); }
+@keyframes marcoGira { to { transform: rotate(360deg); } }
+.cos-card .account__avatar { margin-top: 4px; }
+
+/* Estilos de check */
+html[data-check="rebote"] .tarea-row.is-just .check.is-on { animation: chkRebote .5s cubic-bezier(.3,1.6,.5,1); }
+@keyframes chkRebote { 0% { transform: scale(.4); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
+html[data-check="mano"] .tarea-row.is-hecha .strike { text-decoration: none; color: var(--text-muted);
+  background-repeat: no-repeat; background-position: left center; background-size: 100% 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M1 6 C 20 3, 35 8, 55 5 S 85 3, 99 6' fill='none' stroke='%23E8563A' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E"); }
+html[data-check="mano"] .tarea-row.is-just .strike { animation: chkMano .45s ease-out; }
+@keyframes chkMano { from { background-size: 0 100%; } to { background-size: 100% 100%; } }
+html[data-check="sello"] .tarea-row.is-hecha .strike::after { content: "HECHO"; display: inline-block; margin-left: 8px; padding: 0 5px; border: 2px solid var(--coral);
+  color: var(--coral); font-size: 9.5px; font-weight: 800; letter-spacing: .12em; border-radius: 3px; transform: rotate(-8deg); vertical-align: middle; opacity: .85; }
+html[data-check="sello"] .tarea-row.is-hecha .strike { text-decoration-color: color-mix(in srgb, var(--text-muted) 50%, transparent); }
+html[data-check="sello"] .tarea-row.is-just .strike::after { animation: chkSello .35s ease-out; }
+@keyframes chkSello { 0% { transform: rotate(-8deg) scale(2.2); opacity: 0; } 100% { transform: rotate(-8deg) scale(1); opacity: .85; } }
+
+/* Celebraciones */
+.fx-chispa { position: fixed; width: 6px; height: 6px; border-radius: 50%; z-index: 10000; pointer-events: none; animation: fxChispa 1.2s ease-out forwards; }
+@keyframes fxChispa { 0% { transform: translate(0, 0) scale(1.2); opacity: 1; } 100% { transform: translate(var(--dx), calc(var(--dy) + 40px)) scale(.4); opacity: 0; } }
+.fx-estrella { position: fixed; top: -40px; z-index: 10000; pointer-events: none; animation: fxEstrella 2.4s ease-in forwards; }
+@keyframes fxEstrella { to { transform: translateY(112vh) rotate(220deg); opacity: .4; } }
+.fx-elefante { position: fixed; bottom: 12vh; left: -160px; z-index: 10000; pointer-events: none; display: flex; align-items: center; gap: 8px; animation: fxElefante 3.4s linear forwards; }
+.fx-elefante span { font-size: 64px; display: inline-block; transform: scaleX(-1); animation: fxPaso .4s ease-in-out infinite alternate; }
+.fx-elefante b { background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 12px; font-size: 14px; box-shadow: var(--shadow); }
+@keyframes fxElefante { to { left: 110vw; } }
+@keyframes fxPaso { from { transform: scaleX(-1) translateY(0); } to { transform: scaleX(-1) translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .marco--llama::before, .marco--aurora::before { animation: none; } }

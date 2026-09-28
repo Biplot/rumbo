@@ -1072,14 +1072,26 @@ function onClick(e) {
   }
 }
 
-const BASE_THEMES = ["navy", "claro"];
+const BASE_THEMES = ["navy", "claro", "alto-contraste"];   // gratis (alto contraste: accesibilidad)
 const DEFAULT_THEME = "navy";
 /* Fuentes de los temas Bosque: se cargan solo cuando se aplica uno de ellos */
 const FUNDOS_FONTS_URL = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Mulish:wght@400;500;600;700&display=swap";
 function applyTheme(t) {
   const id = THEMES.some(x => x.id === t) ? t : DEFAULT_THEME;
   document.documentElement.setAttribute("data-theme", id);
-  if (id.startsWith("bosque")) loadFundosFonts();
+  loadThemeFonts(id);
+}
+/* Fuentes por tema: se piden solo al usar el tema (o su vista previa) */
+const THEME_FONTS = {
+  cuaderno: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Karla:wght@400;500;600;700&display=swap",
+  terminal: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap",
+};
+function loadThemeFonts(id) {
+  if (id.startsWith("bosque")) return loadFundosFonts();
+  const url = THEME_FONTS[id]; if (!url || document.getElementById("font-" + id)) return;
+  const l = document.createElement("link");
+  l.id = "font-" + id; l.rel = "stylesheet"; l.href = url;
+  document.head.appendChild(l);
 }
 function loadFundosFonts() {
   if (document.getElementById("fundosFonts")) return;
@@ -1121,6 +1133,18 @@ const THEMES = [
     bg: "#F7F5F0", card: "#FFFFFF", accent: "#C8A165", cta: "#16301F", onCta: "#F7F5F0", text: "#0A140E", font: FONT_MULISH, fontDisplay: FONT_CORMORANT, radius: "12px" },
   { id: "bosque-oscuro", nombre: "Bosque Oscuro", base: "Navy sobrio", concepto: "Verde profundo con acento dorado. Sobrio, cálido y con carácter.", costo: 650,
     bg: "#0A140E", card: "#0F1F16", accent: "#C8A165", cta: "#C8A165", onCta: "#0A140E", text: "#F7F5F0", font: FONT_MULISH, fontDisplay: FONT_CORMORANT, radius: "12px" },
+  { id: "atardecer", nombre: "Atardecer", base: "Navy sobrio", concepto: "Violeta profundo con acento durazno. Cálido para cerrar el día.", costo: 800,
+    bg: "#1D1530", card: "#28203F", accent: "#FF9E7A", cta: "#E8618A", onCta: "#1E0F18", text: "#F7EEF6", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
+  { id: "oceano", nombre: "Océano", base: "Navy sobrio", concepto: "Azul petróleo y turquesa. Fresco y tranquilo.", costo: 800,
+    bg: "#06222A", card: "#0B2F38", accent: "#39D0E0", cta: "#FFB84D", onCta: "#2A1A00", text: "#E6F4F5", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
+  { id: "cuaderno", nombre: "Cuaderno", base: "Claro", concepto: "Papel crema, tinta azul y títulos con serifa. Como un bullet journal.", costo: 900,
+    bg: "#F4EFE3", card: "#FFFDF7", accent: "#2F4B7C", cta: "#B23A2E", onCta: "#FFFFFF", text: "#1F2A3D", font: "'Karla',sans-serif", fontDisplay: "'Fraunces',Georgia,serif", radius: "12px" },
+  { id: "terminal", nombre: "Terminal", base: "Navy sobrio", concepto: "Negro y verde fósforo con letra monoespaciada. Para los más técnicos.", costo: 1000,
+    bg: "#0A0F0B", card: "#0F1711", accent: "#39FF88", cta: "#FFB000", onCta: "#1A1100", text: "#D8FFE4", font: "'IBM Plex Mono',monospace", fontDisplay: "'IBM Plex Mono',monospace", radius: "6px" },
+  { id: "sakura", nombre: "Sakura", base: "Claro", concepto: "Rosado suave y verde hoja. Claro y liviano.", costo: 900,
+    bg: "#FFF6F7", card: "#FFFFFF", accent: "#E26D8A", cta: "#4F7A39", onCta: "#FFFFFF", text: "#3A2230", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
+  { id: "alto-contraste", nombre: "Alto contraste", base: "Accesibilidad", concepto: "Negro, blanco y amarillo, pensado para leer mejor. Gratis.", costo: 0,
+    bg: "#000000", card: "#0B0B0B", accent: "#FFD400", cta: "#FFFFFF", onCta: "#000000", text: "#FFFFFF", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
 ];
 
 function renderTienda() {
@@ -1175,7 +1199,7 @@ function renderTienda() {
 
 function openThemePreview(themeId) {
   const t = THEMES.find(x => x.id === themeId); if (!t) return;
-  if (t.id.startsWith("bosque")) loadFundosFonts();
+  loadThemeFonts(t.id);
   const owned = themeOwned(t.id);
   const active = STATE.settings.theme === t.id;
   const mock = `

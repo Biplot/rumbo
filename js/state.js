@@ -235,7 +235,7 @@ function migrate(s) {
   if (s.finanzas && Array.isArray(s.finanzas.meses)) s.finanzas.meses.forEach(fm => { if (fm && fm.metaAhorro == null) fm.metaAhorro = 0; });
   // Temas: los existentes conservan el suyo. Retirados: bosque → bosque-claro; el resto → navy.
   if (s.settings) {
-    const TEMAS = ["navy", "claro", "grafito", "medianoche", "bosque-claro", "bosque-oscuro"];
+    const TEMAS = ["navy", "claro", "grafito", "medianoche", "bosque-claro", "bosque-oscuro", "atardecer", "oceano", "cuaderno", "terminal", "sakura", "alto-contraste"];
     if (s.settings.theme === "bosque") s.settings.theme = "bosque-claro";
     if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "navy";
   }

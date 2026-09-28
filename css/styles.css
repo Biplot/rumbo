@@ -835,6 +835,81 @@ html[data-theme^="bosque"] .hero-focus__title { font-weight: 600; letter-spacing
 html[data-theme^="bosque"] .card__title { font-size: 18px; }
 html[data-theme^="bosque"] .big-num { font-size: 30px; }
 
+/* Temas nuevos (v60): contraste AA validado (mínimo 5:1). Fuentes: se cargan al aplicar el tema. */
+/* TIENDA · Atardecer (oscuro, violeta y durazno) */
+html[data-theme="atardecer"] {
+  --bg:#1D1530; --bg-grad:radial-gradient(900px 500px at 85% -10%, rgba(255,158,122,.10), transparent 60%);
+  --surface:#28203F; --surface-2:#31274B; --surface-3:#3B2F58;
+  --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.20);
+  --text:#F7EEF6; --text-soft:#D4C4DC; --text-muted:#A897B5;
+  --cian:#FF9E7A; --cian-ink:#FFB08F; --on-cian:#2A1320; --coral:#E8618A; --on-coral:#1E0F18;
+  --cian-soft:rgba(255,158,122,.16); --coral-soft:rgba(232,97,138,.18);
+  --sidebar-bg:#1D1530; --topbar-bg:rgba(29,21,48,.84);
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 34px -22px rgba(0,0,0,.65); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+}
+/* TIENDA · Océano (oscuro, petróleo y turquesa) */
+html[data-theme="oceano"] {
+  --bg:#06222A; --bg-grad:radial-gradient(900px 500px at 10% 110%, rgba(57,208,224,.08), transparent 60%);
+  --surface:#0B2F38; --surface-2:#0F3A45; --surface-3:#154753;
+  --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.2);
+  --text:#E6F4F5; --text-soft:#A9CDD2; --text-muted:#7FA6AC;
+  --cian:#39D0E0; --cian-ink:#5ADAE8; --on-cian:#04262B; --coral:#FFB84D; --on-coral:#2A1A00;
+  --cian-soft:rgba(57,208,224,.15); --coral-soft:rgba(255,184,77,.16);
+  --sidebar-bg:#06222A; --topbar-bg:rgba(6,34,42,.84);
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 34px -22px rgba(0,0,0,.65); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+}
+/* TIENDA · Cuaderno (claro, papel, tinta azul y roja, cuadrícula de puntos) */
+html[data-theme="cuaderno"] {
+  --bg:#F4EFE3; --bg-grad:radial-gradient(#D6CCB6 1.1px, transparent 1.3px);
+  --surface:#FFFDF7; --surface-2:#F3EDDF; --surface-3:#E9E1CE;
+  --line:#E6DECB; --line-strong:#CFC4AC;
+  --text:#1F2A3D; --text-soft:#3F4A5C; --text-muted:#6B6454;
+  --cian:#2F4B7C; --cian-ink:#2F4B7C; --on-cian:#FFFFFF; --coral:#B23A2E; --on-coral:#FFFFFF;
+  --cian-soft:rgba(47,75,124,.10); --coral-soft:rgba(178,58,46,.10); --azul:#2F4B7C;
+  --sidebar-bg:#FBF7EE; --topbar-bg:rgba(244,239,227,.9);
+  --shadow:0 1px 2px rgba(60,45,20,.06), 0 12px 28px -20px rgba(60,45,20,.28); --shadow-sm:0 1px 2px rgba(60,45,20,.06);
+  --font-display:"Fraunces", Georgia, serif;
+  --font-body:"Karla", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+html[data-theme="cuaderno"] body { background-size:22px 22px; }
+html[data-theme="cuaderno"] h1, html[data-theme="cuaderno"] .card__title, html[data-theme="cuaderno"] .big-num,
+html[data-theme="cuaderno"] .hero-focus__title { font-weight:600; letter-spacing:-.01em; }
+/* TIENDA · Terminal (negro y verde fósforo, todo monoespaciado) */
+html[data-theme="terminal"] {
+  --bg:#0A0F0B; --bg-grad:repeating-linear-gradient(0deg, rgba(57,255,136,.025) 0 1px, transparent 1px 3px);
+  --surface:#0F1711; --surface-2:#142018; --surface-3:#1A2A1F;
+  --line:rgba(57,255,136,.14); --line-strong:rgba(57,255,136,.3);
+  --text:#D8FFE4; --text-soft:#9FD9B3; --text-muted:#74AD8A;
+  --cian:#39FF88; --cian-ink:#39FF88; --on-cian:#03170A; --coral:#FFB000; --on-coral:#1A1100;
+  --cian-soft:rgba(57,255,136,.12); --coral-soft:rgba(255,176,0,.14);
+  --sidebar-bg:#0A0F0B; --topbar-bg:rgba(10,15,11,.88);
+  --shadow:none; --shadow-sm:none;
+  --font-display:"IBM Plex Mono", ui-monospace, monospace; --font-body:"IBM Plex Mono", ui-monospace, monospace;
+  --r-sm:4px; --r:6px; --r-lg:8px;
+}
+/* TIENDA · Sakura (claro, rosado suave y verde hoja) */
+html[data-theme="sakura"] {
+  --bg:#FFF6F7; --bg-grad:radial-gradient(700px 400px at 100% 0%, rgba(226,109,138,.08), transparent 60%);
+  --surface:#FFFFFF; --surface-2:#FCEEF1; --surface-3:#F7E0E6;
+  --line:#F4DCE2; --line-strong:#E8C2CC;
+  --text:#3A2230; --text-soft:#5E4452; --text-muted:#7F6371;
+  --cian:#E26D8A; --cian-ink:#A8395A; --on-cian:#3A0E1C; --coral:#4F7A39; --on-coral:#FFFFFF;
+  --cian-soft:rgba(226,109,138,.12); --coral-soft:rgba(79,122,57,.12); --azul:#A8395A;
+  --sidebar-bg:#FFFFFF; --topbar-bg:rgba(255,246,247,.9);
+  --shadow:0 1px 2px rgba(90,40,60,.05), 0 12px 28px -20px rgba(90,40,60,.25); --shadow-sm:0 1px 2px rgba(90,40,60,.05);
+}
+/* TIENDA · Alto contraste (gratis, accesibilidad) */
+html[data-theme="alto-contraste"] {
+  --bg:#000000; --bg-grad:none; --surface:#0B0B0B; --surface-2:#181818; --surface-3:#242424;
+  --line:rgba(255,255,255,.38); --line-strong:rgba(255,255,255,.7);
+  --text:#FFFFFF; --text-soft:#F2F2F2; --text-muted:#D6D6D6;
+  --cian:#FFD400; --cian-ink:#FFD400; --on-cian:#000000; --coral:#FFFFFF; --on-coral:#000000;
+  --cian-soft:rgba(255,212,0,.18); --coral-soft:rgba(255,255,255,.14);
+  --sidebar-bg:#000000; --topbar-bg:rgba(0,0,0,.92);
+  --shadow:none; --shadow-sm:none;
+}
+html[data-theme="alto-contraste"] :focus-visible { outline:3px solid #FFD400 !important; outline-offset:2px; }
+
 /* ============================================================
    PORTAL DE USUARIOS
    ============================================================ */

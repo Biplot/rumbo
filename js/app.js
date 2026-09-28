@@ -829,6 +829,8 @@ function onClick(e) {
     case "ele-probar": probarPrenda(d.id); break;
     case "ele-comprar": comprarPrenda(d.id); break;
     case "ele-quitar": quitarEspacio(d.slot); break;
+    case "ele-espacio": espacioElefante(d.slot); break;
+    case "ele-cancelar": cancelarPrueba(); break;
 
     /* Tienda · útiles (consumibles) */
     case "util-buy": comprarConsumibleUI(d.id); break;
@@ -1135,12 +1137,26 @@ function themeOwned(id) {
 }
 /* Cuenta dueña: desbloquea todos los temas automáticamente al entrar.
    El correo va encriptado (hash), no en texto plano, para no exponerlo. */
+/* Cuentas dueñas (hash del correo, nunca el correo en claro): todo desbloqueado para revisar la app */
+const OWNER_HASHES = ["h1805468134", "h3574416572"];
+function esCuentaDuena() {
+  return !!(CURRENT_USER && CURRENT_USER.email && typeof _hash === "function" && OWNER_HASHES.includes(_hash(CURRENT_USER.email.trim().toLowerCase())));
+}
 function grantOwnerPerks() {
   try {
-    if (!CURRENT_USER || !CURRENT_USER.email || typeof _hash !== "function") return;
-    if (_hash(CURRENT_USER.email.trim().toLowerCase()) !== "h1805468134") return;
+    if (!esCuentaDuena()) return;
     // Van a gamif.perks (no al ledger): desbloquear no genera movimientos de cobro
-    STATE.gamif.perks = THEMES.map(t => "tema-" + t.id);
+    const L = x => (typeof x !== "undefined" && Array.isArray(x)) ? x : [];
+    STATE.gamif.perks = Array.from(new Set([
+      ...THEMES.map(t => "tema-" + t.id),
+      ...L(TITULOS).map(t => t.id), ...L(DETALLES).map(d => d.id),
+      ...(typeof COSMETICOS !== "undefined" ? COSMETICOS.map(c => c.id) : []),
+      ...(typeof FUNCIONES !== "undefined" ? FUNCIONES.map(f => "fun-" + f.id) : []),
+      ...(typeof PLANTILLAS !== "undefined" ? PLANTILLAS.map(p => "fun-plantilla-" + p.id) : []),
+      ...(typeof PACKS_ICONOS !== "undefined" ? PACKS_ICONOS.map(p => "fun-iconos-" + p.id) : []),
+      ...(typeof PRENDAS_ELEFANTE !== "undefined" ? PRENDAS_ELEFANTE.map(p => p.compra || "ele-" + p.id) : []),
+      ...(typeof TIPOS_ELEFANTE !== "undefined" ? Object.keys(TIPOS_ELEFANTE).map(t => "ele-tipo-" + t) : []),
+    ]));
     recalcGamif(STATE);
   } catch (e) {}
 }
@@ -1703,7 +1719,8 @@ async function doDeleteAccount() {
 /* ============================================================
    Utilidades UI compartidas (modal, toast, escape)
    ============================================================ */
-function openModal(title, bodyHtml) {
+function openModal(title, bodyHtml, op) {
+  document.getElementById("modal").classList.toggle("modal--ancho", !!(op && op.ancho));
   document.getElementById("modalTitle").textContent = title;
   document.getElementById("modalBody").innerHTML = bodyHtml;
   document.getElementById("modalOverlay").hidden = false;

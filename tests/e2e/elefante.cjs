@@ -30,11 +30,13 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('.ele-card [data-action="elefante-open"][data-v="ropa"]'); await p.waitForTimeout(250);
   const antes = await p.evaluate(() => STATE.gamif.puntos);
   await p.click('[data-action="ele-probar"][data-id="jockey"]'); await p.waitForTimeout(250);
-  ok(await p.locator(".ele-prueba").isVisible() && await p.evaluate(() => STATE.gamif.equipped.ele.ropa.cabeza) == null, "probarse el jockey no lo compra ni lo guarda");
+  ok(await p.locator(".vest-barra.is-compra").isVisible() && await p.locator(".vest-ficha.is-prueba").count() === 1 && await p.evaluate(() => STATE.gamif.equipped.ele.ropa.cabeza) == null, "probarse el jockey no lo compra ni lo guarda");
   await shot(p, "elefante-probador");
   await p.click('[data-action="ele-comprar"][data-id="jockey"]'); await p.waitForTimeout(300);
   const c = await p.evaluate(() => ({ cabeza: STATE.gamif.equipped.ele.ropa.cabeza, pts: STATE.gamif.puntos }));
   ok(c.cabeza === "jockey" && c.pts === antes - 200, "al comprarlo queda puesto y cobra 200 ⭐");
+  await p.click('[data-action="ele-espacio"][data-slot="cuello"]'); await p.waitForTimeout(200);
+  ok(await p.locator(".vest-ficha").count() === 3, "el espacio Cuello muestra sus 3 prendas");
   await p.click('[data-action="ele-probar"][data-id="bufanda"]'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => STATE.gamif.equipped.ele.ropa.cuello) == null, "una prenda que ya tienes se saca con un toque");
 
@@ -48,6 +50,12 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('[data-action="ele-tipo"][data-id="peluche"]'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => STATE.gamif.equipped.ele.tipo === "peluche" && STATE.gamif.equipped.ele.ropa.cabeza === "jockey"), "cambiar de tipo es gratis y conserva la ropa");
   await shot(p, "elefante-recompensas");
+
+  // 5) Cuenta dueña: todo desbloqueado para revisar (tipos, ropa ganada, funciones y cosméticos)
+  await p.evaluate(() => { closeModal(); OWNER_HASHES.push(_hash(CURRENT_USER.email.trim().toLowerCase())); grantOwnerPerks(); saveState(); rerender(); });
+  const d = await p.evaluate(() => ({ tipos: Object.keys(TIPOS_ELEFANTE).every(t => tipoDesbloqueado(t)), corona: tienePrenda(prendaElefante("corona")),
+    ropa: PRENDAS_ELEFANTE.every(x => tienePrenda(x)), enfoque: funcion("enfoque"), marco: isOwned("mar-aurora"), diamante: isOwned("mar-diamante"), titulo: isOwned("tit-lector") }));
+  ok(Object.values(d).every(Boolean), "la cuenta dueña tiene todo desbloqueado: " + JSON.stringify(d));
 
   // 5) La imagen para compartir lleva tu elefante
   await p.evaluate(() => openInformeMes("2026-09")); await p.waitForTimeout(900);

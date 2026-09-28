@@ -182,28 +182,29 @@ function etapaElefante(xp) {
 /* -------- Ropa: cada prenda va en un espacio del cuerpo -------- */
 const ESPACIOS_ELEFANTE = { cabeza: "Cabeza", ojos: "Ojos", cuello: "Cuello", espalda: "Espalda", trompa: "Trompa", pies: "Pies" };
 const PRENDAS_ELEFANTE = [
-  { id: "gorro", slot: "cabeza", n: "Gorro de lana", c: 150, compra: "acc-gorro", svg: `<path d="M150 67 C152 30 218 30 222 67 Z" fill="#E8563A"/><rect x="146" y="60" width="80" height="13" rx="6.5" fill="#C63F26"/><path d="M152 66 h72" stroke="#E8563A" stroke-width="2" stroke-dasharray="3 4"/><circle cx="186" cy="29" r="9" fill="#FFE3D9"/>` },
-  { id: "jockey", slot: "cabeza", n: "Jockey", c: 200, svg: `<path d="M150 69 C152 36 218 36 222 69 Z" fill="#17C3B2"/><path d="M186 37 V69" stroke="#0F8F83" stroke-width="2" opacity=".6"/><path d="M212 62 C232 56 252 62 250 70 C236 74 222 73 212 70 Z" fill="#0F8F83"/><circle cx="186" cy="38" r="3.5" fill="#0F8F83"/>` },
-  { id: "casco", slot: "cabeza", n: "Casco de exploración", c: 250, svg: `<ellipse cx="186" cy="67" rx="52" ry="9" fill="#B9955A"/><path d="M152 66 C153 32 219 32 220 66 Z" fill="#D8B77A"/><rect x="152" y="58" width="68" height="7" fill="#8C6A36"/>` },
-  { id: "corona", slot: "cabeza", n: "Corona", gana: "Llega a Sabio (12.000 XP)", tiene: s => (s.gamif.xp || 0) >= 12000, svg: `<path d="M160 60 L164 33 L176 49 L186 26 L196 49 L208 33 L212 60 Z" fill="#F2C24B" stroke="#C99420" stroke-width="2" stroke-linejoin="round"/><rect x="159" y="56" width="54" height="8" rx="3" fill="#E0AE2E"/><circle cx="186" cy="45" r="3.5" fill="#E8563A"/><circle cx="170" cy="52" r="2.5" fill="#17C3B2"/><circle cx="202" cy="52" r="2.5" fill="#17C3B2"/>` },
-  { id: "lectura", slot: "ojos", n: "Lentes de lectura", c: 250, svg: `<circle cx="199" cy="88" r="11.5" fill="rgba(255,255,255,.18)" stroke="#2A2F3A" stroke-width="3"/><path d="M187.5 86 L166 83" stroke="#2A2F3A" stroke-width="3" stroke-linecap="round"/>` },
-  { id: "sol", slot: "ojos", n: "Lentes de sol", c: 250, compra: "acc-lentes", svg: `<rect x="185" y="79" width="28" height="18" rx="8" fill="#1D2330"/><path d="M186 85 L166 82" stroke="#1D2330" stroke-width="3.5" stroke-linecap="round"/><path d="M191 84 l8 -2" stroke="#8FE3DA" stroke-width="2.5" stroke-linecap="round"/>` },
-  { id: "bufanda", slot: "cuello", n: "Bufanda", c: 200, compra: "acc-bufanda", svg: `<path d="M142 122 C160 136 192 136 208 124 L211 139 C192 150 158 150 139 136 Z" fill="#E8563A"/><path d="M152 132 l3 12 M166 136 l2 12 M180 137 l1 12 M194 134 l0 11" stroke="#FFD2C5" stroke-width="3" opacity=".8"/><path d="M153 139 L147 172 L162 173 L165 141 Z" fill="#C63F26"/>` },
-  { id: "humita", slot: "cuello", n: "Humita", c: 200, svg: `<path d="M186 140 L170 131 L170 150 Z M186 140 L202 131 L202 150 Z" fill="#17C3B2"/><circle cx="186" cy="140" r="5" fill="#0F8F83"/>` },
-  { id: "medalla", slot: "cuello", n: "Medalla", gana: "Gana una insignia de oro", tiene: s => (s.gamif.badges || []).some(b => /-o$/.test(b)), svg: `<path d="M172 126 L186 152 L200 126" stroke="#17C3B2" stroke-width="6" fill="none" stroke-linejoin="round"/><circle cx="186" cy="158" r="11" fill="#F2C24B" stroke="#C99420" stroke-width="2"/>` },
-  { id: "mochila", slot: "espalda", n: "Mochila", c: 400, compra: "acc-mochila", svg: `<rect x="76" y="84" width="50" height="48" rx="13" fill="#0F8F83"/><rect x="84" y="104" width="34" height="20" rx="7" fill="#17C3B2"/><path d="M121 96 C138 104 146 118 148 134" stroke="#0B6F66" stroke-width="5" fill="none" stroke-linecap="round"/>` },
-  { id: "capa", slot: "espalda", n: "Capa", c: 600, detras: true, svg: `<path d="M170 104 C150 80 98 78 66 98 C40 116 32 168 38 208 C66 198 96 200 120 208 C122 170 142 136 170 122 Z" fill="#6B4BD6"/><path d="M76 94 C100 84 136 84 160 96" stroke="#8C72F0" stroke-width="4" fill="none" stroke-linecap="round"/>` },
-  { id: "taza", slot: "trompa", n: "Taza de café", c: 150, svg: `<path d="M233 196 C234 186 250 186 251 196 L249 210 C248 214 236 214 235 210 Z" fill="#FFFFFF" stroke="#C8D3DE" stroke-width="1.5"/><rect x="235" y="198" width="15" height="4" fill="#E8563A"/><path d="M250 198 C257 198 257 207 249 206" stroke="#C8D3DE" stroke-width="3" fill="none"/>` },
-  { id: "libro", slot: "trompa", n: "Libro", c: 200, svg: `<g transform="rotate(-12 243 200)"><rect x="228" y="190" width="30" height="22" rx="3" fill="#E8563A"/><rect x="231" y="193" width="24" height="16" rx="2" fill="#FFF3EC"/><path d="M243 193 v16" stroke="#E8563A" stroke-width="2"/></g>` },
-  { id: "pesa", slot: "trompa", n: "Pesa", c: 200, svg: `<rect x="226" y="198" width="34" height="5" rx="2.5" fill="#6A7F95"/><rect x="224" y="190" width="8" height="21" rx="3" fill="#2A2F3A"/><rect x="254" y="190" width="8" height="21" rx="3" fill="#2A2F3A"/>` },
-  { id: "zapatillas", slot: "pies", n: "Zapatillas", c: 300, svg: `<path d="M54 208 C54 200 86 200 88 208 L90 218 C90 222 52 222 52 218 Z" fill="#17C3B2"/><path d="M52 216 h38" stroke="#fff" stroke-width="4"/><path d="M146 208 C146 200 178 200 180 208 L182 218 C182 222 144 222 144 218 Z" fill="#17C3B2"/><path d="M144 216 h38" stroke="#fff" stroke-width="4"/>` },
+  { id: "gorro", vb: "140 16 94 62", slot: "cabeza", n: "Gorro de lana", c: 150, compra: "acc-gorro", svg: `<path d="M150 67 C152 30 218 30 222 67 Z" fill="#E8563A"/><rect x="146" y="60" width="80" height="13" rx="6.5" fill="#C63F26"/><path d="M152 66 h72" stroke="#E8563A" stroke-width="2" stroke-dasharray="3 4"/><circle cx="186" cy="29" r="9" fill="#FFE3D9"/>` },
+  { id: "jockey", vb: "142 28 116 50", slot: "cabeza", n: "Jockey", c: 200, svg: `<path d="M150 69 C152 36 218 36 222 69 Z" fill="#17C3B2"/><path d="M186 37 V69" stroke="#0F8F83" stroke-width="2" opacity=".6"/><path d="M212 62 C232 56 252 62 250 70 C236 74 222 73 212 70 Z" fill="#0F8F83"/><circle cx="186" cy="38" r="3.5" fill="#0F8F83"/>` },
+  { id: "casco", vb: "128 26 116 54", slot: "cabeza", n: "Casco de exploración", c: 250, svg: `<ellipse cx="186" cy="67" rx="52" ry="9" fill="#B9955A"/><path d="M152 66 C153 32 219 32 220 66 Z" fill="#D8B77A"/><rect x="152" y="58" width="68" height="7" fill="#8C6A36"/>` },
+  { id: "corona", vb: "152 20 68 48", slot: "cabeza", n: "Corona", gana: "Llega a Sabio (12.000 XP)", tiene: s => (s.gamif.xp || 0) >= 12000, svg: `<path d="M160 60 L164 33 L176 49 L186 26 L196 49 L208 33 L212 60 Z" fill="#F2C24B" stroke="#C99420" stroke-width="2" stroke-linejoin="round"/><rect x="159" y="56" width="54" height="8" rx="3" fill="#E0AE2E"/><circle cx="186" cy="45" r="3.5" fill="#E8563A"/><circle cx="170" cy="52" r="2.5" fill="#17C3B2"/><circle cx="202" cy="52" r="2.5" fill="#17C3B2"/>` },
+  { id: "lectura", vb: "160 72 56 32", slot: "ojos", n: "Lentes de lectura", c: 250, svg: `<circle cx="199" cy="88" r="11.5" fill="rgba(255,255,255,.18)" stroke="#2A2F3A" stroke-width="3"/><path d="M187.5 86 L166 83" stroke="#2A2F3A" stroke-width="3" stroke-linecap="round"/>` },
+  { id: "sol", vb: "160 74 58 28", slot: "ojos", n: "Lentes de sol", c: 250, compra: "acc-lentes", svg: `<rect x="185" y="79" width="28" height="18" rx="8" fill="#1D2330"/><path d="M186 85 L166 82" stroke="#1D2330" stroke-width="3.5" stroke-linecap="round"/><path d="M191 84 l8 -2" stroke="#8FE3DA" stroke-width="2.5" stroke-linecap="round"/>` },
+  { id: "bufanda", vb: "132 116 84 62", slot: "cuello", n: "Bufanda", c: 200, compra: "acc-bufanda", svg: `<path d="M142 122 C160 136 192 136 208 124 L211 139 C192 150 158 150 139 136 Z" fill="#E8563A"/><path d="M152 132 l3 12 M166 136 l2 12 M180 137 l1 12 M194 134 l0 11" stroke="#FFD2C5" stroke-width="3" opacity=".8"/><path d="M153 139 L147 172 L162 173 L165 141 Z" fill="#C63F26"/>` },
+  { id: "humita", vb: "164 126 44 30", slot: "cuello", n: "Humita", c: 200, svg: `<path d="M186 140 L170 131 L170 150 Z M186 140 L202 131 L202 150 Z" fill="#17C3B2"/><circle cx="186" cy="140" r="5" fill="#0F8F83"/>` },
+  { id: "medalla", vb: "164 120 44 54", slot: "cuello", n: "Medalla", gana: "Gana una insignia de oro", tiene: s => (s.gamif.badges || []).some(b => /-o$/.test(b)), svg: `<path d="M172 126 L186 152 L200 126" stroke="#17C3B2" stroke-width="6" fill="none" stroke-linejoin="round"/><circle cx="186" cy="158" r="11" fill="#F2C24B" stroke="#C99420" stroke-width="2"/>` },
+  { id: "mochila", vb: "70 78 84 62", slot: "espalda", n: "Mochila", c: 400, compra: "acc-mochila", svg: `<rect x="76" y="84" width="50" height="48" rx="13" fill="#0F8F83"/><rect x="84" y="104" width="34" height="20" rx="7" fill="#17C3B2"/><path d="M121 96 C138 104 146 118 148 134" stroke="#0B6F66" stroke-width="5" fill="none" stroke-linecap="round"/>` },
+  { id: "capa", vb: "30 74 146 140", slot: "espalda", n: "Capa", c: 600, detras: true, svg: `<path d="M170 104 C150 80 98 78 66 98 C40 116 32 168 38 208 C66 198 96 200 120 208 C122 170 142 136 170 122 Z" fill="#6B4BD6"/><path d="M76 94 C100 84 136 84 160 96" stroke="#8C72F0" stroke-width="4" fill="none" stroke-linecap="round"/>` },
+  { id: "taza", vb: "224 162 38 56", slot: "trompa", n: "Taza de café", c: 150, svg: `<path d="M233 196 C234 186 250 186 251 196 L249 210 C248 214 236 214 235 210 Z" fill="#FFFFFF" stroke="#C8D3DE" stroke-width="1.5"/><rect x="235" y="198" width="15" height="4" fill="#E8563A"/><path d="M250 198 C257 198 257 207 249 206" stroke="#C8D3DE" stroke-width="3" fill="none"/>` },
+  { id: "libro", vb: "222 182 44 38", slot: "trompa", n: "Libro", c: 200, svg: `<g transform="rotate(-12 243 200)"><rect x="228" y="190" width="30" height="22" rx="3" fill="#E8563A"/><rect x="231" y="193" width="24" height="16" rx="2" fill="#FFF3EC"/><path d="M243 193 v16" stroke="#E8563A" stroke-width="2"/></g>` },
+  { id: "pesa", vb: "218 184 48 32", slot: "trompa", n: "Pesa", c: 200, svg: `<rect x="226" y="198" width="34" height="5" rx="2.5" fill="#6A7F95"/><rect x="224" y="190" width="8" height="21" rx="3" fill="#2A2F3A"/><rect x="254" y="190" width="8" height="21" rx="3" fill="#2A2F3A"/>` },
+  { id: "zapatillas", vb: "46 194 142 32", slot: "pies", n: "Zapatillas", c: 300, svg: `<path d="M54 208 C54 200 86 200 88 208 L90 218 C90 222 52 222 52 218 Z" fill="#17C3B2"/><path d="M52 216 h38" stroke="#fff" stroke-width="4"/><path d="M146 208 C146 200 178 200 180 208 L182 218 C182 222 144 222 144 218 Z" fill="#17C3B2"/><path d="M144 216 h38" stroke="#fff" stroke-width="4"/>` },
 ];
 PRENDAS_ELEFANTE.forEach(p => { if (!p.gana && !p.compra) p.compra = "ele-" + p.id; });
 function prendaElefante(id) { return PRENDAS_ELEFANTE.find(p => p.id === id); }
 function tienePrenda(p, S) {
   S = S || STATE;
-  if (p.tiene) return !!p.tiene(S);
-  return ((S.gamif && S.gamif.owned) || []).includes(p.compra);
+  const owned = (S.gamif && S.gamif.owned) || [];
+  if (p.tiene) return !!p.tiene(S) || owned.includes("ele-" + p.id);   // ganada (o desbloqueada para la cuenta dueña)
+  return owned.includes(p.compra);
 }
 
 /* -------- Estado: gamif.equipped.ele = { tipo, ropa: { espacio: prenda }, ts } -------- */
@@ -234,7 +235,7 @@ function eleMejorRacha(s) {
 function tipoDesbloqueado(id, S) {
   S = S || STATE;
   const T = TIPOS_ELEFANTE[id]; if (!T) return false;
-  if (T.inicio) return true;
+  if (T.inicio || ((S.gamif && S.gamif.owned) || []).includes("ele-tipo-" + id)) return true;
   return ((S.gamif && S.gamif.ledger) || []).some(m => m && m.id === "hito:elefante:" + id && !m.anulado);
 }
 /* Revisa las metas; devuelve los tipos recién desbloqueados */
@@ -306,14 +307,16 @@ function elegirTipoElefante(id) {
   saveState(); closeModal(); rerender();
   toast(primera ? `🐘 ¡Bienvenido, tu elefante ${TIPOS_ELEFANTE[id].n}!` : `🐘 Ahora tu elefante es ${TIPOS_ELEFANTE[id].n}`);
 }
-let ELE_PRUEBA = null;   // { slot, id }: prenda que te estás probando en el probador
+let ELE_PRUEBA = null;     // id de la prenda que te estás probando (sin comprar)
+let ELE_ESPACIO = "cabeza"; // espacio abierto en el vestidor
 function probarPrenda(id) {
   const p = prendaElefante(id); if (!p) return;
-  const ropa = eleEstado().ropa;
+  ELE_ESPACIO = p.slot;
   if (tienePrenda(p)) {   // la tienes: se pone o se saca
+    const ropa = eleEstado().ropa;
     eleTocar().ropa[p.slot] = ropa[p.slot] === id ? null : id;
     ELE_PRUEBA = null; saveState(); rerender();
-  } else ELE_PRUEBA = ELE_PRUEBA && ELE_PRUEBA.id === id ? null : { slot: p.slot, id };
+  } else ELE_PRUEBA = ELE_PRUEBA === id ? null : id;
   openElefante("ropa");
 }
 function comprarPrenda(id) {
@@ -328,6 +331,8 @@ function comprarPrenda(id) {
   toast(`👕 ${p.n} para tu elefante`);
 }
 function quitarEspacio(slot) { eleTocar().ropa[slot] = null; ELE_PRUEBA = null; saveState(); rerender(); openElefante("ropa"); }
+function espacioElefante(slot) { if (ESPACIOS_ELEFANTE[slot]) { ELE_ESPACIO = slot; openElefante("ropa"); } }
+function cancelarPrueba() { ELE_PRUEBA = null; openElefante("ropa"); }
 
 /* Al abrir la app o en cada render: nuevos tipos desbloqueados */
 function avisarElefantes() {
@@ -372,41 +377,54 @@ function renderElefanteCard() {
         <button class="btn-ghost" data-action="elefante-open" data-v="ropa" style="padding:4px 10px">👕 Vestir</button>
         <button class="btn-ghost" data-action="elefante-open" data-v="tipo" style="padding:4px 10px">🐘 Tipos</button></div></div></div></div>`;
 }
+/* Dibujo de una prenda sola (para su ficha en el vestidor) */
+function prendaMini(p) { return `<svg viewBox="${p.vb || "0 0 260 240"}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${p.svg}</svg>`; }
+const ICONO_ESPACIO = { cabeza: "gorro", ojos: "sol", cuello: "bufanda", espalda: "mochila", trompa: "taza", pies: "zapatillas" };
+
 function openElefante(tab) {
   tab = tab === "tipo" ? "tipo" : "ropa";
-  const ropa = Object.assign({}, ropaPuesta());
-  if (tab === "ropa" && ELE_PRUEBA) ropa[ELE_PRUEBA.slot] = ELE_PRUEBA.id;
-  const prueba = tab === "ropa" && ELE_PRUEBA && prendaElefante(ELE_PRUEBA.id);
-  const T = TIPOS_ELEFANTE[tipoElefante()];
-  const tabs = `<div class="seg" style="margin-bottom:12px"><button class="${tab === "ropa" ? "is-active" : ""}" data-action="elefante-open" data-v="ropa">👕 Ropa</button><button class="${tab === "tipo" ? "is-active" : ""}" data-action="elefante-open" data-v="tipo">🐘 Tipos</button></div>`;
-  let cuerpo;
+  const puesta = ropaPuesta(), ropa = Object.assign({}, puesta);
+  const prueba = tab === "ropa" && ELE_PRUEBA ? prendaElefante(ELE_PRUEBA) : null;
+  if (prueba) ropa[prueba.slot] = prueba.id;
+  const T = TIPOS_ELEFANTE[tipoElefante()], animo = animoElefante();
+  const tabs = `<div class="seg vest-tabs"><button class="${tab === "ropa" ? "is-active" : ""}" data-action="elefante-open" data-v="ropa">👕 Ropa</button><button class="${tab === "tipo" ? "is-active" : ""}" data-action="elefante-open" data-v="tipo">🐘 Tipos</button></div>`;
+  const escenario = `<div class="vest-escena ${T.papel ? "papel" : ""}">${elefanteSVG({ ropa })}</div>
+    <div class="vest-nombre"><b>${nombreElefante()}</b><span class="chip">${animo === "feliz" ? "😊 Feliz" : animo === "sueno" ? "😴 Con sueño" : "🙂 Normal"}</span></div>`;
+  let panel;
   if (tab === "ropa") {
-    cuerpo = Object.entries(ESPACIOS_ELEFANTE).map(([sl, nom]) => `<div class="ele-slot"><div class="text-xs muted ele-slot__t">${nom}</div><div class="row-wrap" style="gap:6px">
-      ${PRENDAS_ELEFANTE.filter(p => p.slot === sl).map(p => {
-        const tiene = tienePrenda(p), puesta = ropa[sl] === p.id;
-        const etiqueta = tiene ? "" : p.gana ? ` <small class="muted">🔒</small>` : ` <small class="muted">${p.c} ⭐</small>`;
-        return `<button type="button" class="chip ${puesta ? "chip--cian" : ""} ${tiene ? "" : "is-no"}" data-action="ele-probar" data-id="${p.id}" aria-pressed="${puesta}">${p.n}${etiqueta}</button>`;
-      }).join("")}${ropa[sl] && !prueba ? `<button type="button" class="chip" data-action="ele-quitar" data-slot="${sl}">Quitar</button>` : ""}</div></div>`).join("");
-    const aviso = prueba ? `<div class="ele-prueba">${prueba.gana
-        ? `<span>🔒 ${escapeHtml(prueba.n)}: ${escapeHtml(prueba.gana)}.</span>`
-        : `<span>Te estás probando <b>${escapeHtml(prueba.n)}</b>.</span><button class="btn btn--primary" data-action="ele-comprar" data-id="${prueba.id}">Comprar · ${prueba.c} ⭐</button>`}</div>` : "";
-    cuerpo = aviso + cuerpo + `<p class="text-xs muted mt-8">Toca una prenda para probártela. Las que ya tienes se ponen y se sacan con un toque.</p>`;
+    const slot = ESPACIOS_ELEFANTE[ELE_ESPACIO] ? ELE_ESPACIO : "cabeza";
+    const pestañas = Object.entries(ESPACIOS_ELEFANTE).map(([sl, nom]) => {
+      const p = prendaElefante(puesta[sl]);
+      return `<button type="button" class="vest-esp ${sl === slot ? "is-on" : ""}" data-action="ele-espacio" data-slot="${sl}" aria-pressed="${sl === slot}">
+        <span class="vest-esp__ico">${prendaMini(p || prendaElefante(ICONO_ESPACIO[sl]))}</span><span>${nom}</span>${p ? '<i class="vest-esp__dot" aria-label="con ropa"></i>' : ""}</button>`;
+    }).join("");
+    const fichas = PRENDAS_ELEFANTE.filter(p => p.slot === slot).map(p => {
+      const tiene = tienePrenda(p), on = puesta[slot] === p.id, probando = prueba && prueba.id === p.id;
+      const estado = on ? `<span class="vest-tag is-on">✓ Puesta</span>` : tiene ? `<span class="vest-tag is-tuya">Tuya</span>`
+        : p.gana ? `<span class="vest-tag is-gana">🔒 Se gana</span>` : `<span class="vest-tag">${p.c} ⭐</span>`;
+      return `<button type="button" class="vest-ficha ${on ? "is-on" : ""} ${probando ? "is-prueba" : ""} ${tiene ? "" : "is-no"}" data-action="ele-probar" data-id="${p.id}" aria-pressed="${on || probando}">
+        <span class="vest-ficha__img">${prendaMini(p)}</span><span class="vest-ficha__n">${escapeHtml(p.n)}</span>${estado}</button>`;
+    }).join("");
+    let barra;
+    if (prueba && prueba.gana) barra = `<div class="vest-barra"><span>🔒 <b>${escapeHtml(prueba.n)}</b> · ${escapeHtml(prueba.gana)}.</span><button class="btn-ghost" data-action="ele-cancelar">Volver</button></div>`;
+    else if (prueba) barra = `<div class="vest-barra is-compra"><span>Te estás probando <b>${escapeHtml(prueba.n)}</b></span><div class="row" style="gap:8px"><button class="btn-ghost" data-action="ele-cancelar">Sacar</button><button class="btn btn--primary" data-action="ele-comprar" data-id="${prueba.id}">Comprar · ${prueba.c} ⭐</button></div></div>`;
+    else if (puesta[slot]) barra = `<div class="vest-barra"><span>Lleva <b>${escapeHtml(prendaElefante(puesta[slot]).n)}</b></span><button class="btn-ghost" data-action="ele-quitar" data-slot="${slot}">Quitar</button></div>`;
+    else barra = `<div class="vest-barra is-suave"><span>Toca una prenda para probártela.</span><span class="text-xs muted">⭐ ${STATE.gamif.puntos}</span></div>`;
+    panel = `<div class="vest-espacios" role="group" aria-label="Espacios del cuerpo">${pestañas}</div>
+      <div class="vest-grid">${fichas}</div>${barra}`;
   } else {
     const etapa = etapaElefante(STATE.gamif.xp || 0).idx;
-    cuerpo = `<div class="ele-tipos">${Object.entries(TIPOS_ELEFANTE).map(([id, X]) => {
+    panel = `<div class="ele-tipos">${Object.entries(TIPOS_ELEFANTE).map(([id, X]) => {
       const ok = tipoDesbloqueado(id), actual = tipoElefante() === id && eleEstado().tipo, pr = progresoTipo(id);
       return `<div class="ele-tipo ${actual ? "is-actual" : ""} ${ok ? "" : "is-lock"}">
-        <div class="ele-lienzo ${X.papel ? "papel" : ""}">${elefanteSVG({ tipo: id, etapa, animo: "normal", anim: false, ropa: ok ? ropaPuesta() : {} })}</div>
+        <div class="ele-lienzo ${X.papel ? "papel" : ""}">${elefanteSVG({ tipo: id, etapa, animo: "normal", anim: false, ropa: ok ? puesta : {} })}</div>
         <b class="text-sm">${X.n}</b>
         ${ok ? (actual ? `<span class="chip chip--cian">✓ Es el tuyo</span>` : `<button class="btn btn--cian btn-block" data-action="ele-tipo" data-id="${id}">Elegir</button>`)
           : `<div class="text-xs muted">🔒 ${X.gana}</div><div class="bar"><div class="bar__fill" style="width:${pr.pct}%"></div></div><div class="text-xs muted">${pr.v}/${pr.meta} ${X.unidad}</div>`}
       </div>`; }).join("")}</div>
       <p class="text-xs muted mt-8">Cambiar entre los que tienes es gratis: conservas la etapa y la ropa.</p>`;
   }
-  openModal("🐘 Tu elefante", `
-    <div class="ele-probador ${T.papel ? "papel" : ""}">${elefanteSVG({ ropa })}</div>
-    <div class="text-sm soft" style="text-align:center;margin:6px 0 12px"><b>${nombreElefante()}</b></div>
-    ${tabs}${cuerpo}`);
+  openModal("🐘 Tu elefante", `<div class="vestidor"><div class="vest-izq">${escenario}</div><div class="vest-der">${tabs}${panel}</div></div>`, { ancho: true });
 }
 function renderElefanteTienda() {
   const sinTener = PRENDAS_ELEFANTE.filter(p => !p.gana && !tienePrenda(p)).length;

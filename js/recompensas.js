@@ -96,7 +96,7 @@ const DETALLES = [
 ];
 function findCosmetic(id) { return TITULOS.concat(DETALLES, typeof COSMETICOS !== "undefined" ? COSMETICOS : []).find(c => c.id === id); }
 function isOwned(id) {
-  if (id === "mar-diamante") return (STATE.gamif.xp || 0) >= 7000;   // 💎 llega con el rango Élite, no se compra
+  if (id === "mar-diamante" && (STATE.gamif.xp || 0) >= 7000) return true;   // 💎 llega con el rango Élite, no se compra
   return (STATE.gamif.owned || []).includes(id);
 }
 

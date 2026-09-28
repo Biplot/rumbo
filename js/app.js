@@ -116,7 +116,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 10;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 11;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -224,6 +224,13 @@ const NOVEDADES = {
   ],
   10: [
     ["📆", "Google Calendar", "Conecta tu Google Calendar y ve tus reuniones junto a tus tareas: en Inicio, en Semana, en Calendario y al abrir tu día. Solo lectura: Rumbo nunca cambia nada en tu calendario. En Calendario → Conectar."],
+  ],
+  11: [
+    ["🛒", "Tienda nueva", "Tus ⭐ ahora valen mucho más: útiles para tu racha, funciones nuevas, temas, cosméticos y accesorios para tu elefante."],
+    ["🛡️", "Útiles para tu racha", "Protector de racha (se usa solo), día libre, rescate de cierre hasta las 23:59, pase de hábito y reabrir un día de la última semana."],
+    ["⏱️", "Modo enfoque y más", "Temporizador ligado a tu primer bocado, pronóstico de la semana, comparar meses, informe del año, plantillas de rutina y aviso de mediodía."],
+    ["🎨", "6 temas nuevos", "Atardecer, Océano, Cuaderno, Terminal, Sakura y Alto contraste (gratis, para leer mejor). Además: celebraciones, checks, sonidos y marcos para tu avatar."],
+    ["🐘", "Tu elefante e insignias con niveles", "Un elefante que crece con tu constancia, 16 insignias nuevas (algunas secretas) y series de bronce, plata y oro."],
   ],
 };
 function openNovedades() {

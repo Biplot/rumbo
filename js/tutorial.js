@@ -109,8 +109,17 @@ const TOURS = {
     icon: "🏆", titulo: "Recompensas", desc: "Rango, insignias y la Tienda.",
     pasos: [
       { ruta: "recompensas", el: ".rank-ladder", titulo: "Tu rango", texto: "La XP mide tu rango y <b>nunca baja</b>, aunque gastes monedas." },
-      { ruta: "recompensas", el: ".badge-card", titulo: "Insignias", texto: "Se desbloquean con tus logros y cada una da ⭐. Destaca tu favorita en Inicio." },
-      { ruta: "recompensas", el: { sel: "#view .card", txt: "gastar" }, titulo: "La Tienda", texto: "Gasta tus ⭐ en temas, títulos y detalles." },
+      { ruta: "recompensas", el: ".ele-card", titulo: "Tu elefante", texto: "Crece con tu XP: de cría a sabio 👑. Si dejas de cerrar días le da sueño, pero nunca retrocede." },
+      { ruta: "recompensas", el: ".badge-card", titulo: "Insignias", texto: "Se desbloquean con tus logros y cada una da ⭐. Algunas tienen bronce, plata y oro, y hay secretas." },
+      { ruta: "recompensas", el: { sel: "#view .card", txt: "gastar" }, titulo: "La Tienda", texto: "Gasta tus ⭐ en útiles, funciones, temas y cosméticos." },
+    ],
+  },
+  tienda: {
+    icon: "🛒", titulo: "Tienda", desc: "Útiles, funciones, temas y cosméticos.",
+    pasos: [
+      { ruta: "tienda", el: "[data-util]", titulo: "Útiles", texto: "Se usan y se vuelven a comprar: el <b>protector</b> cuida tu racha solo, el <b>día libre</b> la pausa, y el rescate, el pase y reabrir te sacan de apuros." },
+      { ruta: "tienda", el: "[data-fun]", titulo: "Funciones", texto: "Se desbloquean una vez: modo enfoque, pronóstico de la semana, comparar meses y más." },
+      { ruta: "tienda", el: ".theme-card", titulo: "Temas y cosméticos", texto: "Toca la miniatura para ver un tema antes de comprarlo. Alto contraste es gratis." },
     ],
   },
 };

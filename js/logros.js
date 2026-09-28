@@ -6,6 +6,14 @@
    ============================================================ */
 
 /* -------- Métricas -------- */
+/* checkBadges corre en cada render: las métricas que recorren toda la agenda se recuerdan 30 s por estado */
+const LG_CACHE = new WeakMap();
+function lg_memo(s, clave, fn) {
+  let m = LG_CACHE.get(s); if (!m) { m = new Map(); LG_CACHE.set(s, m); }
+  const c = m.get(clave), ahora = Date.now();
+  if (c && ahora - c.t < 30000) return c.v;
+  const v = fn(s); m.set(clave, { t: ahora, v }); return v;
+}
 function lg_dias(s) { return Object.entries(s.ritual.dias || {}).filter(([, r]) => r); }
 function lg_hora(ts) { const d = new Date(ts); return d.getHours() + d.getMinutes() / 60; }
 function lg_mismoDia(ts, iso) { return !!ts && isoLocal(new Date(ts)) === iso; }
@@ -14,13 +22,14 @@ function lg_noche(s) { return lg_dias(s).filter(([iso, r]) => r.cerrado && r.cer
 function lg_buho(s) { return lg_dias(s).some(([iso, r]) => r.cerrado && r.cerradoTs && lg_mismoDia(r.cerradoTs, iso) && lg_hora(r.cerradoTs) >= 23 + 55 / 60); }
 function lg_express(s) { return lg_dias(s).filter(([, r]) => r.cerrado && r.express && r.express.cierre).length; }
 function lg_tareas(s, filtro) { let n = 0; Object.keys(agendaDias(s)).forEach(iso => { n += tareasDelDia(iso, s).filter(filtro).length; }); return n; }
-function lg_delegadas(s) { return lg_tareas(s, t => estadoTarea(t) === "delegada"); }
-function lg_soltadas(s) { return lg_tareas(s, t => estadoTarea(t) === "soltada"); }
-function lg_domadas(s) { return lg_tareas(s, t => estadoTarea(t) === "hecha" && (t.migraciones || 0) >= CRONICA); }
+function lg_delegadas(s) { return lg_memo(s, "delegadas", x => lg_tareas(x, t => estadoTarea(t) === "delegada")); }
+function lg_soltadas(s) { return lg_memo(s, "soltadas", x => lg_tareas(x, t => estadoTarea(t) === "soltada")); }
+function lg_domadas(s) { return lg_memo(s, "domadas", x => lg_tareas(x, t => estadoTarea(t) === "hecha" && (t.migraciones || 0) >= CRONICA)); }
 function lg_libros(s) { return (s.lecturas || []).filter(l => l.estado === "terminado").length; }
 function lg_compartidos(s) { return ((s.gamif && s.gamif.ledger) || []).filter(m => m && !m.anulado && String(m.id).startsWith("hito:compartir:")).length; }
 /* Bandeja Cero: una semana pasada con 5+ tareas, todas resueltas y ninguna arrastrada de días anteriores */
-function lg_bandejaCero(s) {
+function lg_bandejaCero(s) { return lg_memo(s, "bandeja", lg_bandejaCero_); }
+function lg_bandejaCero_(s) {
   let l = agLunes(agSumar(todayISO(), -7));
   for (let i = 0; i < 12; i++, l = agSumar(l, -7)) {
     const ts = Array.from({ length: 7 }, (_, k) => tareasDelDia(agSumar(l, k), s)).flat();
@@ -29,7 +38,8 @@ function lg_bandejaCero(s) {
   return false;
 }
 /* Capacidad Real: 5 días seguidos planificando dentro de tu capacidad y cumpliéndolo todo */
-function lg_capacidadReal(s) {
+function lg_capacidadReal(s) { return lg_memo(s, "capacidad", lg_capacidadReal_); }
+function lg_capacidadReal_(s) {
   let seguidos = 0;
   for (let b = 120; b >= 1; b--) {
     const iso = agSumar(todayISO(), -b), d = tmDia(s, iso), cap = tmCapacidad(s, iso);
@@ -45,7 +55,8 @@ function lg_habitoHierro(s) {
   return Object.values(n).some(x => x >= 66);
 }
 /* Todo Verde: un mes ya terminado con todos tus hábitos en su objetivo */
-function lg_todoVerde(s) {
+function lg_todoVerde(s) { return lg_memo(s, "verde", lg_todoVerde_); }
+function lg_todoVerde_(s) {
   const h = agDate(todayISO());
   for (let i = 1; i <= 14; i++) {
     const d = new Date(h.getFullYear(), h.getMonth() - i, 1), desde = isoLocal(d), hasta = isoLocal(new Date(d.getFullYear(), d.getMonth() + 1, 0));

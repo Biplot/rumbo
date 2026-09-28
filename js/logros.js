@@ -6,13 +6,15 @@
    ============================================================ */
 
 /* -------- Métricas -------- */
-/* checkBadges corre en cada render: las métricas que recorren toda la agenda se recuerdan 30 s por estado */
+/* checkBadges corre en cada render: las métricas que recorren toda la agenda se recuerdan hasta 30 s por estado,
+   y se recalculan apenas cambia el ledger (marcar una tarea, cerrar el día…) */
 const LG_CACHE = new WeakMap();
+function lg_huella(s) { const L = (s.gamif && s.gamif.ledger) || []; let t = 0; for (const m of L) t = (t + (m.ts || 0) + (m.anulado ? 7 : 0)) % 2147483647; return L.length + ":" + t; }
 function lg_memo(s, clave, fn) {
   let m = LG_CACHE.get(s); if (!m) { m = new Map(); LG_CACHE.set(s, m); }
-  const c = m.get(clave), ahora = Date.now();
-  if (c && ahora - c.t < 30000) return c.v;
-  const v = fn(s); m.set(clave, { t: ahora, v }); return v;
+  const c = m.get(clave), ahora = Date.now(), h = lg_huella(s);
+  if (c && c.h === h && ahora - c.t < 30000) return c.v;
+  const v = fn(s); m.set(clave, { t: ahora, h, v }); return v;
 }
 function lg_dias(s) { return Object.entries(s.ritual.dias || {}).filter(([, r]) => r); }
 function lg_hora(ts) { const d = new Date(ts); return d.getHours() + d.getMinutes() / 60; }

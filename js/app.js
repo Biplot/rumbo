@@ -1138,7 +1138,10 @@ function themeOwned(id) {
 }
 /* Cuenta dueña: desbloquea todos los temas automáticamente al entrar.
    El correo va encriptado (hash), no en texto plano, para no exponerlo. */
-/* Cuentas dueñas (hash del correo, nunca el correo en claro): todo desbloqueado para revisar la app */
+/* Cuentas dueñas (hash del correo, nunca el correo en claro): todo lo que se COMPRA queda desbloqueado.
+   Lo que se GANA con logros (tipos de elefante, corona, medalla, marco Diamante) se gana como todos,
+   salvo el Mamut. */
+const OWNER_SIN_PERK = ["mar-diamante", "ele-corona", "ele-medalla", "ele-tipo-peluche", "ele-tipo-geometrico", "ele-tipo-tinta"];
 const OWNER_HASHES = ["h1805468134", "h3574416572"];
 function esCuentaDuena() {
   return !!(CURRENT_USER && CURRENT_USER.email && typeof _hash === "function" && OWNER_HASHES.includes(_hash(CURRENT_USER.email.trim().toLowerCase())));
@@ -1156,8 +1159,8 @@ function grantOwnerPerks() {
       ...(typeof PLANTILLAS !== "undefined" ? PLANTILLAS.map(p => "fun-plantilla-" + p.id) : []),
       ...(typeof PACKS_ICONOS !== "undefined" ? PACKS_ICONOS.map(p => "fun-iconos-" + p.id) : []),
       ...(typeof PRENDAS_ELEFANTE !== "undefined" ? PRENDAS_ELEFANTE.map(p => p.compra || "ele-" + p.id) : []),
-      ...(typeof TIPOS_ELEFANTE !== "undefined" ? Object.keys(TIPOS_ELEFANTE).map(t => "ele-tipo-" + t) : []),
-    ]));
+      "ele-tipo-mamut",
+    ])).filter(id => !OWNER_SIN_PERK.includes(id));
     recalcGamif(STATE);
   } catch (e) {}
 }

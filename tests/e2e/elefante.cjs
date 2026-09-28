@@ -78,9 +78,10 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 5) Cuenta dueña: todo desbloqueado para revisar (tipos, ropa ganada, funciones y cosméticos)
   await p.evaluate(() => { closeModal(); OWNER_HASHES.push(_hash(CURRENT_USER.email.trim().toLowerCase())); grantOwnerPerks(); saveState(); rerender(); });
-  const d = await p.evaluate(() => ({ tipos: Object.keys(TIPOS_ELEFANTE).every(t => tipoDesbloqueado(t)), corona: tienePrenda(prendaElefante("corona")),
-    ropa: PRENDAS_ELEFANTE.every(x => tienePrenda(x)), enfoque: funcion("enfoque"), marco: isOwned("mar-aurora"), diamante: isOwned("mar-diamante"), titulo: isOwned("tit-lector") }));
-  ok(Object.values(d).every(Boolean), "la cuenta dueña tiene todo desbloqueado: " + JSON.stringify(d));
+  const d = await p.evaluate(() => ({ mamut: tipoDesbloqueado("mamut"), geometrico: !tipoDesbloqueado("geometrico"), corona: !tienePrenda(prendaElefante("corona")),
+    medalla: !tienePrenda(prendaElefante("medalla")), ropa: PRENDAS_ELEFANTE.filter(x => !x.gana).every(x => tienePrenda(x)), enfoque: funcion("enfoque"),
+    marco: isOwned("mar-aurora"), diamante: !isOwned("mar-diamante"), titulo: isOwned("tit-lector") }));
+  ok(Object.values(d).every(Boolean), "la cuenta dueña tiene todo lo que se compra y el Mamut, pero no lo que se gana: " + JSON.stringify(d));
 
   // 5) La imagen para compartir lleva tu elefante
   await p.evaluate(() => openInformeMes("2026-09")); await p.waitForTimeout(900);

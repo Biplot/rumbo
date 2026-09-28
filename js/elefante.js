@@ -217,7 +217,8 @@ function eleEstado(S) {
   return eq.ele;
 }
 function eleTocar(S) { const e = eleEstado(S); e.ts = Math.max(Date.now(), (e.ts || 0) + 1); return e; }
-function tipoElefante(S) { const t = eleEstado(S).tipo; return TIPOS_ELEFANTE[t] ? t : "clasico"; }
+/* Tipo que se muestra: el elegido, si sigue desbloqueado; si no, el Clásico (la elección se conserva) */
+function tipoElefante(S) { const t = eleEstado(S).tipo; return TIPOS_ELEFANTE[t] && tipoDesbloqueado(t, S) ? t : "clasico"; }
 /* Ropa puesta que la persona todavía tiene (una prenda ganada se puede perder de vista, nunca se cobra) */
 function ropaPuesta(S) {
   S = S || STATE;

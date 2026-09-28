@@ -29,6 +29,8 @@ export function avisoSemana(tipo, hoy, diaSem, semanas) {
    · tri-apertura: el día 2 del trimestre en la mañana (el 1 ya lleva el de apertura de mes),
      si aún no se abre; si el anterior tampoco se cerró, el aviso invita a hacer las dos cosas
    Devuelve { hora, clave, pendienteAnterior } o null si hoy no toca. */
+/* Día libre reservado en la Tienda (gamif.usos): ese día no se avisan los rituales diarios */
+export function esDiaLibre(usos, hoy) { return Array.isArray(usos) && usos.some(u => u && u.id === "libre:" + hoy && !u.anulado); }
 export function triClave(y, q) { return `${y}-Q${q}`; }
 export function avisoTrimestre(tipo, hoy, trimestres) {
   const y = +hoy.slice(0, 4), m = +hoy.slice(5, 7), d = +hoy.slice(8, 10), q = Math.ceil(m / 3);

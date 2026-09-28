@@ -154,8 +154,9 @@ function saveExpressCierre() {
   const elecciones = {};
   document.querySelectorAll(".xc-cron").forEach(el => { elecciones[el.dataset.id] = el.value; });
   const { nuevo, n } = aplicarCierreExpress(STATE, iso, { mood: parseNum(val("xc-mood")), gratitud: val("xc-gratitud"), elecciones });
-  const pagado = nuevo && registrarMovimiento("ritual-cierre:" + iso, EXPRESS_MONEDAS.cierre, EXPRESS_MONEDAS.cierre, "Cierre express", true);
+  const monedas = monedasCierre(iso, EXPRESS_MONEDAS.cierre);
+  const pagado = nuevo && registrarMovimiento("ritual-cierre:" + iso, monedas, monedas, "Cierre express", true);
   saveState(); closeModal(); updateTopbar(); rerender();
   const t = textoTriage(n);
-  toast(`⚡ Día cerrado${pagado ? ` · +${EXPRESS_MONEDAS.cierre} ⭐` : ""}${t ? " · " + t : ""}`);
+  toast(`⚡ Día cerrado${pagado ? ` · +${monedas} ⭐` : ""}${t ? " · " + t : ""}`);
 }

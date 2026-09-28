@@ -110,6 +110,7 @@ function defaultState() {
       owned: [],   // DERIVADO del ledger (compra:*) + perks: caché por compatibilidad
       perks: [],   // desbloqueos sin cobro (cuenta dueña); no generan movimientos
       ledger: [],  // libro de movimientos: [{ id, ts, delta, xp, motivo, anulado? }]
+      usos: [],    // consumibles usados: [{ id, tipo, fecha, hid?, ts, anulado? }] (ver consumibles.js)
       equipped: { titulo: null, insignia: null, acento: null, confeti: false },
     },
 
@@ -238,6 +239,7 @@ function migrate(s) {
     if (s.settings.theme === "bosque") s.settings.theme = "bosque-claro";
     if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "navy";
   }
+  if (s.gamif && !Array.isArray(s.gamif.usos)) s.gamif.usos = [];   // consumibles de la Tienda
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
   // Versión de la introducción vista: los existentes quedan en 1 (verán "Novedades" una vez)
   if (s.settings && s.settings.introVersion == null) s.settings.introVersion = s.settings.onboarded ? 1 : 0;
@@ -341,6 +343,17 @@ function ledgerMerge(a, b) {
     if (!o) { map.set(m.id, m); return; }
     if (m.id === SALDO_INICIAL) { if ((m.delta || 0) < (o.delta || 0)) map.set(m.id, m); return; }
     if ((m.ts || 0) > (o.ts || 0)) map.set(m.id, m);
+  });
+  return Array.from(map.values());
+}
+
+/* Fusión de usos de consumibles: por id, gana el ts más reciente */
+function usosMerge(a, b) {
+  const map = new Map();
+  [...(b || []), ...(a || [])].forEach(u => {
+    if (!u || u.id == null) return;
+    const o = map.get(u.id);
+    if (!o || (u.ts || 0) > (o.ts || 0)) map.set(u.id, u);
   });
   return Array.from(map.values());
 }

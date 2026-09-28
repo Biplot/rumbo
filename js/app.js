@@ -26,7 +26,7 @@ const ROUTES = [
   { id: "notas", mas: true, label: "Notas", icon: "📝", render: renderNotas, subtitle: "Captura rápida y notas organizadas por categoría." },
   { id: "recompensas", mas: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus insignias y la tienda de cosméticos." },
   { grupo: "Ajustes" },
-  { id: "tienda", label: "Tienda", icon: "🛒", render: renderTienda, subtitle: "Desbloquea temas, títulos y detalles con tus ⭐." },
+  { id: "tienda", label: "Tienda", icon: "🛒", render: renderTienda, subtitle: "Útiles, funciones y cosméticos para tus ⭐." },
   { id: "cuenta", label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
   { id: "notif", label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
   { id: "tutoriales", label: "Tutoriales", icon: "🎓", render: renderTutoriales, subtitle: "Recorridos guiados para aprender Rumbo a tu ritmo." },
@@ -62,7 +62,7 @@ async function boot() {
   window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
   // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube;
   // al ocultarla/cerrarla, subir de inmediato lo pendiente (no perder el cierre recién hecho).
-  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); } });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); revisarProtectores(); } });
   window.addEventListener("focus", () => syncFromCloud());
   window.addEventListener("pagehide", () => flushCloudSave());
   window.addEventListener("hashchange", onRoute);
@@ -108,6 +108,7 @@ async function enterApp(user) {
   document.getElementById("app").hidden = false;
   updateTopbar();
   onRoute();
+  revisarProtectores();   // 🛡️ protector de racha automático
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
   if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
   else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
@@ -603,7 +604,7 @@ function updateTopbar() {
 /* -------- Estado del día (ciclo apertura → cierre) -------- */
 function dayState() {
   const r = STATE.ritual.dias[todayISO()];
-  if (!r || !r.hecho) return "por-abrir";
+  if (!r || !r.hecho) return diaLibre(STATE, todayISO()) ? "libre" : "por-abrir";
   if (r.cerrado) return "cerrado";
   return new Date().getHours() >= 18 ? "por-cerrar" : "en-curso";
 }
@@ -636,7 +637,7 @@ function computeClosedStreak() {
     const iso = isoLocal(d);
     const r = STATE.ritual.dias[iso];
     if (r && r.cerrado) s++;
-    else if (b === 0) continue;
+    else if (b === 0 || diaCubierto(STATE, iso)) continue;   // hoy, día libre o protegido: no corta
     else break;
   }
   return s;
@@ -793,6 +794,15 @@ function onClick(e) {
     case "habit-layout": HABIT_LAYOUT = d.v; rerender(); break;
     case "habit-today": toggleHabitToday(d.id); break;
     case "habit-daycell": toggleHabitDate(d.id, +d.y, +d.m, +d.d); break;
+
+    /* Tienda · útiles (consumibles) */
+    case "util-buy": comprarConsumibleUI(d.id); break;
+    case "libre-open": openDiaLibre(); break;
+    case "libre-reservar": reservarDiaLibre(); break;
+    case "libre-cancelar": cancelarDiaLibre(d.fecha); break;
+    case "rescate-usar": usarRescate(); break;
+    case "pase-usar": usarPase(d.id); break;
+    case "reabrir-dia": usarReabrir(d.iso); break;
 
     /* Inicio: quick habit toggle hoy */
     case "quick-habit": toggleHabitToday(d.id); break;
@@ -1144,10 +1154,12 @@ function renderTienda() {
   <div class="card">
     <div class="flex-between" style="flex-wrap:wrap;gap:10px">
       <div><div class="card__title">🛒 Tienda</div>
-        <div class="text-sm muted mt-8">Gasta tus ⭐ en personalizar tu app. Todo mantiene la línea de marca BiPlot.</div></div>
+        <div class="text-sm muted mt-8">Gasta tus ⭐ en herramientas que te salvan la racha y en personalizar tu app.</div></div>
       <div class="pill pill--pts" style="font-size:16px">⭐ ${saldo}</div>
     </div>
   </div>
+
+  ${renderUtilesTienda()}
 
   <div class="section-title">🎨 Temas <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· toca la miniatura para la vista previa</span></div>
   <div class="grid grid-3">${themeCards}</div>
@@ -1275,6 +1287,7 @@ function renderDayHero() {
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
 
+  if (st === "libre") return renderDiaLibreHero();
   if (st === "por-abrir")
     return heroCoral(`${saludo}, ${name}.`, "Antes de arrancar, define tu enfoque del día. Toma 30 segundos (o 3 toques en express).", "🌅 Abre tu día", "day-open", {}, { label: "⚡ Express", action: "day-open-express" });
 
@@ -1433,6 +1446,7 @@ function renderInicio() {
 
   return `
   ${renderPendingYesterday()}
+  ${renderRescateCard()}
   ${renderTrimestreBanner()}
   ${renderMesBanner()}
   ${renderSemanaBanner()}

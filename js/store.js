@@ -241,6 +241,8 @@ function mergeStates(server, local) {
   if (local.gamif && server.gamif) {
     const lL = Array.isArray(local.gamif.ledger), sL = Array.isArray(server.gamif.ledger);
     out.gamif.badges = Array.from(new Set([...(server.gamif.badges || []), ...(local.gamif.badges || [])]));
+    // Consumibles usados: por id (ids deterministas: el mismo uso en dos equipos es uno solo)
+    out.gamif.usos = JSON.parse(JSON.stringify(usosMerge(local.gamif.usos, server.gamif.usos)));
     if (lL || sL) {
       // Si un lado aún no tiene ledger (estado viejo), su saldo se ignora: el lado con
       // ledger es más nuevo por construcción (se migra al cargar).

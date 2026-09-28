@@ -303,6 +303,7 @@ function saveCierre() {
   // Resumen del día para métricas (hechas, movidas, soltadas… por ámbito)
   if (tareasDelDia(iso).length) r.cierre.tareas = resumenCierre(STATE, iso);
   r.cerrado = true;
+  if (!yaCerrado) r.cerradoTs = Date.now();   // a qué hora cerraste (insignias Noche Serena y Búho)
   r.ts = Date.now();
 
   // Conecta el cierre con el Diario de vida: una entrada por día, actualizable

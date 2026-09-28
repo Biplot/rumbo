@@ -806,6 +806,9 @@ function onClick(e) {
     case "plantillas-open": openPlantillas(); break;
     case "plantilla-aplicar": aplicarPlantillaUI(d.id); break;
     case "informe-anio": openInformeAnio(+d.y); break;
+    case "elefante-open": openElefante(); break;
+    case "acc-buy": comprarAccesorio(d.id); break;
+    case "acc-toggle": toggleAccesorio(d.id); break;
 
     /* Tienda · útiles (consumibles) */
     case "util-buy": comprarConsumibleUI(d.id); break;
@@ -1203,13 +1206,15 @@ function renderTienda() {
   <div class="section-title">🎨 Temas <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· toca la miniatura para la vista previa</span></div>
   <div class="grid grid-3">${themeCards}</div>
 
-  <div class="section-title">🏷️ Títulos <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· aparecen junto a tu nombre en Inicio</span></div>
+  <div class="section-title">🏷️ Títulos <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· aparecen junto a tu nombre en Inicio; los nuevos piden una insignia</span></div>
   <div class="grid grid-4">${TITULOS.map(cosmeticCard).join("")}</div>
 
   <div class="section-title">✨ Detalles</div>
   <div class="grid grid-4">${DETALLES.map(cosmeticCard).join("")}</div>
 
   ${renderCosmeticosTienda()}
+
+  ${renderElefanteTienda()}
 
   <p class="text-xs muted mt-24">Ganas ⭐ usando la app (cerrar el día, hábitos, rituales…).</p>`;
 }
@@ -1540,7 +1545,8 @@ function renderInicio() {
       </div></div>
       <button class="btn-ghost" data-action="edit-profile">✎ Editar perfil</button>
     </div>
-  </div>`;
+  </div>
+  <div class="mt-16">${renderElefanteCard()}</div>`;
 }
 
 function statCard(ico, label, value, sub, pct) {

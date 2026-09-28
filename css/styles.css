@@ -1047,3 +1047,24 @@ html[data-check="sello"] .tarea-row.is-just .strike::after { animation: chkSello
 @keyframes fxElefante { to { left: 110vw; } }
 @keyframes fxPaso { from { transform: scaleX(-1) translateY(0); } to { transform: scaleX(-1) translateY(-8px); } }
 @media (prefers-reduced-motion: reduce) { .marco--llama::before, .marco--aurora::before { animation: none; } }
+
+/* ============================================================
+   LOGROS (Entrega 4): niveles de insignias y 🐘 tu elefante
+   ============================================================ */
+.badge-med { font-size: 18px; margin-left: -6px; vertical-align: bottom; }
+.badge-niveles { display: flex; gap: 6px; justify-content: center; }
+.badge-niveles span { font-size: 16px; filter: grayscale(1); opacity: .35; }
+.badge-niveles span.on { filter: none; opacity: 1; }
+.ele { position: relative; width: calc(var(--t) * 1.25); height: calc(var(--t) * 1.15); display: grid; place-items: end center; flex-shrink: 0; }
+.ele-cuerpo { font-size: var(--t); line-height: 1; transform: scaleX(-1); display: inline-block; animation: eleRespira 3.6s ease-in-out infinite; }
+.ele.is-sueno .ele-cuerpo { filter: saturate(.4) brightness(.85); animation-duration: 6s; }
+.ele-acc { position: absolute; line-height: 1; font-size: calc(var(--t) * .38); }
+.ele-acc--corona { top: -4%; right: 18%; font-size: calc(var(--t) * .36); transform: rotate(12deg); }
+.ele-acc--cabeza { top: 2%; right: 14%; transform: rotate(14deg); }
+.ele-acc--cara { top: 30%; right: 2%; font-size: calc(var(--t) * .3); }
+.ele-acc--cuello { bottom: 18%; right: 20%; font-size: calc(var(--t) * .34); }
+.ele-acc--lomo { top: 28%; left: 6%; font-size: calc(var(--t) * .34); }
+.ele-zz { position: absolute; top: -6%; left: 4%; font-size: calc(var(--t) * .3); animation: eleZz 2.4s ease-in-out infinite; }
+@keyframes eleRespira { 0%, 100% { transform: scaleX(-1) scaleY(1); } 50% { transform: scaleX(-1) scaleY(1.03); } }
+@keyframes eleZz { 0% { transform: translate(0, 4px); opacity: .2; } 50% { opacity: 1; } 100% { transform: translate(-6px, -8px); opacity: .1; } }
+@media (prefers-reduced-motion: reduce) { .ele-cuerpo, .ele-zz { animation: none; } }

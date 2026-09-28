@@ -70,6 +70,7 @@ function aplicarCierreExpress(S, iso, { mood, gratitud, elecciones }) {
   });
   if (tareasDelDia(iso, S).length) r.cierre.tareas = resumenCierre(S, iso);
   r.cerrado = true;
+  if (nuevo) r.cerradoTs = Date.now();   // a qué hora cerraste (insignias Noche Serena y Búho)
   r.express = Object.assign({}, r.express, { cierre: true });
   r.ts = Date.now();
   // Diario: una entrada por día (ánimo y gratitud)

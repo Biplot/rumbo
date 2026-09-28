@@ -118,8 +118,10 @@ function cosmeticCard(it) {
     <div class="row" style="gap:10px"><span style="font-size:24px">${it.icon}</span>
       <div style="flex:1"><div class="card__title" style="font-size:14px">${it.nombre}</div>
         <div class="text-xs muted">${owned ? "Desbloqueado" : it.costo + " ⭐"}</div></div></div>
+    ${it.requiere && !owned ? `<div class="text-xs muted mt-8">${requisitoTitulo(it) ? "✓" : "🔒"} Requiere la insignia ${escapeHtml(nombreRequisito(it))}</div>` : ""}
     <div class="mt-8">${owned
       ? `<button class="btn ${eq ? "btn--soft" : "btn--cian"} btn-block" data-action="cos-equip" data-id="${it.id}">${eq ? "✓ Equipado — quitar" : "Equipar"}</button>`
+      : it.requiere && !requisitoTitulo(it) ? `<button class="btn btn--soft btn-block" disabled>Comprar · ${it.costo} ⭐</button>`
       : `<button class="btn btn--primary btn-block" data-action="cos-buy" data-id="${it.id}">Comprar · ${it.costo} ⭐</button>`}</div>
   </div>`;
 }
@@ -195,8 +197,8 @@ function renderRecompensas() {
     </div>
   </div>`;
 
-  // Insignias
-  const badges = BADGES.map(b => {
+  // Insignias (las series con niveles y las secretas las arma logros.js)
+  const badgesOld = BADGES.map(b => {
     const earned = g.badges.includes(b.id);
     const destacada = g.equipped.insignia === b.id;
     return `<div class="card badge-card ${earned ? "" : "is-locked"}" style="text-align:center">
@@ -225,13 +227,15 @@ function renderRecompensas() {
   <div class="section-title">🏔️ Escalera de rangos</div>
   <div class="card"><div class="rank-ladder">${escalera}</div></div>
 
+  ${typeof renderElefanteCard === "function" ? `<div class="mt-24">${renderElefanteCard()}</div>` : ""}
+
   <div class="flex-between mt-24"><div class="section-title" style="margin:0">🏅 Insignias · ${ganadas}/${BADGES.length}</div></div>
-  <div class="grid grid-auto mt-16">${badges}</div>
+  <div class="grid grid-auto mt-16">${typeof insigniasHtml === "function" ? insigniasHtml(g) : badgesOld}</div>
 
   <div class="card mt-24">
     <div class="flex-between" style="flex-wrap:wrap;gap:10px">
       <div><div class="card__title">🛒 ¿Quieres gastar tus ⭐?</div>
-        <div class="text-sm muted mt-8">Desbloquea temas, títulos y detalles en la Tienda.</div></div>
+        <div class="text-sm muted mt-8">Útiles para tu racha, funciones, temas, cosméticos y accesorios para tu elefante.</div></div>
       <a class="btn btn--cian" href="#tienda">Ir a la Tienda →</a>
     </div>
   </div>`;

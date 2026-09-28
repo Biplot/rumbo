@@ -123,6 +123,14 @@ function dibujarInforme(d, op) {
     informeTexto(x, d.mejor, 170, y + 80, W - 260, 56, 4);
   }
 
+  // Tu elefante (etapa según tu XP), sobre el pie a la derecha
+  if (typeof etapaElefante === "function" && STATE && STATE.gamif) {
+    const e = etapaElefante(STATE.gamif.xp || 0).etapa, tam = Math.round(40 + e.tam * 0.6);
+    x.textAlign = "right"; x.font = `${tam}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+    x.fillText("🐘", W - 90, H - 190);
+    if (e.corona) { x.font = `${Math.round(tam * 0.45)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`; x.fillText("👑", W - 90 - tam * 0.45, H - 190 - tam * 0.8); }
+    x.textAlign = "left";
+  }
   // Pie
   x.fillStyle = P.borde; x.fillRect(90, H - 170, W - 180, 2);
   x.fillStyle = TXT; x.font = F(600, 32); x.fillText("Hecho con Rumbo", 90, H - 104);
@@ -181,7 +189,7 @@ async function compartirInforme() {
   const blob = await informeBlob(), nombre = nombreArchivoInforme();
   const file = typeof File === "function" ? new File([blob], nombre, { type: "image/png" }) : null;
   if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: "Mi mes en Rumbo" }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+    try { await navigator.share({ files: [file], title: "Mi mes en Rumbo" }); if (typeof registrarCompartido === "function") registrarCompartido(); return; } catch (e) { if (e && e.name === "AbortError") return; }
   }
   descargarInforme(blob);   // sin menú de compartir (computador): se descarga
 }
@@ -192,4 +200,5 @@ async function descargarInforme(blob) {
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   toast("🖼️ Imagen descargada");
+  if (typeof registrarCompartido === "function") registrarCompartido();
 }

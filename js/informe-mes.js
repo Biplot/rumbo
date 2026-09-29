@@ -60,14 +60,17 @@ function dibujarInforme(d, op) {
   if (P.puntos) { x.fillStyle = P.puntos; for (let py = 20; py < H; py += 44) for (let px = 20; px < W; px += 44) { x.beginPath(); x.arc(px, py, 2.2, 0, Math.PI * 2); x.fill(); } }
   if (P.lineas) { x.fillStyle = "rgba(57,255,136,0.035)"; for (let py = 0; py < H; py += 6) x.fillRect(0, py, W, 2); }
 
-  // Marca: el ícono de Rumbo (línea que sube) + nombre
-  const M = 96, mx = 90, my = 110;
+  // Marca: el ícono de Rumbo ("el bocado": un círculo con un bocado y la flecha que apunta ahí) + nombre
+  const M = 96, mx = 90, my = 110, u = M / 100, px = v => mx + v * u, py = v => my + v * u;
   x.fillStyle = P.marca; x.strokeStyle = CIAN; x.lineWidth = 3;
   x.beginPath(); x.roundRect(mx, my, M, M, P.radio || 24); x.fill(); x.stroke();
-  const pts = [[0.22, 0.72], [0.41, 0.53], [0.56, 0.62], [0.78, 0.31]].map(([a, b]) => [mx + a * M, my + b * M]);
-  x.strokeStyle = CIAN; x.lineWidth = 6; x.lineJoin = "round"; x.lineCap = "round";
-  x.beginPath(); pts.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.stroke();
-  pts.forEach(([a, b], i) => { x.fillStyle = i === 3 ? CORAL : CIAN; x.beginPath(); x.arc(a, b, i === 3 ? 8 : 6, 0, Math.PI * 2); x.fill(); });
+  const circ = (cx, cy, r, color) => { x.fillStyle = color; x.beginPath(); x.arc(px(cx), py(cy), r * u, 0, Math.PI * 2); x.fill(); };
+  circ(48, 54, 32, CIAN);
+  [[72, 31, 13], [59, 21, 8.5], [82, 45, 8.5]].forEach(([cx, cy, r]) => circ(cx, cy, r, P.marca));   // el bocado
+  x.strokeStyle = P.marca; x.lineWidth = 7.5 * u; x.lineCap = "round"; x.lineJoin = "round";
+  x.beginPath(); x.moveTo(px(32), py(72)); x.lineTo(px(54), py(50)); x.stroke();
+  x.beginPath(); x.moveTo(px(41), py(48)); x.lineTo(px(55), py(48)); x.lineTo(px(55), py(62)); x.stroke();
+  circ(73, 30, 5.5, CORAL);
   x.fillStyle = TXT; x.font = F(700, 48, true); x.textBaseline = "alphabetic"; x.fillText("Rumbo", mx + M + 28, my + 58);
   x.fillStyle = SUAVE; x.font = F(500, 28); x.fillText((d.sub || "Mi mes") + (d.nombre ? " · " + d.nombre : ""), mx + M + 30, my + 96);
 

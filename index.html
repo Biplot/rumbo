@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Rumbo · Tu vida en un solo lugar</title>
+  <title>Rumbo · Un bocado a la vez</title>
   <meta name="description" content="Tu centro de control personal: finanzas, hábitos, metas, lecturas y bienestar en una sola app." />
   <!-- PWA / iPhone (agregar a pantalla de inicio) -->
   <meta name="theme-color" content="#0E2A47" />
@@ -12,27 +12,23 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Rumbo" />
   <link rel="apple-touch-icon" href="assets/icon-180.png" />
-  <link rel="icon" type="image/png" href="assets/icon-180.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="alternate icon" type="image/png" href="assets/icon-192.png" />
   <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=66" />
+  <link rel="stylesheet" href="css/styles.css?v=67" />
 </head>
 <body>
   <!-- PORTAL DE USUARIOS -->
   <div id="authScreen" class="auth" hidden>
     <div class="auth__card">
       <div class="auth__brand">
-        <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
-          <rect x="1" y="1" width="30" height="30" rx="8" fill="#0E2A47" stroke="#17C3B2" stroke-width="1.2"/>
-          <polyline points="7,23 13,17 18,20 25,10" fill="none" stroke="#17C3B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="7" cy="23" r="2" fill="#17C3B2"/><circle cx="13" cy="17" r="2" fill="#17C3B2"/>
-          <circle cx="18" cy="20" r="2" fill="#17C3B2"/><circle cx="25" cy="10" r="2.6" fill="#FF6B4A"/>
-        </svg>
+        <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><defs><mask id="bocadoA"><rect width="100" height="100" fill="#fff"/><circle cx="72" cy="31" r="13" fill="#000"/><circle cx="59" cy="21" r="8.5" fill="#000"/><circle cx="82" cy="45" r="8.5" fill="#000"/></mask></defs><rect x="2" y="2" width="96" height="96" rx="23" fill="#0E2A47" stroke="#17C3B2" stroke-width="3.5"/><circle cx="48" cy="54" r="32" fill="#17C3B2" mask="url(#bocadoA)"/><path d="M32 72 L54 50" stroke="#0E2A47" stroke-width="7.5" stroke-linecap="round"/><path d="M41 48 H55 V62" fill="none" stroke="#0E2A47" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="73" cy="30" r="5.5" fill="#FF6B4A"/></svg>
         <span class="brand-name">Rumbo</span>
       </div>
-      <p class="auth__tagline">Tu vida, en un solo lugar.</p>
+      <p class="auth__tagline">Un bocado a la vez.</p>
 
       <div id="auth-google" hidden>
         <button class="btn btn-google btn-block" data-action="auth-google">
@@ -71,18 +67,11 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar__brand">
         <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 32 32" width="30" height="30">
-            <rect x="1" y="1" width="30" height="30" rx="8" fill="#0E2A47" stroke="#17C3B2" stroke-width="1.2"/>
-            <polyline points="7,23 13,17 18,20 25,10" fill="none" stroke="#17C3B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="7" cy="23" r="2" fill="#17C3B2"/>
-            <circle cx="13" cy="17" r="2" fill="#17C3B2"/>
-            <circle cx="18" cy="20" r="2" fill="#17C3B2"/>
-            <circle cx="25" cy="10" r="2.6" fill="#FF6B4A"/>
-          </svg>
+          <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><defs><mask id="bocadoB"><rect width="100" height="100" fill="#fff"/><circle cx="72" cy="31" r="13" fill="#000"/><circle cx="59" cy="21" r="8.5" fill="#000"/><circle cx="82" cy="45" r="8.5" fill="#000"/></mask></defs><rect x="2" y="2" width="96" height="96" rx="23" fill="#0E2A47" stroke="#17C3B2" stroke-width="3.5"/><circle cx="48" cy="54" r="32" fill="#17C3B2" mask="url(#bocadoB)"/><path d="M32 72 L54 50" stroke="#0E2A47" stroke-width="7.5" stroke-linecap="round"/><path d="M41 48 H55 V62" fill="none" stroke="#0E2A47" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="73" cy="30" r="5.5" fill="#FF6B4A"/></svg>
         </div>
         <div class="brand-text">
           <span class="brand-name" id="brandName">Rumbo</span>
-          <span class="brand-sub">by BiPlot</span>
+          <span class="brand-sub">un bocado a la vez</span>
         </div>
       </div>
 
@@ -147,33 +136,33 @@
 
   <!-- supabase-js 2.117.2 guardada en el repositorio: una versión nueva del CDN ya no puede romper el inicio de sesión -->
   <script src="js/vendor/supabase-2.117.2.js"></script>
-  <script src="js/store.js?v=66"></script>
-  <script src="js/state.js?v=66"></script>
-  <script src="js/anios.js?v=66"></script>
-  <script src="js/agenda.js?v=66"></script>
-  <script src="js/tareas-motor.js?v=66"></script>
-  <script src="js/habitos-motor.js?v=66"></script>
-  <script src="js/modules.js?v=66"></script>
-  <script src="js/modules2.js?v=66"></script>
-  <script src="js/ritual-mes.js?v=66"></script>
-  <script src="js/ritual-semana.js?v=66"></script>
-  <script src="js/ritual-trimestre.js?v=66"></script>
-  <script src="js/informe-mes.js?v=66"></script>
-  <script src="js/tutorial.js?v=66"></script>
-  <script src="js/gcal.js?v=66"></script>
-  <script src="js/ritual-express.js?v=66"></script>
-  <script src="js/tendencias.js?v=66"></script>
-  <script src="js/recompensas.js?v=66"></script>
+  <script src="js/store.js?v=67"></script>
+  <script src="js/state.js?v=67"></script>
+  <script src="js/anios.js?v=67"></script>
+  <script src="js/agenda.js?v=67"></script>
+  <script src="js/tareas-motor.js?v=67"></script>
+  <script src="js/habitos-motor.js?v=67"></script>
+  <script src="js/modules.js?v=67"></script>
+  <script src="js/modules2.js?v=67"></script>
+  <script src="js/ritual-mes.js?v=67"></script>
+  <script src="js/ritual-semana.js?v=67"></script>
+  <script src="js/ritual-trimestre.js?v=67"></script>
+  <script src="js/informe-mes.js?v=67"></script>
+  <script src="js/tutorial.js?v=67"></script>
+  <script src="js/gcal.js?v=67"></script>
+  <script src="js/ritual-express.js?v=67"></script>
+  <script src="js/tendencias.js?v=67"></script>
+  <script src="js/recompensas.js?v=67"></script>
   <!-- Tienda: útiles, funciones, cosméticos y logros (después de recompensas.js) -->
-  <script src="js/consumibles.js?v=66"></script>
-  <script src="js/funciones.js?v=66"></script>
-  <script src="js/cosmeticos.js?v=66"></script>
-  <script src="js/logros.js?v=66"></script>
-  <script src="js/elefante.js?v=66"></script>
-  <script src="js/avatares.js?v=66"></script>
-  <script src="js/vida.js?v=66"></script>
-  <script src="js/notifs.js?v=66"></script>
-  <script src="js/app.js?v=66"></script>
+  <script src="js/consumibles.js?v=67"></script>
+  <script src="js/funciones.js?v=67"></script>
+  <script src="js/cosmeticos.js?v=67"></script>
+  <script src="js/logros.js?v=67"></script>
+  <script src="js/elefante.js?v=67"></script>
+  <script src="js/avatares.js?v=67"></script>
+  <script src="js/vida.js?v=67"></script>
+  <script src="js/notifs.js?v=67"></script>
+  <script src="js/app.js?v=67"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));

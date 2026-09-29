@@ -126,7 +126,7 @@ async function testNotification() {
     const reg = await navigator.serviceWorker.ready;
     reg.showNotification("🌅 Rumbo", {
       body: "Así se verán tus recordatorios. ¡A iniciar tu día!",
-      icon: "assets/icon-192.png", badge: "assets/icon-192.png",
+      icon: "assets/icon-192.png", badge: "assets/badge-96.png",
       tag: "rumbo-test", data: { url: "./#ritual" },
     });
     toast("Notificación enviada 👀");

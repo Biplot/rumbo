@@ -1,7 +1,7 @@
 /* Rumbo · Service Worker
    Cachea el "app shell" (mismo origen) con estrategia stale-while-revalidate.
    No toca peticiones a Supabase ni a otros dominios (siempre van a la red). */
-const CACHE = "rumbo-cache-v24";
+const CACHE = "rumbo-cache-v25";
 
 self.addEventListener("install", () => self.skipWaiting());
 /* Al activar una versión nueva se borran las cachés anteriores */
@@ -18,7 +18,7 @@ self.addEventListener("push", (e) => {
   const opts = {
     body: d.body || "",
     icon: d.icon || "assets/icon-192.png",
-    badge: "assets/icon-192.png",
+    badge: "assets/badge-96.png",
     tag: d.tag || "rumbo",
     data: { url: d.url || "./" },
   };

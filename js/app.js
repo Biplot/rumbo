@@ -1627,7 +1627,7 @@ function saveProfile() {
   STATE.profile.motto = val("pf-motto");
   STATE.settings.appName = val("pf-app") || "Rumbo";
   document.getElementById("brandName").innerHTML = STATE.settings.appName.replace("i", "<em>i</em>");
-  document.title = STATE.settings.appName + " · Tu vida en un solo lugar";
+  document.title = STATE.settings.appName + " · Un bocado a la vez";
   saveState(); closeModal(); rerender(); toast("Perfil actualizado");
 }
 

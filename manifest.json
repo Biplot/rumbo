@@ -1,7 +1,7 @@
 {
-  "name": "Rumbo · Tu vida en un solo lugar",
+  "name": "Rumbo · Un bocado a la vez",
   "short_name": "Rumbo",
-  "description": "Tu centro de control personal: ritual diario, hábitos, finanzas, metas, salud y más.",
+  "description": "Abre y cierra tu día, cuida tus hábitos y avanza en tus metas: un bocado a la vez.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
@@ -11,6 +11,6 @@
   "icons": [
     { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

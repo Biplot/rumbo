@@ -189,7 +189,7 @@ async function avisoFinEnfoque(a) {
   try {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
     const reg = navigator.serviceWorker && await navigator.serviceWorker.ready;
-    const op = { body: `Terminaste tu sesión de ${a.min} min: ${a.titulo}`, icon: "assets/icon-192.png", badge: "assets/icon-192.png", tag: "rumbo-enfoque", data: { url: "./#inicio" } };
+    const op = { body: `Terminaste tu sesión de ${a.min} min: ${a.titulo}`, icon: "assets/icon-192.png", badge: "assets/badge-96.png", tag: "rumbo-enfoque", data: { url: "./#inicio" } };
     reg ? reg.showNotification("⏱️ ¡Tiempo!", op) : new Notification("⏱️ ¡Tiempo!", op);
   } catch (e) {}
 }

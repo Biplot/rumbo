@@ -20,7 +20,7 @@
    Secretos (Supabase → Edge Functions → Secrets):
      GOOGLE_CLIENT_SECRET   la "clave secreta del cliente" de Google Cloud (obligatorio)
      GOOGLE_CLIENT_ID       opcional; por defecto, el ID de cliente de Rumbo
-   SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY los pone Supabase solo.
+   SUPABASE_URL y la clave de administración (SUPABASE_SECRET_KEYS o SUPABASE_SERVICE_ROLE_KEY) los pone Supabase solo.
    ============================================================ */
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -30,7 +30,12 @@ const CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET") || "";
 const ORIGENES = ["https://rumbo.biplot.cl", "https://biplot.github.io", "http://localhost:5178"];
 const REDIRECCIONES_OK = /^(postmessage|https:\/\/rumbo\.biplot\.cl\/gcal-callback\.html|https:\/\/biplot\.github\.io\/rumbo\/gcal-callback\.html|http:\/\/localhost:5178\/gcal-callback\.html)$/;
 
-const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+/* Clave de administración: la nueva (SUPABASE_SECRET_KEYS) o la antigua (service_role), la que exista */
+function claveAdmin() {
+  try { const k = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}"); if (k.default) return k.default as string; } catch { /* formato antiguo */ }
+  return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+}
+const admin = createClient(Deno.env.get("SUPABASE_URL")!, claveAdmin(), {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 

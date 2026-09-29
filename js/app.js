@@ -906,6 +906,7 @@ function onClick(e) {
     case "cal-next": CAL_MONTH = (CAL_MONTH + 1) % 12; rerender(); break;
     case "cal-goto": CAL_MONTH = +d.m; rerender(); break;
     case "cal-add": openEventoModal(d.date); break;
+    case "cal-dia": CAL_DIA = d.date; rerender(); break;
     case "evento-save": saveEvento(); break;
     case "evento-del": {
       const arr = STATE.eventos[d.date] || []; arr.splice(+d.i, 1);

@@ -56,7 +56,8 @@ module.exports = async ({ b, ok, errs }) => {
   const martes = await p.locator(".week-col").nth(1).innerText();
   ok(martes.includes("Almuerzo con Ana") && martes.includes("13:00"), "Semana: cada evento en su día");
   await p.goto(URL + "#calendario"); await p.waitForTimeout(300);
-  ok((await p.locator("#view").innerText()).includes("13:00 Almuerzo con Ana"), "Calendario: los eventos en el mes y en la agenda");
+  await p.click('[data-action="cal-dia"][data-date="2026-09-29"]'); await p.waitForTimeout(250);
+  ok((await p.locator("#view").innerText()).includes("Almuerzo con Ana") && (await p.locator(".cal-ag").first().innerText()).includes("13:00"), "Calendario: tocar un día muestra sus eventos con la hora");
   await p.goto(URL + "#inicio"); await p.waitForTimeout(200);
   await p.click('#view [data-action="day-open"]'); await p.waitForTimeout(300);
   ok((await p.locator("#modalBody").innerText()).includes("Reunión con cliente"), "al abrir el día ves tus eventos de hoy");

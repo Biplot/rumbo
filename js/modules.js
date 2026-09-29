@@ -955,82 +955,84 @@ function calMonthItems(year, m) {
   return map;
 }
 
+/* Día elegido en el Calendario (se ve su agenda debajo de la grilla) */
+let CAL_DIA = null;
+const CAL_COLOR = { ritual: "var(--cian)", abierto: "var(--cian)", gcal: "#4285F4", evento: "var(--coral)", cumple: "#F5C451", libro: "#8B93E8", tarea: "var(--text-muted)" };
 function renderCalendario() {
   const m = CAL_MONTH, year = anioVista();
+  const mm = String(m + 1).padStart(2, "0");
   const first = new Date(year, m, 1);
-  let startDow = (first.getDay() + 6) % 7; // lunes = 0
+  const startDow = (first.getDay() + 6) % 7; // lunes = 0
   const nDays = daysInMonth(year, m);
   const items = calMonthItems(year, m);
-  const cells = [];
-  for (let k = 0; k < startDow; k++) cells.push("");
-  for (let d = 1; d <= nDays; d++) cells.push(d);
+  const hoy = todayISO();
+  const isoDe = d => `${year}-${mm}-${String(d).padStart(2, "0")}`;
+  if (!CAL_DIA || CAL_DIA.slice(0, 7) !== `${year}-${mm}`) CAL_DIA = hoy.slice(0, 7) === `${year}-${mm}` ? hoy : isoDe(1);
 
-  const head = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"]
-    .map(d => `<th style="padding:8px;font-size:12px;color:var(--text-muted);text-align:center">${d}</th>`).join("");
-
-  let rows = "", i = 0;
-  while (i < cells.length) {
-    let tr = "<tr>";
-    for (let c = 0; c < 7; c++, i++) {
-      const d = cells[i];
-      if (!d) { tr += `<td class="cal-cell cal-cell--empty"></td>`; continue; }
-      const iso = `${year}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      const its = items[d] || [];
-      const isToday = iso === todayISO();
-      const dots = its.filter(x => x.type !== "evento" && x.type !== "gcal");
-      const evs = its.filter(x => x.type === "evento" || x.type === "gcal");
-      tr += `<td class="cal-cell ${isToday ? "cal-cell--today" : ""}" data-action="cal-add" data-date="${iso}">
-        <div class="cal-num">${d}</div>
-        ${dots.length ? `<div class="cal-dots">${dots.map(x => `<span title="${escapeAttr(x.label)}">${x.icon}</span>`).join("")}</div>` : ""}
-        ${evs.slice(0, 2).map(e => `<div class="cal-ev cal-ev--${e.cls}" title="${escapeAttr(e.label)}">${escapeHtml(e.label.length > 15 ? e.label.slice(0, 14) + "…" : e.label)}</div>`).join("")}
-        ${evs.length > 2 ? `<div class="cal-more">+${evs.length - 2}</div>` : ""}
-      </td>`;
-    }
-    tr += "</tr>"; rows += tr;
+  // Grilla: 7 columnas iguales; en cada día, puntos de color (y en computador, hasta 2 eventos)
+  const tipoPunto = x => x.type === "ritual" && x.label !== "Ritual cerrado" ? "abierto" : x.type;
+  const celdas = [];
+  for (let k = 0; k < startDow; k++) celdas.push(`<div class="calg__c calg__c--vacio" aria-hidden="true"></div>`);
+  for (let d = 1; d <= nDays; d++) {
+    const iso = isoDe(d), its = items[d] || [];
+    const tipos = [...new Set(its.map(tipoPunto))].slice(0, 4);
+    const evs = its.filter(x => x.type === "evento" || x.type === "gcal");
+    celdas.push(`<button class="calg__c${iso === hoy ? " cal-cell--today" : ""}${iso === CAL_DIA ? " is-sel" : ""}" data-action="cal-dia" data-date="${iso}"
+      aria-label="${d} de ${MESES[m]}${its.length ? ", " + its.length + " cosa" + (its.length === 1 ? "" : "s") : ""}" aria-pressed="${iso === CAL_DIA}">
+      <span class="calg__n">${d}</span>
+      ${tipos.length ? `<span class="calg__dots">${tipos.map(t => `<i class="${t === "abierto" ? "is-anillo" : ""}" style="--c:${CAL_COLOR[t] || "var(--cian)"}"></i>`).join("")}</span>` : ""}
+      ${evs.slice(0, 2).map(e => `<span class="calg__ev" style="--c:${CAL_COLOR[e.type]}">${escapeHtml(e.label)}</span>`).join("")}
+      ${evs.length > 2 ? `<span class="calg__mas">+${evs.length - 2}</span>` : ""}</button>`);
   }
 
-  // Agenda del mes: todo lo fechado, ordenado por día
-  const agenda = [];
-  Object.keys(items).map(Number).sort((a, b) => a - b).forEach(day =>
-    items[day].forEach(it => agenda.push({ day, ...it })));
-  const agendaHtml = agenda.length
-    ? agenda.map(it => {
-        const iso = `${year}-${String(m + 1).padStart(2, "0")}-${String(it.day).padStart(2, "0")}`;
-        const clickable = it.type === "evento" ? `data-action="cal-add" data-date="${iso}" style="cursor:pointer"` : "";
-        return `<div class="agenda-row" ${clickable}>
-          <span class="agenda-day">${String(it.day).padStart(2, "0")}</span>
-          <span class="agenda-ico">${it.icon}</span>
-          <span class="agenda-label">${escapeHtml(it.label)}</span></div>`;
-      }).join("")
-    : `<div class="empty">Nada agendado este mes. Haz clic en un día para añadir un evento.</div>`;
+  // Agenda del día elegido: sus cosas, sus tareas y agregar un evento
+  const dSel = +CAL_DIA.slice(8), fSel = agDate(CAL_DIA);
+  const delDia = (items[dSel] || []).map(it => ({ ...it, color: CAL_COLOR[tipoPunto(it)] }));
+  tareasDelDia(CAL_DIA).filter(t => tareaAbierta(t) || estadoTarea(t) === "hecha").forEach(t =>
+    delDia.push({ label: t.txt, type: "tarea", color: t.esSapo ? "var(--coral)" : CAL_COLOR.tarea, sub: estadoTarea(t) === "hecha" ? "Tarea hecha" : t.esSapo ? "Tarea · primer bocado" : "Tarea" }));
+  const subDe = it => it.sub || ({ gcal: "Google Calendar", evento: "Evento", cumple: "Cumpleaños", libro: "Lectura", ritual: "Ritual" })[it.type] || "";
+  const evIdx = {}; let n = 0;
+  const agendaDia = delDia.length ? delDia.map(it => {
+    const hora = it.type === "gcal" && /^\d\d:\d\d /.test(it.label) ? it.label.slice(0, 5) : "";
+    const txt = hora ? it.label.slice(6) : it.label;
+    const borrar = it.type === "evento" ? `<button class="icon-btn" data-action="evento-del" data-date="${CAL_DIA}" data-i="${(evIdx[CAL_DIA] = (evIdx[CAL_DIA] ?? -1) + 1)}" aria-label="Borrar evento">🗑</button>` : "";
+    n++;
+    return `<div class="cal-ag"><span class="cal-ag__h">${hora || "—"}</span><span class="cal-ag__b" style="background:${it.color}"></span>
+      <div class="cal-ag__t"><div>${escapeHtml(txt)}</div><div class="text-xs muted">${subDe(it)}</div></div>${borrar}</div>`;
+  }).join("") : `<div class="empty" style="padding:14px">Nada agendado este día.</div>`;
 
-  // Resumen del mes (chips)
-  const nCumple = agenda.filter(x => x.type === "cumple").length;
-  const nLibro = agenda.filter(x => x.type === "libro").length;
+  // Todo el mes (plegable)
+  const agenda = [];
+  Object.keys(items).map(Number).sort((a, b) => a - b).forEach(day => items[day].forEach(it => agenda.push({ day, ...it })));
+  const agendaHtml = agenda.length
+    ? agenda.map(it => `<div class="agenda-row"${it.type === "evento" ? ` data-action="cal-dia" data-date="${isoDe(it.day)}" style="cursor:pointer"` : ""}>
+        <span class="agenda-day">${String(it.day).padStart(2, "0")}</span><span class="agenda-ico">${it.icon}</span>
+        <span class="agenda-label">${escapeHtml(it.label)}</span></div>`).join("")
+    : `<div class="empty">Nada agendado este mes. Toca un día para agregar un evento.</div>`;
+
   const nRitual = agenda.filter(x => x.type === "ritual").length;
   const metasMes = (datosAnio(STATE, year).metas.mensuales[m] || []);
-  const resumen = `<div class="cal-summary">
-    <span class="chip">🌙 ${nRitual} ${nRitual === 1 ? "ritual" : "rituales"}</span>
-    <span class="chip">🎂 ${nCumple} cumpleaños</span>
-    <span class="chip">📖 ${nLibro} ${nLibro === 1 ? "libro" : "libros"}</span>
-    <span class="chip">🎯 ${metasMes.filter(g => g.done).length}/${metasMes.length} metas</span>
-  </div>`;
-
+  const leyenda = [["ritual", "Día abierto o cerrado"], ["evento", "Tus eventos"], ...(gcalConectado() ? [["gcal", "Google"]] : []), ["cumple", "Cumpleaños"], ["libro", "Libros"]];
   return `
   ${selectorAnio()}
   ${monthNav(m, "cal-goto", "cal")}
-  ${resumen}
+  <div class="cal-summary"><span class="chip">🌙 ${nRitual} ${nRitual === 1 ? "ritual" : "rituales"}</span>
+    <span class="chip">🎯 ${metasMes.filter(g => g.done).length}/${metasMes.length} metas</span></div>
   ${renderGcalCard()}
-  <div class="card mt-16" style="overflow-x:auto">
-    <table class="cal-table">
-      <thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
-    <div class="cal-legend">
-      <span>🌅 Día abierto</span><span>🌙 Ritual cerrado</span><span>🎂 Cumpleaños</span><span>📖 Libro terminado</span><span>📌 Evento</span>${gcalConectado() ? "<span>📆 Google Calendar</span>" : ""}
+  <div class="cal-layout mt-16">
+    <div class="card calg-card">
+      <div class="calg calg--dow">${["L", "M", "M", "J", "V", "S", "D"].map(x => `<span>${x}</span>`).join("")}</div>
+      <div class="calg">${celdas.join("")}</div>
+      <div class="cal-legend">${leyenda.map(([t, l]) => `<span><i class="cal-ley" style="--c:${CAL_COLOR[t]}"></i>${l}</span>`).join("")}</div>
+      ${gcalAvisoActualizar()}
     </div>
-    ${gcalAvisoActualizar()}
+    <div>
+      <div class="section-title" style="margin-top:0">${escapeHtml(fSel.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" }))}</div>
+      <div class="card" style="padding:4px 0">${agendaDia}
+        <button class="cal-ag cal-ag--add" data-action="cal-add" data-date="${CAL_DIA}"><span class="cal-ag__h">+</span><span class="cal-ag__b" style="background:transparent"></span><span class="muted">Agregar un evento este día</span></button></div>
+    </div>
   </div>
-  <div class="section-title">Agenda de ${MESES[m]}</div>
-  <div class="card">${agendaHtml}</div>`;
+  <details class="hb-more mt-16"><summary>📋 Todo ${MESES[m].toLowerCase()} (${agenda.length})</summary><div class="card mt-8">${agendaHtml}</div></details>`;
 }
 let EVENTO_DATE = null;
 function openEventoModal(date) {

@@ -118,7 +118,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 13;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 14;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -246,6 +246,12 @@ const NOVEDADES = {
     ["🎭", "Avatares", "Deja de ser una letra: elige un avatar en Cuenta → Tu avatar, o tocando tu inicial."],
     ["🏢", "El elenco de BiPlot HQ", "Lupe, Celda, Grilla, Faro y el resto de la oficina se ganan con un logro de su oficio. Plotty y Atlas te esperan desde hoy."],
     ["✏️", "Arma el tuyo", "Piel, peinado, lentes, barba y ropa, con el mismo trazo del elenco. También hay personajes de Rumbo como la Brújula, el Búho o tu propio elefante."],
+  ],
+  14: [
+    ["☀️", "El botón del día", "En el celular, al centro de la barra de abajo: abre tu día en la mañana y ciérralo en la noche. En el computador está arriba del menú."],
+    ["🧭", "Más, a mano", "Objetivos, Ritual, tus módulos, Recompensas, tu cuenta y la ayuda, en una hoja que se abre desde Más."],
+    ["🏆", "Recompensas en un lugar", "Tu progreso, la Tienda (con categorías) y tus insignias, en tres pestañas."],
+    ["👆", "Más fácil de usar", "Botones más grandes, tu elefante junto al saludo, hábitos de un toque y la semana con hoy primero."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

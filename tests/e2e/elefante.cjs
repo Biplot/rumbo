@@ -23,10 +23,11 @@ module.exports = async ({ b, ok, errs }) => {
   await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(900);
   ok(await p.locator('[data-action="ele-tipo"]').count() === 0, "no vuelve a preguntar");
 
-  // 2) Inicio muestra el elefante vectorial
-  ok(await p.locator(".ele-card .ele-svg").count() >= 1, "Inicio muestra el elefante dibujado");
+  // 2) Inicio muestra el elefante vectorial junto al saludo
+  ok(await p.locator(".ele-hero .ele-svg").count() === 1, "Inicio muestra el elefante dibujado junto al saludo");
 
-  // 3) Probador: probarse una prenda sin comprarla y después comprarla
+  // 3) Probador: probarse una prenda sin comprarla y después comprarla (desde Recompensas)
+  await p.goto(URL + "#recompensas"); await p.waitForTimeout(400);
   await p.click('.ele-card [data-action="elefante-open"][data-v="ropa"]'); await p.waitForTimeout(250);
   const antes = await p.evaluate(() => STATE.gamif.puntos);
   await p.click('[data-action="ele-probar"][data-id="jockey"]'); await p.waitForTimeout(250);
@@ -44,6 +45,7 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('.modal [data-action="elefante-open"][data-v="tipo"]'); await p.waitForTimeout(250);
   ok(await p.locator(".ele-tipo.is-lock").count() === 4, "Mamut, Peluche, Geométrico y Tinta aparecen bloqueados con su meta");
   await p.evaluate(() => { closeModal(); for (let i = 1; i <= 30; i++) STATE.ritual.dias[`2026-08-${String(i).padStart(2, "0")}`] = { hecho: true, cerrado: true }; saveState(); });
+  await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
   await p.goto(URL + "#recompensas"); await p.waitForTimeout(500);
   ok(await p.evaluate(() => tipoDesbloqueado("peluche")), "una racha de 30 días desbloquea el Peluche");
   await p.click('.ele-card [data-action="elefante-open"][data-v="tipo"]'); await p.waitForTimeout(250);
@@ -55,7 +57,7 @@ module.exports = async ({ b, ok, errs }) => {
   await p.evaluate(() => { localStorage.removeItem("rumbo-sin-escenas"); closeModal(); });
   await p.goto(URL + "#inicio"); await p.waitForTimeout(400);
   const reac = [];
-  for (let k = 0; k < 3; k++) { await p.click(".ele-card .ele-toca"); await p.waitForTimeout(120); reac.push(await p.evaluate(() => document.querySelector(".ele-card .ele-svg").getAttribute("class"))); await p.waitForTimeout(1100); }
+  for (let k = 0; k < 3; k++) { await p.click(".ele-hero"); await p.waitForTimeout(120); reac.push(await p.evaluate(() => document.querySelector(".ele-hero .ele-svg").getAttribute("class"))); await p.waitForTimeout(1100); }
   ok(reac[0].includes("re-salta") && reac[1].includes("re-saluda") && reac[2].includes("re-corazones"), "al tocarlo salta, saluda y le salen corazones: " + reac.join(" | "));
   await p.evaluate(() => { STATE.ritual.dias["2026-09-28"] = { hecho: true, mision: "x" }; saveState(); openCierreModal("2026-09-28"); });
   await p.waitForTimeout(300); await p.click('[data-action="cierre-save"]'); await p.waitForTimeout(400);

@@ -1353,6 +1353,21 @@ function heroCoral(title, sub, btnLabel, action, data = {}, segundo = null) {
         <button class="btn btn--primary" data-action="${action}"${extra}>${btnLabel}</button></div>
     </div></div>`;
 }
+/* Tu elefante, chico, junto al saludo (se puede tocar) */
+function eleHero() {
+  if (typeof elefanteSVG !== "function") return "";
+  const papel = TIPOS_ELEFANTE[tipoElefante()].papel ? " papel" : "";
+  return `<div class="ele-hero ele-toca${papel}" data-action="ele-toca" role="button" tabindex="0" title="Tócalo" aria-label="Tu elefante: ${escapeAttr(nombreElefante())}">${elefanteSVG()}</div>`;
+}
+/* Saludo del día: texto y elefante arriba, la acción principal y Express abajo */
+function heroDia(title, sub, btnLabel, action, segundo) {
+  return `<div class="card hero-focus hero-dia" style="margin-bottom:20px">
+    <div class="hero-dia__top"><div style="min-width:0;flex:1">
+      <div class="hero-focus__title">${title}</div>
+      <div class="text-sm muted" style="margin-top:4px">${sub}</div></div>${eleHero()}</div>
+    <div class="hero-dia__acc"><button class="btn btn--primary" data-action="${action}">${btnLabel}</button>
+      <button class="btn btn--soft" data-action="${segundo.action}">${segundo.label}</button></div></div>`;
+}
 function renderDayHero() {
   const iso = todayISO();
   const r = STATE.ritual.dias[iso];
@@ -1362,10 +1377,10 @@ function renderDayHero() {
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
 
   if (st === "por-abrir")
-    return heroCoral(`${saludo}, ${name}.`, "Antes de arrancar, define tu enfoque del día. Toma 30 segundos (o 3 toques en express).", "🌅 Abre tu día", "day-open", {}, { label: "⚡ Express", action: "day-open-express" });
+    return heroDia(`${saludo}, ${name}.`, "Elige tu primer bocado y arranca. Toma 30 segundos (o 3 toques en express).", "🌅 Abre tu día", "day-open", { label: "⚡ Express", action: "day-open-express" });
 
   if (st === "por-cerrar")
-    return heroCoral(`${saludo}, ${name}.`, "Tu día está por terminar. Cierra el ritual y reflexiona.", "🌙 Cierra tu día", "day-close", {}, { label: "⚡ Express", action: "day-close-express" });
+    return heroDia(`${saludo}, ${name}.`, "Tu día está por terminar. Cierra el ritual y reflexiona.", "🌙 Cierra tu día", "day-close", { label: "⚡ Express", action: "day-close-express" });
 
   if (st === "cerrado") return renderCierreResumen(r);
 
@@ -1377,12 +1392,10 @@ function renderDayHero() {
     ${r.servir ? `<span class="chip">🙌 ${escapeHtml(r.servir)}</span>` : ""}
     ${r.pilar ? `<span class="chip">${escapeHtml(r.pilar)}</span>` : ""}
     ${rd.planificadas ? `<span class="chip">📋 ${rd.hechas}/${rd.planificadas} tareas</span>` : ""}</div>`;
-  return `<div class="card" style="margin-bottom:24px;border-left:3px solid var(--cian)">
-    <div class="flex-between" style="flex-wrap:wrap;gap:12px">
-      <div><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">Tu enfoque de hoy</div>${chips}</div>
-      <div class="row-wrap" style="gap:8px"><button class="btn-ghost" data-action="day-close-express">⚡ Express</button>
-        <button class="btn btn--soft" data-action="day-close">🌙 Cerrar el día</button></div>
-    </div></div>`;
+  return `<div class="card hero-dia" style="margin-bottom:20px;border-left:3px solid var(--cian)">
+    <div class="hero-dia__top"><div style="min-width:0;flex:1"><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">${saludo}, ${name} · tu enfoque de hoy</div>${chips}</div>${eleHero()}</div>
+    <div class="hero-dia__acc"><button class="btn btn--soft" data-action="day-close">🌙 Cerrar el día</button>
+      <button class="btn-ghost" data-action="day-close-express">⚡ Express</button></div></div>`;
 }
 function cumpliChip(v) {
   if (v === "si") return `<span class="chip chip--done">cumplida</span>`;
@@ -1401,8 +1414,8 @@ function renderCierreResumen(r) {
   const chipBocado = c.sapo ? '<span class="chip chip--done">hecho</span>'
     : eb && eb !== "pendiente" && eb !== "hecha" ? `<span class="chip chip--sig">${signoTarea(tb)}</span>` : '<span class="chip">pendiente</span>';
   return `<div class="card" style="margin-bottom:24px;background:linear-gradient(120deg,var(--cian-soft),var(--surface))">
-    <div class="card__head"><div class="card__title">✅ Día cerrado</div>
-      <span class="chip chip--streak" style="color:var(--coral)">🔥 ${computeClosedStreak()} días cerrados</span></div>
+    <div class="hero-dia__top" style="margin-bottom:12px"><div style="flex:1;min-width:0"><div class="card__title">✅ Día cerrado</div>
+      <span class="chip chip--streak mt-8" style="color:var(--coral)">🔥 ${computeClosedStreak()} días cerrados</span></div>${eleHero()}</div>
     <div class="grid grid-2">
       <div>
         <div class="text-xs muted">Misión</div><div class="mt-8">${r.mision ? escapeHtml(r.mision) : "—"} ${cumpliChip(c.mision)}</div>
@@ -1477,18 +1490,25 @@ function renderInicio() {
   const habBtn = h => {
     const on = habitDone(h.id, mIdx, day);
     const prog = progresoPeriodoActual(h);
-    return `<button class="nav__item" style="background:${on ? 'var(--cian-soft)' : 'var(--surface-2)'};border:1px solid var(--line);justify-content:space-between"
-      data-action="quick-habit" data-id="${h.id}">
-      <span><span class="nav__ico">${h.icon}</span> ${escapeHtml(h.nombre)} <span class="text-xs muted">· ${prog.texto}</span></span>
-      <span class="check ${on ? 'is-on' : ''}">${on ? '✓' : ''}</span></button>`;
+    return `<button class="hab-chip${on ? " is-on" : ""}" data-action="quick-habit" data-id="${h.id}" aria-pressed="${on}"
+      title="${escapeAttr(h.nombre + " · " + prog.texto)}"><span class="hab-chip__i">${h.icon}</span><span class="hab-chip__n">${escapeHtml(h.nombre)}</span></button>`;
   };
   const { toca: habToca, cumplidos: habCumplidos } = habitosHoy();
-  const habitsToday = habToca.map(habBtn).join("")
+  const habitsToday = (habToca.length ? `<div class="hab-chips">${habToca.map(habBtn).join("")}</div>` : "")
     + (habCumplidos.length ? `<details class="hb-more"><summary>✅ Ya cumplidos este período (${habCumplidos.length})</summary>
-      <div class="grid mt-8" style="gap:8px">${habCumplidos.map(habBtn).join("")}</div></details>` : "");
+      <div class="hab-chips mt-8">${habCumplidos.map(habBtn).join("")}</div></details>` : "");
   const doneToday = habToca.filter(h => habitDone(h.id, mIdx, day)).length;
 
   const metasMes = (anioHoy.metas.mensuales[mIdx] || []).filter(m => !m.done);
+
+  // Números de otros módulos: solo si el módulo está en tu menú y tiene algo que mostrar
+  const kpis = [];
+  if (!moduloOculto("finanzas") && (metaMes || ahorroMes))
+    kpis.push(statCard("💰", "Ahorro de " + MESES[mIdx], fmtCLP(ahorroMes), metaMes ? `Meta ${fmtCLP(metaMes)} · ${pctAhorro}%` : "Sin meta mensual", pctAhorro));
+  if (!moduloOculto("lecturas") && libro && libro.titulo)
+    kpis.push(statCard("📚", "Leyendo ahora", escapeHtml(libro.titulo), libro.estado === "leyendo" ? "En curso" : "Último libro"));
+  if (!moduloOculto("salud") && pesoActual != null)
+    kpis.push(statCard("⚖️", "Peso actual", pesoActual + " kg", s.salud.pesoObjetivo != null && s.salud.pesoObjetivo !== "" ? "Meta " + s.salud.pesoObjetivo + " kg" : "Sin meta de peso"));
 
   const hoyISO = todayISO();
   const tareasHoy = tareasDelDia(hoyISO);
@@ -1526,19 +1546,12 @@ function renderInicio() {
   <div data-tour="dia">${renderDayHero()}</div>
   ${renderMisionCard()}
   ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
-  <div class="grid grid-4">
-    ${statCard("💰", "Ahorro de " + MESES[mIdx], fmtCLP(ahorroMes), metaMes ? `Meta ${fmtCLP(metaMes)} · ${pctAhorro}%` : "Sin meta mensual (en Finanzas)", pctAhorro)}
-    ${statCard("🔥", "Racha de hábitos", computeStreak() + (computeStreak() === 1 ? " día" : " días"), doneToday + "/" + habToca.length + " hoy")}
-    ${statCard("📚", "Leyendo ahora", libro && libro.titulo ? libro.titulo : "—", libro && libro.estado === "leyendo" ? "En curso" : "Sin libro activo")}
-    ${statCard("⚖️", "Peso actual", pesoActual != null ? pesoActual + " kg" : "—", s.salud.pesoObjetivo != null && s.salud.pesoObjetivo !== "" ? "Meta " + s.salud.pesoObjetivo + " kg" : "Sin meta de peso")}
-  </div>
-
-  <div class="grid grid-3 mt-24">
+  <div class="grid grid-3 inicio-main">
     ${tareasCard}
     <div class="card">
-      <div class="card__head"><div class="card__title">Hábitos de hoy</div>
+      <div class="card__head"><div class="card__title">Hábitos de hoy${habToca.length ? ` <span class="muted" style="font-weight:500;white-space:nowrap">· ${doneToday} de ${habToca.length}</span>` : ""}</div>
         <a class="card__hint" href="#habitos">Ver panel →</a></div>
-      <div class="grid" style="gap:8px">${habitsToday || '<div class="empty">Agrega hábitos en el panel.</div>'}</div>
+      ${habitsToday || '<div class="empty">Agrega hábitos en el panel.</div>'}
     </div>
     <div class="card">
       <div class="card__head"><div class="card__title">Metas de ${MESES[mIdx]}</div>
@@ -1546,22 +1559,17 @@ function renderInicio() {
       ${metasMes.length ? metasMes.map(m => `<div class="item-row"><span class="check"></span>
         <div class="item-row__main"><div class="item-row__title">${escapeHtml(m.texto)}</div></div></div>`).join("")
       : '<div class="empty">Sin metas pendientes este mes. 🎉</div>'}
-      <div class="divider"></div>
-      <div class="flex-between">
-        <span class="text-sm soft">Tu "por qué" financiero</span>
-        <span class="chip chip--coral">${escapeHtml(STATE.finanzas.porque || "—")}</span>
-      </div>
     </div>
   </div>
+  ${kpis.length ? `<div class="grid grid-${Math.min(3, kpis.length)} mt-24">${kpis.join("")}</div>` : ""}
 
   <div class="card mt-24" style="background:linear-gradient(120deg, var(--surface), var(--surface-2))">
     <div class="flex-between" style="flex-wrap:wrap;gap:14px">
       <div class="row" style="gap:14px;align-items:flex-start">
       <div class="account__avatar avatar-lg${marcoClase()}" data-action="av-abrir" title="Cambiar avatar" role="button" tabindex="0">${avatarActualHtml(((s.profile.name || "R").trim()[0] || "R").toUpperCase())}</div>
       <div>
-        <div class="text-xs soft" style="letter-spacing:.08em;text-transform:uppercase">${saludo}, ${escapeHtml(s.profile.name)}</div>
-        <div class="big-num">${edadTexto(s.profile.birthDate)}</div>
-        <div class="text-sm muted">${escapeHtml(s.profile.motto)}</div>
+        <div class="card__title">${escapeHtml(s.profile.name)}</div>
+        <div class="text-sm muted">${escapeHtml(s.profile.motto)}${s.profile.birthDate ? ` · ${edadTexto(s.profile.birthDate)}` : ""}</div>
         <div class="row-wrap" style="gap:8px;margin-top:10px">
           <span class="chip chip--cian">${rankFor(s.gamif.xp || 0).cur.icon} ${rankFor(s.gamif.xp || 0).cur.nombre}</span>
           ${tituloEquipado() ? `<span class="chip">${tituloEquipado().icon} ${escapeHtml(tituloEquipado().nombre)}</span>` : ""}
@@ -1571,8 +1579,7 @@ function renderInicio() {
       </div></div>
       <button class="btn-ghost" data-action="edit-profile">✎ Editar perfil</button>
     </div>
-  </div>
-  <div class="mt-16">${renderElefanteCard()}</div>`;
+  </div>`;
 }
 
 function statCard(ico, label, value, sub, pct) {

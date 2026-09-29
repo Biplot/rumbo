@@ -76,5 +76,16 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await d.locator(".tabs .tabs__b").count() === 3 && await d.locator('.tabs__b.is-active[data-route="recompensas"]').count() === 1, "Recompensas tiene 3 pestañas");
   await d.click('.tabs [data-route="tienda"]'); await d.waitForTimeout(300);
   ok(await d.evaluate(() => location.hash === "#tienda") && await d.locator('.tabs__b.is-active[data-route="tienda"]').count() === 1 && await d.locator(".nav-pie.is-active").count() === 1, "la pestaña Tienda abre la tienda y el pie sigue marcado");
+
+  // 8) Inicio enfocado: elefante junto al saludo, hábitos de un toque y números solo si hay datos
+  await d.goto(URL + "#inicio"); await d.waitForTimeout(300);
+  ok(await d.locator("[data-tour=dia] .ele-hero").count() === 1, "el elefante está junto al saludo");
+  ok(await d.locator("#view .stat").count() === 0, "sin datos de finanzas, lectura ni peso, no aparecen tarjetas vacías");
+  const nHab = await d.locator("#view .hab-chip").count();
+  await d.click("#view .hab-chip >> nth=0"); await d.waitForTimeout(250);
+  ok(nHab === 8 && await d.locator("#view .hab-chip.is-on").count() === 1, "los hábitos de hoy se marcan con un toque");
+  await d.evaluate(() => { STATE.lecturas.push({ id: "l1", titulo: "Hábitos atómicos", estado: "leyendo" }); saveState(); rerender(); });
+  ok(await d.locator("#view .stat").count() === 1 && (await d.locator("#view .stat").innerText()).includes("Hábitos atómicos"), "con un libro en curso aparece 'Leyendo ahora'");
+  ok((await d.locator("#view").innerText()).match(/Buenos días, Prueba/g).length === 1, "el saludo no se repite");
   await c2.close();
 };

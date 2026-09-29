@@ -1551,3 +1551,27 @@ button.dmap__c { cursor: pointer; color: #0C1B2C; }
 .nota-color { width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
 .nota-color.is-on { border-color: var(--text); }
 @media (max-width: 760px) { .postits { columns: 2 140px; column-gap: 10px; } .postit { margin-bottom: 10px; padding: 11px 12px; } }
+
+/* ============================================================
+   TIENDA (v70): fichas chicas; el detalle se abre al tocarlas
+   ============================================================ */
+.tienda-saldo { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px; padding: 10px 14px; }
+.tienda-saldo b { font-size: 22px; font-family: var(--font-display); }
+.fichas { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.ficha { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; padding: 12px 8px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; color: var(--text); font: inherit; text-align: center; cursor: pointer; }
+.ficha:hover { border-color: var(--cian); }
+.ficha__ico { width: 52px; height: 52px; border-radius: 14px; background: var(--surface-2); display: grid; place-items: center; font-size: 28px; }
+.ficha__ico--tema { display: flex; align-items: flex-end; justify-content: center; gap: 4px; padding-bottom: 9px; border: 1px solid var(--line-strong); }
+.ficha__ico--tema i { width: 14px; height: 8px; border-radius: 3px; }
+.ficha__n { font-size: 13px; font-weight: 700; line-height: 1.25; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ficha__p { font-size: 13px; font-weight: 700; color: var(--cian-ink); }
+.ficha.is-falta .ficha__p, .ficha.is-bloqueado .ficha__p { color: var(--text-muted); font-weight: 600; }
+.ficha.is-tuyo .ficha__p, .ficha.is-equipado .ficha__p { color: var(--text-soft); font-weight: 600; }
+.ficha__ok { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%; background: var(--cian); color: var(--on-cian);
+  font-size: 12px; font-weight: 800; display: grid; place-items: center; }
+.ficha.is-equipado { border-color: var(--cian); }
+.ficha-detalle > .card, .ficha-detalle > div > .card { border: 0; padding: 0; background: none; box-shadow: none; }
+@media (max-width: 760px) { .fichas { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .ficha { padding: 10px 4px; } .ficha__ico { width: 46px; height: 46px; font-size: 24px; } }
+.tienda-sec .section-title:first-child { margin-top: 22px; }

@@ -14,14 +14,15 @@ module.exports = async ({ b, ok, errs }) => {
   });
 
   await p.goto(URL + "#tienda"); await p.waitForTimeout(400);
-  ok(await p.locator("[data-cos]").count() === 15, "la Tienda muestra los 15 cosméticos nuevos");
-  for (const id of ["cel-estrellas", "cel-elefante", "chk-sello", "snd-pack", "mar-llama", "pla-cuaderno"]) {
-    await p.click(`[data-cos="${id}"] [data-action="cos-buy"]`); await p.waitForTimeout(150);
-  }
+  ok(await p.evaluate(() => new Set([...document.querySelectorAll("[data-cos]")].map(e => e.dataset.cos)).size) === 15, "la Tienda muestra los 15 cosméticos nuevos");
+  // Cada ficha abre su detalle con el botón de compra
+  const enFicha = async (id, accion) => { await p.click(`.ficha[data-cos="${id}"]`); await p.waitForTimeout(150);
+    const n = await p.locator(`#modal [data-action="${accion}"]`).count(); if (n) { await p.click(`#modal [data-action="${accion}"]`); await p.waitForTimeout(150); }
+    await p.evaluate(() => closeModal()); return n; };
+  for (const id of ["cel-estrellas", "cel-elefante", "chk-sello", "snd-pack", "mar-llama", "pla-cuaderno"]) await enFicha(id, "cos-buy");
   ok(await p.evaluate(() => ["cel-estrellas", "chk-sello", "mar-llama", "pla-cuaderno"].every(isOwned)), "compra celebraciones, check, marco y plantilla");
-  ok(await p.locator('[data-cos="mar-diamante"] [data-action="cos-buy"]').count() === 0, "el marco Diamante no se compra (rango Élite)");
-  await p.click('[data-cos="chk-sello"] [data-action="cos-equip"]'); await p.waitForTimeout(150);
-  await p.click('[data-cos="mar-llama"] [data-action="cos-equip"]'); await p.waitForTimeout(150);
+  ok(await enFicha("mar-diamante", "cos-buy") === 0 && await p.locator('.ficha.is-bloqueado[data-cos="mar-diamante"]').count() === 1, "el marco Diamante no se compra (rango Élite)");
+  await enFicha("chk-sello", "cos-equip"); await enFicha("mar-llama", "cos-equip");
   ok(await p.evaluate(() => document.documentElement.dataset.check) === "sello", "el estilo de check se aplica");
   ok(await p.locator("#accountBox .account__avatar.marco--llama").count() === 1, "el marco se ve en el avatar");
   await shot(p, "tienda-cosmeticos", { fullPage: true });

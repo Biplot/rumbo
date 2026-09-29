@@ -45,9 +45,12 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 5) Botones: compras que dicen cuánto falta y zonas de toque de 44 px
   await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
-  ok(await p.locator(".btn--falta[data-action]").count() === 0 && (await p.locator(".btn--falta").first().innerText()).includes("Te faltan"), "sin ⭐ suficientes, el botón dice cuánto falta y no se puede tocar");
-  await p.evaluate(() => { ledgerRegistrar(STATE, "saldo-nav", 1000, 0, "test"); saveState(); rerender(); });
-  ok(await p.locator('.btn--linea[data-action="util-buy"]').count() === 1, "con saldo, el botón de compra se activa");
+  await p.click('.ficha[data-util="reabrir"]'); await p.waitForTimeout(200);
+  ok(await p.locator("#modal .btn--falta[data-action]").count() === 0 && (await p.locator("#modal .btn--falta").first().innerText()).includes("Te faltan"), "sin ⭐ suficientes, el botón dice cuánto falta y no se puede tocar");
+  await p.evaluate(() => { closeModal(); ledgerRegistrar(STATE, "saldo-nav", 1000, 0, "test"); saveState(); rerender(); });
+  await p.click('.ficha[data-util="reabrir"]'); await p.waitForTimeout(200);
+  ok(await p.locator('#modal .btn--linea[data-action="util-buy"]').count() === 1, "con saldo, el botón de compra se activa");
+  await p.evaluate(() => closeModal());
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
   const chicos = await p.evaluate(() => [...document.querySelectorAll("#view a.card__hint, #view .btn, .topbar button:not([hidden])")].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.height < 40; }).length);
   ok(chicos === 0, "en Inicio y arriba no quedan botones de menos de 40 px de alto");

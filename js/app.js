@@ -810,6 +810,8 @@ function onClick(e) {
     case "habit-month": HABIT_MONTH = +d.m; rerender(); break;
     case "habit-view": HABIT_VIEW = d.v; rerender(); break;
     case "habit-layout": HABIT_LAYOUT = d.v; rerender(); break;
+    case "tienda-ficha": openFicha(d.key); break;
+    case "tienda-mios": TIENDA_MIOS = !TIENDA_MIOS; rerender(); break;
     /* Salud: Resumen · Recetas · Entrenar */
     case "salud-tab": SALUD_TAB = d.v; if (CURRENT !== "salud") go("salud"); else rerender(); break;
     case "salud-peso": guardarPeso(); break;
@@ -1252,63 +1254,7 @@ const THEMES = [
     bg: "#000000", card: "#0B0B0B", accent: "#FFD400", cta: "#FFFFFF", onCta: "#000000", text: "#FFFFFF", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
 ];
 
-function renderTienda() {
-  const actual = STATE.settings.theme;
-  const saldo = STATE.gamif.puntos;
-
-  const themeCards = THEMES.map(t => {
-    const active = t.id === actual;
-    const owned = themeOwned(t.id);
-    let badge;
-    if (active) badge = '<span class="chip chip--cian">✓ Activo</span>';
-    else if (owned) badge = '<span class="chip">Desbloqueado</span>';
-    else badge = `<span class="chip chip--coral">🔒 ${t.costo} ⭐</span>`;
-    const mainAction = owned
-      ? `<button class="btn ${active ? "btn--soft" : "btn--cian"} btn-block mt-8" data-action="set-theme" data-theme="${t.id}">${active ? "✓ Aplicado" : "Aplicar"}</button>`
-      : botonCompra(t.costo, `data-action="tema-buy" data-theme="${t.id}"`, "Desbloquear", "btn-block mt-8");
-    return `<div class="card theme-card ${active ? "is-active" : ""}">
-      <button class="theme-preview" data-action="tema-preview" data-theme="${t.id}" style="background:${t.bg};width:100%;border:none;cursor:pointer;${owned ? "" : "opacity:.9"}">
-        <div class="theme-preview__card" style="background:${t.card};border-radius:${t.radius};color:${t.text};font-family:${t.fontDisplay || t.font}">Aa</div>
-        <div class="theme-preview__btn" style="background:${t.cta};border-radius:${t.radius}"></div>
-        <span class="theme-preview__dot" style="background:${t.accent}"></span>
-        <span class="theme-preview__eye">👁 Vista previa</span>
-      </button>
-      <div class="flex-between mt-16"><div class="card__title">${t.nombre}</div>${badge}</div>
-      <div class="text-xs muted mt-8">${t.concepto}</div>
-      ${mainAction}
-    </div>`;
-  }).join("");
-
-  return `
-  ${tabsRecompensas()}
-  <p class="text-sm muted">Tienes <b>${saldo} ⭐</b>. Gástalas en funciones que te ayudan a enfocarte y en personalizar tu app.</p>
-
-  <nav class="tienda-cats" aria-label="Categorías de la tienda">
-    ${[["utiles", "Útiles"], ["funciones", "Funciones"], ["temas", "Temas"], ["estilo", "Títulos y detalles"], ["efectos", "Efectos"], ["elefante", "Elefante"]]
-      .map(([id, l]) => `<button class="tienda-cat" data-action="tienda-ir" data-id="${id}">${l}</button>`).join("")}
-  </nav>
-
-  <section id="tienda-utiles" class="tienda-sec">${renderUtilesTienda()}</section>
-
-  <section id="tienda-funciones" class="tienda-sec">${renderFuncionesTienda()}</section>
-
-  <section id="tienda-temas" class="tienda-sec">
-  <div class="section-title">🎨 Temas <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· toca la miniatura para la vista previa</span></div>
-  <div class="grid grid-3">${themeCards}</div></section>
-
-  <section id="tienda-estilo" class="tienda-sec">
-  <div class="section-title">🏷️ Títulos <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· aparecen junto a tu nombre en Inicio; los nuevos piden una insignia</span></div>
-  <div class="grid grid-4">${TITULOS.map(cosmeticCard).join("")}</div>
-
-  <div class="section-title">✨ Detalles</div>
-  <div class="grid grid-4">${DETALLES.map(cosmeticCard).join("")}</div></section>
-
-  <section id="tienda-efectos" class="tienda-sec">${renderCosmeticosTienda()}</section>
-
-  <section id="tienda-elefante" class="tienda-sec">${renderElefanteTienda()}</section>
-
-  <p class="text-xs muted mt-24">Ganas ⭐ usando la app (cerrar el día, hábitos, rituales…).</p>`;
-}
+/* renderTienda: ver js/tienda.js (fichas) */
 
 function openThemePreview(themeId) {
   const t = THEMES.find(x => x.id === themeId); if (!t) return;
@@ -1796,6 +1742,7 @@ async function doDeleteAccount() {
    ============================================================ */
 function openModal(title, bodyHtml, op) {
   document.getElementById("modal").classList.toggle("modal--ancho", !!(op && op.ancho));
+  document.getElementById("modal").classList.remove("modal--hoja");
   document.getElementById("modalTitle").textContent = title;
   document.getElementById("modalBody").innerHTML = bodyHtml;
   document.getElementById("modalOverlay").hidden = false;

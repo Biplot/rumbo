@@ -16,7 +16,8 @@ module.exports = async ({ b, ok, errs }) => {
   // 1) Tienda: sección Funciones; comprar Modo enfoque
   await p.goto(URL + "#tienda"); await p.waitForTimeout(400);
   ok(await p.locator("[data-fun]").count() === 5, "la Tienda muestra las 5 funciones");
-  await p.click('[data-fun="fun:enfoque"] [data-action="fun-buy"]'); await p.waitForTimeout(300);
+  await p.click('.ficha[data-fun="fun:enfoque"]'); await p.waitForTimeout(200);
+  await p.click('#modal [data-action="fun-buy"]'); await p.waitForTimeout(300); await p.evaluate(() => closeModal());
   ok(await p.evaluate(() => funcion("enfoque")), "Modo enfoque desbloqueado");
 
   // 2) Enfoque: elegir el bocado, 25 min, llegar al final y marcarla hecha

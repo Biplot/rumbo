@@ -100,17 +100,18 @@ function usarReabrir(iso) {
 
 /* -------- Tienda -------- */
 function renderUtilesTienda() {
-  const card = c => {
-    const n = inventario(STATE, c.id);
-    return `<div class="card util-card" data-util="${c.id}">
-      <div class="row" style="gap:10px;align-items:flex-start"><span class="util-ico">${c.icon}</span>
-        <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${c.nombre}</div>
-          <div class="text-xs muted">${c.costo} ⭐ · ${n ? `<b class="hl-cian">tienes ${n}</b>` : "no tienes"}</div></div></div>
-      <p class="text-sm soft mt-8">${c.desc}</p>
-      <p class="text-xs muted mt-8">${c.regla}</p>
-      ${botonCompra(c.costo, `data-action="util-buy" data-id="${c.id}"`, "Comprar", "btn-block mt-8")}
-    </div>`;
-  };
   return `<div class="section-title">🧰 Útiles <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· se usan y se vuelven a comprar</span></div>
-    <div class="grid grid-3">${CONSUMIBLES.map(card).join("")}</div>`;
+    <div class="grid grid-3">${CONSUMIBLES.map(utilCard).join("")}</div>`;
+}
+/* Tarjeta de un útil (también es el detalle de su ficha en la Tienda) */
+function utilCard(c) {
+  const n = inventario(STATE, c.id);
+  return `<div class="card util-card" data-util="${c.id}">
+    <div class="row" style="gap:10px;align-items:flex-start"><span class="util-ico">${c.icon}</span>
+      <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${c.nombre}</div>
+        <div class="text-xs muted">${c.costo} ⭐ · ${n ? `<b class="hl-cian">tienes ${n}</b>` : "no tienes"}</div></div></div>
+    <p class="text-sm soft mt-8">${c.desc}</p>
+    <p class="text-xs muted mt-8">${c.regla}</p>
+    ${botonCompra(c.costo, `data-action="util-buy" data-id="${c.id}"`, "Comprar", "btn-block mt-8")}
+  </div>`;
 }

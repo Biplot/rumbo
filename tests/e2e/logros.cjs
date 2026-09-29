@@ -25,9 +25,10 @@ module.exports = async ({ b, ok, errs }) => {
 
   // Título que pide insignia
   await p.goto(URL + "#tienda"); await p.waitForTimeout(400);
-  ok(await p.locator('[data-action="cos-buy"][data-id="tit-estratega"]').count() === 0, "sin la insignia Estratega no se puede comprar su título");
+  ok(await p.locator('.ficha.is-bloqueado[data-est="tit-estratega"]').count() === 1, "sin la insignia Estratega no se puede comprar su título");
   await p.evaluate(() => { STATE.gamif.badges.push("estratega"); saveState(); rerender(); }); await p.waitForTimeout(200);
-  await p.click('[data-action="cos-buy"][data-id="tit-estratega"]'); await p.waitForTimeout(200);
+  await p.click('.ficha[data-est="tit-estratega"]'); await p.waitForTimeout(200);
+  await p.click('#modal [data-action="cos-buy"][data-id="tit-estratega"]'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => isOwned("tit-estratega")), "con la insignia, el título se compra");
 
   await ctx.close();

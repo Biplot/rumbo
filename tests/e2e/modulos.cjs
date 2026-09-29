@@ -2,7 +2,7 @@
 const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { fecha: "2026-09-23T10:00:00", w: 390, h: 844 });
-  const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
+  const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message)); p.on("dialog", d => d.accept());
   await registrar(p, "modulos@test.cl");
 
   // ---------- Calendario ----------
@@ -111,4 +111,22 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => tareasDelDia(todayISO()).some(t => t.txt === "Comprar pilas")) && await p.locator('.postit:has-text("Comprar pilas")').count() === 0, "una nota pasa a tarea de hoy con un toque (y se archiva)");
   ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Notas: sin scroll horizontal en el celular");
   await shot(p, "modulos-notas");
+
+  // ---------- Tienda en fichas ----------
+  await p.evaluate(() => { ledgerRegistrar(STATE, "saldo-tienda", 450, 0, "test"); saveState(); });
+  await p.goto(URL + "#tienda"); await p.waitForTimeout(350);
+  ok(await p.locator(".ficha").count() > 30 && await p.locator(".util-card, .cos-card").count() === 0, "la Tienda muestra fichas chicas, sin textos largos");
+  const alcanza = await p.evaluate(() => [...document.querySelectorAll(".tienda-sec")][0].innerText);
+  ok(alcanza.toLowerCase().includes("te alcanza") && !alcanza.includes("600"), "primero lo que te alcanza (nada que cueste más que tu saldo)");
+  await p.click('.ficha[data-fun="fun:pronostico"]'); await p.waitForTimeout(200);
+  ok((await p.locator("#modal").innerText()).includes("Pronóstico") && await p.locator('#modal [data-action="fun-buy"]').count() === 1, "tocar una ficha abre su detalle con el botón de compra");
+  await p.click('#modal [data-action="fun-buy"]'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => funcion("pronostico")) && (await p.locator("#modal").innerText()).includes("Desbloqueada"), "comprar desde el detalle lo desbloquea y el detalle se actualiza");
+  await p.evaluate(() => closeModal());
+  ok(await p.locator('.ficha.is-tuyo[data-fun="fun:pronostico"]').count() === 1, "la ficha queda marcada como tuya");
+  await p.click('[data-action="tienda-mios"]'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => [...document.querySelectorAll(".ficha")].every(f => f.classList.contains("is-tuyo") || f.classList.contains("is-equipado"))) && await p.locator('.ficha[data-fun="fun:pronostico"]').count() === 1, "Ver lo que tengo muestra solo lo tuyo");
+  await p.click('[data-action="tienda-mios"]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Tienda: sin scroll horizontal en el celular");
+  await shot(p, "modulos-tienda");
 };

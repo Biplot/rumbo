@@ -117,9 +117,9 @@ const TOURS = {
   tienda: {
     icon: "🛒", titulo: "Tienda", desc: "Útiles, funciones, temas y cosméticos.",
     pasos: [
-      { ruta: "tienda", el: "[data-util]", titulo: "Útiles", texto: "Se usan y se vuelven a comprar: <b>reabrir un día</b> te deja corregir un día cerrado de la última semana." },
-      { ruta: "tienda", el: "[data-fun]", titulo: "Funciones", texto: "Se desbloquean una vez: modo enfoque, pronóstico de la semana, comparar meses y más." },
-      { ruta: "tienda", el: ".theme-card", titulo: "Temas y cosméticos", texto: "Toca la miniatura para ver un tema antes de comprarlo. Alto contraste es gratis." },
+      { ruta: "tienda", el: ".tienda-saldo", titulo: "Tu saldo", texto: "Lo que tienes para gastar. <b>Ver lo que tengo</b> muestra solo lo tuyo, para equiparlo." },
+      { ruta: "tienda", el: "[data-util]", titulo: "Fichas", texto: "Cada artículo es una ficha: tócala para ver qué hace y comprarlo. Primero aparece lo que <b>te alcanza</b>." },
+      { ruta: "tienda", el: ".tienda-cats", titulo: "Categorías", texto: "Salta a funciones, temas, títulos, efectos o tu elefante. Los temas se prueban antes de comprarlos; Alto contraste es gratis." },
     ],
   },
 };

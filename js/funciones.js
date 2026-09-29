@@ -378,18 +378,20 @@ function iconosExtra() { return PACKS_ICONOS.filter(p => funcion("iconos-" + p.i
 /* ============================================================
    Tienda: sección Funciones
    ============================================================ */
+/* Tarjeta de una función (también es el detalle de su ficha en la Tienda) */
+function funcionCard(fid, it, extra) {
+  const tiene = funcion(claveFuncion(fid));
+  return `<div class="card util-card" data-fun="${fid}">
+    <div class="row" style="gap:10px;align-items:flex-start"><span class="util-ico">${it.icon}</span>
+      <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${it.nombre}</div>
+        <div class="text-xs muted">${tiene ? '<b class="hl-cian">✓ Desbloqueada</b>' : it.costo + " ⭐ · una vez"}</div></div></div>
+    <p class="text-sm soft mt-8">${it.desc}</p>
+    ${it.donde ? `<p class="text-xs muted mt-8">📍 ${it.donde}</p>` : ""}${extra || ""}
+    ${tiene ? "" : botonCompra(it.costo, `data-action="fun-buy" data-id="${fid}"`, "Desbloquear", "btn-block mt-8")}
+  </div>`;
+}
 function renderFuncionesTienda() {
-  const card = (fid, it, extra) => {
-    const tiene = funcion(claveFuncion(fid));
-    return `<div class="card util-card" data-fun="${fid}">
-      <div class="row" style="gap:10px;align-items:flex-start"><span class="util-ico">${it.icon}</span>
-        <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${it.nombre}</div>
-          <div class="text-xs muted">${tiene ? '<b class="hl-cian">✓ Desbloqueada</b>' : it.costo + " ⭐ · una vez"}</div></div></div>
-      <p class="text-sm soft mt-8">${it.desc}</p>
-      ${it.donde ? `<p class="text-xs muted mt-8">📍 ${it.donde}</p>` : ""}${extra || ""}
-      ${tiene ? "" : botonCompra(it.costo, `data-action="fun-buy" data-id="${fid}"`, "Desbloquear", "btn-block mt-8")}
-    </div>`;
-  };
+  const card = funcionCard;
   const plantillas = { icon: "📋", nombre: "Plantillas de rutina", costo: 200, desc: "Hábitos y tareas recurrentes ya armados: " + PLANTILLAS.map(p => p.nombre).join(", ") + ".", donde: "Hábitos → 📋 Plantillas" };
   const packs = `<div class="row-wrap mt-8" style="gap:6px">${PACKS_ICONOS.map(p => funcion("iconos-" + p.id)
     ? `<span class="chip chip--cian">${p.icon} ${p.nombre} ✓</span>`

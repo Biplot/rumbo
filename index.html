@@ -75,16 +75,24 @@
         </div>
       </div>
 
-      <nav class="nav" id="nav"><!-- items injected --></nav>
+      <button class="nav-dia" id="navDia" data-base="nav-dia" hidden></button>
+
+      <nav class="nav" id="nav" aria-label="Menú"><!-- items injected --></nav>
 
       <div class="sidebar__foot">
-        <div class="account" id="accountBox"></div>
-        <button class="btn-ghost btn-block" data-action="export" title="Descargar una copia de tus datos">⭳ Respaldar datos</button>
-        <div class="row" style="gap:6px;margin-top:6px">
-          <button class="btn-ghost" data-action="logout" style="flex:1">↩ Cerrar sesión</button>
-          <button class="btn-ghost" data-route="tutoriales" title="Tutoriales" aria-label="Tutoriales">🎓</button>
+        <button class="nav-pie" data-route="recompensas"><span class="nav__ico">🏆</span><span class="nav-pie__t">Recompensas</span><b id="navPts" class="nav-pie__pts"></b></button>
+        <div class="cuenta-fila">
+          <div class="account" id="accountBox"></div>
+          <button class="cuenta-btn" id="cuentaBtn" data-action="cuenta-menu" aria-haspopup="menu" aria-expanded="false" aria-label="Menú de tu cuenta">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
         </div>
-        <p class="foot-note">Sincronizado con tu cuenta.</p>
+        <div class="cuenta-menu" id="cuentaMenu" role="menu" hidden>
+          <button role="menuitem" data-route="cuenta">👤 Cuenta y avatar</button>
+          <button role="menuitem" data-route="notif">🔔 Notificaciones</button>
+          <button role="menuitem" data-route="tutoriales">🎓 Tutoriales y ayuda</button>
+          <button role="menuitem" data-action="export">⭳ Respaldar datos</button>
+          <button role="menuitem" data-action="logout" class="cuenta-menu__salir">↩ Cerrar sesión</button>
+        </div>
       </div>
     </aside>
 
@@ -95,7 +103,7 @@
     <div class="main">
       <header class="topbar">
         <div class="topbar__inner">
-          <button class="hamburger" id="hamburger" aria-label="Menú">☰</button>
+          <button class="hamburger" id="hamburger" aria-label="Menú" hidden>☰</button>
           <div class="topbar__title">
             <h1 id="pageTitle">Inicio</h1>
             <p id="pageSubtitle" class="muted"></p>
@@ -104,8 +112,8 @@
           <div class="topbar__meta">
             <div class="save-status" id="saveStatus" hidden></div>
             <div class="pill pill--date" id="todayPill"></div>
-            <div class="pill pill--pts" id="ptsPill" title="Tus puntos">⭐ <span id="ptsVal">0</span></div>
-            <div class="pill pill--streak" id="streakPill" title="Racha de días cerrados">🔥 <span id="streakVal">0</span></div>
+            <button class="pill pill--streak" id="streakPill" data-action="info-racha" title="Días cerrados seguidos" aria-label="Días cerrados seguidos">🔥 <span id="streakVal">0</span><span class="pill__txt"> días cerrados</span></button>
+            <button class="pill pill--pts" id="ptsPill" data-action="info-racha" title="Tus monedas" aria-label="Tus monedas">⭐ <span id="ptsVal">0</span></button>
           </div>
         </div>
       </header>
@@ -113,11 +121,11 @@
       <main class="view" id="view"><!-- module injected --></main>
     </div>
 
-    <!-- Barra de navegación inferior (solo móvil) -->
-    <nav class="bottombar" id="bottombar"><!-- items injected --></nav>
+    <!-- Barra de navegación inferior (solo móvil) con el botón del día al centro -->
+    <nav class="bottombar" id="bottombar" aria-label="Navegación principal"><!-- items injected --></nav>
 
-    <!-- Botón flotante: acción del día (solo móvil) -->
-    <button class="day-fab" id="dayFab" hidden></button>
+    <!-- Hoja "Más" (móvil) -->
+    <div class="sheet-overlay" id="masOverlay" hidden><section class="sheet" role="dialog" aria-modal="true" aria-label="Más"></section></div>
   </div>
 
   <!-- Modal genérico -->
@@ -162,6 +170,7 @@
   <script src="js/avatares.js?v=67"></script>
   <script src="js/vida.js?v=67"></script>
   <script src="js/notifs.js?v=67"></script>
+  <script src="js/navegacion.js?v=67"></script>
   <script src="js/app.js?v=67"></script>
   <script>
     if ("serviceWorker" in navigator) {

@@ -6,7 +6,7 @@
    2) Ayuda por pantalla: la primera vez que entras a una sección, un recorrido corto
       (se puede apagar). El botón ? de arriba lo repite.
    3) Misión "Primeros pasos" en Inicio: se marca sola al hacer cada cosa de verdad.
-   4) Centro de tutoriales (Ajustes → 🎓 Tutoriales).
+   4) Centro de tutoriales (Más → Ayuda, o el menú de tu cuenta).
    Lo visto vive en settings.tutorial = { vistos: {id: ts}, mision, auto, ts }.
    ============================================================ */
 
@@ -25,16 +25,16 @@ const TOURS = {
       { ruta: "inicio", el: { sel: "#view .card", txt: "Hábitos de hoy" }, titulo: "Hábitos de hoy",
         texto: "Solo aparecen los que te tocan hoy según su frecuencia. Un toque y listo." },
       { el: ".topbar__meta", titulo: "Tus monedas y tu racha",
-        texto: "⭐ son tus monedas: las ganas abriendo y cerrando días, con hábitos y objetivos, y las gastas en la Tienda. 🔥 es tu racha de días cerrados." },
+        texto: "🔥 son tus días cerrados seguidos y ⭐ tus monedas: las ganas abriendo y cerrando días, con hábitos y objetivos, y las gastas en Recompensas → Tienda. Tócalos para ver el detalle." },
       { el: ["#bottombar", "#nav"], titulo: "Tu menú",
-        texto: m => m ? "Abajo tienes lo del día a día. En <b>☰ Más</b> está el resto: Finanzas, Salud, Lecturas, Tendencias y más."
-          : "A la izquierda, lo del día a día arriba y el resto en <b>Más</b>. Con ⚙️ Personalizar menú ocultas lo que no uses." },
+        texto: m => m ? "Abajo tienes lo del día a día y, al centro, el botón para <b>abrir o cerrar tu día</b>. En <b>Más</b> está el resto: Objetivos, Ritual, Finanzas, Recompensas, tu cuenta y la ayuda."
+          : "A la izquierda: arriba el botón para abrir o cerrar tu día, luego lo del día a día y tus <b>Módulos</b> (plegables). Abajo, Recompensas y el menú de tu cuenta." },
       { ruta: "ritual", prep: () => { RITUAL_VIEW = "dia"; }, el: "#view .seg", titulo: "Tus rituales",
         texto: "<b>Día</b>, <b>Semana</b>, <b>Mes</b> y <b>Trimestre</b>: abrir y cerrar cada ciclo mantiene vivo todo tu sistema. Cada ritual da ⭐." },
       { ruta: "semana", el: [".week-scroll", "#view .card"], titulo: "Tu semana",
         texto: "Tu plan (foco y 3 prioridades) y tus 7 días. Lo que no alcanzas lo decides al cerrar el día: <b>&gt;</b> mañana, <b>&lt;</b> otro día, <b>@</b> delegar o <b>✕</b> soltar." },
       { el: "#helpBtn", titulo: "¿Dudas? Toca ?",
-        texto: "Cada pantalla tiene su propia ayuda. Y en <b>🎓 Tutoriales</b> (en el menú) repites cualquier recorrido." },
+        texto: "Cada pantalla tiene su propia ayuda. Y en <b>Ayuda</b> (en Más o en el menú de tu cuenta) repites cualquier recorrido." },
       { ruta: "inicio", el: "[data-tour=mision]", titulo: "Tu misión: primeros pasos",
         texto: "Seis cosas para arrancar. Se marcan solas cuando las haces y al completarlas ganas +100 ⭐ y la insignia Explorador." },
       { titulo: "¡Listo! 🚀", texto: "Eso es lo esencial. Parte abriendo tu día: te toma 30 segundos." },
@@ -110,8 +110,8 @@ const TOURS = {
     pasos: [
       { ruta: "recompensas", el: ".rank-ladder", titulo: "Tu rango", texto: "La XP mide tu rango y <b>nunca baja</b>, aunque gastes monedas." },
       { ruta: "recompensas", el: ".ele-card", titulo: "Tu elefante", texto: "Crece con tu XP y cambia en cada etapa, de cría a sabio 👑. Vístelo en 👕 Vestir; hay 4 tipos más que se ganan con constancia." },
-      { ruta: "recompensas", el: ".badge-card", titulo: "Insignias", texto: "Se desbloquean con tus logros y cada una da ⭐. Algunas tienen bronce, plata y oro, y hay secretas." },
-      { ruta: "recompensas", el: { sel: "#view .card", txt: "gastar" }, titulo: "La Tienda", texto: "Gasta tus ⭐ en útiles, funciones, temas y cosméticos." },
+      { ruta: "insignias", el: ".badge-card", titulo: "Insignias", texto: "Se desbloquean con tus logros y cada una da ⭐. Algunas tienen bronce, plata y oro, y hay secretas." },
+      { ruta: "recompensas", el: '.tabs [data-route="tienda"]', titulo: "La Tienda", texto: "Gasta tus ⭐ en útiles, funciones, temas y cosméticos. Está en la pestaña Tienda." },
     ],
   },
   tienda: {
@@ -148,7 +148,7 @@ function cambiarTutorial(campo, valor) {
 let TOUR = null;   // { id, i, dir, n }
 function tourIniciar(id) {
   if (!TOURS[id]) return;
-  closeModal(); setSidebar(false);
+  closeModal(); setSidebar(false); cerrarMas(); cerrarMenuCuenta();
   TOUR = { id, i: 0, dir: 1, n: 0 };
   document.addEventListener("keydown", tourTeclas, true);
   window.addEventListener("resize", tourReubicar);
@@ -324,7 +324,7 @@ function renderMisionCard() {
   }
   return `<div class="card mision" data-tour="mision" style="margin-bottom:20px">
     <div class="card__head"><div class="card__title">🚀 Primeros pasos · ${hechos}/${pasos.length}</div>
-      <button class="btn-ghost" data-action="mision-ocultar" title="Puedes volver a mostrarla en 🎓 Tutoriales">Ocultar</button></div>
+      <button class="btn-ghost" data-action="mision-ocultar" title="Puedes volver a mostrarla en Ayuda">Ocultar</button></div>
     <div class="bar"><div class="bar__fill" style="width:${Math.round((hechos / pasos.length) * 100)}%"></div></div>
     <div class="mision__lista mt-16">${pasos.map(m => `<button class="mision__paso ${m.ok ? "is-ok" : ""}" data-action="mision-ir" data-ruta="${m.ruta}" ${m.ok ? "disabled" : ""}>
       <span class="check ${m.ok ? "is-on" : ""}">${m.ok ? "✓" : ""}</span><span>${m.icon} ${escapeHtml(m.t)}</span></button>`).join("")}</div>

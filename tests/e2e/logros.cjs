@@ -15,10 +15,12 @@ module.exports = async ({ b, ok, errs }) => {
 
   // Recompensas: series con niveles y secretas ocultas
   await p.goto(URL + "#recompensas"); await p.waitForTimeout(400);
+  ok((await p.locator(".ele-card").first().innerText()).includes("Joven"), "el elefante está en etapa Joven con 900 XP");
+  await p.click('.tabs [data-route="insignias"]'); await p.waitForTimeout(400);
+  ok(await p.evaluate(() => location.hash) === "#insignias", "la pestaña Insignias abre sus logros");
   const txt = await p.locator("body").innerText();
   ok(txt.includes("Búho") && txt.includes("???"), "la secreta ganada se ve y las demás aparecen como ???");
   ok(await p.locator(".badge-niveles").count() === 7, "las 7 series muestran bronce, plata y oro");
-  ok((await p.locator(".ele-card").first().innerText()).includes("Joven"), "el elefante está en etapa Joven con 900 XP");
   await shot(p, "recompensas-logros", { fullPage: true });
 
   // Título que pide insignia

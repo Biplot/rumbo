@@ -3,16 +3,17 @@
    ============================================================ */
 
 /* -------- Configuración de navegación -------- */
-/* Principal: siempre visible. "Más" (mas: true): se puede ocultar en Personalizar menú (settings.menu.ocultos). */
+/* Principal: siempre visible. "Módulos" (mas: true): se puede ocultar en Personalizar menú (settings.menu.ocultos).
+   pie: true → no va en la lista del menú; se llega desde el pie (Recompensas y el menú de cuenta). */
 const ROUTES = [
   { grupo: "Principal" },
   { id: "inicio", label: "Inicio", icon: "🏠", render: renderInicio, subtitle: "Tu centro de control diario." },
-  { id: "ritual", label: "Ritual", icon: "🌅", render: renderRitual, subtitle: "Abre y cierra tu día, tu semana y tu mes." },
   { id: "semana", label: "Semana", icon: "🗂️", render: renderSemana, subtitle: "Tu plan y tus tareas de lunes a domingo." },
   { id: "habitos", label: "Hábitos", icon: "📊", render: renderHabitos, subtitle: "Marca cada día y cuida tu racha." },
   { id: "metas", label: "Objetivos", icon: "🎯", render: renderMetas, subtitle: "Tus metas trimestrales y mensuales." },
+  { id: "ritual", label: "Ritual", icon: "🌅", render: renderRitual, subtitle: "Abre y cierra tu día, tu semana y tu mes." },
   { id: "diario", label: "Diario", icon: "📔", render: renderDiario, subtitle: "Tu día a día: ánimo, reflexión e historial del ritual." },
-  { grupo: "Más" },
+  { grupo: "Módulos" },
   { id: "tendencias", mas: true, label: "Tendencias", icon: "📈", render: renderTendencias, subtitle: "Tu evolución del año en gráficos." },
   { id: "calendario", mas: true, label: "Calendario", icon: "🗓️", render: renderCalendario, subtitle: "Tu mes de un vistazo." },
   { id: "finanzas", mas: true, label: "Finanzas", icon: "💰", render: renderFinanzas, subtitle: "Ahorro, gastos y seguimiento mensual." },
@@ -24,19 +25,19 @@ const ROUTES = [
   { id: "listas", mas: true, label: "Listas", icon: "🧾", render: renderListas, subtitle: "Compras, películas, viajes y más." },
   { id: "aprendizajes", mas: true, label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
   { id: "notas", mas: true, label: "Notas", icon: "📝", render: renderNotas, subtitle: "Captura rápida y notas organizadas por categoría." },
-  { id: "recompensas", mas: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus insignias y la tienda de cosméticos." },
-  { grupo: "Ajustes" },
-  { id: "tienda", label: "Tienda", icon: "🛒", render: renderTienda, subtitle: "Útiles, funciones y cosméticos para tus ⭐." },
-  { id: "cuenta", label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
-  { id: "notif", label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
-  { id: "tutoriales", label: "Tutoriales", icon: "🎓", render: renderTutoriales, subtitle: "Recorridos guiados para aprender Rumbo a tu ritmo." },
+  { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tu elefante y tu progreso." },
+  { id: "tienda", pie: true, label: "Recompensas", icon: "🛒", render: renderTienda, subtitle: "Útiles, funciones y cosméticos para tus ⭐." },
+  { id: "insignias", pie: true, label: "Recompensas", icon: "🏅", render: renderInsignias, subtitle: "Tus logros, con bronce, plata, oro y secretas." },
+  { id: "cuenta", pie: true, label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
+  { id: "notif", pie: true, label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
+  { id: "tutoriales", pie: true, label: "Ayuda", icon: "🎓", render: renderTutoriales, subtitle: "Recorridos guiados para aprender Rumbo a tu ritmo." },
 ];
 const ROUTE_MAP = {};
 ROUTES.forEach(r => { if (r.id) ROUTE_MAP[r.id] = r; });
 /* Módulos ocultos por la persona (settings.menu.ocultos) */
 function moduloOculto(id) { const m = STATE && STATE.settings && STATE.settings.menu; return !!(m && (m.ocultos || []).includes(id) && ROUTE_MAP[id] && ROUTE_MAP[id].mas); }
 /* Orden de secciones para el gesto de deslizar (mismo orden del menú, sin las ocultas) */
-function seccionesVisibles() { return ROUTES.filter(r => r.id && !moduloOculto(r.id)).map(r => r.id); }
+function seccionesVisibles() { return ROUTES.filter(r => r.id && !r.pie && !moduloOculto(r.id)).map(r => r.id); }
 
 let CURRENT = "inicio";
 let CURRENT_USER = null;
@@ -59,6 +60,7 @@ async function boot() {
     setSidebar(!document.getElementById("sidebar").classList.contains("is-open")));
   document.getElementById("sidebarBackdrop").addEventListener("click", () => setSidebar(false));
   initGestures();
+  initHojaMas();
   window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
   // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube;
   // al ocultarla/cerrarla, subir de inmediato lo pendiente (no perder el cierre recién hecho).
@@ -362,9 +364,11 @@ function renderAccountBox() {
   const box = document.getElementById("accountBox");
   if (!box || !CURRENT_USER) return;
   const initial = (CURRENT_USER.name || CURRENT_USER.email || "?").trim()[0].toUpperCase();
-  box.innerHTML = `<div class="account__avatar${typeof marcoClase === "function" ? marcoClase() : ""}" data-action="av-abrir" title="Tu avatar">${typeof avatarActualHtml === "function" ? avatarActualHtml(initial) : initial}</div>
-    <div style="min-width:0;flex:1"><div class="account__name">${escapeHtml(CURRENT_USER.name || "")}</div>
-    <div class="account__email">${escapeHtml(CURRENT_USER.email)}</div></div>`;
+  const avatar = typeof avatarActualHtml === "function" ? avatarActualHtml(initial) : initial;
+  const marco = typeof marcoClase === "function" ? marcoClase() : "";
+  box.innerHTML = `<div class="account__avatar${marco}" data-action="av-abrir" title="Tu avatar">${avatar}</div>
+    <div class="account__info" data-action="cuenta-menu" style="min-width:0;flex:1"><div class="account__name">${escapeHtml(CURRENT_USER.name || "")}</div>
+    <div class="account__email">Cuenta, avisos y ayuda</div></div>`;
 }
 
 /* -------- Handlers del portal -------- */
@@ -412,42 +416,34 @@ async function doLogout() {
 }
 
 /* -------- Navegación -------- */
+/* Menú lateral (computador): lo principal arriba, los módulos en un grupo plegable.
+   Recompensas y la cuenta viven en el pie (ver navegacion.js). */
 function buildNav() {
   const nav = document.getElementById("nav");
-  nav.innerHTML = ROUTES.map(r => {
-    if (r.grupo === "Ajustes") return `<button class="nav__item nav__item--sub" data-action="menu-personalizar"><span class="nav__ico">⚙️</span><span>Personalizar menú</span></button>
-      <div class="nav__label">${r.grupo}</div>`;
-    if (r.grupo) return `<div class="nav__label">${r.grupo}</div>`;
-    if (moduloOculto(r.id)) return "";
-    return `<button class="nav__item" data-route="${r.id}">
-      <span class="nav__ico">${r.icon}</span><span>${r.label}</span></button>`;
-  }).join("");
+  const item = r => `<button class="nav__item" data-route="${r.id}"><span class="nav__ico">${r.icon}</span><span>${r.label}</span></button>`;
+  const principal = ROUTES.filter(r => r.id && !r.mas && !r.pie);
+  const mods = ROUTES.filter(r => r.id && r.mas && !moduloOculto(r.id));
+  let abierto = true;
+  try { abierto = localStorage.getItem("rumbo-nav-modulos") !== "0"; } catch (e) {}
+  nav.innerHTML = principal.map(item).join("")
+    + `<details class="nav-mods" id="navMods"${abierto ? " open" : ""}><summary class="nav__label nav-mods__sum">Módulos (${mods.length})${iconoLinea("chevron", 16)}</summary>
+      ${mods.map(item).join("")}
+      <button class="nav__item nav__item--sub" data-action="menu-personalizar"><span class="nav__ico">⚙️</span><span>Personalizar menú</span></button></details>`;
+  const det = document.getElementById("navMods");
+  det.addEventListener("toggle", () => { try { localStorage.setItem("rumbo-nav-modulos", det.open ? "1" : "0"); } catch (e) {} });
   document.getElementById("brandName").innerHTML = `${STATE.settings.appName.replace("i","<em>i</em>")}`;
   buildBottomNav();
-}
-
-/* Barra inferior en móvil: accesos directos + Menú (abre el lateral) */
-const BOTTOM_NAV = ["inicio", "semana", "habitos", "metas"];
-function buildBottomNav() {
-  const bar = document.getElementById("bottombar");
-  if (!bar) return;
-  const items = BOTTOM_NAV.map(id => {
-    const r = ROUTE_MAP[id]; if (!r) return "";
-    return `<button class="bottombar__item" data-route="${id}">
-      <span class="bico">${r.icon}</span>${r.label.split(" ")[0]}</button>`;
-  }).join("");
-  bar.innerHTML = items + `<button class="bottombar__item" data-action="open-menu">
-    <span class="bico">☰</span>Más</button>`;
+  pintarPieNav();
 }
 
 function onRoute() {
   if (!CURRENT_USER) return;
   const hash = location.hash.replace("#", "") || "inicio";
   CURRENT = ROUTE_MAP[hash] ? hash : "inicio";
-  document.querySelectorAll(".nav__item, .bottombar__item").forEach(el =>
-    el.classList.toggle("is-active", el.dataset.route === CURRENT));
+  cerrarMas(); cerrarMenuCuenta();
   updateTopbar();
   rerender();
+  marcarNavActiva();
   setSidebar(false);
   document.querySelector(".main").scrollTo?.(0, 0);
   window.scrollTo(0, 0);
@@ -458,13 +454,13 @@ function go(id) { location.hash = id; }
 
 /* -------- Personalizar menú: ocultar módulos de "Más" (los datos no se tocan) -------- */
 function openPersonalizarMenu() {
-  setSidebar(false);
+  setSidebar(false); cerrarMas();
   const ocultos = new Set(((STATE.settings.menu || {}).ocultos) || []);
   openModal("Personalizar menú", `
     <p class="text-sm muted" style="margin-bottom:12px">Elige qué módulos ver en el menú. Ocultar uno no borra nada: vuelve a mostrarlo cuando quieras y todo seguirá ahí.</p>
     ${ROUTES.filter(r => r.mas).map(r => `<label class="mes-hab" style="cursor:pointer"><span class="mes-hab__n">${r.icon} ${r.label}</span>
       <input type="checkbox" class="menu-mod" value="${r.id}" ${ocultos.has(r.id) ? "" : "checked"}></label>`).join("")}
-    <p class="text-xs muted mt-8">Inicio, Ritual, Semana, Hábitos, Objetivos y Diario siempre se ven.</p>
+    <p class="text-xs muted mt-8">Inicio, Semana, Hábitos, Objetivos, Ritual y Diario siempre se ven.</p>
     <button class="btn btn--primary btn-block mt-16" data-action="menu-guardar">Guardar</button>`);
 }
 function guardarPersonalizarMenu() {
@@ -595,23 +591,8 @@ function rerender() {
   updateFab();
 }
 
-/* Botón flotante (móvil): la acción del día, siempre a un toque.
-   Se oculta en Inicio y Ritual (ahí la acción ya está visible) y al cerrar el día. */
-function updateFab() {
-  const fab = document.getElementById("dayFab");
-  if (!fab) return;
-  if (!STATE || CURRENT === "inicio" || CURRENT === "ritual") { fab.hidden = true; return; }
-  const st = dayState();
-  if (st === "por-abrir") {
-    fab.hidden = false; fab.className = "day-fab day-fab--open";
-    fab.dataset.action = "day-open"; fab.innerHTML = `<span class="day-fab__ico">🌅</span> Abre tu día`;
-  } else if (st === "en-curso" || st === "por-cerrar") {
-    fab.hidden = false; fab.className = "day-fab day-fab--close";
-    fab.dataset.action = "day-close"; fab.innerHTML = `<span class="day-fab__ico">🌙</span> Cierra tu día`;
-  } else {
-    fab.hidden = true; // día cerrado
-  }
-}
+/* Botón del día: vive en la barra inferior (móvil) y arriba del menú (computador) */
+function updateFab() { actualizarBotonDia(); }
 
 function updateTopbar() {
   const route = ROUTE_MAP[CURRENT];
@@ -691,6 +672,7 @@ function anularMovimiento(id) {
 function refreshPts() {
   const el = document.getElementById("ptsVal");
   if (el) el.textContent = STATE.gamif.puntos;
+  pintarPieNav();
 }
 function computeRitualStreak() {
   const now = new Date(); let streak = 0;
@@ -753,7 +735,10 @@ function onClick(e) {
   switch (a) {
     case "close-modal": closeModal(); break;
     case "export": exportData(); break;
-    case "open-menu": setSidebar(true); break;
+    case "open-menu": openMas(); break;
+    case "mas-cerrar": cerrarMas(); break;
+    case "cuenta-menu": toggleMenuCuenta(); break;
+    case "info-racha": openInfoRachas(); break;
 
     /* Notificaciones */
     case "notif-enable": enableNotifications(); break;
@@ -1102,9 +1087,9 @@ function onClick(e) {
     case "tour-salir": tourTerminar(); break;
     case "tour-reset": tourReiniciar(); break;
     case "mision-ir": go(d.ruta); break;
-    case "mision-ocultar": misionMostrar(false); toast("Primeros pasos oculto · vuelve a mostrarlo en 🎓 Tutoriales"); break;
+    case "mision-ocultar": misionMostrar(false); toast("Primeros pasos oculto · vuelve a mostrarlo en Ayuda"); break;
     case "mision-cerrar": cambiarTutorial("mision", "completada"); rerender(); break;
-    case "show-tutorial": case "intro-replay": setSidebar(false); openOnboarding(STATE.settings.onboarded ? "repetir" : "nuevo"); break;
+    case "show-tutorial": case "intro-replay": setSidebar(false); cerrarMas(); cerrarMenuCuenta(); openOnboarding(STATE.settings.onboarded ? "repetir" : "nuevo"); break;
     case "reset-data":
       if (confirm("¿Borrar TODOS tus datos y empezar de cero? Esto no se puede deshacer.")) {
         const name = STATE.profile.name, birth = STATE.profile.birthDate, theme = STATE.settings.theme;
@@ -1239,13 +1224,8 @@ function renderTienda() {
   }).join("");
 
   return `
-  <div class="card">
-    <div class="flex-between" style="flex-wrap:wrap;gap:10px">
-      <div><div class="card__title">🛒 Tienda</div>
-        <div class="text-sm muted mt-8">Gasta tus ⭐ en funciones que te ayudan a enfocarte y en personalizar tu app.</div></div>
-      <div class="pill pill--pts" style="font-size:16px">⭐ ${saldo}</div>
-    </div>
-  </div>
+  ${tabsRecompensas()}
+  <p class="text-sm muted">Tienes <b>${saldo} ⭐</b>. Gástalas en funciones que te ayudan a enfocarte y en personalizar tu app.</p>
 
   ${renderUtilesTienda()}
 
@@ -1687,6 +1667,12 @@ function renderCuenta() {
       <button class="btn btn--soft" data-action="acc-import">⭱ Importar respaldo</button>
     </div>
     <input type="file" id="acc-file" accept="application/json,.json" hidden onchange="importBackup(this)">
+  </div>
+
+  <div class="card mt-16">
+    <div class="flex-between" style="flex-wrap:wrap;gap:10px"><div><div class="card__title" style="font-size:15px">↩ Sesión</div>
+      <div class="text-sm muted mt-8">Tus datos quedan guardados en tu cuenta.</div></div>
+      <button class="btn btn--soft" data-action="logout">Cerrar sesión</button></div>
   </div>
 
   <div class="card mt-16" style="border-color:var(--coral)">

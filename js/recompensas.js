@@ -199,19 +199,6 @@ function renderRecompensas() {
     </div>
   </div>`;
 
-  // Insignias (las series con niveles y las secretas las arma logros.js)
-  const badgesOld = BADGES.map(b => {
-    const earned = g.badges.includes(b.id);
-    const destacada = g.equipped.insignia === b.id;
-    return `<div class="card badge-card ${earned ? "" : "is-locked"}" style="text-align:center">
-      <div style="font-size:32px;line-height:1">${b.icon}</div>
-      <div class="card__title" style="font-size:14px;margin-top:6px">${b.nombre}</div>
-      <div class="text-xs muted" style="margin-top:4px">${b.desc}</div>
-      ${earned
-        ? `<button class="btn-ghost btn-block mt-8" data-action="badge-destacar" data-id="${b.id}">${destacada ? "★ Destacada" : "Destacar"}</button>`
-        : `<div class="chip mt-8" style="display:inline-block">🔒 +${b.reward} ⭐</div>`}
-    </div>`;
-  }).join("");
   const ganadas = g.badges.length;
 
   // Escalera de rangos (aspiracional, compacta)
@@ -224,6 +211,7 @@ function renderRecompensas() {
   }).join("");
 
   return `
+  ${tabsRecompensas()}
   ${heroRank}
 
   <div class="section-title">🏔️ Escalera de rangos</div>
@@ -231,16 +219,29 @@ function renderRecompensas() {
 
   ${typeof renderElefanteCard === "function" ? `<div class="mt-24">${renderElefanteCard()}</div>` : ""}
 
-  <div class="flex-between mt-24"><div class="section-title" style="margin:0">🏅 Insignias · ${ganadas}/${BADGES.length}</div></div>
-  <div class="grid grid-auto mt-16">${typeof insigniasHtml === "function" ? insigniasHtml(g) : badgesOld}</div>
-
   <div class="card mt-24">
     <div class="flex-between" style="flex-wrap:wrap;gap:10px">
-      <div><div class="card__title">🛒 ¿Quieres gastar tus ⭐?</div>
-        <div class="text-sm muted mt-8">Funciones, temas, cosméticos y ropa para tu elefante.</div></div>
-      <a class="btn btn--cian" href="#tienda">Ir a la Tienda →</a>
+      <div><div class="card__title">🏅 Insignias · ${ganadas} ganadas</div>
+        <div class="text-sm muted mt-8">Logros con bronce, plata, oro y algunas secretas.</div></div>
+      <button class="btn btn--soft" data-route="insignias">Ver insignias</button>
     </div>
   </div>`;
+}
+
+/* Pestaña Insignias */
+function renderInsignias() {
+  const g = STATE.gamif;
+  const badgesOld = BADGES.map(b => {
+    const earned = g.badges.includes(b.id);
+    return `<div class="card badge-card ${earned ? "" : "is-locked"}" style="text-align:center">
+      <div style="font-size:32px;line-height:1">${b.icon}</div>
+      <div class="card__title" style="font-size:14px;margin-top:6px">${b.nombre}</div>
+      <div class="text-xs muted" style="margin-top:4px">${b.desc}</div></div>`;
+  }).join("");
+  return `
+  ${tabsRecompensas()}
+  <div class="section-title" style="margin-top:0">🏅 Insignias · ${g.badges.length}/${BADGES.length}</div>
+  <div class="grid grid-auto">${typeof insigniasHtml === "function" ? insigniasHtml(g) : badgesOld}</div>`;
 }
 
 /* Helpers para mostrar lo equipado en Inicio */

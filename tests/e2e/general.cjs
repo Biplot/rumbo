@@ -22,6 +22,20 @@ module.exports = async ({ b, ok, errs }) => {
     await ctx.close();
   }
 
+  // 1b) Cerrar las Novedades con la ✕ también cuenta como vistas (no vuelven a salir)
+  {
+    const ctx = await nuevoContexto(b, { fecha: "2026-09-25T10:00:00" });
+    const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
+    await registrar(p, "nov-x@test.cl");
+    await p.evaluate(() => { STATE.settings.introVersion = 12; saveState(); });
+    await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(900);
+    ok((await p.locator("#modalTitle").innerText()).includes("Novedades"), "aparecen las Novedades");
+    await p.click('#modal [data-action="close-modal"]'); await p.waitForTimeout(200);
+    await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(900);
+    ok(await p.locator("#modalOverlay").isHidden(), "cerrarlas con la ✕ cuenta como vistas: no vuelven a salir");
+    await ctx.close();
+  }
+
   // 2) Introducción para usuarios nuevos
   {
     const ctx = await nuevoContexto(b, { fecha: "2026-09-25T10:00:00" });

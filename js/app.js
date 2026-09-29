@@ -263,6 +263,9 @@ function openNovedades() {
       <div><div class="novedad__t">${escapeHtml(t)}</div><div class="text-sm muted">${escapeHtml(d)}</div></div></div>`).join("")}</div>`;
   const cuerpo = versiones.map((v, i) => (i ? `<div class="divider"></div><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">También llegó antes</div>` : "") + lista(NOVEDADES[v])).join("");
   ONB_ACTIVE = false;
+  // Se marcan como vistas apenas se muestran: cerrarlas con ✕, tocando fuera o deslizando
+  // también cuenta (antes solo "Ahora no" las marcaba y volvían a salir en cada recarga).
+  STATE.settings.introVersion = INTRO_VERSION; saveState();
   openModal("✨ Novedades de Rumbo", `
     ${cuerpo}
     <div class="onb-nav mt-16">

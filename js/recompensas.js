@@ -124,7 +124,7 @@ function cosmeticCard(it) {
     <div class="mt-8">${owned
       ? `<button class="btn ${eq ? "btn--soft" : "btn--cian"} btn-block" data-action="cos-equip" data-id="${it.id}">${eq ? "✓ Equipado — quitar" : "Equipar"}</button>`
       : it.requiere && !requisitoTitulo(it) ? `<button class="btn btn--soft btn-block" disabled>Comprar · ${it.costo} ⭐</button>`
-      : `<button class="btn btn--primary btn-block" data-action="cos-buy" data-id="${it.id}">Comprar · ${it.costo} ⭐</button>`}</div>
+      : botonCompra(it.costo, `data-action="cos-buy" data-id="${it.id}"`)}</div>
   </div>`;
 }
 function equipItem(id) {

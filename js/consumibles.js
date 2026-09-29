@@ -108,7 +108,7 @@ function renderUtilesTienda() {
           <div class="text-xs muted">${c.costo} ⭐ · ${n ? `<b class="hl-cian">tienes ${n}</b>` : "no tienes"}</div></div></div>
       <p class="text-sm soft mt-8">${c.desc}</p>
       <p class="text-xs muted mt-8">${c.regla}</p>
-      <button class="btn btn--primary btn-block mt-8" data-action="util-buy" data-id="${c.id}">Comprar · ${c.costo} ⭐</button>
+      ${botonCompra(c.costo, `data-action="util-buy" data-id="${c.id}"`, "Comprar", "btn-block mt-8")}
     </div>`;
   };
   return `<div class="section-title">🧰 Útiles <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· se usan y se vuelven a comprar</span></div>

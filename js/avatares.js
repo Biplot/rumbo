@@ -313,5 +313,5 @@ function renderAvatarCuenta() {
   return `<div class="card mt-16"><div class="flex-between" style="gap:14px;flex-wrap:wrap">
     <div class="row" style="gap:14px"><div class="account__avatar avatar-lg${typeof marcoClase === "function" ? marcoClase() : ""}">${avatarActualHtml(((STATE.profile && STATE.profile.name) || "R").trim()[0].toUpperCase())}</div>
       <div><div class="card__title" style="font-size:15px">🎭 Tu avatar</div><div class="text-sm muted mt-8">${d ? escapeHtml(d.n) : "Hoy usas tu inicial."} Elige uno del elenco, arma el tuyo o usa un personaje de Rumbo.</div></div></div>
-    <button class="btn btn--primary" data-action="av-abrir">Elegir avatar</button></div></div>`;
+    <button class="btn btn--linea" data-action="av-abrir">Elegir avatar</button></div></div>`;
 }

@@ -1209,7 +1209,7 @@ function renderTienda() {
     else badge = `<span class="chip chip--coral">🔒 ${t.costo} ⭐</span>`;
     const mainAction = owned
       ? `<button class="btn ${active ? "btn--soft" : "btn--cian"} btn-block mt-8" data-action="set-theme" data-theme="${t.id}">${active ? "✓ Aplicado" : "Aplicar"}</button>`
-      : `<button class="btn btn--primary btn-block mt-8" data-action="tema-buy" data-theme="${t.id}">Desbloquear · ${t.costo} ⭐</button>`;
+      : botonCompra(t.costo, `data-action="tema-buy" data-theme="${t.id}"`, "Desbloquear", "btn-block mt-8");
     return `<div class="card theme-card ${active ? "is-active" : ""}">
       <button class="theme-preview" data-action="tema-preview" data-theme="${t.id}" style="background:${t.bg};width:100%;border:none;cursor:pointer;${owned ? "" : "opacity:.9"}">
         <div class="theme-preview__card" style="background:${t.card};border-radius:${t.radius};color:${t.text};font-family:${t.fontDisplay || t.font}">Aa</div>
@@ -1256,16 +1256,16 @@ function openThemePreview(themeId) {
     <div style="background:${t.bg};border-radius:14px;padding:14px;font-family:${t.font};color:${t.text}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div style="font-weight:700;font-size:17px;font-family:${t.fontDisplay || t.font}">Rumbo</div>
-        <div style="background:${t.card};border-radius:${t.radius};padding:4px 10px;font-size:11px">⭐ 320</div>
+        <div style="background:${t.card};border-radius:${t.radius};padding:4px 10px;font-size:12px">⭐ 320</div>
       </div>
       <div style="background:${t.card};border-radius:${t.radius};padding:14px;margin-bottom:10px">
-        <div style="font-size:11px;opacity:.7">Ahorro del mes</div>
+        <div style="font-size:12px;opacity:.7">Ahorro del mes</div>
         <div style="font-size:24px;font-weight:700;font-family:${t.fontDisplay || t.font}">$540.000</div>
         <div style="height:8px;background:rgba(128,128,128,.25);border-radius:99px;margin-top:8px;overflow:hidden"><div style="width:66%;height:100%;background:${t.accent};border-radius:99px"></div></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span style="background:${t.accent};color:${t.bg};border-radius:${t.radius};padding:4px 10px;font-size:11px;font-weight:600">🎯 Misión</span>
-        <span style="background:${t.card};border-radius:${t.radius};padding:4px 10px;font-size:11px">${BOCADO.emoji} ${BOCADO.corto}</span>
+        <span style="background:${t.accent};color:${t.bg};border-radius:${t.radius};padding:4px 10px;font-size:12px;font-weight:600">🎯 Misión</span>
+        <span style="background:${t.card};border-radius:${t.radius};padding:4px 10px;font-size:12px">${BOCADO.emoji} ${BOCADO.corto}</span>
         <button style="margin-left:auto;background:${t.cta};color:${t.onCta || "#fff"};border:none;border-radius:${t.radius};padding:8px 16px;font-size:12px;font-weight:700;font-family:${t.font}">Abre tu día</button>
       </div>
     </div>`;
@@ -1273,7 +1273,7 @@ function openThemePreview(themeId) {
     ? `<button class="btn btn--soft btn-block" data-action="close-modal">Ya es tu tema actual</button>`
     : owned
       ? `<button class="btn btn--cian btn-block" data-action="set-theme" data-theme="${t.id}">Aplicar este tema</button>`
-      : `<button class="btn btn--primary btn-block" data-action="tema-buy" data-theme="${t.id}">Desbloquear · ${t.costo} ⭐</button>`;
+      : botonCompra(t.costo, `data-action="tema-buy" data-theme="${t.id}"`, "Desbloquear");
   openModal("Vista previa · " + t.nombre, `
     <p class="text-sm muted" style="margin-bottom:14px">${escapeHtml(t.concepto)}</p>
     ${mock}
@@ -1656,7 +1656,7 @@ function renderCuenta() {
     <div class="card__title" style="font-size:15px">🔑 Contraseña</div>
     <div class="field mt-16"><label>Nueva contraseña</label>
       <input class="input" type="password" id="acc-pass" placeholder="Mínimo 6 caracteres"></div>
-    <button class="btn btn--primary btn-block" data-action="acc-change-pass">Actualizar contraseña</button>
+    <button class="btn btn--soft btn-block" data-action="acc-change-pass">Actualizar contraseña</button>
   </div>
 
   <div class="card mt-16">

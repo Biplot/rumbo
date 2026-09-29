@@ -142,7 +142,7 @@ function cosmeticoCard(it) {
   const owned = isOwned(it.id), activo = owned && cosActivo(it.id);
   let pie;
   if (it.rango && !owned) pie = `<div class="chip mt-8" style="display:inline-block">💎 Se gana en rango Élite</div>`;
-  else if (!owned) pie = `<button class="btn btn--primary btn-block" data-action="cos-buy" data-id="${it.id}">Comprar · ${it.costo} ⭐</button>`;
+  else if (!owned) pie = botonCompra(it.costo, `data-action="cos-buy" data-id="${it.id}"`);
   else if (it.key === "plantilla") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígela al compartir tu mes</div>`;
   else pie = `<button class="btn ${activo ? "btn--soft" : "btn--cian"} btn-block" data-action="cos-equip" data-id="${it.id}">${activo ? (it.key === "celebra" || it.key === "sonidos" ? "✓ Activo — apagar" : "✓ Equipado — quitar") : (it.key === "celebra" || it.key === "sonidos" ? "Activar" : "Equipar")}</button>`;
   const vista = it.key === "marco" ? `<div class="account__avatar marco marco--${it.value}" style="margin:0 auto 8px">${typeof avatarActualHtml === "function" ? avatarActualHtml((((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()) : escapeHtml(((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()}</div>`

@@ -964,7 +964,7 @@ function renderCalendario() {
   for (let d = 1; d <= nDays; d++) cells.push(d);
 
   const head = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"]
-    .map(d => `<th style="padding:8px;font-size:11px;color:var(--text-muted);text-align:center">${d}</th>`).join("");
+    .map(d => `<th style="padding:8px;font-size:12px;color:var(--text-muted);text-align:center">${d}</th>`).join("");
 
   let rows = "", i = 0;
   while (i < cells.length) {

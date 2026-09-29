@@ -43,7 +43,16 @@ module.exports = async ({ b, ok, errs }) => {
   ok(info.includes("cerrad") && info.includes("hábitos") && info.includes("monedas"), "tocar 🔥 explica cada racha y las monedas");
   await p.evaluate(() => closeModal());
 
-  // 5) Cerrar sesión se encuentra en Cuenta
+  // 5) Botones: compras que dicen cuánto falta y zonas de toque de 44 px
+  await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
+  ok(await p.locator(".btn--falta[data-action]").count() === 0 && (await p.locator(".btn--falta").first().innerText()).includes("Te faltan"), "sin ⭐ suficientes, el botón dice cuánto falta y no se puede tocar");
+  await p.evaluate(() => { ledgerRegistrar(STATE, "saldo-nav", 1000, 0, "test"); saveState(); rerender(); });
+  ok(await p.locator('.btn--linea[data-action="util-buy"]').count() === 1, "con saldo, el botón de compra se activa");
+  await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
+  const chicos = await p.evaluate(() => [...document.querySelectorAll("#view a.card__hint, #view .btn, .topbar button:not([hidden])")].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.height < 40; }).length);
+  ok(chicos === 0, "en Inicio y arriba no quedan botones de menos de 40 px de alto");
+
+  // 6) Cerrar sesión se encuentra en Cuenta
   await p.goto(URL + "#cuenta"); await p.waitForTimeout(300);
   ok(await p.locator('#view [data-action="logout"]').count() === 1, "Cuenta tiene Cerrar sesión");
   await ctx.close();
@@ -62,7 +71,7 @@ module.exports = async ({ b, ok, errs }) => {
   await d.click("#cuentaMenu [data-route=cuenta]"); await d.waitForTimeout(250);
   ok(await d.evaluate(() => location.hash === "#cuenta" && document.getElementById("cuentaMenu").hidden), "elegir una opción navega y cierra el menú");
 
-  // 6) Recompensas: pestañas Progreso · Tienda · Insignias
+  // 7) Recompensas: pestañas Progreso · Tienda · Insignias
   await d.goto(URL + "#recompensas"); await d.waitForTimeout(300);
   ok(await d.locator(".tabs .tabs__b").count() === 3 && await d.locator('.tabs__b.is-active[data-route="recompensas"]').count() === 1, "Recompensas tiene 3 pestañas");
   await d.click('.tabs [data-route="tienda"]'); await d.waitForTimeout(300);

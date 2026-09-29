@@ -359,7 +359,7 @@ function openPlantillas() {
     ${PLANTILLAS.map(p => {
       const tiene = funcion("plantilla-" + p.id);
       return `<div class="card mt-16"><div class="flex-between" style="gap:10px"><div class="card__title" style="font-size:15px">${p.icon} ${p.nombre}</div>
-        ${tiene ? `<button class="btn btn--cian" data-action="plantilla-aplicar" data-id="${p.id}">Aplicar</button>` : `<button class="btn btn--primary" data-action="fun-buy" data-id="plantilla:${p.id}">200 ⭐</button>`}</div>
+        ${tiene ? `<button class="btn btn--cian" data-action="plantilla-aplicar" data-id="${p.id}">Aplicar</button>` : botonCompra(200, `data-action="fun-buy" data-id="plantilla:${p.id}"`, "Desbloquear", "")}</div>
         <div class="text-xs muted mt-8">${p.habitos.map(([i, n, f]) => `${i} ${n} <span class="muted">(${txtFreq(f)})</span>`).join(" · ")}</div>
         <div class="text-xs muted mt-8">🔁 ${p.recurrentes.map(([t, , r]) => `${t} <span class="muted">(${textoRegla(r).toLowerCase()})</span>`).join(" · ")}</div></div>`;
     }).join("")}`);
@@ -387,7 +387,7 @@ function renderFuncionesTienda() {
           <div class="text-xs muted">${tiene ? '<b class="hl-cian">✓ Desbloqueada</b>' : it.costo + " ⭐ · una vez"}</div></div></div>
       <p class="text-sm soft mt-8">${it.desc}</p>
       ${it.donde ? `<p class="text-xs muted mt-8">📍 ${it.donde}</p>` : ""}${extra || ""}
-      ${tiene ? "" : `<button class="btn btn--primary btn-block mt-8" data-action="fun-buy" data-id="${fid}">Desbloquear · ${it.costo} ⭐</button>`}
+      ${tiene ? "" : botonCompra(it.costo, `data-action="fun-buy" data-id="${fid}"`, "Desbloquear", "btn-block mt-8")}
     </div>`;
   };
   const plantillas = { icon: "📋", nombre: "Plantillas de rutina", costo: 200, desc: "Hábitos y tareas recurrentes ya armados: " + PLANTILLAS.map(p => p.nombre).join(", ") + ".", donde: "Hábitos → 📋 Plantillas" };

@@ -294,7 +294,7 @@ function renderGcalCard() {
     return `<div class="card mt-16"><div class="flex-between" style="flex-wrap:wrap;gap:12px">
       <div style="min-width:0"><div class="card__title" style="font-size:15px">📆 Google Calendar</div>
         <div class="text-sm muted mt-8">Ve tus reuniones y eventos junto a tus tareas: en Inicio, Semana, aquí y al abrir tu día. Solo lectura.</div></div>
-      <button class="btn btn--primary" data-action="gcal-conectar">Conectar Google Calendar</button></div></div>`;
+      <button class="btn btn--linea" data-action="gcal-conectar">Conectar Google Calendar</button></div></div>`;
   }
   const l = gcalLocal(), n = (gcalState().calendarios || []).length;
   const cuando = l.ts ? new Date(l.ts).toLocaleString("es-CL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "nunca";

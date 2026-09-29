@@ -178,3 +178,12 @@ function openInfoRachas() {
     ${fila("⭐", STATE.gamif.puntos, "monedas", "Las ganas usando Rumbo y las gastas en Recompensas → Tienda.")}
     <button class="btn btn--soft btn-block mt-16" data-route="recompensas">Ver Recompensas</button>`);
 }
+
+/* -------- Botón de compra: si no alcanzan las ⭐, dice cuánto falta (y no invita a tocar) -------- */
+function botonCompra(costo, attrs, texto = "Comprar", clase = "btn-block") {
+  const saldo = (STATE && STATE.gamif.puntos) || 0;
+  if (saldo >= costo) return `<button class="btn btn--linea ${clase}" ${attrs}>${texto} · ${costo} ⭐</button>`;
+  const pct = Math.max(0, Math.min(100, Math.round((saldo / costo) * 100)));
+  return `<div class="falta ${clase}"><div class="falta__bar"><i style="width:${pct}%"></i></div>
+    <button class="btn btn--falta btn-block" disabled>Te faltan ${costo - saldo} ⭐ · ${costo} ⭐</button></div>`;
+}

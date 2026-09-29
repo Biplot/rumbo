@@ -45,10 +45,10 @@ function renderRitualDia() {
   const cerrado = r && r.cerrado;
   let banner;
   if (!hecho) {
-    banner = `<div class="card" style="background:var(--coral);color:var(--on-coral)">
+    banner = `<div class="card" style="background:var(--coral-btn, var(--coral));color:var(--on-coral)">
       <div class="card__title" style="color:var(--on-coral)">¿Listo para tu ritual de apertura?</div>
       <p class="mt-8" style="opacity:.9">Dos minutos para elegir tu enfoque del día.</p>
-      <div class="row-wrap" style="gap:8px"><button class="btn" style="background:var(--on-coral);color:var(--coral)" data-action="day-open">Comenzar ritual</button>
+      <div class="row-wrap" style="gap:8px"><button class="btn" style="background:var(--on-coral);color:var(--coral-btn, var(--coral))" data-action="day-open">Comenzar ritual</button>
         <button class="btn" style="background:transparent;color:var(--on-coral);border:1px solid var(--on-coral)" data-action="day-open-express">⚡ Express</button></div></div>`;
   } else if (!cerrado) {
     banner = `<div class="card" style="background:linear-gradient(120deg, var(--cian-soft), var(--surface))">

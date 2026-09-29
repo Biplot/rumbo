@@ -20,6 +20,7 @@
   --on-cian: #FFFFFF;
   --on-coral: #FFFFFF;
   --coral: #E8563A;
+  --coral-btn: #CF4228;   /* coral de los botones con texto blanco: contraste 4,7:1 */
   --grafito: #1C1C1E;
   --niebla: #F5F6F4;
 
@@ -258,7 +259,7 @@ a { color: var(--cian-ink); }
   font-size: 14px; font-weight: 600; transition: transform .08s, filter .15s, background .15s;
 }
 .btn:active { transform: translateY(1px); }
-.btn--primary { background: var(--coral); color: var(--on-coral); }
+.btn--primary { background: var(--coral-btn, var(--coral)); color: var(--on-coral); }
 .btn--primary:hover { filter: brightness(1.06); }
 .btn--cian { background: var(--cian); color: var(--on-cian); }
 .btn--cian:hover { filter: brightness(1.06); }
@@ -335,7 +336,7 @@ textarea.input { resize: vertical; min-height: 84px; }
 .seg.seg--triage{display:flex;flex-wrap:wrap;gap:4px;background:none;border:0;padding:0}
 .seg.seg--triage button{border:1px solid var(--line-strong);border-radius:999px;padding:5px 9px;font-size:12px;background:var(--surface-2);color:var(--text-soft)}
 .seg.seg--triage button b{font-family:var(--font-body);margin-right:2px}
-.seg.seg--triage button.is-active{background:var(--coral);border-color:var(--coral);color:var(--on-coral)}
+.seg.seg--triage button.is-active{background:var(--coral-btn, var(--coral));border-color:var(--coral-btn, var(--coral));color:var(--on-coral)}
 .triage-extra[hidden]{display:none}
 .triage-alerta{background:var(--coral-soft);border:1px solid var(--coral);border-radius:var(--r-sm);padding:10px 12px;font-size:12.5px;color:var(--text)}
 .bandeja{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 12px;margin-bottom:10px;
@@ -516,7 +517,7 @@ textarea.input { resize: vertical; min-height: 84px; }
   background: var(--cian); color: var(--on-cian); padding: 12px 20px; border-radius: 999px; font-weight: 600;
   font-size: 14px; box-shadow: var(--shadow); animation: toastIn .25s ease; }
 .toast[hidden] { display: none; }
-.toast--coral { background: var(--coral); color: var(--on-coral); }
+.toast--coral { background: var(--coral-btn, var(--coral)); color: var(--on-coral); }
 @keyframes toastIn { from { transform: translate(-50%, 12px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
 
 /* Radar (rueda de la vida) */
@@ -785,7 +786,7 @@ html[data-theme="navy"] {
   --bg:#0C1B2C; --bg-grad:none; --surface:#122539; --surface-2:#16304A; --surface-3:#1D3B5C;
   --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.20);
   --text:#EAF0F6; --text-soft:#AFC0D2; --text-muted:#93A2B5;
-  --cian:#2BB6A5; --cian-ink:#2BB6A5; --on-cian:#06231f; --coral:#E8563A;
+  --cian:#2BB6A5; --cian-ink:#2BB6A5; --on-cian:#06231f; --coral:#E8563A; --coral-btn:#CF4228;
   --cian-soft:rgba(43,182,165,.16); --coral-soft:rgba(232,86,58,.18);
   --sidebar-bg:#0C1B2C; --topbar-bg:rgba(12,27,44,.82);
   --shadow:0 1px 2px rgba(0,0,0,.28), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
@@ -796,7 +797,7 @@ html[data-theme="grafito"] {
   --bg:#111418; --bg-grad:none; --surface:#1A1E24; --surface-2:#20252C; --surface-3:#272D35;
   --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.18);
   --text:#E9ECEF; --text-soft:#B4BAC1; --text-muted:#8A9199;
-  --cian:#39B9AE; --cian-ink:#39B9AE; --on-cian:#06231f; --coral:#E8563A;
+  --cian:#39B9AE; --cian-ink:#39B9AE; --on-cian:#06231f; --coral:#E8563A; --coral-btn:#CF4228;
   --cian-soft:rgba(57,185,174,.15); --coral-soft:rgba(232,86,58,.16);
   --sidebar-bg:#111418; --topbar-bg:rgba(17,20,24,.82);
   --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.32);
@@ -806,7 +807,7 @@ html[data-theme="medianoche"] {
   --bg:#131A2C; --bg-grad:none; --surface:#1C2540; --surface-2:#212B4A; --surface-3:#293356;
   --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.20);
   --text:#E7EAF4; --text-soft:#AFB6D0; --text-muted:#8C93AE;
-  --cian:#8B93E8; --cian-ink:#8B93E8; --on-cian:#10142a; --coral:#E8563A;
+  --cian:#8B93E8; --cian-ink:#8B93E8; --on-cian:#10142a; --coral:#E8563A; --coral-btn:#CF4228;
   --cian-soft:rgba(139,147,232,.16); --coral-soft:rgba(232,86,58,.16);
   --sidebar-bg:#131A2C; --topbar-bg:rgba(19,26,44,.82);
   --shadow:0 1px 2px rgba(0,0,0,.28), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
@@ -820,7 +821,7 @@ html[data-theme="bosque-claro"] {
   --line:#E4DED2; --line-strong:#CFC7B8;
   --text:#0A140E; --text-soft:#2B2B2B; --text-muted:#645D52;
   --cian:#C8A165; --cian-ink:#7A5C2A; --on-cian:#0A140E; --cian-soft:rgba(200,161,101,.18);
-  --coral:#16301F; --on-coral:#F7F5F0; --coral-soft:rgba(22,48,31,.10);
+  --coral:#16301F; --coral-btn:var(--coral); --on-coral:#F7F5F0; --coral-soft:rgba(22,48,31,.10);
   --azul:#16301F;
   --sidebar-bg:#FFFFFF; --topbar-bg:rgba(247,245,240,.88);
   --shadow:0 1px 2px rgba(10,20,14,.05), 0 12px 28px -20px rgba(10,20,14,.30); --shadow-sm:0 1px 2px rgba(10,20,14,.05);
@@ -833,7 +834,7 @@ html[data-theme="bosque-oscuro"] {
   --line:rgba(247,245,240,.08); --line-strong:rgba(247,245,240,.18);
   --text:#F7F5F0; --text-soft:#E4DED2; --text-muted:#A69F92;
   --cian:#C8A165; --cian-ink:#C8A165; --on-cian:#0A140E; --cian-soft:rgba(200,161,101,.16);
-  --coral:#C8A165; --on-coral:#0A140E; --coral-soft:rgba(200,161,101,.14);
+  --coral:#C8A165; --coral-btn:var(--coral); --on-coral:#0A140E; --coral-soft:rgba(200,161,101,.14);
   --azul:#16301F;
   --sidebar-bg:#0A140E; --topbar-bg:rgba(10,20,14,.86);
   --shadow:0 1px 2px rgba(0,0,0,.35), 0 16px 34px -22px rgba(0,0,0,.7); --shadow-sm:0 1px 2px rgba(0,0,0,.35);
@@ -854,7 +855,7 @@ html[data-theme="atardecer"] {
   --surface:#28203F; --surface-2:#31274B; --surface-3:#3B2F58;
   --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.20);
   --text:#F7EEF6; --text-soft:#D4C4DC; --text-muted:#A897B5;
-  --cian:#FF9E7A; --cian-ink:#FFB08F; --on-cian:#2A1320; --coral:#E8618A; --on-coral:#1E0F18;
+  --cian:#FF9E7A; --cian-ink:#FFB08F; --on-cian:#2A1320; --coral:#E8618A; --coral-btn:var(--coral); --on-coral:#1E0F18;
   --cian-soft:rgba(255,158,122,.16); --coral-soft:rgba(232,97,138,.18);
   --sidebar-bg:#1D1530; --topbar-bg:rgba(29,21,48,.84);
   --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 34px -22px rgba(0,0,0,.65); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
@@ -865,7 +866,7 @@ html[data-theme="oceano"] {
   --surface:#0B2F38; --surface-2:#0F3A45; --surface-3:#154753;
   --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.2);
   --text:#E6F4F5; --text-soft:#A9CDD2; --text-muted:#7FA6AC;
-  --cian:#39D0E0; --cian-ink:#5ADAE8; --on-cian:#04262B; --coral:#FFB84D; --on-coral:#2A1A00;
+  --cian:#39D0E0; --cian-ink:#5ADAE8; --on-cian:#04262B; --coral:#FFB84D; --coral-btn:var(--coral); --on-coral:#2A1A00;
   --cian-soft:rgba(57,208,224,.15); --coral-soft:rgba(255,184,77,.16);
   --sidebar-bg:#06222A; --topbar-bg:rgba(6,34,42,.84);
   --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 34px -22px rgba(0,0,0,.65); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
@@ -876,7 +877,7 @@ html[data-theme="cuaderno"] {
   --surface:#FFFDF7; --surface-2:#F3EDDF; --surface-3:#E9E1CE;
   --line:#E6DECB; --line-strong:#CFC4AC;
   --text:#1F2A3D; --text-soft:#3F4A5C; --text-muted:#6B6454;
-  --cian:#2F4B7C; --cian-ink:#2F4B7C; --on-cian:#FFFFFF; --coral:#B23A2E; --on-coral:#FFFFFF;
+  --cian:#2F4B7C; --cian-ink:#2F4B7C; --on-cian:#FFFFFF; --coral:#B23A2E; --coral-btn:var(--coral); --on-coral:#FFFFFF;
   --cian-soft:rgba(47,75,124,.10); --coral-soft:rgba(178,58,46,.10); --azul:#2F4B7C;
   --sidebar-bg:#FBF7EE; --topbar-bg:rgba(244,239,227,.9);
   --shadow:0 1px 2px rgba(60,45,20,.06), 0 12px 28px -20px rgba(60,45,20,.28); --shadow-sm:0 1px 2px rgba(60,45,20,.06);
@@ -892,7 +893,7 @@ html[data-theme="terminal"] {
   --surface:#0F1711; --surface-2:#142018; --surface-3:#1A2A1F;
   --line:rgba(57,255,136,.14); --line-strong:rgba(57,255,136,.3);
   --text:#D8FFE4; --text-soft:#9FD9B3; --text-muted:#74AD8A;
-  --cian:#39FF88; --cian-ink:#39FF88; --on-cian:#03170A; --coral:#FFB000; --on-coral:#1A1100;
+  --cian:#39FF88; --cian-ink:#39FF88; --on-cian:#03170A; --coral:#FFB000; --coral-btn:var(--coral); --on-coral:#1A1100;
   --cian-soft:rgba(57,255,136,.12); --coral-soft:rgba(255,176,0,.14);
   --sidebar-bg:#0A0F0B; --topbar-bg:rgba(10,15,11,.88);
   --shadow:none; --shadow-sm:none;
@@ -905,7 +906,7 @@ html[data-theme="sakura"] {
   --surface:#FFFFFF; --surface-2:#FCEEF1; --surface-3:#F7E0E6;
   --line:#F4DCE2; --line-strong:#E8C2CC;
   --text:#3A2230; --text-soft:#5E4452; --text-muted:#7F6371;
-  --cian:#E26D8A; --cian-ink:#A8395A; --on-cian:#3A0E1C; --coral:#4F7A39; --on-coral:#FFFFFF;
+  --cian:#E26D8A; --cian-ink:#A8395A; --on-cian:#3A0E1C; --coral:#4F7A39; --coral-btn:var(--coral); --on-coral:#FFFFFF;
   --cian-soft:rgba(226,109,138,.12); --coral-soft:rgba(79,122,57,.12); --azul:#A8395A;
   --sidebar-bg:#FFFFFF; --topbar-bg:rgba(255,246,247,.9);
   --shadow:0 1px 2px rgba(90,40,60,.05), 0 12px 28px -20px rgba(90,40,60,.25); --shadow-sm:0 1px 2px rgba(90,40,60,.05);
@@ -915,7 +916,7 @@ html[data-theme="alto-contraste"] {
   --bg:#000000; --bg-grad:none; --surface:#0B0B0B; --surface-2:#181818; --surface-3:#242424;
   --line:rgba(255,255,255,.38); --line-strong:rgba(255,255,255,.7);
   --text:#FFFFFF; --text-soft:#F2F2F2; --text-muted:#D6D6D6;
-  --cian:#FFD400; --cian-ink:#FFD400; --on-cian:#000000; --coral:#FFFFFF; --on-coral:#000000;
+  --cian:#FFD400; --cian-ink:#FFD400; --on-cian:#000000; --coral:#FFFFFF; --coral-btn:var(--coral); --on-coral:#000000;
   --cian-soft:rgba(255,212,0,.18); --coral-soft:rgba(255,255,255,.14);
   --sidebar-bg:#000000; --topbar-bg:rgba(0,0,0,.92);
   --shadow:none; --shadow-sm:none;
@@ -935,7 +936,7 @@ html[data-theme="alto-contraste"] :focus-visible { outline:3px solid #FFD400 !im
 .auth__tagline { text-align: center; color: var(--text-muted); font-size: 13.5px; margin: 6px 0 22px; }
 .auth__tabs { display: flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; margin-bottom: 18px; }
 .auth__tab { flex: 1; background: none; border: none; color: var(--text-soft); padding: 9px; border-radius: 999px; font-weight: 600; font-size: 14px; }
-.auth__tab.is-active { background: var(--coral); color: var(--on-coral); }
+.auth__tab.is-active { background: var(--coral-btn, var(--coral)); color: var(--on-coral); }
 .auth__sep { text-align: center; color: var(--text-muted); font-size: 12px; margin: 16px 0; display: flex; align-items: center; gap: 12px; }
 .auth__sep::before, .auth__sep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .auth__error { background: var(--coral-soft); color: var(--coral); padding: 10px 12px; border-radius: var(--r-sm); font-size: 13px; margin-bottom: 14px; }
@@ -1194,7 +1195,7 @@ html[data-check="sello"] .tarea-row.is-just .strike::after { animation: chkSello
 .nav-dia { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 46px;
   border-radius: 12px; border: 1px solid transparent; font: 700 15px var(--font-body); margin: 0 0 12px; cursor: pointer; }
 .nav-dia[hidden] { display: none; }
-.nav-dia.is-abrir { background: var(--coral); color: var(--on-coral); }
+.nav-dia.is-abrir { background: var(--coral-btn, var(--coral)); color: var(--on-coral); }
 .nav-dia.is-cerrar { background: var(--surface-2); color: var(--text); border-color: var(--line-strong); }
 .nav__item { min-height: 42px; }
 .nav-mods { margin-top: 4px; }
@@ -1282,7 +1283,7 @@ button.pill { font-family: inherit; cursor: pointer; }
   .bb-dia { flex: 1; display: flex; align-items: center; justify-content: center; background: none; border: none; min-height: 54px; padding: 0; }
   .bb-dia__c { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; transition: transform .1s; }
   .bb-dia:active .bb-dia__c { transform: scale(.94); }
-  .bb-dia.is-abrir .bb-dia__c { background: var(--coral); color: var(--on-coral); }
+  .bb-dia.is-abrir .bb-dia__c { background: var(--coral-btn, var(--coral)); color: var(--on-coral); }
   .bb-dia.is-cerrar .bb-dia__c { background: var(--surface-3); color: var(--text); border: 1px solid var(--line-strong); }
   .bb-dia.is-cerrado .bb-dia__c { background: var(--cian-soft); color: var(--cian-ink); }
   .tabs { margin: -2px 0 14px; }

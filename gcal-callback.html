@@ -17,12 +17,17 @@
        Se revisa que la respuesta sea la que se pidió (state), se guarda el permiso SOLO en este equipo
        y se vuelve a la app, que termina de conectar (gcalRetorno en js/gcal.js). */
     (function () {
-      var p = new URLSearchParams(location.hash.slice(1)), pend = null, vuelta = { ok: false };
+      /* Conexión permanente: Google vuelve con ?code=… (la app lo canjea en el servidor).
+         Conexión simple: vuelve con #access_token=… (se guarda aquí mismo). */
+      var q = new URLSearchParams(location.search), h = new URLSearchParams(location.hash.slice(1));
+      var p = q.get("code") || q.get("error") ? q : h, pend = null, vuelta = { ok: false };
       try { pend = JSON.parse(localStorage.getItem("rumbo-gcal-oauth") || "null"); localStorage.removeItem("rumbo-gcal-oauth"); } catch (e) { pend = null; }
       if (!pend || !p.get("state") || p.get("state") !== pend.estado || Date.now() - pend.ts > 15 * 60 * 1000) {
         vuelta.error = "la respuesta de Google no coincide con lo que se pidió. Intenta de nuevo desde Rumbo.";
-      } else if (p.get("error") || !p.get("access_token")) {
+      } else if (p.get("error") || !(pend.codigo ? p.get("code") : p.get("access_token"))) {
         vuelta.error = p.get("error") === "access_denied" ? "no diste el permiso." : "Google no entregó el permiso (" + (p.get("error") || "sin detalle") + ").";
+      } else if (pend.codigo) {
+        vuelta = { ok: true, conectar: true, code: p.get("code") };
       } else {
         try {
           var l = JSON.parse(localStorage.getItem(pend.clave) || "{}") || {};

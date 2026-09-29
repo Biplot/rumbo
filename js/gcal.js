@@ -8,6 +8,11 @@
    calendarios eligió: settings.gcal = { conectado, calendarios: [ids] | null, ts }.
    El permiso de Google (dura 1 hora) y los eventos quedan SOLO en este equipo (localStorage).
    Sin ID de cliente configurado, todo esto queda oculto.
+
+   Conexión permanente: si la función del servidor "gcal" está instalada (supabase/functions/gcal),
+   al conectar se usa el flujo con código y el servidor guarda, cifrado, el permiso de renovación.
+   Cuando el permiso de 1 hora vence, se pide uno nuevo al servidor en silencio (settings.gcal.servidor).
+   Sin la función, todo sigue como antes (🔄 renueva el permiso con un toque).
    ============================================================ */
 
 const GCAL = {
@@ -23,11 +28,41 @@ const GCAL = {
 };
 let GCAL_CARGANDO = false;
 let GCAL_CLIENTE = null, GCAL_PENDIENTE = null;
+let GCAL_CODIGO = null;          // cliente de Google para el flujo con código (conexión permanente)
+let GCAL_SERVIDOR = null;        // ¿está instalada y configurada la función "gcal"? null = aún no se sabe
+
+/* ¿El servidor puede mantener la conexión? Se pregunta una vez por sesión */
+function gcalServidorListo() {
+  if (GCAL_SERVIDOR !== null) return Promise.resolve(GCAL_SERVIDOR);
+  if (gcalServidorListo.p) return gcalServidorListo.p;
+  gcalServidorListo.p = BACKEND.llamarFuncion("gcal", { accion: "estado" }).then(d => {
+    gcalServidorListo.p = null;
+    if (d && d.error === "red") return false;          // sin conexión: se vuelve a preguntar después
+    GCAL_SERVIDOR = !!(d && d.listo);
+    // Conectado a la antigua: mostrar la invitación a conectar para siempre
+    if (GCAL_SERVIDOR && STATE && gcalConectado() && !gcalState().servidor) rerender();
+    return GCAL_SERVIDOR;
+  });
+  return gcalServidorListo.p;
+}
+/* Permiso nuevo desde el servidor, sin ventanas. null si no se puede (y avisa si hay que reconectar) */
+async function gcalTokenServidor() {
+  if (!gcalState().servidor) return null;
+  const d = await BACKEND.llamarFuncion("gcal", { accion: "token" });
+  if (d && d.access_token) { gcalGuardarToken(d.access_token, d.expires_in); return d.access_token; }
+  if (d && d.error === "reconectar") { const g = gcalState(); g.servidor = false; g.ts = Date.now(); saveState(); }
+  return null;
+}
+function gcalGuardarToken(token, expira) {
+  const l = gcalLocal();
+  l.token = token; l.exp = Date.now() + (Number(expira) || 3600) * 1000;
+  gcalGuardarLocal(l);
+}
 
 function gcalDisponible() { return !!GCAL.clientId; }
 function gcalState(S) {
   S = S || STATE;
-  if (!S.settings.gcal || typeof S.settings.gcal !== "object") S.settings.gcal = { conectado: false, calendarios: null, ts: 0 };
+  if (!S.settings.gcal || typeof S.settings.gcal !== "object") S.settings.gcal = { conectado: false, calendarios: null, servidor: false, ts: 0 };
   return S.settings.gcal;
 }
 function gcalConectado() { return gcalDisponible() && !!gcalState().conectado; }
@@ -95,9 +130,21 @@ function gcalCargarGIS() {
 }
 /* Deja listo el cliente de Google antes del toque (no hace nada en iPhone ni sin ID) */
 function gcalPrecargar() {
-  if (!gcalDisponible() || gcalUsarRedireccion()) return Promise.resolve();
+  if (!gcalDisponible()) return Promise.resolve();
+  gcalServidorListo().catch(() => {});
+  if (gcalUsarRedireccion()) return Promise.resolve();
   if (GCAL_CLIENTE) return Promise.resolve();
   return gcalCargarGIS().then(() => {
+    if (!GCAL_CODIGO && google.accounts.oauth2.initCodeClient) GCAL_CODIGO = google.accounts.oauth2.initCodeClient({
+      client_id: GCAL.clientId, scope: GCAL.scope, ux_mode: "popup",
+      callback: r => {
+        const p = GCAL_PENDIENTE; GCAL_PENDIENTE = null;
+        if (!p) return;
+        if (!r || r.error || !r.code) return p.mal(new Error((r && r.error) || "sin permiso"));
+        p.ok({ code: r.code });
+      },
+      error_callback: e => { const p = GCAL_PENDIENTE; GCAL_PENDIENTE = null; if (p) p.mal(new Error((e && e.type) === "popup_failed_to_open" ? "el navegador bloqueó la ventana de Google" : "se cerró la ventana de Google")); },
+    });
     if (GCAL_CLIENTE) return;
     GCAL_CLIENTE = google.accounts.oauth2.initTokenClient({
       client_id: GCAL.clientId, scope: GCAL.scope,
@@ -123,13 +170,35 @@ function gcalPedirToken(prompt) {
     else gcalPrecargar().then(pedir, mal);         // respaldo (puede que el navegador la bloquee)
   });
 }
+/* Conexión permanente: pide a Google un código (debe llamarse directo desde un toque) */
+function gcalPedirCodigo() {
+  if (gcalUsarRedireccion()) { gcalRedirigir("consent", true); return new Promise(() => {}); }
+  return new Promise((ok, mal) => {
+    GCAL_PENDIENTE = { ok, mal };
+    const pedir = () => GCAL_CODIGO.requestCode();
+    if (GCAL_CODIGO) pedir(); else gcalPrecargar().then(() => GCAL_CODIGO ? pedir() : mal(new Error("Google no está disponible")), mal);
+  });
+}
+/* Cambia el código por el permiso en el servidor (que guarda la renovación) */
+async function gcalCanjear(code, redirectUri) {
+  const d = await BACKEND.llamarFuncion("gcal", { accion: "conectar", code, redirect_uri: redirectUri });
+  if (!d || !d.access_token) {
+    const txt = d && d.error === "sin-renovacion" ? "Google no entregó el permiso permanente. Quita el acceso de Rumbo en myaccount.google.com/permissions y conecta otra vez."
+      : d && d.error === "sin-calendario" ? "no diste permiso para ver tu calendario." : "el servidor no pudo completar la conexión.";
+    throw new Error(txt);
+  }
+  gcalGuardarToken(d.access_token, d.expires_in);
+  const g = gcalState(); g.conectado = true; g.servidor = true; g.ts = Date.now(); saveState();
+  return d.access_token;
+}
 function gcalRedirectUri() { return new URL(GCAL.callback, location.href.split("#")[0]).href; }
-function gcalRedirigir(prompt) {
+function gcalRedirigir(prompt, codigo) {
   const estado = Math.random().toString(36).slice(2) + Date.now().toString(36);
   try {
-    localStorage.setItem("rumbo-gcal-oauth", JSON.stringify({ estado, clave: gcalClave(), conectar: prompt === "consent", ruta: CURRENT, ts: Date.now() }));
+    localStorage.setItem("rumbo-gcal-oauth", JSON.stringify({ estado, clave: gcalClave(), conectar: prompt === "consent", codigo: !!codigo, ruta: CURRENT, ts: Date.now() }));
   } catch (e) { toast("No se puede guardar en este equipo (¿modo privado?)", true); return; }
-  const q = new URLSearchParams({ client_id: GCAL.clientId, redirect_uri: gcalRedirectUri(), response_type: "token", scope: GCAL.scope, include_granted_scopes: "true", state: estado });
+  const q = new URLSearchParams({ client_id: GCAL.clientId, redirect_uri: gcalRedirectUri(), response_type: codigo ? "code" : "token", scope: GCAL.scope, include_granted_scopes: "true", state: estado });
+  if (codigo) q.set("access_type", "offline");
   if (prompt) q.set("prompt", prompt);
   location.href = GCAL.auth + "?" + q.toString();
 }
@@ -140,6 +209,10 @@ function gcalRetorno() {
   try { v = JSON.parse(localStorage.getItem("rumbo-gcal-vuelta") || "null"); localStorage.removeItem("rumbo-gcal-vuelta"); } catch (e) { v = null; }
   if (!v) return false;
   if (!v.ok) { toast("No se conectó Google Calendar: " + (v.error || "intenta de nuevo"), true); return true; }
+  if (v.code) {   // conexión permanente (iPhone): el servidor cambia el código por el permiso
+    gcalCanjear(v.code, gcalRedirectUri()).then(t => gcalTerminar(true, t), e => toast("No se conectó Google Calendar: " + e.message, true));
+    return true;
+  }
   if (v.conectar) { const g = gcalState(); g.conectado = true; g.ts = Date.now(); saveState(); }
   gcalTerminar(!!v.conectar, gcalTokenVigente());
   return true;
@@ -187,6 +260,12 @@ async function gcalConectar() {
   if (!gcalDisponible() || GCAL_CARGANDO) return;
   GCAL_CARGANDO = true;
   let token;
+  if (GCAL_SERVIDOR) {   // conexión permanente: una sola vez y se renueva sola
+    try { const { code } = await gcalPedirCodigo(); token = await gcalCanjear(code, "postmessage"); }
+    catch (e) { GCAL_CARGANDO = false; return toast("No se conectó Google Calendar: " + e.message, true); }
+    GCAL_CARGANDO = false;
+    return gcalTerminar(true, token);
+  }
   try { token = await gcalPedirToken("consent"); }
   catch (e) { GCAL_CARGANDO = false; return toast("No se conectó Google Calendar: " + e.message, true); }
   const g = gcalState(); g.conectado = true; g.ts = Date.now(); saveState();
@@ -198,8 +277,8 @@ async function gcalActualizar(interactivo) {
   if (!gcalConectado() || GCAL_CARGANDO) return;
   GCAL_CARGANDO = true;
   try {
-    let token = gcalTokenVigente();
-    if (!token) { if (!interactivo) return; token = await gcalPedirToken(""); }
+    let token = gcalTokenVigente() || await gcalTokenServidor();
+    if (!token) { if (!interactivo) { rerender(); return; } token = await gcalPedirToken(""); }
     await gcalTraer(token);
     if (interactivo) toast("📆 Calendario actualizado");
     rerender();
@@ -214,13 +293,17 @@ async function gcalActualizar(interactivo) {
 function gcalAlIniciar() {
   if (!gcalConectado()) return;
   const l = gcalLocal();
-  if (gcalTokenVigente() && (!l.ts || Date.now() - l.ts > GCAL.refrescoMin * 60000)) gcalActualizar(false);
+  const puede = gcalTokenVigente() || gcalState().servidor;   // con la conexión permanente, siempre se puede
+  if (puede && (!l.ts || Date.now() - l.ts > GCAL.refrescoMin * 60000)) gcalActualizar(false);
 }
+/* Con la app abierta: se actualiza sola cada media hora */
+if (typeof window !== "undefined" && window.setInterval) window.setInterval(() => { if (typeof STATE !== "undefined" && STATE && !document.hidden) gcalAlIniciar(); }, 5 * 60000);
 function gcalDesconectar() {
+  if (gcalState().servidor) BACKEND.llamarFuncion("gcal", { accion: "desconectar" });
   const l = gcalLocal();
   try { if (l.token && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(l.token, () => {}); } catch (e) { /* igual se borra aquí */ }
   try { localStorage.removeItem(gcalClave()); } catch (e) { /* nada que borrar */ }
-  const g = gcalState(); g.conectado = false; g.ts = Date.now();
+  const g = gcalState(); g.conectado = false; g.servidor = false; g.ts = Date.now();
   saveState(); closeModal(); rerender();
   toast("Google Calendar desconectado. Tus eventos se borraron de este equipo.");
 }
@@ -257,9 +340,12 @@ function gcalFila(e, compacto) {
 /* Aviso cuando los eventos pueden estar desactualizados (el permiso de Google dura 1 hora) */
 function gcalAvisoActualizar() {
   if (!gcalConectado()) return "";
-  const l = gcalLocal();
-  if (gcalTokenVigente() && l.ts) return "";
+  const l = gcalLocal(), g = gcalState();
   gcalPrecargar().catch(() => {});
+  // Ya conectado "a la antigua" y el servidor ya puede mantenerlo: invitar a reconectar una vez
+  if (!g.servidor && GCAL_SERVIDOR) return `<div class="gcal-permanente"><span class="text-sm">Conéctalo una vez más y tu calendario se actualizará solo, sin volver a pedirte permiso.</span>
+    <button class="btn btn--linea" data-action="gcal-conectar">Conectar para siempre</button></div>`;
+  if (g.servidor || (gcalTokenVigente() && l.ts)) return "";
   return `<button class="btn-ghost gcal-refrescar" data-action="gcal-actualizar">🔄 ${l.ts ? "Actualizar" : "Traer"} eventos de Google</button>`;
 }
 /* Inicio: los eventos de hoy */
@@ -300,7 +386,7 @@ function renderGcalCard() {
   const cuando = l.ts ? new Date(l.ts).toLocaleString("es-CL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "nunca";
   return `<div class="card mt-16"><div class="flex-between" style="flex-wrap:wrap;gap:12px">
     <div style="min-width:0"><div class="card__title" style="font-size:15px">📆 Google Calendar conectado</div>
-      <div class="text-sm muted mt-8">${n} calendario${n === 1 ? "" : "s"} · actualizado ${cuando}</div></div>
+      <div class="text-sm muted mt-8">${n} calendario${n === 1 ? "" : "s"} · actualizado ${cuando}${gcalState().servidor ? " · se actualiza solo" : ""}</div></div>
     <div class="row" style="gap:8px"><button class="btn btn--soft" data-action="gcal-actualizar">🔄 Actualizar</button>
       <button class="btn-ghost" data-action="gcal-config">⚙️ Calendarios</button></div></div></div>`;
 }

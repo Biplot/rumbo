@@ -5,6 +5,7 @@ const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 async function simularGoogle(ctx, llamadas) {
   await ctx.route("https://accounts.google.com/gsi/client", r => r.fulfill({ contentType: "text/javascript", body: `
     window.google = { accounts: { oauth2: {
+      initCodeClient(cfg) { return { requestCode() { window.__codigo = true; setTimeout(() => cfg.callback({ code: "cod-123" }), 20); } }; },
       initTokenClient(cfg) { return { requestAccessToken(o) { window.__gisPrompt = o && o.prompt; setTimeout(() => cfg.callback({ access_token: "tok-" + Date.now(), expires_in: 3600 }), 20); } }; },
       revoke(t, cb) { window.__revocado = t; cb && cb(); } } } };` }));
   await ctx.route("https://www.googleapis.com/calendar/v3/**", r => {
@@ -122,3 +123,5 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await q.evaluate(() => gcalTokenVigente()) === "tok-ios", "una respuesta de Google que no se pidió no reemplaza el permiso");
   await ios.close();
 };
+
+module.exports.simularGoogle = simularGoogle;

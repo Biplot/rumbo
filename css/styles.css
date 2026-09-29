@@ -1406,3 +1406,4 @@ a.card__hint { white-space: nowrap; }
 /* Insignias: filtro Ganadas / Por ganar */
 .ins-filtro--ganadas > .badge-card.is-locked { display: none; }
 .ins-filtro--porganar > .badge-card:not(.is-locked) { display: none; }
+.gcal-permanente { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 12px; border-radius: var(--r-sm); background: var(--cian-soft); }

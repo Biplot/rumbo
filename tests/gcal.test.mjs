@@ -30,4 +30,14 @@ export default async function ({ G, test, assert, clone }) {
     // nada de eventos ni permisos de Google en la cuenta
     assert.equal(JSON.stringify(mergeStates(clone(b), clone(a)).settings.gcal).includes("token"), false);
   });
+
+  test("conexión permanente: servidor=false por defecto; conectados de antes migran sin perder la conexión; se fusiona con lo más reciente", () => {
+    assert.equal(migrate(defaultState()).settings.gcal.servidor, false);
+    const antes = migrate(defaultState()); antes.settings.gcal = { conectado: true, calendarios: ["c1"], ts: 100 };
+    const m = migrate(clone(antes));
+    assert.equal(m.settings.gcal.servidor, false); assert.equal(m.settings.gcal.conectado, true); assert.equal(m.settings.gcal.calendarios.join(), "c1");
+    const nuevo = clone(m); nuevo.settings.gcal = { conectado: true, calendarios: ["c1"], servidor: true, ts: 300 };
+    assert.equal(mergeStates(clone(nuevo), clone(m)).settings.gcal.servidor, true);
+    assert.equal(mergeStates(clone(m), clone(nuevo)).settings.gcal.servidor, true);
+  });
 }

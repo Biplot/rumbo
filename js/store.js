@@ -23,6 +23,14 @@ function _hash(s) {
 }
 
 const LocalBackend = {
+  /* Sin servidor: la función no existe (las pruebas la simulan en /functions/v1/…) */
+  async llamarFuncion(nombre, body) {
+    try {
+      const r = await fetch("functions/v1/" + nombre, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+      const d = await r.json().catch(() => ({}));
+      return r.ok ? d : { error: d.error || "http-" + r.status, status: r.status };
+    } catch (e) { return { error: "red" }; }
+  },
   _users() { try { return JSON.parse(localStorage.getItem("rumbo_users") || "{}"); } catch { return {}; } },
   _saveUsers(u) { try { localStorage.setItem("rumbo_users", JSON.stringify(u)); } catch {} },
   _pub(u) { return { id: u.id, email: u.email, name: u.name }; },
@@ -354,6 +362,19 @@ const SupabaseBackend = {
     return this._pub(data.user);
   },
   async logout() { this._ver = {}; await this._client().auth.signOut(); },
+  /* Llama a una función del servidor (Supabase Edge Functions) con la sesión de la persona */
+  async llamarFuncion(nombre, body) {
+    const { data } = await this._client().auth.getSession();
+    const jwt = data && data.session && data.session.access_token;
+    if (!jwt) return { error: "sesion" };
+    try {
+      const r = await fetch(SUPABASE_URL + "/functions/v1/" + nombre, {
+        method: "POST", body: JSON.stringify(body || {}),
+        headers: { Authorization: "Bearer " + jwt, apikey: SUPABASE_KEY, "Content-Type": "application/json" } });
+      const d = await r.json().catch(() => ({}));
+      return r.ok ? d : { error: d.error || "http-" + r.status, status: r.status };
+    } catch (e) { return { error: "red" }; }
+  },
   /* ¿Está activo "Iniciar sesión con Google" en Supabase? (Authentication → Providers → Google).
      Se consulta al mostrar la pantalla de acceso: así el botón aparece solo cuando funciona. */
   async googleDisponible() {

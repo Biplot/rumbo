@@ -24,7 +24,7 @@ const ROUTES = [
   { id: "relaciones", mas: true, label: "Relaciones", icon: "👥", render: renderRelaciones, subtitle: "Cumpleaños y con quién no hablas hace rato." },
   { id: "listas", mas: true, label: "Listas", icon: "🧾", render: renderListas, subtitle: "Compras, películas, viajes y más." },
   { id: "aprendizajes", mas: true, label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
-  { id: "notas", mas: true, label: "Notas", icon: "📝", render: renderNotas, subtitle: "Captura rápida y notas organizadas por categoría." },
+  { id: "notas", mas: true, label: "Notas", icon: "📝", render: renderNotas, subtitle: "Tus ideas como post-its, con #etiquetas." },
   { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tu elefante y tu progreso." },
   { id: "tienda", pie: true, label: "Recompensas", icon: "🛒", render: renderTienda, subtitle: "Útiles, funciones y cosméticos para tus ⭐." },
   { id: "insignias", pie: true, label: "Recompensas", icon: "🏅", render: renderInsignias, subtitle: "Tus logros, con bronce, plata, oro y secretas." },
@@ -914,6 +914,14 @@ function onClick(e) {
     case "apr-toggle": { const a = STATE.aprendizajes.find(x => x.id === d.id); if (a) { a.done = !a.done; a.done ? registrarMovimiento("aprendizaje:" + a.id, 10, 10, "Aprendizaje") : anularMovimiento("aprendizaje:" + a.id); } saveState(); rerender(); break; }
 
     /* Notas */
+    case "nota-crear": notaCrear(); break;
+    case "nota-filtro": NOTA_FILTRO = d.v; rerender(); break;
+    case "nota-abrir": notaAbrir(d.id); break;
+    case "nota-guardar": notaGuardar(); break;
+    case "nota-fijar": notaFijar(); break;
+    case "nota-archivar": notaArchivar(); break;
+    case "nota-borrar": notaBorrar(); break;
+    case "nota-tarea": notaATarea(); break;
     case "nota-add-cat": openNotaCatModal(); break;
     case "nota-cat-save": saveNotaCat(); break;
     case "nota-add": openNotaModal(d.cat); break;

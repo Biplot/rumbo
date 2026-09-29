@@ -93,8 +93,9 @@ function defaultState() {
     // aprendizajes profesionales + temas de interés
     aprendizajes: [],
 
-    // notas: categorías con notas
+    // notas: categorías con notas (formato antiguo; se conserva) y notas estilo post-it (Notas v70)
     notas: [],
+    postits: [],
 
     // módulos de vida
     vida: { diario: [], ideas: [], relaciones: [], listas: [] },
@@ -232,6 +233,14 @@ function migrate(s) {
   ["gamif", "ritual", "semana", "entrenamiento", "vida"].forEach(k => { if (!s[k]) s[k] = d[k]; });
   // v70 · Salud: recetario y registro de entrenamientos. Las "recetas del mes" de antes pasan al
   // recetario una sola vez (id fijo por año y mes: idempotente y sin duplicados entre equipos).
+  // v70 · Notas estilo post-it: las notas por categoría pasan con su categoría como etiqueta y la
+  // captura rápida como notas sueltas (las procesadas, archivadas). Ids fijos: idempotente; lo de antes no se borra.
+  if (!Array.isArray(s.postits)) s.postits = [];
+  const yaNota = new Set(s.postits.map(n => n.id));
+  const slugCat = t => String(t || "").trim().toLowerCase().replace(/^#/, "").replace(/\s+/g, "-").slice(0, 30);
+  const sumarNota = n => { if (!yaNota.has(n.id)) { s.postits.push(Object.assign({ titulo: "", texto: "", etiquetas: [], fijada: false, color: "", archivada: false, ts: 1 }, n)); yaNota.add(n.id); } };
+  (Array.isArray(s.notas) ? s.notas : []).forEach(c => (c.items || []).forEach(n => sumarNota({ id: "nota-" + n.id, titulo: n.titulo || "", texto: n.texto || "", etiquetas: [slugCat(c.nombre)].filter(Boolean) })));
+  ((s.vida && s.vida.ideas) || []).forEach(i => sumarNota({ id: "idea-" + i.id, texto: i.texto || "", archivada: !!i.hecha }));
   if (!Array.isArray(s.recetas)) s.recetas = [];
   if (!Array.isArray(s.entrenamiento.registro)) s.entrenamiento.registro = [];
   if (!Array.isArray(s.entrenamiento.dias)) s.entrenamiento.dias = [];

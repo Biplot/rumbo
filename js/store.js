@@ -143,6 +143,7 @@ function mergeStates(server, local) {
 
   out.lecturas = byId(local.lecturas, server.lecturas);
   out.recetas = byId(local.recetas, server.recetas);
+  out.postits = byId(local.postits, server.postits);
   if (local.entrenamiento && server.entrenamiento) {
     out.entrenamiento.dias = byId(local.entrenamiento.dias, server.entrenamiento.dias);
     out.entrenamiento.registro = byId(local.entrenamiento.registro, server.entrenamiento.registro);

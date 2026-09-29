@@ -89,4 +89,26 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('.tabs__b[data-v="resumen"]'); await p.waitForTimeout(200);
   ok((await p.locator(".salud-top").innerText()).includes("1 día"), "el Resumen cuenta el día entrenado");
   ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Salud: sin scroll horizontal en el celular");
+
+  // ---------- Notas estilo post-it ----------
+  await p.evaluate(() => { STATE.notas = [{ id: "c1", nombre: "Trabajo", items: [{ id: "n1", titulo: "Informe", texto: "Revisar cifras" }] }]; STATE = migrate(STATE); saveState(); });
+  await p.goto(URL + "#notas"); await p.waitForTimeout(300);
+  ok(await p.locator(".postit").count() === 1 && (await p.locator(".postit").innerText()).includes("#trabajo"), "las notas por categoría pasan a post-its con su etiqueta");
+  await p.fill("#nota-nueva", "Comprar pilas #casa"); await p.keyboard.press("Enter"); await p.waitForTimeout(250);
+  await p.fill("#nota-nueva", "Ideas para Rumbo #ideas"); await p.click('[data-action="nota-crear"]'); await p.waitForTimeout(250);
+  ok(await p.locator(".postit").count() === 3 && await p.locator('[data-action="nota-filtro"][data-v="casa"]').count() === 1, "escribir arriba crea la nota y su #etiqueta aparece como filtro");
+  await p.click('[data-action="nota-filtro"][data-v="casa"]'); await p.waitForTimeout(200);
+  ok(await p.locator(".postit").count() === 1, "filtrar por etiqueta");
+  await p.click('[data-action="nota-filtro"][data-v="todas"]'); await p.waitForTimeout(200);
+  await p.click('.postit:has-text("Ideas para Rumbo")'); await p.waitForTimeout(200);
+  await p.click('[data-action="nota-fijar"]'); await p.waitForTimeout(200);
+  ok((await p.locator("#view").innerText()).toLowerCase().includes("fijadas") && (await p.locator(".postits").first().innerText()).includes("Ideas para Rumbo"), "fijar una nota la deja arriba");
+  await p.fill("#nota-busca", "pilas"); await p.waitForTimeout(200);
+  ok(await p.locator(".postit").count() === 1, "buscar en tus notas");
+  await p.fill("#nota-busca", ""); await p.waitForTimeout(150);
+  await p.click('.postit:has-text("Comprar pilas")'); await p.waitForTimeout(200);
+  await p.click('[data-action="nota-tarea"]'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => tareasDelDia(todayISO()).some(t => t.txt === "Comprar pilas")) && await p.locator('.postit:has-text("Comprar pilas")').count() === 0, "una nota pasa a tarea de hoy con un toque (y se archiva)");
+  ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Notas: sin scroll horizontal en el celular");
+  await shot(p, "modulos-notas");
 };

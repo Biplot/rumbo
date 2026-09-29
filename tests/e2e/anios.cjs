@@ -30,7 +30,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.locator(".anio-nav b").innerText() === "2026", "“Ir a 2026” vuelve al año actual");
 
   // Salud, Rueda, Hábitos anual, Calendario y Tendencias con selector
-  for (const r of ["salud", "rueda", "calendario", "tendencias"]) {
+  for (const r of ["rueda", "calendario", "tendencias"]) {   // Salud muestra el mes actual (años anteriores en Tendencias)
     await p.goto(URL + "#" + r); await p.waitForTimeout(200);
     ok(await p.locator(".anio-nav").count() === 1, `${r} tiene selector de año`);
   }

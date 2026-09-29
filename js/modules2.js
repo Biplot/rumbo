@@ -417,33 +417,7 @@ function guardarPremioSemana(lunes, v) {
 /* ============================================================
    ENTRENAMIENTO
    ============================================================ */
-function renderEntrenamiento() {
-  const e = STATE.entrenamiento;
-  const dias = e.dias.map(dia => {
-    const done = dia.bloques.filter(b => b.done).length;
-    return `<div class="card">
-      <div class="card__head"><div class="card__title" style="font-size:15px">${escapeHtml(dia.nombre)}</div>
-        <div class="row" style="gap:6px"><span class="chip ${done === dia.bloques.length && dia.bloques.length ? "chip--done" : ""}">${done}/${dia.bloques.length}</span>
-        <button class="icon-btn" data-action="entren-del-dia" data-id="${dia.id}">🗑</button></div></div>
-      ${dia.bloques.map(b => `<div class="blk">
-        <span class="check ${b.done ? "is-on" : ""}" data-action="entren-bloque-toggle" data-dia="${dia.id}" data-id="${b.id}">${b.done ? "✓" : ""}</span>
-        <div class="item-row__main"><div class="item-row__title text-sm ${b.done ? "strike" : ""}">${escapeHtml(b.nombre)}</div></div>
-        <span class="chip">${escapeHtml(b.series || "")}</span>
-        <button class="icon-btn" data-action="entren-del-bloque" data-dia="${dia.id}" data-id="${b.id}">✕</button></div>`).join("")}
-      <button class="btn-ghost btn-block mt-8" data-action="entren-add-bloque" data-dia="${dia.id}">+ Bloque</button>
-      ${done === dia.bloques.length && dia.bloques.length ? '<div class="chip chip--coral mt-8">¡Día completado! 💪</div>' : ""}
-    </div>`;
-  }).join("");
-
-  return `
-  <div class="card">
-    <div class="text-xs muted" style="text-transform:uppercase">🎯 Objetivo</div>
-    <textarea class="input mt-8" style="min-height:60px" data-bind="entrenamiento.objetivo" data-render="no" placeholder="¿Qué buscas con tu entrenamiento?">${escapeHtml(e.objetivo)}</textarea>
-  </div>
-  <div class="flex-between mt-24"><div class="section-title" style="margin:0">Rutina de la semana</div>
-    <button class="btn btn--primary" data-action="entren-add-dia">+ Nuevo día</button></div>
-  <div class="grid grid-3 mt-16">${dias || '<div class="empty">Aún no tienes días de entrenamiento.</div>'}</div>`;
-}
+/* renderEntrenamiento: ahora es la pestaña Entrenar de Salud (js/salud.js) */
 
 let DIA_TARGET = null;
 function openDiaModal() {

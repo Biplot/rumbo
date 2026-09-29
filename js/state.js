@@ -139,9 +139,13 @@ function defaultState() {
       dias: [[], [], [], [], [], [], []],
     },
 
-    // entrenamiento por bloques (plantilla genérica de arranque)
+    // recetario (Salud → Recetas): { id, nombre, icon, minutos, porciones, etiquetas, ingredientes, pasos, favorita, ts, borrada? }
+    recetas: [],
+
+    // entrenamiento: rutinas con ejercicios (bloques) y el registro de cada entrenamiento hecho
     entrenamiento: {
       objetivo: "",
+      registro: [],
       dias: [
         { id: uid(), nombre: "Día 1 · Empuje (pecho, hombros, tríceps)", premiado: false, bloques: [
           { id: uid(), nombre: "Bloque A", series: "4x8", done: false },
@@ -226,6 +230,17 @@ function seedDemo(s) {
 function migrate(s) {
   const d = defaultState();
   ["gamif", "ritual", "semana", "entrenamiento", "vida"].forEach(k => { if (!s[k]) s[k] = d[k]; });
+  // v70 · Salud: recetario y registro de entrenamientos. Las "recetas del mes" de antes pasan al
+  // recetario una sola vez (id fijo por año y mes: idempotente y sin duplicados entre equipos).
+  if (!Array.isArray(s.recetas)) s.recetas = [];
+  if (!Array.isArray(s.entrenamiento.registro)) s.entrenamiento.registro = [];
+  if (!Array.isArray(s.entrenamiento.dias)) s.entrenamiento.dias = [];
+  const recetaDeMes = (meses, y) => (meses || []).forEach((mes, i) => {
+    const nombre = mes && String(mes.recetaNombre || "").trim(), id = `rec-mes-${y}-${i + 1}`;
+    if (nombre && !s.recetas.some(r => r.id === id)) s.recetas.push({ id, nombre, icon: "🍽️", etiquetas: [], ingredientes: "", pasos: "", favorita: !!mes.recetaHecha, ts: 1 });
+  });
+  if (s.salud) recetaDeMes(s.salud.meses, (s.settings && s.settings.year) || new Date().getFullYear());
+  Object.keys(s.anios || {}).forEach(y => { if (s.anios[y] && s.anios[y].salud) recetaDeMes(s.anios[y].salud.meses, y); });
   if (s.ritual && !s.ritual.pilares) s.ritual.pilares = d.ritual.pilares;
   if (s.ritual && (!s.ritual.meses || typeof s.ritual.meses !== "object")) s.ritual.meses = {};
   if (s.ritual && (!s.ritual.trimestres || typeof s.ritual.trimestres !== "object")) s.ritual.trimestres = {};
@@ -521,6 +536,8 @@ function fmtCLP(n) {
   return "$" + Math.round(n).toLocaleString("es-CL");
 }
 function parseNum(v) { const n = parseInt(String(v).replace(/[^\d-]/g, ""), 10); return isNaN(n) ? 0 : n; }
+/* Número con decimales (peso): acepta "72,4" o "72.4"; vacío = null */
+function parseDecimal(v) { const t = String(v ?? "").trim().replace(",", "."); if (!t) return null; const n = parseFloat(t); return isNaN(n) ? null : n; }
 
 /* Fecha local YYYY-MM-DD (NO usar toISOString: eso da UTC y descuadra el día en Chile) */
 function isoLocal(d) {

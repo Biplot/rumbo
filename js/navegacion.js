@@ -78,7 +78,7 @@ function buildBottomNav() {
   actualizarBotonDia();
 }
 function marcarNavActiva() {
-  document.querySelectorAll(".nav__item, .bottombar__item, .tabs__b, .nav-pie").forEach(el =>
+  document.querySelectorAll(".nav__item, .bottombar__item, .tabs__b[data-route], .nav-pie").forEach(el =>
     el.classList.toggle("is-active", el.dataset.route === CURRENT));
   const pie = document.querySelector(".nav-pie");
   if (pie) pie.classList.toggle("is-active", ["recompensas", "tienda", "insignias"].includes(CURRENT));

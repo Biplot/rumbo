@@ -44,4 +44,49 @@ module.exports = async ({ b, ok, errs }) => {
   ok((await p.locator(".dmap__nav").innerText()).includes("Agosto") && await p.locator(".dfila").count() === 1, "las flechas cambian de mes");
   ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Diario: sin scroll horizontal en el celular");
   await shot(p, "modulos-diario");
+
+  // ---------- Salud: Resumen · Recetas · Entrenar ----------
+  await p.goto(URL + "#salud"); await p.waitForTimeout(300);
+  ok(await p.locator('.tabs__b.is-active[data-v="resumen"]').count() === 1 && !(await p.locator("#view").innerText()).toLowerCase().includes("cocinando"), "Salud abre en Resumen y ya no muestra la comida");
+  await p.fill("#salud-peso", "72,4"); await p.click('[data-action="salud-peso"]'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => datosAnio(STATE, 2026).salud.meses[8].peso === 72.4) && (await p.locator("#view").innerText()).includes("72,4 kg"), "registrar el peso lo guarda en el mes y lo muestra");
+  await p.click('.tabs__b[data-v="recetas"]'); await p.waitForTimeout(250);
+  await p.click('[data-action="receta-nueva"]'); await p.waitForTimeout(200);
+  await p.fill("#rc-nombre", "Ensalada de quinoa"); await p.fill("#rc-min", "20"); await p.fill("#rc-tags", "Saludable");
+  await p.fill("#rc-ing", "Quinoa\nTomate\nPepino"); await p.fill("#rc-pasos", "Cocer la quinoa\nMezclar");
+  await p.click('[data-action="receta-guardar"]'); await p.waitForTimeout(250);
+  await p.evaluate(() => { STATE.recetas.push({ id: "r-otra", nombre: "Cazuela", minutos: 60, etiquetas: [], ts: 1 }); saveState(); rerender(); });
+  ok(await p.locator(".receta").count() === 2, "la receta nueva aparece en el recetario");
+  await p.fill("#receta-busca", "tomate"); await p.waitForTimeout(200);
+  ok(await p.locator(".receta").count() === 1 && (await p.locator(".receta").innerText()).includes("Ensalada"), "el buscador encuentra recetas por ingrediente");
+  await p.fill("#receta-busca", ""); await p.waitForTimeout(150);
+  await p.click('[data-action="receta-filtro"][data-v="rapidas"]'); await p.waitForTimeout(200);
+  ok(await p.locator(".receta").count() === 1, "Rápidas muestra las de 20 minutos o menos");
+  await p.click(".receta"); await p.waitForTimeout(200);
+  ok((await p.locator("#modalBody").innerText()).includes("Cocer la quinoa"), "tocar una receta muestra ingredientes y preparación");
+  await p.click('[data-action="receta-fav"]'); await p.waitForTimeout(200); await p.evaluate(() => closeModal());
+  ok(await p.evaluate(() => STATE.recetas.find(r => r.nombre === "Ensalada de quinoa").favorita), "se puede marcar como favorita");
+
+  // Entrenar: #entrenamiento abre Salud → Entrenar; ya no está en el menú
+  await p.goto(URL + "#entrenamiento"); await p.waitForTimeout(300);
+  ok(await p.locator('.tabs__b.is-active[data-v="entrenar"]').count() === 1, "#entrenamiento abre Salud en Entrenar");
+  await p.click("#bbMas"); await p.waitForTimeout(200);
+  ok(await p.locator('.mas-mod[data-route="entrenamiento"]').count() === 0, "Entrenamiento ya no aparece como módulo aparte");
+  await p.keyboard.press("Escape");
+  await p.click('[data-action="rutina-nueva"]'); await p.waitForTimeout(200);
+  await p.fill("#ru-nombre", "Piernas"); await p.selectOption("#ru-dow", "2"); await p.click('[data-action="rutina-guardar"]'); await p.waitForTimeout(250);
+  ok((await p.locator(".hoy-entreno").innerText()).includes("Piernas"), "una rutina asignada al miércoles aparece como la de hoy");
+  await p.click('[data-action="ejercicio-nuevo"]'); await p.waitForTimeout(200);
+  await p.fill("#ej-nombre", "Sentadilla"); await p.fill("#ej-series", "4 × 10"); await p.fill("#ej-peso", "60 kg"); await p.click('[data-action="ejercicio-guardar"]'); await p.waitForTimeout(250);
+  await p.click('[data-action="ejercicio-nuevo"]'); await p.waitForTimeout(200);
+  await p.fill("#ej-nombre", "Plancha"); await p.click('[data-action="ejercicio-guardar"]'); await p.waitForTimeout(250);
+  ok((await p.locator(".ejercicio").first().innerText()).includes("4 × 10 · 60 kg"), "cada ejercicio muestra series, repeticiones y peso");
+  await p.click('.ejercicio .check >> nth=0'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => STATE.entrenamiento.registro.length === 0), "marcar un ejercicio no registra el entrenamiento todavía");
+  await p.click('.ejercicio .check >> nth=1'); await p.waitForTimeout(250);
+  const reg = await p.evaluate(() => ({ n: STATE.entrenamiento.registro.length, dias: datosAnio(STATE, 2026).salud.meses[8].diasEntren }));
+  ok(reg.n === 1 && reg.dias >= 1 && await p.locator(".semana-ent .sd.is-hecho").count() === 1, "completar todos los ejercicios registra el entrenamiento y suma el día en Salud");
+  await p.click('.tabs__b[data-v="resumen"]'); await p.waitForTimeout(200);
+  ok((await p.locator(".salud-top").innerText()).includes("1 día"), "el Resumen cuenta el día entrenado");
+  ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Salud: sin scroll horizontal en el celular");
 };

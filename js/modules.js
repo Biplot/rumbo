@@ -674,62 +674,7 @@ function saveLibro() {
 /* ============================================================
    SALUD Y BIENESTAR
    ============================================================ */
-function renderSalud() {
-  const i = SALUD_MONTH;
-  const s = STATE.salud;                                   // global: peso objetivo
-  const y = anioVista(), sy = datosAnio(STATE, y).salud, pre = rutaAnio(y);   // meses del año
-  const mes = sy.meses[i];
-  const deTot = sy.meses.reduce((a, m) => a + (m.diasEntren || 0), 0);
-  const dcTot = sy.meses.reduce((a, m) => a + (m.diasCocina || 0), 0);
-  const pesos = sy.meses.map(m => m.peso).filter(p => p != null);
-  const pesoActual = pesos.length ? pesos[pesos.length - 1] : null;
-  const pePct = mes.diasEntrenTotal ? Math.round((mes.diasEntren / mes.diasEntrenTotal) * 100) : 0;
-  const pcPct = mes.diasCocinaTotal ? Math.round((mes.diasCocina / mes.diasCocinaTotal) * 100) : 0;
-
-  return `
-  ${selectorAnio()}
-  <div class="grid grid-4">
-    ${statCard("🏋️", `Días entrenados (${y})`, deTot, "Total acumulado")}
-    ${statCard("🍳", `Días cocinando (${y})`, dcTot, "Total acumulado")}
-    ${statCard("⚖️", "Peso actual", pesoActual != null ? pesoActual + " kg" : "—", s.pesoObjetivo != null ? "Meta " + s.pesoObjetivo + " kg" : "Define tu meta")}
-    ${statCard("🎯", "Peso objetivo", `<input class="input" style="width:90px" type="text" inputmode="numeric" data-bind="salud.pesoObjetivo" data-type="num" value="${s.pesoObjetivo ?? ""}" placeholder="—">`, "kg")}
-  </div>
-
-  ${monthNav(i, "salud-month", "salud")}
-
-  <div class="grid grid-2">
-    <div class="card">
-      <div class="card__title mb-0">${MESES[i]} · Objetivo</div>
-      <textarea class="input mt-8" data-bind="${pre}salud.meses.${i}.objetivo" placeholder="¿Qué quieres lograr este mes?">${escapeHtml(mes.objetivo)}</textarea>
-      <div class="row mt-16">
-        <div style="flex:1">
-          <label class="text-xs muted">Días entrenados</label>
-          <div class="row"><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="${pre}salud.meses.${i}.diasEntren" data-type="num" value="${mes.diasEntren}">
-            <span class="muted">/</span><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="${pre}salud.meses.${i}.diasEntrenTotal" data-type="num" value="${mes.diasEntrenTotal}"></div>
-          <div class="bar mt-8"><div class="bar__fill" style="width:${pePct}%"></div></div>
-        </div>
-        <div style="flex:1">
-          <label class="text-xs muted">Días cocinando</label>
-          <div class="row"><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="${pre}salud.meses.${i}.diasCocina" data-type="num" value="${mes.diasCocina}">
-            <span class="muted">/</span><input class="input" style="width:64px;text-align:center" type="text" inputmode="numeric" data-bind="${pre}salud.meses.${i}.diasCocinaTotal" data-type="num" value="${mes.diasCocinaTotal}"></div>
-          <div class="bar mt-8"><div class="bar__fill bar__fill--coral" style="width:${pcPct}%"></div></div>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card__title mb-0">Notas del mes</div>
-      <textarea class="input mt-8" style="min-height:90px" data-bind="${pre}salud.meses.${i}.notas" placeholder="¿Cómo te sentiste?">${escapeHtml(mes.notas)}</textarea>
-      <div class="divider"></div>
-      <div class="card__title mb-0" style="font-size:14px">🍽️ Receta del mes</div>
-      <div class="row mt-8">
-        <span class="check ${mes.recetaHecha ? "is-on" : ""}" data-action="receta-toggle" data-idx="${i}">${mes.recetaHecha ? "✓" : ""}</span>
-        <input class="input" data-bind="${pre}salud.meses.${i}.recetaNombre" placeholder="Nombre de la receta" value="${escapeAttr(mes.recetaNombre)}">
-      </div>
-      <div class="row mt-8"><label class="text-xs muted" style="width:90px">Peso (kg)</label>
-        <input class="input" style="width:110px" type="text" inputmode="decimal" data-bind="${pre}salud.meses.${i}.peso" data-type="num" value="${mes.peso ?? ""}"></div>
-    </div>
-  </div>`;
-}
+/* renderSalud: ver js/salud.js (Resumen · Recetas · Entrenar) */
 
 /* ============================================================
    RUEDA DE LA VIDA (radar)
@@ -1055,6 +1000,9 @@ function saveEvento() {
    afterRender hook
    ============================================================ */
 function afterRender(route) {
+  // Chips que se desplazan de lado (Salud): mostrar el elegido
+  const chipOn = document.querySelector("#view .chips-f .chip-f.is-on");
+  if (chipOn && chipOn.parentElement.scrollWidth > chipOn.parentElement.clientWidth) chipOn.parentElement.scrollLeft = chipOn.offsetLeft - 12;
   if (route === "rueda") {
     drawRadar();
     LIVE_HOOK = (el) => {

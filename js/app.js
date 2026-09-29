@@ -17,8 +17,8 @@ const ROUTES = [
   { id: "tendencias", mas: true, label: "Tendencias", icon: "📈", render: renderTendencias, subtitle: "Tu evolución del año en gráficos." },
   { id: "calendario", mas: true, label: "Calendario", icon: "🗓️", render: renderCalendario, subtitle: "Tu mes de un vistazo." },
   { id: "finanzas", mas: true, label: "Finanzas", icon: "💰", render: renderFinanzas, subtitle: "Ahorro, gastos y seguimiento mensual." },
-  { id: "salud", mas: true, label: "Salud y bienestar", icon: "💪", render: renderSalud, subtitle: "Entrenamiento, cocina y peso." },
-  { id: "entrenamiento", mas: true, label: "Entrenamiento", icon: "🏋️", render: renderEntrenamiento, subtitle: "Tu rutina por bloques." },
+  { id: "salud", mas: true, label: "Salud", icon: "💪", render: renderSalud, subtitle: "Peso, recetas y entrenamiento." },
+  { id: "entrenamiento", pie: true, label: "Salud", icon: "🏋️", render: renderEntrenamiento, subtitle: "Tus rutinas y ejercicios." },
   { id: "rueda", mas: true, label: "Rueda de la vida", icon: "🧭", render: renderRueda, subtitle: "Puntúa cada área del 0 al 10." },
   { id: "lecturas", mas: true, label: "Lecturas", icon: "📚", render: renderLecturas, subtitle: "Tu biblioteca personal de lectura." },
   { id: "relaciones", mas: true, label: "Relaciones", icon: "👥", render: renderRelaciones, subtitle: "Cumpleaños y con quién no hablas hace rato." },
@@ -714,6 +714,7 @@ function onBind(e) {
   const path = el.dataset.bind;
   let val = el.type === "checkbox" ? el.checked : el.value;
   if (el.dataset.type === "num") val = parseNum(val);
+  else if (el.dataset.type === "dec") val = parseDecimal(val);
   prepararRutaAnio(path);   // año distinto al base: se crea al escribir y se marca su hora
   setPath(STATE, path, val);
   saveState();
@@ -809,6 +810,27 @@ function onClick(e) {
     case "habit-month": HABIT_MONTH = +d.m; rerender(); break;
     case "habit-view": HABIT_VIEW = d.v; rerender(); break;
     case "habit-layout": HABIT_LAYOUT = d.v; rerender(); break;
+    /* Salud: Resumen · Recetas · Entrenar */
+    case "salud-tab": SALUD_TAB = d.v; if (CURRENT !== "salud") go("salud"); else rerender(); break;
+    case "salud-peso": guardarPeso(); break;
+    case "receta-filtro": RECETA_FILTRO = d.v; rerender(); break;
+    case "receta-nueva": openRecetaForm(null); break;
+    case "receta-ver": openReceta(d.id); break;
+    case "receta-editar": openRecetaForm(d.id); break;
+    case "receta-guardar": guardarReceta(); break;
+    case "receta-fav": recetaFavorita(d.id); break;
+    case "receta-borrar": recetaBorrar(d.id); break;
+    case "rutina-ver": RUTINA_VER = d.id; rerender(); break;
+    case "rutina-nueva": openRutina(null); break;
+    case "rutina-editar": openRutina(d.id); break;
+    case "rutina-guardar": guardarRutina(); break;
+    case "rutina-borrar": borrarRutina(); break;
+    case "ejercicio-toggle": ejercicioToggle(d.dia, d.id); break;
+    case "ejercicio-nuevo": openEjercicio(d.dia, null); break;
+    case "ejercicio-editar": openEjercicio(d.dia, d.id); break;
+    case "ejercicio-guardar": guardarEjercicio(); break;
+    case "ejercicio-borrar": borrarEjercicio(); break;
+    case "entreno-terminar": terminarEntreno(d.dia); break;
     case "ins-filtro": INS_FILTRO = d.v; rerender(); break;
     case "tienda-ir": {
       const sec = document.getElementById("tienda-" + d.id);

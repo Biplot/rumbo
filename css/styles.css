@@ -1498,3 +1498,37 @@ button.dmap__c { cursor: pointer; color: #0C1B2C; }
   .diario-izq { position: static; }
   .dmap__c { aspect-ratio: 1.35; }
 }
+
+/* ============================================================
+   SALUD (v70): Resumen · Recetas · Entrenar
+   ============================================================ */
+.btn-texto { background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; }
+.spark { display: flex; align-items: flex-end; gap: 4px; height: 60px; margin-top: 10px; }
+.spark i { flex: 1; max-width: 22px; background: var(--cian); border-radius: 4px 4px 2px 2px; opacity: .85; }
+.chips-f { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.chips-f::-webkit-scrollbar { display: none; }
+.chip-f { flex: 0 0 auto; min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line);
+  color: var(--text); font: 600 14px var(--font-body); cursor: pointer; white-space: nowrap; }
+.chip-f.is-on { background: var(--cian); border-color: var(--cian); color: var(--on-cian); }
+.receta-mini { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: 0; padding: 0; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.receta-ico { width: 56px; height: 56px; flex-shrink: 0; border-radius: 14px; background: var(--surface-2); display: grid; place-items: center; font-size: 28px; }
+.receta-ico--big { width: 100%; height: 84px; font-size: 42px; margin-bottom: 4px; }
+.recetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.receta { display: flex; flex-direction: column; gap: 4px; text-align: left; color: var(--text); font: inherit; cursor: pointer; padding: 12px; }
+.receta:hover { border-color: var(--cian); }
+.receta-lista { margin: 0; padding-left: 20px; line-height: 1.6; }
+.hoy-entreno { background: linear-gradient(135deg, var(--surface-2), var(--surface)); }
+.ejercicio { display: flex; align-items: center; gap: 14px; padding: 6px 14px; border-bottom: 1px solid var(--line); }
+.ejercicio__t { flex: 1; min-width: 0; min-height: 52px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+  background: none; border: 0; padding: 0; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.ejercicio.is-hecho .ejercicio__t b { text-decoration: line-through; color: var(--text-muted); }
+.semana-ent { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.semana-ent .sd { border-radius: 12px; background: var(--surface); border: 1px solid var(--line); padding: 8px 2px; display: flex; flex-direction: column;
+  align-items: center; gap: 3px; min-width: 0; }
+.semana-ent .sd b { font-size: 14px; }
+.semana-ent .sd span { font-size: 12px; color: var(--text-muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
+.semana-ent .sd.is-hecho { background: var(--cian-soft); border-color: var(--cian); }
+.semana-ent .sd.is-hecho span { color: var(--cian-ink); font-weight: 700; }
+.semana-ent .sd.is-hoy { border: 1.5px solid var(--coral-btn, var(--coral)); }
+@media (max-width: 760px) { .salud-top { grid-template-columns: repeat(2, minmax(0, 1fr)); } .salud-top .big-num { font-size: 22px !important; } }
+.rutina-head { display: flex; flex-direction: column; padding: 10px 14px 8px; border-bottom: 1px solid var(--line); }

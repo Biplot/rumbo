@@ -142,6 +142,11 @@ function mergeStates(server, local) {
   const buckets = (la, sa) => (la || []).map((arr, i) => byId(arr, (sa || [])[i] || []));
 
   out.lecturas = byId(local.lecturas, server.lecturas);
+  out.recetas = byId(local.recetas, server.recetas);
+  if (local.entrenamiento && server.entrenamiento) {
+    out.entrenamiento.dias = byId(local.entrenamiento.dias, server.entrenamiento.dias);
+    out.entrenamiento.registro = byId(local.entrenamiento.registro, server.entrenamiento.registro);
+  }
   out.aprendizajes = byId(local.aprendizajes, server.aprendizajes);
 
   if (local.vida && server.vida) {

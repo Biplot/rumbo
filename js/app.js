@@ -118,7 +118,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 14;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 15;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -252,6 +252,13 @@ const NOVEDADES = {
     ["🧭", "Más, a mano", "Objetivos, Ritual, tus módulos, Recompensas, tu cuenta y la ayuda, en una hoja que se abre desde Más."],
     ["🏆", "Recompensas en un lugar", "Tu progreso, la Tienda (con categorías) y tus insignias, en tres pestañas."],
     ["👆", "Más fácil de usar", "Botones más grandes, tu elefante junto al saludo, hábitos de un toque y la semana con hoy primero."],
+  ],
+  15: [
+    ["📔", "Diario con mapa del ánimo", "Tu mes como una grilla de colores según cómo te sentiste, y cada día en una línea que se abre al tocarla. Con buscador."],
+    ["🗓️", "Calendario ordenado", "Siete columnas iguales en el celular y en el computador. Toca un día y ves su agenda."],
+    ["💪", "Salud renovada", "Resumen con tu peso, un recetario y Entrenar con ejercicios reales, series y peso. Entrenamiento ahora vive aquí."],
+    ["📝", "Notas como post-its", "Escribe arriba, ordena con #etiquetas, fija las importantes y pasa una nota a tarea con un toque."],
+    ["🛒", "Tienda más simple", "Fichas chicas con ícono y precio. Toca una para ver qué hace y comprarla."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

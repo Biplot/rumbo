@@ -40,10 +40,10 @@ function renderDiario() {
 
   const header = `
   <div class="card">
-    <div class="grid grid-3" style="gap:10px;text-align:center">
+    <div class="grid grid-3 grid-fija" style="gap:10px;text-align:center">
       <div><div class="big-num" style="font-size:24px">${fechas.length}</div><div class="text-xs muted">días registrados</div></div>
       <div><div class="big-num" style="font-size:24px">${cerrados}</div><div class="text-xs muted">días cerrados</div></div>
-      <div><div class="big-num" style="font-size:24px">${computeClosedStreak()}</div><div class="text-xs muted">racha</div></div>
+      <div><div class="big-num" style="font-size:24px">${computeClosedStreak()}</div><div class="text-xs muted">cerrados seguidos</div></div>
     </div>
     <div class="text-xs muted mt-16" style="text-align:center">✍️ Tu diario se llena solo al <b>cerrar tu día</b> en el Ritual — ahí registras tu ánimo, gratitud y reflexión. <a href="#ritual">Ir al ritual →</a></div>
   </div>`;

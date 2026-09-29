@@ -74,19 +74,20 @@ function renderRitualDia() {
 
   return `
   <div class="flex-between" style="flex-wrap:wrap;gap:10px">
-    <div class="pill pill--streak">🔥 Racha de ritual: ${computeRitualStreak()} días</div>
+    <div class="pill pill--streak">🌅 ${computeRitualStreak()} ${computeRitualStreak() === 1 ? "día abierto" : "días abiertos"} seguidos</div>
     <div class="pill pill--pts">🏆 ${logros} rituales completados</div>
   </div>
   <div class="mt-16">${renderPendingYesterday()}<div data-tour="ritual-dia">${banner}</div></div>
 
-  <div class="grid grid-3 mt-24">
+  ${!hecho ? `<div class="card mt-24"><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.06em">Al abrir tu día eliges</div>
+    <div class="row-wrap mt-8" style="gap:8px">${["🎯 Tu misión", BOCADO.emoji + " Tu " + BOCADO.corto.toLowerCase(), "🏛️ Tu pilar", "⚡ Tu energía", "🙌 A quién sirves", "📋 Tus tareas"].map(t => `<span class="chip">${t}</span>`).join("")}</div></div>` : `<div class="grid grid-3 mt-24">
     ${box("Misión de hoy", r && escapeHtml(r.mision), "Todavía no defines tu misión.")}
     ${box(BOCADO.titulo + " de hoy", r && escapeHtml(r.sapo), "La tarea que más mueve la aguja.")}
     ${box("Pilar de hoy", r && r.pilar ? `<span class="chip chip--cian">${escapeHtml(r.pilar)}</span>` : "", "No elegido.")}
     ${box("Nivel de energía", energia)}
     ${box("A quién sirves hoy", r && escapeHtml(r.servir), "No definido.")}
     ${box("Proyectos de hoy", r && r.proyectos && r.proyectos.length ? r.proyectos.map(p => `<span class="chip">${escapeHtml(p)}</span>`).join(" ") : "", "Sin proyectos.")}
-  </div>
+  </div>`}
 
   <div class="card mt-24">
     <div class="card__head"><div class="card__title">Los 6 pilares del Alto Rendimiento</div>

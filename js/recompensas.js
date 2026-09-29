@@ -228,7 +228,8 @@ function renderRecompensas() {
   </div>`;
 }
 
-/* Pestaña Insignias */
+/* Pestaña Insignias (con filtro Todas · Ganadas · Por ganar) */
+let INS_FILTRO = "todas";
 function renderInsignias() {
   const g = STATE.gamif;
   const badgesOld = BADGES.map(b => {
@@ -238,10 +239,14 @@ function renderInsignias() {
       <div class="card__title" style="font-size:14px;margin-top:6px">${b.nombre}</div>
       <div class="text-xs muted" style="margin-top:4px">${b.desc}</div></div>`;
   }).join("");
+  const f = (v, l) => `<button class="${INS_FILTRO === v ? "is-active" : ""}" data-action="ins-filtro" data-v="${v}">${l}</button>`;
   return `
   ${tabsRecompensas()}
-  <div class="section-title" style="margin-top:0">🏅 Insignias · ${g.badges.length}/${BADGES.length}</div>
-  <div class="grid grid-auto">${typeof insigniasHtml === "function" ? insigniasHtml(g) : badgesOld}</div>`;
+  <div class="flex-between" style="flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    <div class="section-title" style="margin:0">🏅 Insignias · ${g.badges.length}/${BADGES.length}</div>
+    <div class="seg">${f("todas", "Todas")}${f("ganadas", "Ganadas")}${f("porganar", "Por ganar")}</div>
+  </div>
+  <div class="grid grid-auto ins-filtro--${INS_FILTRO}">${typeof insigniasHtml === "function" ? insigniasHtml(g) : badgesOld}</div>`;
 }
 
 /* Helpers para mostrar lo equipado en Inicio */

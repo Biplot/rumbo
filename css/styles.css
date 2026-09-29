@@ -362,7 +362,7 @@ textarea.input { resize: vertical; min-height: 84px; }
 /* Segmented control */
 .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px; }
 .seg button { background: none; border: none; color: var(--text-soft); padding: 7px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; }
-.seg button.is-active { background: var(--coral); color: var(--on-coral); }
+.seg button.is-active { background: var(--cian); color: var(--on-cian); font-weight: 600; }
 
 /* Meses selector */
 .months { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 20px; padding-bottom: 4px; scrollbar-width: thin; }
@@ -1348,3 +1348,60 @@ a.card__hint { white-space: nowrap; }
   .inicio-main { grid-template-columns: 2fr 1fr; grid-auto-flow: row dense; }
   .inicio-main > :first-child { grid-row: span 2; }
 }
+
+/* ============================================================
+   PANTALLAS (v68): Hábitos con un solo selector y Semana en lista
+   ============================================================ */
+.grid-3.grid-fija { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.hab-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.seg--full button { min-width: 72px; }
+.sem-numeros > summary, .sem-signos > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.sem-numeros > summary::-webkit-details-marker, .sem-signos > summary::-webkit-details-marker { display: none; }
+.sem-numeros > summary::after, .sem-signos > summary::after { content: "▾"; color: var(--text-muted); margin-left: auto; transition: transform .15s; }
+.sem-numeros:not([open]) > summary::after, .sem-signos:not([open]) > summary::after { transform: rotate(-90deg); }
+.sem-signos > summary { font-size: 13px; color: var(--text-muted); min-height: 40px; }
+.sem-signos > summary::after { margin-left: 4px; }
+.week-col__mas { display: none; }
+@media (max-width: 760px) {
+  .hab-head { flex-direction: column; align-items: stretch; }
+  .hab-head .seg--full { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-radius: 14px; }
+  .hab-head .seg--full button { min-width: 0; border-radius: 10px; }
+  .hab-head .row { justify-content: space-between; }
+  .hab-head .row .btn--primary { flex: 1; }
+  .hb-today__edit { width: 44px; height: 44px; top: 0; left: 0; font-size: 16px; opacity: .7; }
+  .hb-today__check { width: 30px; height: 30px; top: 8px; right: 8px; font-size: 16px; }
+
+  /* Semana: los días en lista, hoy primero; el resto compacto con "＋" para agregar */
+  .sem-nav .sem-nav__t { flex: 1; text-align: center; }
+  .week-scroll { flex-direction: column; overflow: visible; gap: 10px; }
+  .week-col { flex: 1 1 auto; width: 100%; box-sizing: border-box; }
+  .week-col.is-hoy { order: -2; }
+  .week-col.is-futuro { order: -1; }
+  .week-col.is-pasado { opacity: .78; }
+  .week-col__mas { display: inline-grid; }
+  .week-col:not(.is-hoy):not(.is-add) .week-col__add { display: none; }
+  .week-col:not(.is-hoy) { padding: 8px 8px 8px 14px; }
+  .week-col:not(.is-hoy):not(.is-add) .week-col__vacio { display: none; }
+  .week-col:not(.is-hoy) > .mt-8:empty { display: none; }
+}
+@media (max-width: 760px) {
+  .week-col:not(.is-hoy):not(.is-add) > .mt-8:has(> .week-col__vacio:only-child) { display: none; }
+}
+
+/* Tienda: categorías fijas arriba para saltar de sección */
+.tienda-cats { position: sticky; top: 97px; z-index: 15; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+  padding: 10px 0; margin: 8px 0 4px; background: var(--bg); }
+.tienda-cats::-webkit-scrollbar { display: none; }
+.tienda-cat { flex: 0 0 auto; min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--surface-2);
+  border: 1px solid var(--line); color: var(--text); font: 600 14px var(--font-body); cursor: pointer; white-space: nowrap; }
+.tienda-cat:hover { border-color: var(--cian); }
+.tienda-cat.is-active { background: var(--cian); color: var(--on-cian); border-color: var(--cian); }
+.tienda-sec { scroll-margin-top: 160px; }
+@media (max-width: 760px) {
+  .tienda-cats { top: 62px; margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; }
+  .tienda-sec { scroll-margin-top: 124px; }
+}
+
+/* Insignias: filtro Ganadas / Por ganar */
+.ins-filtro--ganadas > .badge-card.is-locked { display: none; }
+.ins-filtro--porganar > .badge-card:not(.is-locked) { display: none; }

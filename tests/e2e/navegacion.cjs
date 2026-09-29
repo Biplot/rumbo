@@ -52,6 +52,28 @@ module.exports = async ({ b, ok, errs }) => {
   const chicos = await p.evaluate(() => [...document.querySelectorAll("#view a.card__hint, #view .btn, .topbar button:not([hidden])")].filter(e => { const r = e.getBoundingClientRect(); return r.width && r.height < 40; }).length);
   ok(chicos === 0, "en Inicio y arriba no quedan botones de menos de 40 px de alto");
 
+  // 5b) Pantallas en el celular
+  await p.goto(URL + "#semana"); await p.waitForTimeout(350);
+  const yHoy = (await p.locator(".week-col.is-hoy").boundingBox()).y, yJue = (await p.locator(".week-col.is-futuro").first().boundingBox()).y, yLun = (await p.locator(".week-col.is-pasado").first().boundingBox()).y;
+  ok(yHoy < yJue && yJue < yLun, "Semana: hoy primero, después lo que viene y al final los días pasados");
+  ok(!(await p.locator(".week-col.is-futuro .week-col__add").first().isVisible()), "los otros días no muestran el campo hasta tocar ＋");
+  await p.click(".week-col.is-futuro .week-col__mas >> nth=0"); await p.waitForTimeout(150);
+  ok(await p.locator(".week-col.is-futuro .week-col__add").first().isVisible(), "tocar ＋ abre el campo para agregar una tarea ese día");
+  ok(await p.locator("details.sem-numeros:not([open])").count() === 1, "los números de la semana quedan plegados en el celular");
+  await p.goto(URL + "#habitos"); await p.waitForTimeout(300);
+  ok(await p.locator(".hab-head .seg button").count() === 4 && await p.locator('[data-action="habit-layout"]').count() === 0, "Hábitos tiene un solo selector: Hoy, Semana, Mes y Año");
+  await p.click('[data-action="habit-vista"][data-v="mes"]'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => HABIT_VIEW === "mensual") && await p.locator('.hab-head .seg button.is-active[data-v="mes"]').count() === 1, "Mes abre la vista mensual");
+  await p.click('[data-action="habit-vista"][data-v="hoy"]'); await p.waitForTimeout(200);
+  await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
+  ok(await p.locator(".tienda-cat").count() === 6, "la Tienda tiene categorías arriba");
+  await p.click('.tienda-cat[data-id="temas"]'); await p.waitForTimeout(700);
+  const yTemas = (await p.locator("#tienda-temas").boundingBox()).y;
+  ok(yTemas > 0 && yTemas < 200, "tocar Temas salta a los temas");
+  await p.goto(URL + "#insignias"); await p.waitForTimeout(300);
+  await p.click('[data-action="ins-filtro"][data-v="ganadas"]'); await p.waitForTimeout(200);
+  ok(await p.locator(".badge-card.is-locked:visible").count() === 0, "el filtro Ganadas oculta las que faltan");
+
   // 6) Cerrar sesión se encuentra en Cuenta
   await p.goto(URL + "#cuenta"); await p.waitForTimeout(300);
   ok(await p.locator('#view [data-action="logout"]').count() === 1, "Cuenta tiene Cerrar sesión");

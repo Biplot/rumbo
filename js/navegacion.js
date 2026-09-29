@@ -185,5 +185,5 @@ function botonCompra(costo, attrs, texto = "Comprar", clase = "btn-block") {
   if (saldo >= costo) return `<button class="btn btn--linea ${clase}" ${attrs}>${texto} · ${costo} ⭐</button>`;
   const pct = Math.max(0, Math.min(100, Math.round((saldo / costo) * 100)));
   return `<div class="falta ${clase}"><div class="falta__bar"><i style="width:${pct}%"></i></div>
-    <button class="btn btn--falta btn-block" disabled>Te faltan ${costo - saldo} ⭐ · ${costo} ⭐</button></div>`;
+    <button class="btn btn--falta btn-block" disabled>Te faltan ${costo - saldo} ⭐${saldo > 0 ? ` de ${costo}` : ""}</button></div>`;
 }

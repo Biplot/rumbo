@@ -800,6 +800,20 @@ function onClick(e) {
     case "habit-month": HABIT_MONTH = +d.m; rerender(); break;
     case "habit-view": HABIT_VIEW = d.v; rerender(); break;
     case "habit-layout": HABIT_LAYOUT = d.v; rerender(); break;
+    case "ins-filtro": INS_FILTRO = d.v; rerender(); break;
+    case "tienda-ir": {
+      const sec = document.getElementById("tienda-" + d.id);
+      if (sec) sec.scrollIntoView({ behavior: sinMovimiento() ? "auto" : "smooth", block: "start" });
+      document.querySelectorAll(".tienda-cat").forEach(b => b.classList.toggle("is-active", b === el)); break;
+    }
+    case "habit-vista":
+      HABIT_VIEW = d.v === "mes" ? "mensual" : d.v === "anio" ? "anual" : "diario";
+      if (d.v === "hoy" || d.v === "semana") HABIT_LAYOUT = d.v;
+      rerender(); break;
+    case "sem-col-add": {
+      const col = el.closest(".week-col"); if (!col) break;
+      col.classList.add("is-add"); const inp = col.querySelector("input.input"); if (inp) inp.focus(); break;
+    }
     case "habit-today": toggleHabitToday(d.id); break;
     case "habit-daycell": toggleHabitDate(d.id, +d.y, +d.m, +d.d); break;
 
@@ -1227,22 +1241,29 @@ function renderTienda() {
   ${tabsRecompensas()}
   <p class="text-sm muted">Tienes <b>${saldo} ⭐</b>. Gástalas en funciones que te ayudan a enfocarte y en personalizar tu app.</p>
 
-  ${renderUtilesTienda()}
+  <nav class="tienda-cats" aria-label="Categorías de la tienda">
+    ${[["utiles", "Útiles"], ["funciones", "Funciones"], ["temas", "Temas"], ["estilo", "Títulos y detalles"], ["efectos", "Efectos"], ["elefante", "Elefante"]]
+      .map(([id, l]) => `<button class="tienda-cat" data-action="tienda-ir" data-id="${id}">${l}</button>`).join("")}
+  </nav>
 
-  ${renderFuncionesTienda()}
+  <section id="tienda-utiles" class="tienda-sec">${renderUtilesTienda()}</section>
 
+  <section id="tienda-funciones" class="tienda-sec">${renderFuncionesTienda()}</section>
+
+  <section id="tienda-temas" class="tienda-sec">
   <div class="section-title">🎨 Temas <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· toca la miniatura para la vista previa</span></div>
-  <div class="grid grid-3">${themeCards}</div>
+  <div class="grid grid-3">${themeCards}</div></section>
 
+  <section id="tienda-estilo" class="tienda-sec">
   <div class="section-title">🏷️ Títulos <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· aparecen junto a tu nombre en Inicio; los nuevos piden una insignia</span></div>
   <div class="grid grid-4">${TITULOS.map(cosmeticCard).join("")}</div>
 
   <div class="section-title">✨ Detalles</div>
-  <div class="grid grid-4">${DETALLES.map(cosmeticCard).join("")}</div>
+  <div class="grid grid-4">${DETALLES.map(cosmeticCard).join("")}</div></section>
 
-  ${renderCosmeticosTienda()}
+  <section id="tienda-efectos" class="tienda-sec">${renderCosmeticosTienda()}</section>
 
-  ${renderElefanteTienda()}
+  <section id="tienda-elefante" class="tienda-sec">${renderElefanteTienda()}</section>
 
   <p class="text-xs muted mt-24">Ganas ⭐ usando la app (cerrar el día, hábitos, rituales…).</p>`;
 }

@@ -487,6 +487,7 @@ function prioridadesSemanaMini() {
    ============================================================ */
 function renderRitualSemana() { return renderSemana(); }
 let SEM_FUTURO_ABIERTO = false;
+let SEM_NUMEROS_ABIERTO = null;   // null: abierto en computador, cerrado en el celular
 
 /* -------- 🔁 Tareas recurrentes -------- */
 function openRecurrentes() {
@@ -587,13 +588,15 @@ function renderSemana() {
   const PRONO = {}; if (funcion("pronostico")) pronosticoSemana(L).forEach(p => { PRONO[p.iso] = p; });
   const cols = fechas.map((iso, i) => {
     const d = agDate(iso), tareas = tareasDelDia(iso), inputId = `sem-${i}`;
-    return `<div class="week-col card ${iso === hoy ? "is-hoy" : ""}">
-      <div class="flex-between"><div class="card__title" style="font-size:14px">${DIAS_SEMANA[i]}</div>
-        <span class="dia-badge">${d.getDate()}/${MESES_CORTO[d.getMonth()]}</span></div>
+    const cuando = iso === hoy ? "is-hoy" : iso < hoy ? "is-pasado" : "is-futuro";
+    return `<div class="week-col card ${cuando}">
+      <div class="flex-between"><div class="card__title" style="font-size:14px">${iso === hoy ? "Hoy · " : ""}${DIAS_SEMANA[i]}</div>
+        <span class="row" style="gap:6px"><span class="dia-badge">${d.getDate()}/${MESES_CORTO[d.getMonth()]}</span>
+        ${iso === hoy ? "" : `<button class="icon-btn week-col__mas" data-action="sem-col-add" aria-label="Agregar tarea el ${DIAS_SEMANA[i]}">＋</button>`}</span></div>
       ${PRONO[iso] ? `<div class="mt-8">${chipPronostico(PRONO[iso])}</div>` : ""}
       ${gcalDiaHtml(iso)}
-      <div class="mt-8">${tareas.length ? tareas.map(t => tareaRowHtml(t, iso, { compacto: true })).join("") : '<div class="text-xs muted" style="padding:6px">Sin tareas.</div>'}</div>
-      <div class="row mt-8">${ambitoPicker(inputId + "-amb", "per", true)}<input class="input" id="${inputId}" placeholder="Nueva tarea..." style="padding:8px 10px">
+      <div class="mt-8">${tareas.length ? tareas.map(t => tareaRowHtml(t, iso, { compacto: true })).join("") : '<div class="text-xs muted week-col__vacio" style="padding:6px">Sin tareas.</div>'}</div>
+      <div class="row mt-8 week-col__add">${ambitoPicker(inputId + "-amb", "per", true)}<input class="input" id="${inputId}" placeholder="Nueva tarea..." style="padding:8px 10px">
         <button class="btn btn--cian" data-action="tarea-add" data-fecha="${iso}" data-input="${inputId}" data-amb="${inputId}-amb" style="padding:8px 12px">+</button></div>
     </div>`;
   }).join("");
@@ -623,16 +626,17 @@ function renderSemana() {
       ${acciones.length ? `<div class="row-wrap">${acciones.join("")}</div>` : ""}
     </div>
   </div>
+  ${renderPronosticoSemana(L)}
+  <div class="week-scroll mt-16">${cols}</div>
+  <div class="flex-between mt-8" style="gap:8px;flex-wrap:wrap">
+    <details class="sem-signos"><summary>¿Qué significan los signos?</summary>
+      <p class="text-xs muted mt-8">✓ hecha · &gt; movida a otro día · &lt; programada · @ delegada · ✕ soltada · ↪ n veces postergada · 🔁 recurrente.</p></details>
+    <button class="btn-ghost" data-action="rec-open">🔁 Recurrentes (${recurrentes(STATE).filter(r => !r.borrada).length})</button>
+  </div>
   <div class="grid grid-2 mt-16">
     <div class="card"><div class="card__title">🎯 Prioridades</div><div class="mt-8">${prios}</div></div>
-    <div class="card"><div class="card__title">📊 ${esActual ? "Esta semana hasta hoy" : "Números de la semana"}</div>
-      <div class="mt-16">${resumenSemanaHtml(resumenSemanaRitual(L, STATE, c ? ev : null), resumenSemanaRitual(prevL))}</div></div>
-  </div>
-  ${renderPronosticoSemana(L)}
-  <div class="week-scroll mt-24">${cols}</div>
-  <div class="flex-between mt-8" style="gap:8px;flex-wrap:wrap">
-    <p class="text-xs muted">Signos: ✓ hecha · &gt; movida a otro día · &lt; programada · @ delegada · ✕ soltada · ↪ n veces postergada · 🔁 recurrente.</p>
-    <button class="btn-ghost" data-action="rec-open">🔁 Recurrentes (${recurrentes(STATE).filter(r => !r.borrada).length})</button>
+    <details class="card sem-numeros" ${SEM_NUMEROS_ABIERTO ?? !isMobileView() ? "open" : ""} ontoggle="SEM_NUMEROS_ABIERTO = this.open"><summary class="card__title">📊 ${esActual ? "Esta semana hasta hoy" : "Números de la semana"}</summary>
+      <div class="mt-16">${resumenSemanaHtml(resumenSemanaRitual(L, STATE, c ? ev : null), resumenSemanaRitual(prevL))}</div></details>
   </div>
   <div class="grid grid-2 mt-16">
     <div class="card"><div class="card__title">✨ Hábitos en foco</div><div class="mt-16">${habsHtml}</div></div>

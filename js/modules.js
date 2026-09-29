@@ -251,16 +251,19 @@ function habitosHoy() {
 
 function renderHabitos() {
   const defs = STATE.habitos.defs;
-  const tabs = [["diario", "Diario"], ["mensual", "Mensual"], ["anual", "Anual"]];
+  // Un solo selector: Hoy · Semana · Mes · Año
+  const vista = HABIT_VIEW === "mensual" ? "mes" : HABIT_VIEW === "anual" ? "anio" : HABIT_LAYOUT === "semana" ? "semana" : "hoy";
+  const tabs = [["hoy", "Hoy"], ["semana", "Semana"], ["mes", "Mes"], ["anio", "Año"]];
+  const racha = computeStreak();
   const head = `
-  <div class="flex-between" style="flex-wrap:wrap;gap:12px">
-    <div class="pill pill--streak" title="Días seguidos cumpliendo todos los hábitos que tocaban">🔥 Racha: ${computeStreak()} días</div>
-    <div class="row" style="gap:10px;flex-wrap:wrap">
-      <div class="seg">${tabs.map(([k, l]) => `<button class="${HABIT_VIEW === k ? "is-active" : ""}" data-action="habit-view" data-v="${k}">${l}</button>`).join("")}</div>
-      <button class="btn btn--soft" data-action="plantillas-open" title="Plantillas de rutina">📋 Plantillas</button>
+  <div class="hab-head">
+    <div class="seg seg--full" role="tablist" aria-label="Vista">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${vista === k}" class="${vista === k ? "is-active" : ""}" data-action="habit-vista" data-v="${k}">${l}</button>`).join("")}</div>
+    <div class="row" style="gap:8px">
+      <button class="btn-ghost" data-action="plantillas-open" title="Plantillas de rutina">📋 Plantillas</button>
       <button class="btn btn--primary" data-action="habit-add">+ Nuevo hábito</button>
     </div>
-  </div>`;
+  </div>
+  <div class="pill pill--streak mt-16" style="display:inline-flex" title="Días seguidos cumpliendo todos los hábitos que tocaban">✅ ${racha} ${racha === 1 ? "día" : "días"} de hábitos seguidos</div>`;
   if (!defs.length) return head + `<div class="card mt-16"><div class="empty">Aún no tienes hábitos. Crea el primero con “+ Nuevo hábito”.</div></div>`;
   const body = HABIT_VIEW === "mensual" ? habitViewMensual() : HABIT_VIEW === "anual" ? habitViewAnual() : habitViewDiario();
   return head + `<div class="mt-16">${body}</div>`;
@@ -282,8 +285,7 @@ function habitTodayCard(h) {
 function habitViewDiario() {
   const defs = STATE.habitos.defs;
   const now = new Date();
-  const subs = [["hoy", "Hoy"], ["semana", "Semana"]];
-  const sub = `<div class="seg" style="margin-bottom:16px">${subs.map(([k, l]) => `<button class="${HABIT_LAYOUT === k ? "is-active" : ""}" data-action="habit-layout" data-v="${k}">${l}</button>`).join("")}</div>`;
+  const sub = "";
 
   if (HABIT_LAYOUT === "semana") {
     const dow = (now.getDay() + 6) % 7;

@@ -114,7 +114,7 @@ function defaultState() {
       perks: [],   // desbloqueos sin cobro (cuenta dueña); no generan movimientos
       ledger: [],  // libro de movimientos: [{ id, ts, delta, xp, motivo, anulado? }]
       usos: [],    // consumibles usados: [{ id, tipo, fecha, hid?, ts, anulado? }] (ver consumibles.js)
-      equipped: { titulo: null, insignia: null, acento: null, confeti: false, ele: { tipo: null, ropa: {}, ts: 0 } },
+      equipped: { titulo: null, insignia: null, acento: null, confeti: false, ele: { tipo: null, ropa: {}, ts: 0 }, avatar: { id: null, propio: null, ts: 0 } },
     },
 
     // ritual matutino: días + 6 pilares del alto rendimiento
@@ -244,6 +244,7 @@ function migrate(s) {
   }
   if (s.gamif && !Array.isArray(s.gamif.usos)) s.gamif.usos = [];   // consumibles de la Tienda
   migrarElefante(s);       // v62: accesorios de emoji → ropa del elefante vectorial
+  if (s.gamif && s.gamif.equipped && (!s.gamif.equipped.avatar || typeof s.gamif.equipped.avatar !== "object")) s.gamif.equipped.avatar = { id: null, propio: null, ts: 0 };   // v66: avatares
   retirarConsumibles(s);   // v61: protector, día libre, rescate y pase ya no se venden (se devuelve lo no usado)
   if (!s.enfoque || typeof s.enfoque !== "object" || Array.isArray(s.enfoque)) s.enfoque = {};
   if (!Array.isArray(s.enfoque.sesiones)) s.enfoque.sesiones = [];   // modo enfoque

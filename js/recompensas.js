@@ -75,6 +75,7 @@ function checkBadges() {
     }
   });
   if (typeof avisarElefantes === "function") avisarElefantes();   // 🐘 tipos de elefante que se ganan
+  if (typeof avisarAvatares === "function") avisarAvatares();     // 🎭 avatares del elenco que se ganan
   if (count > 0) {
     saveState(); refreshPts();
     if (gained > 0) toast(count === 1 ? `🏅 ${last} · +${gained} ⭐` : `🏅 ${count} insignias · +${gained} ⭐`);

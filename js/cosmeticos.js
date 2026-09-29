@@ -145,7 +145,7 @@ function cosmeticoCard(it) {
   else if (!owned) pie = `<button class="btn btn--primary btn-block" data-action="cos-buy" data-id="${it.id}">Comprar · ${it.costo} ⭐</button>`;
   else if (it.key === "plantilla") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígela al compartir tu mes</div>`;
   else pie = `<button class="btn ${activo ? "btn--soft" : "btn--cian"} btn-block" data-action="cos-equip" data-id="${it.id}">${activo ? (it.key === "celebra" || it.key === "sonidos" ? "✓ Activo — apagar" : "✓ Equipado — quitar") : (it.key === "celebra" || it.key === "sonidos" ? "Activar" : "Equipar")}</button>`;
-  const vista = it.key === "marco" ? `<div class="account__avatar marco marco--${it.value}" style="margin:0 auto 8px">${escapeHtml(((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()}</div>`
+  const vista = it.key === "marco" ? `<div class="account__avatar marco marco--${it.value}" style="margin:0 auto 8px">${typeof avatarActualHtml === "function" ? avatarActualHtml((((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()) : escapeHtml(((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()}</div>`
     : `<span style="font-size:24px">${it.icon}</span>`;
   return `<div class="card cos-card" data-cos="${it.id}">
     ${it.key === "marco" ? `<div style="text-align:center">${vista}</div>` : ""}

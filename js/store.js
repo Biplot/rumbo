@@ -260,6 +260,9 @@ function mergeStates(server, local) {
   // Elefante (tipo y ropa): gana el cambio más reciente; un equipo con versión antigua no lo borra
   const le = local.gamif && local.gamif.equipped && local.gamif.equipped.ele, se = server.gamif && server.gamif.equipped && server.gamif.equipped.ele;
   if (se && out.gamif && out.gamif.equipped && (!le || (se.ts || 0) > (le.ts || 0))) out.gamif.equipped.ele = JSON.parse(JSON.stringify(se));
+  // Avatar: gana el cambio más reciente; un equipo con versión antigua no lo borra
+  const la = local.gamif && local.gamif.equipped && local.gamif.equipped.avatar, sa = server.gamif && server.gamif.equipped && server.gamif.equipped.avatar;
+  if (sa && out.gamif && out.gamif.equipped && (!la || (sa.ts || 0) > (la.ts || 0))) out.gamif.equipped.avatar = JSON.parse(JSON.stringify(sa));
   // Sesiones de enfoque: por id (cada sesión se crea en un solo equipo)
   if (local.enfoque || server.enfoque) out.enfoque = { ...(out.enfoque || {}), sesiones: JSON.parse(JSON.stringify(usosMerge((local.enfoque || {}).sesiones, (server.enfoque || {}).sesiones))) };
   // Suscripciones push: unir por endpoint (cada dispositivo tiene la suya)

@@ -116,7 +116,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 12;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 13;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -240,6 +240,11 @@ const NOVEDADES = {
     ["🔓", "Cuatro elefantes para ganar", "Mamut, Peluche, Geométrico y Tinta se desbloquean con tu constancia. Mira cuánto te falta en Recompensas → Tu elefante."],
     ["👕", "Ropa para tu elefante", "15 prendas en 6 espacios, con un probador para verlas puestas antes de comprarlas. Los accesorios que ya tenías siguen siendo tuyos."],
   ],
+  13: [
+    ["🎭", "Avatares", "Deja de ser una letra: elige un avatar en Cuenta → Tu avatar, o tocando tu inicial."],
+    ["🏢", "El elenco de BiPlot HQ", "Lupe, Celda, Grilla, Faro y el resto de la oficina se ganan con un logro de su oficio. Plotty y Atlas te esperan desde hoy."],
+    ["✏️", "Arma el tuyo", "Piel, peinado, lentes, barba y ropa, con el mismo trazo del elenco. También hay personajes de Rumbo como la Brújula, el Búho o tu propio elefante."],
+  ],
 };
 let NOVEDADES_ABIERTAS = false;
 function openNovedades() {
@@ -357,7 +362,7 @@ function renderAccountBox() {
   const box = document.getElementById("accountBox");
   if (!box || !CURRENT_USER) return;
   const initial = (CURRENT_USER.name || CURRENT_USER.email || "?").trim()[0].toUpperCase();
-  box.innerHTML = `<div class="account__avatar${typeof marcoClase === "function" ? marcoClase() : ""}">${initial}</div>
+  box.innerHTML = `<div class="account__avatar${typeof marcoClase === "function" ? marcoClase() : ""}" data-action="av-abrir" title="Tu avatar">${typeof avatarActualHtml === "function" ? avatarActualHtml(initial) : initial}</div>
     <div style="min-width:0;flex:1"><div class="account__name">${escapeHtml(CURRENT_USER.name || "")}</div>
     <div class="account__email">${escapeHtml(CURRENT_USER.email)}</div></div>`;
 }
@@ -832,6 +837,13 @@ function onClick(e) {
     case "ele-espacio": espacioElefante(d.slot); break;
     case "ele-cancelar": cancelarPrueba(); break;
     case "ele-toca": tocarElefante(el); break;
+    case "av-abrir": openAvatar(); break;
+    case "av-tab": AV_PRUEBA = null; openAvatar(d.v); break;
+    case "av-elegir": elegirAvatar(d.id); break;
+    case "av-probar": probarAvatar(d.id); break;
+    case "av-comprar": comprarAvatar(d.id); break;
+    case "av-quitar": quitarAvatar(); break;
+    case "av-propio": propioCambiar(d.k, d.v); break;
 
     /* Tienda · útiles (consumibles) */
     case "util-buy": comprarConsumibleUI(d.id); break;
@@ -1160,6 +1172,7 @@ function grantOwnerPerks() {
       ...(typeof PACKS_ICONOS !== "undefined" ? PACKS_ICONOS.map(p => "fun-iconos-" + p.id) : []),
       ...(typeof PRENDAS_ELEFANTE !== "undefined" ? PRENDAS_ELEFANTE.map(p => p.compra || "ele-" + p.id) : []),
       "ele-tipo-mamut",
+      ...(typeof AVATAR_PRECIOS !== "undefined" ? Object.keys(AVATAR_PRECIOS).map(id => "av-" + id) : []),
     ])).filter(id => !OWNER_SIN_PERK.includes(id));
     recalcGamif(STATE);
   } catch (e) {}
@@ -1564,7 +1577,7 @@ function renderInicio() {
   <div class="card mt-24" style="background:linear-gradient(120deg, var(--surface), var(--surface-2))">
     <div class="flex-between" style="flex-wrap:wrap;gap:14px">
       <div class="row" style="gap:14px;align-items:flex-start">
-      <div class="account__avatar avatar-lg${marcoClase()}" aria-hidden="true">${escapeHtml((s.profile.name || "R").trim()[0] || "R").toUpperCase()}</div>
+      <div class="account__avatar avatar-lg${marcoClase()}" data-action="av-abrir" title="Cambiar avatar" role="button" tabindex="0">${avatarActualHtml(((s.profile.name || "R").trim()[0] || "R").toUpperCase())}</div>
       <div>
         <div class="text-xs soft" style="letter-spacing:.08em;text-transform:uppercase">${saludo}, ${escapeHtml(s.profile.name)}</div>
         <div class="big-num">${edadTexto(s.profile.birthDate)}</div>
@@ -1646,6 +1659,8 @@ function renderCuenta() {
     <div class="card__title">👤 Tu cuenta</div>
     <div class="mt-8 text-sm soft">Sesión iniciada como <b>${escapeHtml(email)}</b></div>
   </div>
+
+  ${renderAvatarCuenta()}
 
   <div id="acc-google"></div>
 

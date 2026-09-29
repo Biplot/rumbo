@@ -26,43 +26,135 @@ function diasHastaCumple(iso) {
 /* ============================================================
    DIARIO + estado de ánimo
    ============================================================ */
-function renderDiario() {
-  const S = STATE;
-  const entries = S.vida.diario || [];
-  const ritDias = S.ritual.dias || {};
-  const cerrados = Object.values(ritDias).filter(d => d.cerrado).length;
+/* Estado de la vista (no se guarda): mes que se mira, día abierto y búsqueda */
+let DIARIO_MES = null, DIARIO_SEL = null, DIARIO_BUSCA = "";
+const ANIMO_COLOR = ["#E8563A", "#F59E5B", "#C9B458", "#7CC4A0", "#2BB6A5"];
+const ANIMO_TXT = ["Difícil", "Regular", "Normal", "Bien", "Muy bien"];
 
-  // Timeline unificado: unión de fechas del diario + días de ritual
+/* Todos los días con algo en el diario (ritual abierto/cerrado o entrada manual), del más nuevo al más viejo */
+function diarioFechas() {
   const set = new Set();
-  entries.forEach(e => e.fecha && set.add(e.fecha));
-  Object.keys(ritDias).forEach(f => { if (ritDias[f] && ritDias[f].hecho) set.add(f); });
-  const fechas = Array.from(set).sort((a, b) => (a < b ? 1 : -1));
+  (STATE.vida.diario || []).forEach(e => e.fecha && set.add(e.fecha));
+  Object.keys(STATE.ritual.dias || {}).forEach(f => { if (STATE.ritual.dias[f] && STATE.ritual.dias[f].hecho) set.add(f); });
+  return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
+}
+function diarioAnimo(fecha) {
+  const e = (STATE.vida.diario || []).find(x => x.fecha === fecha && x.mood);
+  return e ? e.mood : null;
+}
+/* Lo que se muestra en la línea de un día: título y bajada */
+function diarioResumen(fecha) {
+  const r = STATE.ritual.dias[fecha], c = (r && r.cierre) || {};
+  const es = (STATE.vida.diario || []).filter(e => e.fecha === fecha);
+  const manual = es.find(e => !e.fromRitual && !e.fromRitualMes && !e.fromRitualSemana && !e.fromRitualTri);
+  const sem = es.find(e => e.fromRitualSemana), mes = es.find(e => e.fromRitualMes), tri = es.find(e => e.fromRitualTri);
+  const titulo = (r && (r.mision || r.sapo)) || (manual && (manual.titulo || manual.texto)) || (tri ? "Cierre de trimestre" : mes ? "Cierre de mes" : sem ? "Cierre de semana" : "Tu día");
+  const gratitud = c.mejor || (es.find(e => e.gratitud) || {}).gratitud || "";
+  const sub = gratitud || c.nota || (r ? (r.cerrado ? "Día cerrado" : "Día abierto") : "");
+  return { titulo, sub, r, es, manual };
+}
+function diarioTexto(fecha) {
+  const { r, es } = diarioResumen(fecha), c = (r && r.cierre) || {};
+  return [r && r.mision, r && r.sapo, r && r.servir, c.mejor, c.nota, c.manana, ...es.map(e => [e.titulo, e.texto, e.gratitud].join(" "))].filter(Boolean).join(" ").toLowerCase();
+}
 
-  const header = `
-  <div class="card">
-    <div class="grid grid-3 grid-fija" style="gap:10px;text-align:center">
-      <div><div class="big-num" style="font-size:24px">${fechas.length}</div><div class="text-xs muted">días registrados</div></div>
-      <div><div class="big-num" style="font-size:24px">${cerrados}</div><div class="text-xs muted">días cerrados</div></div>
-      <div><div class="big-num" style="font-size:24px">${computeClosedStreak()}</div><div class="text-xs muted">cerrados seguidos</div></div>
-    </div>
-    <div class="text-xs muted mt-16" style="text-align:center">✍️ Tu diario se llena solo al <b>cerrar tu día</b> en el Ritual — ahí registras tu ánimo, gratitud y reflexión. <a href="#ritual">Ir al ritual →</a></div>
-  </div>`;
+function renderDiario() {
+  const hoy = todayISO();
+  if (!DIARIO_MES) DIARIO_MES = hoy.slice(0, 7);
+  const [y, m] = DIARIO_MES.split("-").map(Number);
+  const pref = DIARIO_MES + "-", nDias = daysInMonth(y, m - 1);
+  const todas = diarioFechas(), delMes = todas.filter(f => f.startsWith(pref));
+  const conDato = new Set(todas);
 
-  let timeline;
-  if (!fechas.length) {
-    timeline = `<div class="section-title">Tu diario</div><div class="card"><div class="empty">Aún no hay días registrados. Abre y cierra tu día en el <b>Ritual</b> y cada jornada aparecerá aquí 📔</div></div>`;
-  } else {
-    const groups = []; const idx = {};
-    fechas.forEach(f => {
-      const d = new Date(f + "T00:00:00"); const k = `${d.getFullYear()}-${d.getMonth()}`;
-      if (idx[k] === undefined) { idx[k] = groups.length; groups.push({ y: d.getFullYear(), m: d.getMonth(), items: [] }); }
-      groups[idx[k]].items.push(f);
-    });
-    timeline = groups.map(g => `<div class="section-title">${MESES[g.m]} ${g.y}</div>
-      <div class="bita-list">${g.items.map(diarioDayCard).join("")}</div>`).join("");
+  // Mapa del ánimo: un cuadro por día con el color de cómo te sentiste
+  const celdas = [];
+  for (let k = 0; k < (new Date(y, m - 1, 1).getDay() + 6) % 7; k++) celdas.push(`<span class="dmap__c dmap__c--vacio"></span>`);
+  for (let d = 1; d <= nDias; d++) {
+    const iso = pref + String(d).padStart(2, "0"), a = diarioAnimo(iso);
+    const cls = [iso === hoy ? "is-hoy" : "", iso === DIARIO_SEL ? "is-sel" : "", !a && conDato.has(iso) ? "is-dato" : "", iso > hoy ? "is-futuro" : ""].join(" ");
+    celdas.push(conDato.has(iso) || iso === hoy
+      ? `<button class="dmap__c ${cls}" data-action="diario-dia" data-iso="${iso}" ${a ? `style="background:${ANIMO_COLOR[a - 1]}"` : ""} aria-label="${d}${a ? ", " + ANIMO_TXT[a - 1] : ""}">${d}</button>`
+      : `<span class="dmap__c ${cls}">${d}</span>`);
   }
+  const animos = delMes.map(diarioAnimo).filter(Boolean);
+  const prom = animos.length ? (animos.reduce((x, v) => x + v, 0) / animos.length).toFixed(1).replace(".", ",") : "—";
+  const nombreMes = `${MESES[m - 1]} ${y}`;
 
-  return header + `<div class="mt-24">${timeline}</div>`;
+  const mapa = `<div class="card dmap">
+    <div class="dmap__nav"><button class="icon-btn" data-action="diario-mes" data-dir="-1" aria-label="Mes anterior">‹</button>
+      <b>${nombreMes}</b><button class="icon-btn" data-action="diario-mes" data-dir="1" aria-label="Mes siguiente" ${DIARIO_MES >= hoy.slice(0, 7) ? "disabled" : ""}>›</button></div>
+    <div class="dmap__g dmap__dow">${["L", "M", "M", "J", "V", "S", "D"].map(x => `<span>${x}</span>`).join("")}</div>
+    <div class="dmap__g">${celdas.join("")}</div>
+    <div class="dmap__ley">${ANIMO_COLOR.map((c, i) => `<i style="background:${c}" title="${ANIMO_TXT[i]}"></i>`).join("")}<span>tu ánimo de cada día</span></div>
+  </div>
+  <div class="dnums">
+    <div><b>${delMes.length}</b><span>días</span></div>
+    <div><b>${prom}</b><span>ánimo</span></div>
+    <div><b>${computeClosedStreak()}</b><span>seguidos</span></div>
+  </div>
+  <div class="dbusca"><input class="input" id="diario-busca" placeholder="Buscar en tu diario…" value="${escapeAttr(DIARIO_BUSCA)}" oninput="diarioBuscar(this.value)" aria-label="Buscar en tu diario"></div>`;
+
+  return `<div class="diario-layout"><div class="diario-izq">${mapa}</div>
+    <div id="diario-lista">${diarioListaHtml()}</div></div>`;
+}
+function diarioListaHtml() {
+  const hoy = todayISO(), q = DIARIO_BUSCA.trim().toLowerCase();
+  const todas = diarioFechas();
+  const fechas = q ? todas.filter(f => diarioTexto(f).includes(q)) : todas.filter(f => f.startsWith(DIARIO_MES + "-"));
+  if (!todas.length) return `<div class="card"><div class="empty">Tu diario se llena solo al <b>cerrar tu día</b>: ahí registras tu ánimo, lo que agradeces y tu reflexión. <a href="#ritual">Ir al ritual →</a></div></div>`;
+  if (!fechas.length) return `<div class="card"><div class="empty">${q ? "No encontré nada con “" + escapeHtml(DIARIO_BUSCA) + "”." : "Sin días registrados este mes."}</div></div>`;
+  return `${q ? `<div class="text-sm muted" style="margin:0 4px 8px">${fechas.length} día${fechas.length === 1 ? "" : "s"} con “${escapeHtml(DIARIO_BUSCA)}”</div>` : ""}
+    <div class="card dlista">${fechas.map(f => {
+      const d = agDate(f), a = diarioAnimo(f), { titulo, sub } = diarioResumen(f), abierto = f === DIARIO_SEL;
+      return `<button class="dfila${abierto ? " is-abierta" : ""}" data-action="diario-dia" data-iso="${f}" aria-expanded="${abierto}">
+        <span class="dfila__f"><b>${d.getDate()}</b><span>${q ? MESES_CORTO[d.getMonth()] : DIAS_SEMANA[(d.getDay() + 6) % 7].slice(0, 3)}</span></span>
+        <i class="dfila__a" style="background:${a ? ANIMO_COLOR[a - 1] : "var(--surface-3)"}"></i>
+        <span class="dfila__t"><span class="dfila__m">${escapeHtml(titulo)}</span><span class="dfila__s">${escapeHtml(f === hoy && !sub ? "Hoy" : sub)}</span></span>
+        <span class="dfila__ch" aria-hidden="true">${abierto ? "✕" : "›"}</span></button>
+        ${abierto ? `<div class="ddet">${diarioDetalle(f)}</div>` : ""}`;
+    }).join("")}</div>`;
+}
+function diarioBuscar(v) {
+  DIARIO_BUSCA = v || "";
+  const el = document.getElementById("diario-lista");
+  if (el) el.innerHTML = diarioListaHtml();
+}
+function diarioElegir(iso) {
+  DIARIO_SEL = DIARIO_SEL === iso ? null : iso;
+  if (iso && !DIARIO_BUSCA) DIARIO_MES = iso.slice(0, 7);
+  rerender();
+}
+function diarioMover(dir) {
+  const [y, m] = DIARIO_MES.split("-").map(Number), f = new Date(y, m - 1 + dir, 1);
+  DIARIO_MES = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, "0")}`; DIARIO_SEL = null; rerender();
+}
+
+/* Detalle de un día abierto en la lista: todo lo que registraste, sin íconos de más */
+function diarioDetalle(fecha) {
+  const { r, es, manual } = diarioResumen(fecha), c = (r && r.cierre) || {};
+  const a = diarioAnimo(fecha), kv = (k, v) => v ? `<div class="kv"><span>${k}</span><b>${v}</b></div>` : "";
+  const out = [];
+  if (a) out.push(kv("Ánimo", `${MOODS[a - 1]} ${ANIMO_TXT[a - 1]}`));
+  if (r) {
+    if (r.mision) out.push(kv("Misión", escapeHtml(r.mision) + (r.cerrado ? " " + cumpliChip(c.mision) : "")));
+    if (r.sapo) out.push(kv(BOCADO.corto, escapeHtml(r.sapo) + (r.cerrado ? (c.sapo ? " ✓" : " · pendiente") : "")));
+    out.push(kv("Energía", r.cerrado ? `${r.energia || "—"} → ${c.energia || "—"}` : `${r.energia || "—"}`));
+    if (r.pilar) out.push(kv("Pilar", escapeHtml(r.pilar)));
+    if (r.servir) out.push(kv("Serví a", escapeHtml(r.servir)));
+  }
+  const grat = c.mejor || (es.find(e => e.gratitud && !e.fromRitualMes && !e.fromRitualSemana && !e.fromRitualTri) || {}).gratitud;
+  if (grat) out.push(kv("Gratitud", escapeHtml(grat)));
+  if (c.manana) out.push(kv("Para mañana", escapeHtml(c.manana)));
+  const nota = c.nota || (manual && manual.texto);
+  if (nota) out.push(kv("Nota", escapeHtml(nota)));
+  const cierre = (e, nombre, lo) => e ? kv(nombre, `${e.nota != null ? e.nota + "/10" : ""}${e.gratitud ? " · " + lo + ": " + escapeHtml(e.gratitud) : ""}${e.texto ? "<br><span class='muted'>" + escapeHtml(e.texto) + "</span>" : ""}`) : "";
+  out.push(cierre(es.find(e => e.fromRitualSemana), "Cierre de semana", "lo mejor"));
+  out.push(cierre(es.find(e => e.fromRitualMes), "Cierre de mes", "lo mejor"));
+  out.push(cierre(es.find(e => e.fromRitualTri), "Cierre de trimestre", "logro"));
+  const acciones = [];
+  if (r && r.cerrado && fecha >= agSumar(todayISO(), -7) && typeof reabrible === "function") acciones.push(`<a class="card__hint" href="#ritual">Editar desde el Ritual ›</a>`);
+  if (!r && manual) acciones.push(`<button class="btn-ghost" data-action="diario-del" data-id="${manual.id}">🗑 Borrar</button>`);
+  return out.join("") + (acciones.length ? `<div class="row mt-8" style="gap:10px">${acciones.join("")}</div>` : "");
 }
 
 function diarioDayCard(fecha) {

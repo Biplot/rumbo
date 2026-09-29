@@ -964,6 +964,8 @@ function onClick(e) {
 
     /* Bitácora */
     case "bita-toggle": BITA_OPEN[d.iso] = !BITA_OPEN[d.iso]; rerender(); break;
+    case "diario-dia": diarioElegir(d.iso); break;
+    case "diario-mes": diarioMover(+d.dir); break;
 
     /* Tareas (registro diario por fecha) */
     case "tarea-add": {

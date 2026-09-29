@@ -1447,3 +1447,54 @@ a.card__hint { white-space: nowrap; }
   .calg__ev, .calg__mas { display: none; }
   .calg__dots { justify-content: center; }
 }
+
+/* ============================================================
+   DIARIO (v70): mapa del ánimo del mes + lista con el día abierto ahí mismo
+   ============================================================ */
+.diario-layout { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.diario-layout > * { min-width: 0; }
+.diario-izq { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 110px; }
+.dmap { padding: 12px; }
+.dmap__nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 16px; }
+.dmap__nav .icon-btn { font-size: 22px; min-width: 40px; min-height: 40px; }
+.dmap__nav .icon-btn[disabled] { opacity: .3; cursor: default; }
+.dmap__g { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.dmap__dow { margin-bottom: 5px; }
+.dmap__dow span { text-align: center; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.dmap__c { aspect-ratio: 1.2; border-radius: 8px; background: var(--surface-2); border: 0; display: grid; place-items: center;
+  font: 700 12px var(--font-body); color: var(--text-muted); padding: 0; }
+button.dmap__c { cursor: pointer; color: #0C1B2C; }
+.dmap__c.is-dato { background: var(--surface-3); color: var(--text); }
+.dmap__c--vacio { background: transparent; }
+.dmap__c.is-futuro { opacity: .45; }
+.dmap__c.is-hoy { outline: 1.5px dashed var(--text-muted); outline-offset: -1.5px; background: transparent; color: var(--text); }
+.dmap__c.is-sel { outline: 2.5px solid var(--text); outline-offset: 1px; }
+.dmap__ley { display: flex; align-items: center; gap: 5px; margin-top: 10px; font-size: 12px; color: var(--text-muted); }
+.dmap__ley i { width: 10px; height: 10px; border-radius: 50%; }
+.dmap__ley span { margin-left: 6px; }
+.dnums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.dnums > div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px; display: flex; flex-direction: column; }
+.dnums b { font-size: 20px; font-family: var(--font-display); }
+.dnums span { font-size: 12px; color: var(--text-muted); }
+.dlista { padding: 2px 0; overflow: hidden; }
+.dfila { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 10px 14px; border: 0; border-bottom: 1px solid var(--line);
+  background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.dfila:hover, .dfila.is-abierta { background: var(--surface-2); }
+.dfila__f { width: 36px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.dfila__f b { font-size: 17px; }
+.dfila__f span { font-size: 12px; color: var(--text-muted); text-transform: capitalize; }
+.dfila__a { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dfila__t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dfila__m { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dfila__s { font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dfila__ch { color: var(--text-muted); font-size: 18px; width: 20px; text-align: center; }
+.ddet { background: var(--surface-2); padding: 2px 14px 12px; border-bottom: 1px solid var(--line); }
+.ddet .kv { display: flex; justify-content: space-between; gap: 14px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.ddet .kv:first-child { border-top: 0; }
+.ddet .kv span { color: var(--text-muted); flex-shrink: 0; }
+.ddet .kv b { font-weight: 500; text-align: right; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .diario-layout { grid-template-columns: 1fr; }
+  .diario-izq { position: static; }
+  .dmap__c { aspect-ratio: 1.35; }
+}

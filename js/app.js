@@ -97,6 +97,8 @@ function showAuth() {
   // "Continuar con Google" solo si está activo en Supabase
   const g = document.getElementById("auth-google");
   if (g && BACKEND.googleDisponible) BACKEND.googleDisponible().then(ok => { g.hidden = !ok; });
+  // Quien llega desde la página de presentación (?crear=1) ve directo "Crear cuenta"
+  if (/(^|&)crear=1/.test(location.search.slice(1))) switchAuthTab("register");
 }
 
 async function enterApp(user) {

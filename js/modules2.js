@@ -229,8 +229,8 @@ let CIERRE_DATE = null;
 function openCierreModal(date) {
   const iso = date || todayISO();
   CIERRE_DATE = iso;
-  const r = STATE.ritual.dias[iso];
-  if (!r || !r.hecho) return toast("Primero abre tu día 🌅", true);
+  if (!puedeCerrarDia(iso)) return toast("Primero abre tu día 🌅", true);
+  const r = STATE.ritual.dias[iso] || {};
   const esHoy = iso === todayISO();
   const c = r.cierre || {};
   const dEntry = (STATE.vida.diario || []).find(e => e.fecha === iso && e.fromRitual);
@@ -287,8 +287,8 @@ function cierreMoodPick(btn) {
 }
 function saveCierre() {
   const iso = CIERRE_DATE || todayISO();
-  const r = STATE.ritual.dias[iso];
-  if (!r || !r.hecho) return toast("Primero abre tu día 🌅", true);
+  const r = diaParaCerrar(iso);
+  if (!r) return toast("Primero abre tu día 🌅", true);
   const yaCerrado = r.cerrado;
   // Decisiones sobre las pendientes (mañana, otro día, delegar, soltar, la hice)
   const trCont = document.getElementById("c-triage");

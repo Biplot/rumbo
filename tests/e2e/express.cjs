@@ -31,7 +31,7 @@ module.exports = async ({ b, ok, errs }) => {
 
   // Cierre express desde la tarjeta del día en curso
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
-  await p.click('#view [data-action="day-close-express"]'); await p.waitForTimeout(200);
+  await p.click('#view [data-action="day-close-express"]:not([data-date])'); await p.waitForTimeout(200);
   const txt = await p.locator("#modalBody").innerText();
   ok(/Ordenar la bodega/.test(txt) && /Pasan a mañana \(2\)/i.test(txt), "separa la tarea crónica y lista las que pasan a mañana");
   await p.click('#xc-moods .mood-btn[data-v="5"]');

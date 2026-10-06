@@ -121,8 +121,8 @@ function saveExpressApertura() {
 
 function openExpressCierre(date) {
   const iso = date || todayISO();
-  const r = STATE.ritual.dias[iso];
-  if (!r || !r.hecho) return toast("Primero abre tu día 🌅", true);
+  if (!puedeCerrarDia(iso)) return toast("Primero abre tu día 🌅", true);
+  const r = STATE.ritual.dias[iso] || {};
   EXPRESS_FECHA = iso;
   const { cronicas, resto } = pendientesCierreExpress(STATE, iso);
   const dE = (STATE.vida.diario || []).find(e => e.fecha === iso && e.fromRitual);
@@ -151,7 +151,7 @@ function expressMood(btn) {
 }
 function saveExpressCierre() {
   const iso = EXPRESS_FECHA || todayISO();
-  if (!STATE.ritual.dias[iso] || !STATE.ritual.dias[iso].hecho) return toast("Primero abre tu día 🌅", true);
+  if (!diaParaCerrar(iso)) return toast("Primero abre tu día 🌅", true);
   const elecciones = {};
   document.querySelectorAll(".xc-cron").forEach(el => { elecciones[el.dataset.id] = el.value; });
   const { nuevo, n } = aplicarCierreExpress(STATE, iso, { mood: parseNum(val("xc-mood")), gratitud: val("xc-gratitud"), elecciones });

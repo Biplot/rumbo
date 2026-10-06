@@ -630,24 +630,44 @@ function dayState() {
   if (r.cerrado) return "cerrado";
   return new Date().getHours() >= 18 ? "por-cerrar" : "en-curso";
 }
-/* Si olvidaste cerrar ayer, permite cerrarlo SOLO durante la mañana (antes de las 12).
+/* Si olvidaste cerrar ayer, puedes cerrarlo durante todo hoy (antes era solo hasta las 12).
+   También si ayer no abriste el día pero sí lo usaste (tareas o hábitos marcados).
    Devuelve la fecha (ISO) del día anterior pendiente de cierre, o null. */
+function huboActividadDia(iso) {
+  try {
+    if (tareasDelDia(iso).length) return true;
+    return (STATE.habitos.defs || []).some(h => hmDone(h, iso, STATE));
+  } catch (e) { return false; }
+}
 function pendingCierreDate() {
-  if (new Date().getHours() >= 12) return null;           // solo en la mañana
   const y = new Date(); y.setDate(y.getDate() - 1);
   const iso = isoLocal(y);
   const r = STATE.ritual.dias[iso];
-  return (r && r.hecho && !r.cerrado) ? iso : null;
+  if (r && r.cerrado) return null;
+  return (r && r.hecho) || huboActividadDia(iso) ? iso : null;
+}
+/* ¿Se puede cerrar este día? (abierto, o ayer pendiente aunque no se haya abierto) */
+function puedeCerrarDia(iso) {
+  const r = STATE.ritual.dias[iso];
+  return !!(r && r.hecho) || iso === pendingCierreDate();
+}
+/* Al guardar el cierre de un día que no se abrió, queda marcado como abierto sin apertura */
+function diaParaCerrar(iso) {
+  const r = STATE.ritual.dias[iso];
+  if (r && r.hecho) return r;
+  if (iso !== pendingCierreDate()) return null;
+  return (STATE.ritual.dias[iso] = Object.assign(r || {}, { hecho: true, sinApertura: true, ts: Date.now() }));
 }
 function renderPendingYesterday() {
   const iso = pendingCierreDate();
   if (!iso) return "";
   const d = new Date(iso + "T12:00:00");
   const fecha = d.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+  const abierto = !!(STATE.ritual.dias[iso] && STATE.ritual.dias[iso].hecho);
   return `<div class="card" style="margin-bottom:16px;border:1px solid var(--coral);background:var(--coral-soft)">
     <div class="flex-between" style="flex-wrap:wrap;gap:12px">
       <div><div class="card__title">🌙 Te quedó un día por cerrar</div>
-        <div class="text-sm soft mt-8">Olvidaste cerrar el <b>${escapeHtml(fecha)}</b>. Ciérralo antes de arrancar hoy.</div></div>
+        <div class="text-sm soft mt-8">${abierto ? `Olvidaste cerrar el <b>${escapeHtml(fecha)}</b>.` : `El <b>${escapeHtml(fecha)}</b> no abriste tu día, pero puedes cerrarlo igual.`} Tienes hasta esta noche.</div></div>
       <div class="row-wrap" style="gap:8px"><button class="btn btn--soft" data-action="day-close-express" data-date="${iso}">⚡ Express</button>
         <button class="btn btn--primary" data-action="day-close" data-date="${iso}">Cerrar ${escapeHtml(d.toLocaleDateString("es-CL", { weekday: "long" }))}</button></div>
     </div></div>`;

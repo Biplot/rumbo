@@ -420,7 +420,9 @@ function textoTriage(n) {
 /* -------- Bandeja: pendientes de días anteriores -------- */
 function itemsBandeja() {
   const hoy = todayISO();
-  const cierreAyer = typeof pendingCierreDate === "function" ? pendingCierreDate() : null;   // esas se deciden al cerrar ayer
+  // Las de ayer se deciden al cerrar ayer; las de días anteriores siguen también aquí
+  const ayer = agSumar(hoy, -1);
+  const cierreAyer = typeof pendingCierreDates === "function" && pendingCierreDates().includes(ayer) ? ayer : null;
   return pendientesAnteriores(STATE, hoy, 30).filter(x => x.iso !== cierreAyer);
 }
 function renderBandejaPendientes() {

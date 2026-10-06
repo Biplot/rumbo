@@ -55,14 +55,15 @@ function pendientesCierreExpress(S, iso) {
 /* elecciones: { idTarea: "manana" | "soltar" } solo para las crónicas */
 function decisionesCierreExpress(S, iso, elecciones) {
   const { cronicas, resto } = pendientesCierreExpress(S, iso);
-  return resto.map(t => ({ iso, id: t.id, v: "manana" }))
-    .concat(cronicas.map(t => ({ iso, id: t.id, v: (elecciones || {})[t.id] === "soltar" ? "soltar" : "manana" })));
+  const mover = iso < todayISO() ? "hoy" : "manana";   // de un día ya pasado, las pendientes van a hoy
+  return resto.map(t => ({ iso, id: t.id, v: mover }))
+    .concat(cronicas.map(t => ({ iso, id: t.id, v: (elecciones || {})[t.id] === "soltar" ? "soltar" : mover })));
 }
 /* Cierra el día en modo express. Devuelve { nuevo, n } (n = conteo de decisiones). */
 function aplicarCierreExpress(S, iso, { mood, gratitud, elecciones }) {
   const r = S.ritual.dias[iso];
   const nuevo = !r.cerrado;
-  const n = aplicarTriage(S, decisionesCierreExpress(S, iso, elecciones), { base: iso, min: agSumar(iso, 1) });
+  const n = aplicarTriage(S, decisionesCierreExpress(S, iso, elecciones), { base: iso, min: iso < todayISO() ? agSumar(todayISO(), -1) : agSumar(iso, 1) });
   const bocado = tareasDelDia(iso, S).find(t => t.esSapo);
   r.cierre = Object.assign({}, r.cierre, {
     sapo: bocado ? estadoTarea(bocado) === "hecha" : !!(r.cierre && r.cierre.sapo),
@@ -128,7 +129,7 @@ function openExpressCierre(date) {
   const dE = (STATE.vida.diario || []).find(e => e.fecha === iso && e.fromRitual);
   const mood = (dE && dE.mood) || 3;
   const esHoy = iso === todayISO();
-  const cuando = esHoy ? "mañana" : "al día siguiente";
+  const cuando = esHoy ? "mañana" : "hoy";
   openModal(esHoy ? "⚡ Cierra tu día · express" : "⚡ Cerrar el " + agDate(iso).toLocaleDateString("es-CL", { weekday: "long", day: "numeric" }), `
     <div class="field"><label>¿Cómo te sentiste?</label>
       <div class="row mt-8" id="xc-moods" style="gap:8px">
@@ -136,7 +137,7 @@ function openExpressCierre(date) {
       </div><input type="hidden" id="xc-mood" value="${mood}"></div>
     ${cronicas.length ? `<div class="field"><label>⚠ ${cronicas.length === 1 ? "Ya la postergaste varias veces: ¿vale la pena?" : "Ya las postergaste varias veces: ¿valen la pena?"}</label>
       ${cronicas.map(t => `<div class="flex-between" style="gap:8px;padding:6px 0;flex-wrap:wrap"><span class="text-sm">${escapeHtml(t.txt)} ${chipMigraciones(t)}</span>
-        <div class="seg" style="display:inline-flex"><button type="button" class="is-active" data-v="manana" onclick="segPick(this,'xc-c-${t.id}')">&gt; ${cuando === "mañana" ? "Mañana" : "Día siguiente"}</button><button type="button" data-v="soltar" onclick="segPick(this,'xc-c-${t.id}')">✕ Soltar</button></div>
+        <div class="seg" style="display:inline-flex"><button type="button" class="is-active" data-v="manana" onclick="segPick(this,'xc-c-${t.id}')">&gt; ${cuando === "mañana" ? "Mañana" : "Hoy"}</button><button type="button" data-v="soltar" onclick="segPick(this,'xc-c-${t.id}')">✕ Soltar</button></div>
         <input type="hidden" class="xc-cron" id="xc-c-${t.id}" data-id="${t.id}" value="manana"></div>`).join("")}</div>` : ""}
     ${resto.length ? `<div class="field"><label>↪ Pasan a ${cuando} (${resto.length})</label>
       <div class="row-wrap" style="gap:6px">${resto.map(t => `<span class="chip">${t.esSapo ? BOCADO.emoji : AMBITOS[ambitoDe(t)].icon} ${escapeHtml(t.txt)}</span>`).join("")}</div>

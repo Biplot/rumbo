@@ -630,47 +630,64 @@ function dayState() {
   if (r.cerrado) return "cerrado";
   return new Date().getHours() >= 18 ? "por-cerrar" : "en-curso";
 }
-/* Si olvidaste cerrar ayer, puedes cerrarlo durante todo hoy (antes era solo hasta las 12).
-   También si ayer no abriste el día pero sí lo usaste (tareas o hábitos marcados).
-   Devuelve la fecha (ISO) del día anterior pendiente de cierre, o null. */
+/* Holgura para cerrar: los días que olvidaste cerrar se pueden cerrar durante los
+   DIAS_HOLGURA días siguientes (ayer, anteayer y el anterior). También si ese día no lo
+   abriste pero sí lo usaste (tareas o hábitos marcados). Cerrarlo a tiempo mantiene la racha. */
+const DIAS_HOLGURA = 3;
 function huboActividadDia(iso) {
   try {
     if (tareasDelDia(iso).length) return true;
     return (STATE.habitos.defs || []).some(h => hmDone(h, iso, STATE));
   } catch (e) { return false; }
 }
-function pendingCierreDate() {
-  const y = new Date(); y.setDate(y.getDate() - 1);
-  const iso = isoLocal(y);
-  const r = STATE.ritual.dias[iso];
-  if (r && r.cerrado) return null;
-  return (r && r.hecho) || huboActividadDia(iso) ? iso : null;
+/* Días anteriores sin cerrar que todavía se pueden cerrar, del más antiguo al más reciente */
+function pendingCierreDates() {
+  const out = [];
+  for (let b = DIAS_HOLGURA; b >= 1; b--) {
+    const d = new Date(); d.setDate(d.getDate() - b);
+    const iso = isoLocal(d), r = STATE.ritual.dias[iso];
+    if (r && r.cerrado) continue;
+    if ((r && r.hecho) || huboActividadDia(iso)) out.push(iso);
+  }
+  return out;
 }
-/* ¿Se puede cerrar este día? (abierto, o ayer pendiente aunque no se haya abierto) */
+/* El más antiguo pendiente (o null): es el que conviene cerrar primero */
+function pendingCierreDate() { return pendingCierreDates()[0] || null; }
+/* ¿Se puede cerrar este día? (abierto, o dentro de la holgura aunque no se haya abierto) */
 function puedeCerrarDia(iso) {
   const r = STATE.ritual.dias[iso];
-  return !!(r && r.hecho) || iso === pendingCierreDate();
+  return !!(r && r.hecho) || pendingCierreDates().includes(iso);
 }
 /* Al guardar el cierre de un día que no se abrió, queda marcado como abierto sin apertura */
 function diaParaCerrar(iso) {
   const r = STATE.ritual.dias[iso];
   if (r && r.hecho) return r;
-  if (iso !== pendingCierreDate()) return null;
+  if (!pendingCierreDates().includes(iso)) return null;
   return (STATE.ritual.dias[iso] = Object.assign(r || {}, { hecho: true, sinApertura: true, ts: Date.now() }));
 }
+/* Destino de las pendientes al cerrar: si el día ya pasó, van a hoy (nunca a otro día pasado) */
+function triageCierreCfg(iso) {
+  const hoy = todayISO();
+  return iso < hoy ? { mover: "hoy", min: agSumar(hoy, -1) } : { mover: "manana", min: agSumar(iso, 1) };
+}
 function renderPendingYesterday() {
-  const iso = pendingCierreDate();
-  if (!iso) return "";
-  const d = new Date(iso + "T12:00:00");
-  const fecha = d.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
-  const abierto = !!(STATE.ritual.dias[iso] && STATE.ritual.dias[iso].hecho);
-  return `<div class="card" style="margin-bottom:16px;border:1px solid var(--coral);background:var(--coral-soft)">
-    <div class="flex-between" style="flex-wrap:wrap;gap:12px">
-      <div><div class="card__title">🌙 Te quedó un día por cerrar</div>
-        <div class="text-sm soft mt-8">${abierto ? `Olvidaste cerrar el <b>${escapeHtml(fecha)}</b>.` : `El <b>${escapeHtml(fecha)}</b> no abriste tu día, pero puedes cerrarlo igual.`} Tienes hasta esta noche.</div></div>
+  const dias = pendingCierreDates();
+  if (!dias.length) return "";
+  const hoy = todayISO();
+  const fila = iso => {
+    const d = new Date(iso + "T12:00:00"), r = STATE.ritual.dias[iso];
+    const quedan = DIAS_HOLGURA - agDiff(iso, hoy) + 1;   // días que le quedan para cerrarse (contando hoy)
+    const nombre = agSumar(iso, 1) === hoy ? "ayer" : d.toLocaleDateString("es-CL", { weekday: "long" });
+    return `<div class="flex-between" style="flex-wrap:wrap;gap:10px;padding:8px 0">
+      <div><b>${escapeHtml(d.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" }))}</b>
+        <div class="text-xs muted">${r && r.hecho ? "Lo abriste y quedó sin cerrar" : "No lo abriste, pero puedes cerrarlo igual"} · ${quedan <= 1 ? "último día para cerrarlo" : `quedan ${quedan} días`}</div></div>
       <div class="row-wrap" style="gap:8px"><button class="btn btn--soft" data-action="day-close-express" data-date="${iso}">⚡ Express</button>
-        <button class="btn btn--primary" data-action="day-close" data-date="${iso}">Cerrar ${escapeHtml(d.toLocaleDateString("es-CL", { weekday: "long" }))}</button></div>
-    </div></div>`;
+        <button class="btn btn--primary" data-action="day-close" data-date="${iso}">Cerrar ${escapeHtml(nombre)}</button></div></div>`;
+  };
+  return `<div class="card" style="margin-bottom:16px;border:1px solid var(--coral);background:var(--coral-soft)">
+    <div class="card__title">🌙 ${dias.length === 1 ? "Te quedó un día por cerrar" : `Te quedaron ${dias.length} días por cerrar`}</div>
+    <div class="text-sm soft mt-8">Tienes ${DIAS_HOLGURA} días de holgura para cerrar un día. Si lo cierras a tiempo, tu racha sigue.</div>
+    ${dias.map(fila).join("")}</div>`;
 }
 function computeClosedStreak() {
   const now = new Date(); let s = 0;

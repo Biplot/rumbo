@@ -270,7 +270,7 @@ function openCierreModal(date) {
       <div class="row-wrap"><span class="chip">${AMBITOS.pro.icon} ${AMBITOS.pro.label} ${tr.pro[0]}/${tr.pro[1]}</span>
         <span class="chip">${AMBITOS.per.icon} ${AMBITOS.per.label} ${tr.per[0]}/${tr.per[1]}</span></div></div>` : ""}
     ${pendientes.length ? `<div class="field"><label>↪ Tus pendientes de ${esHoy ? "hoy" : "ese día"} (${pendientes.length})</label>
-      <div id="c-triage">${triageHtml(pendientes.map(t => ({ t, iso })), { mover: "manana", base: iso, min: agSumar(iso, 1), moverLabel: esHoy ? null : "Día siguiente" })}</div></div>` : ""}
+      <div id="c-triage">${triageHtml(pendientes.map(t => ({ t, iso })), Object.assign({ base: iso }, triageCierreCfg(iso)))}</div></div>` : ""}
     <div class="field"><label>Energía con la que terminas: <span id="c-elabel">${c.energia || 3}</span>/5</label>
       <input type="range" min="1" max="5" step="1" id="c-energia" value="${c.energia || 3}" style="width:100%;accent-color:var(--cian)"
         oninput="document.getElementById('c-elabel').textContent=this.value"></div>
@@ -292,7 +292,7 @@ function saveCierre() {
   const yaCerrado = r.cerrado;
   // Decisiones sobre las pendientes (mañana, otro día, delegar, soltar, la hice)
   const trCont = document.getElementById("c-triage");
-  const decid = trCont ? aplicarTriage(STATE, leerTriage(trCont), { base: iso, min: agSumar(iso, 1) }) : null;
+  const decid = trCont ? aplicarTriage(STATE, leerTriage(trCont), Object.assign({ base: iso }, triageCierreCfg(iso))) : null;
   const sapoTask = tareasDelDia(iso).find(t => t.esSapo);
   const sapoEl = document.getElementById("c-sapo-v");
   r.cierre = {

@@ -1,0 +1,89 @@
+<style>
+*{box-sizing:border-box}body{margin:0;background:#000}
+#stage{width:1080px;height:1920px;position:relative;overflow:hidden;font-family:'Space Grotesk',sans-serif;color:#EAF0F6;
+ background:radial-gradient(900px 800px at 85% 5%,#1F4266 0%,transparent 60%),radial-gradient(800px 700px at 0% 100%,#173A4A 0%,transparent 60%),#0C1B2C}
+.esc{position:absolute;inset:0;opacity:0}
+.a{opacity:0;will-change:transform,opacity}
+.marca{position:absolute;top:120px;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:16px;font-weight:700;font-size:40px}
+.marca img{width:64px;height:64px;border-radius:16px}
+h1{margin:0;font-size:108px;line-height:1.02;letter-spacing:-.03em;text-align:center}
+h1 em{font-style:normal;color:#2BB6A5}
+.tit{position:absolute;left:70px;right:70px;top:270px}
+.sub{font-size:44px;color:#AFC0D2;text-align:center;margin-top:26px;line-height:1.3}
+.fono{position:absolute;left:50%;width:600px;margin-left:-300px;top:700px;border-radius:70px;padding:14px;background:#1C2D40;
+ box-shadow:0 60px 110px -30px rgba(0,0,0,.85),inset 0 0 0 2px rgba(255,255,255,.14);overflow:hidden}
+.fono .vent{border-radius:57px;overflow:hidden;height:1100px}.fono img{width:100%;display:block}
+.toque{position:absolute;width:110px;height:110px;border-radius:50%;border:6px solid #2BB6A5;opacity:0}
+.hook{position:absolute;left:70px;right:70px;top:620px}.hook h1{font-size:118px}
+.etapas{position:absolute;left:10px;right:10px;bottom:640px;display:flex;align-items:flex-end;justify-content:center}
+.etapas>div{flex:1;text-align:center;font-size:40px;font-weight:600;color:#AFC0D2}
+.oferta{position:absolute;left:70px;right:70px;top:420px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.tag{font-size:46px;font-weight:700;color:#F5C451;background:rgba(245,196,81,.15);padding:16px 34px;border-radius:24px;border:2px solid rgba(245,196,81,.4)}
+.unico{font-size:64px;font-weight:700;margin-top:70px}
+.monto{font-size:300px;font-weight:700;letter-spacing:-.05em;line-height:1;margin-top:10px}
+.hasta{font-size:50px;color:#EAF0F6;margin-top:24px}.hasta b{color:#F5C451}
+.sin{display:flex;flex-direction:column;gap:22px;margin-top:80px;font-size:46px;font-weight:600;align-items:flex-start}
+.sin span{display:flex;align-items:center;gap:20px}.sin i{width:56px;height:56px;border-radius:50%;background:#2BB6A5;display:grid;place-items:center;font-style:normal;color:#06231f;font-size:34px;font-weight:800}
+.fin{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 70px}
+.fin .logo{width:170px;height:170px;border-radius:42px}
+.fin .nom{font-size:96px;font-weight:700;margin-top:26px}
+.fin .lema{font-size:46px;color:#AFC0D2;margin-top:8px}
+.btn{margin-top:90px;background:#CF4228;color:#fff;font-size:62px;font-weight:700;padding:38px 70px;border-radius:30px}
+.url{margin-top:36px;font-size:52px;font-weight:600;color:#2BB6A5}
+.letra{margin-top:60px;font-size:30px;color:#93A2B5}
+.barra{position:absolute;left:0;bottom:0;height:10px;background:#2BB6A5}
+</style>
+<div id="stage">
+ <div class="esc" id="e1"><div class="hook"><h1 class="a" id="h1a">¿Otra app que dejas a las <em>2 semanas</em>?</h1><div class="sub a" id="h1b">Esta vez, no.</div></div></div>
+ <div class="esc" id="e2"><div class="marca a" id="m2"><img src="LOGO">Rumbo</div><div class="tit"><h1 class="a" id="t2">Abre tu día<br>en <em>2 minutos</em></h1></div>
+   <div class="fono a" id="f2"><div class="vent"><img id="i2" src="IMG_inicio"></div></div></div>
+ <div class="esc" id="e3"><div class="tit"><h1 class="a" id="t3">Hábitos de<br><em>un toque</em></h1></div>
+   <div class="fono a" id="f3"><div class="vent"><img src="IMG_habitos"></div><div class="toque" id="tq" style="left:60px;top:530px"></div></div></div>
+ <div class="esc" id="e4"><div class="tit"><h1 class="a" id="t4">Tu diario se<br><em>llena solo</em></h1></div>
+   <div class="fono a" id="f4"><div class="vent"><img id="i4" src="IMG_diario"></div></div></div>
+ <div class="esc" id="e5"><div class="tit" style="top:520px"><h1 class="a" id="t5">Y un elefante que<br><em>crece contigo</em></h1></div>
+   <div class="etapas"><div class="a" id="el0">ELE0Cría</div><div class="a" id="el1">ELE1Joven</div><div class="a" id="el2">ELE3Sabio</div></div></div>
+ <div class="esc" id="e6"><div class="oferta">
+   <div class="tag a" id="o1">🚀 Precio de lanzamiento</div>
+   <div class="unico a" id="o2">Rumbo completo · pago único</div>
+   <div class="monto a" id="o3">$7.990</div>
+   <div class="hasta a" id="o4">hasta el <b>31 de octubre</b></div>
+   <div class="sin"><span class="a" id="o5"><i>✓</i>Sin suscripción</span><span class="a" id="o6"><i>✓</i>Es tuyo para siempre</span><span class="a" id="o7"><i>✓</i>Pruébalo gratis primero</span></div></div></div>
+ <div class="esc" id="e7"><div class="fin"><img class="logo a" id="f1" src="LOGO"><div class="nom a" id="fn">Rumbo</div><div class="lema a" id="fl">Un bocado a la vez.</div>
+   <div class="btn a" id="fb">Empieza gratis</div><div class="url a" id="fu">rumbo.biplot.cl</div><div class="letra a" id="fx">Después del 31 de octubre: $12.990 · Precios en CLP</div></div></div>
+ 
+</div>
+<script>
+const ESC = [["e1",0,3.2],["e2",3.2,7.2],["e3",7.2,10.8],["e4",10.8,14.4],["e5",14.4,18.2],["e6",18.2,24.6],["e7",24.6,29]];
+const TOTAL = 29;
+const cl = (x,a=0,b=1)=>Math.max(a,Math.min(b,x)), ease = x=>1-Math.pow(1-cl(x),3), easeIO = x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2};
+const $ = id => document.getElementById(id);
+// entrada: [id, escena, retraso, tipo]
+const ENT = [["h1a","e1",.15,"up"],["h1b","e1",1.3,"up"],
+ ["m2","e2",.1,"up"],["t2","e2",.25,"up"],["f2","e2",.5,"fono"],
+ ["t3","e3",.1,"up"],["f3","e3",.3,"fono"],["t4","e4",.1,"up"],["f4","e4",.3,"fono"],
+ ["t5","e5",.1,"up"],["el0","e5",.6,"pop"],["el1","e5",1.2,"pop"],["el2","e5",1.8,"pop"],
+ ["o1","e6",.1,"pop"],["o2","e6",.5,"up"],["o3","e6",.8,"pop"],["o4","e6",1.6,"up"],["o5","e6",2.3,"izq"],["o6","e6",2.7,"izq"],["o7","e6",3.1,"izq"],
+ ["f1","e7",.1,"pop"],["fn","e7",.35,"up"],["fl","e7",.6,"up"],["fb","e7",1.0,"pop"],["fu","e7",1.4,"up"],["fx","e7",1.8,"up"]];
+const ini = Object.fromEntries(ESC.map(e=>[e[0],e[1]]));
+function renderAt(t){
+  ESC.forEach(([id,a,b])=>{ const fi = a===0?1:ease((t-a)/.35), fo = b>=TOTAL?1:1-ease((t-(b-.3))/.3); $(id).style.opacity = (t>=a-.01&&t<b+.01)?Math.min(fi,fo):0; });
+  ENT.forEach(([id,e,d,tipo])=>{ const p = ease((t-ini[e]-d)/(tipo==="fono"?.8:.55)), el=$(id); el.style.opacity=cl(p*1.4);
+    if(tipo==="up") el.style.transform=`translateY(${(1-p)*60}px)`;
+    if(tipo==="izq") el.style.transform=`translateX(${(1-p)*-80}px)`;
+    if(tipo==="pop"){ const s = p<1? .6+.4*p + Math.sin(p*Math.PI)*.12 : 1; el.style.transform=`scale(${s})`; }
+    if(tipo==="fono") el.style.transform=`translateY(${(1-p)*500}px)`; });
+  // desplazamiento suave dentro de las pantallas
+  $("i2").style.transform=`translateY(${-easeIO((t-5)/2)*120}px)`;
+  $("i4").style.transform=`translateY(${-easeIO((t-12.4)/1.6)*125}px)`;
+  // toque en un hábito
+  const q=(t-9)/.6, tq=$("tq"); tq.style.opacity = q>0&&q<1?1-q:0; tq.style.transform=`scale(${.5+q})`;
+  // el precio sube como contador
+  const c = ease((t-ini.e6-.8)/1.1); $("o3").textContent = "$" + Math.round(7990*c).toLocaleString("es-CL");
+  // el botón late
+  const b=(t-ini.e7-1.6); if(b>0) $("fb").style.transform=`scale(${1+Math.max(0,Math.sin(b*4))*.04})`;
+
+}
+window.__lanz = { total: TOTAL, renderAt };
+renderAt(0);
+</script>

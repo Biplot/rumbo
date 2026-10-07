@@ -1,0 +1,3 @@
+# Lo que no se publica en Vercel. Igual que GitHub Pages (Jekyll), que no publica las carpetas que parten con «.» o «_».
+.claude
+.github

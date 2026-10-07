@@ -248,6 +248,41 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
 .rv{opacity:0;transform:translateY(24px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
 .rv.in{opacity:1;transform:none}
 
+/* El elefante sale a pasear: cruza la pantalla por abajo de vez en cuando, se detiene, saluda y dice algo
+   según lo que estés leyendo. En el celular camina sobre el botón fijo. Con «reducir movimiento» no sale. */
+.paseo{position:fixed;left:0;bottom:-5px;z-index:31;width:100px;height:92px;transform:translateX(var(--x,-120px));cursor:pointer;-webkit-tap-highlight-color:transparent;transition:bottom .45s cubic-bezier(.3,1.6,.5,1)}
+.paseo.caminando{transition:transform var(--dur,6s) linear,bottom .45s cubic-bezier(.3,1.6,.5,1)}
+.paseo.sobre{bottom:61px}
+.paseo-cuerpo{width:100%;height:100%}
+.paseo.izq .paseo-cuerpo{transform:scaleX(-1)}
+.paseo svg{display:block;width:100%;height:100%;overflow:visible}
+.paseo-dice{position:absolute;left:50%;bottom:calc(100% + 4px);width:max-content;max-width:min(240px,78vw);padding:9px 13px;border-radius:14px;background:#F6F0E2;color:#1F2A3D;font-weight:700;font-size:14px;line-height:1.3;text-align:center;box-shadow:0 14px 30px -12px rgba(0,0,0,.6);opacity:0;transform:translate(-50%,8px) scale(.9);transform-origin:50% 100%;transition:opacity .3s,transform .4s var(--ease);pointer-events:none}
+.paseo-dice::after{content:"";position:absolute;left:50%;top:100%;margin-left:-7px;border:7px solid transparent;border-top-color:#F6F0E2}
+.paseo-dice.ver{opacity:1;transform:translate(-50%,0)}
+.paseo-huella{position:fixed;z-index:30;bottom:3px;width:9px;height:6px;border-radius:50%;background:rgba(234,240,246,.32);pointer-events:none;animation:huella 2.2s ease-out forwards}
+@keyframes huella{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
+.ele-svg .ele-ear,.ele-svg .ele-ojo,.ele-svg .ele-cab,.ele-svg .ele-salto,.ele-svg .ele-cola,.ele-svg .ele-breathe,.ele-svg .pata{transform-box:fill-box}
+.ele-svg .ele-breathe,.ele-svg .ele-salto{transform-origin:50% 100%}
+.ele-svg .ele-ear{transform-origin:85% 45%}.ele-svg .ele-ojo{transform-origin:50% 50%}
+.ele-svg .ele-cab{transform-origin:20% 80%}.ele-svg .ele-cola{transform-origin:100% 0%}.ele-svg .pata{transform-origin:50% 8%}
+.ele-svg .ele-breathe{animation:eleResp 4s ease-in-out infinite}
+.ele-svg .ele-ear{animation:eleOreja 5s ease-in-out infinite}
+.ele-svg .ele-ojo{animation:eleParpadeo 5.5s ease-in-out infinite}
+.ele-svg .ele-cola{animation:eleCola 3.2s ease-in-out infinite}
+.paseo.caminando .ele-salto{animation:eleCamina .5s ease-in-out infinite}
+.paseo.caminando .pata-a{animation:elePata .5s ease-in-out infinite}
+.paseo.caminando .pata-b{animation:elePata .5s ease-in-out -.25s infinite}
+.ele-svg.re-salta .ele-salto{animation:eleSalta .9s cubic-bezier(.3,.7,.4,1)}
+.ele-svg.re-saluda .ele-cab{animation:eleSaluda 1s ease-in-out}
+@keyframes eleCamina{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-4%) rotate(-2deg)}75%{transform:translateY(-4%) rotate(2deg)}}
+@keyframes elePata{0%,100%{transform:rotate(14deg)}50%{transform:rotate(-14deg)}}
+@keyframes eleResp{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.015)}}
+@keyframes eleOreja{0%,86%,100%{transform:rotate(0)}90%{transform:rotate(-7deg)}94%{transform:rotate(3deg)}}
+@keyframes eleParpadeo{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.1)}}
+@keyframes eleCola{0%,100%{transform:rotate(0)}50%{transform:rotate(10deg)}}
+@keyframes eleSalta{0%,100%{transform:translateY(0) scale(1,1)}15%{transform:translateY(0) scale(1.06,.92)}45%{transform:translateY(-22%) scale(.97,1.04)}75%{transform:translateY(0) scale(1.05,.94)}}
+@keyframes eleSaluda{0%,100%{transform:rotate(0)}25%{transform:rotate(-9deg)}50%{transform:rotate(4deg)}75%{transform:rotate(-6deg)}}
+
 @media (max-width:980px){
  .top nav a.o-2{display:none}
  .bento{grid-template-columns:1fr 1fr}
@@ -272,6 +307,7 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
  .ele .wrap{text-align:center}.ele .chips{justify-content:center}.ele .sub{margin-left:auto;margin-right:auto}
  .planes{grid-template-columns:1fr}.plan--top{order:-1}
  .fijo{display:block}
+ .paseo{width:66px;height:61px}
  footer{padding-bottom:90px}
  footer .wrap{flex-direction:column}footer a{margin:0 18px 0 0}
 }
@@ -560,6 +596,15 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
 
 <footer><div class="wrap"><span>© 2026 Rumbo · Hecho por <a href="https://biplot.cl" style="margin:0">BiPlot</a></span><span><a href="../privacidad.html">Privacidad</a><a href="../terminos.html">Términos</a><a href="mailto:cmaulen@biplot.cl">Contacto</a></span></div></footer>
 
+<div class="paseo" id="paseo" aria-hidden="true" hidden>
+  <div class="paseo-cuerpo ele-svg"><svg viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="128" cy="224" rx="80" ry="8" fill="#000" opacity="0.22"/>
+    <g class="ele-salto"><g class="ele-breathe">
+      <g class="ele-cola"><path d="M54 142 C40 148 34 162 38 172" stroke="#9FB2C8" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="38" cy="174" r="4.5" fill="#7C91AB"/></g><rect class="pata pata-b" x="80" y="166" width="26" height="50" rx="12" fill="#7C91AB"/><rect class="pata pata-a" x="138" y="166" width="26" height="50" rx="12" fill="#7C91AB"/><path d="M50 150 C50 104 92 92 126 95 C166 98 186 120 183 156 C181 186 150 196 115 196 C74 196 50 186 50 150 Z" fill="#9FB2C8"/><path d="M70 118 C92 102 130 100 152 108" stroke="#C3D1E0" stroke-width="7" fill="none" stroke-linecap="round" opacity=".7"/><path d="M62 184 C88 194 140 196 172 180" stroke="#7C91AB" stroke-width="8" fill="none" stroke-linecap="round" opacity=".45"/><rect class="pata pata-a" x="56" y="168" width="30" height="52" rx="14" fill="#9FB2C8"/><rect class="pata pata-b" x="148" y="168" width="30" height="52" rx="14" fill="#9FB2C8"/>
+      <g class="ele-cab"><g class="ele-ear"><path d="M152 58 C116 56 104 96 114 126 C121 150 152 152 164 132 Z" fill="#7C91AB"/><path d="M148 70 C126 72 120 100 126 120 C131 136 148 138 156 126 Z" fill="#E8B4BF" opacity=".85"/></g><circle cx="185" cy="95" r="44" fill="#9FB2C8"/><path d="M156 70 C166 58 182 54 196 56" stroke="#C3D1E0" stroke-width="6" fill="none" stroke-linecap="round" opacity=".8"/><path d="M212 112 C229 132 233 160 223 179 C217 191 228 200 238 190" stroke="#9FB2C8" stroke-width="20" fill="none" stroke-linecap="round"/><path d="M219 140 l11 -3 M222 154 l11 -1 M221 167 l10 2" stroke="#7C91AB" stroke-width="2.2" stroke-linecap="round" opacity=".7"/><path d="M204 124 C209 133 218 136 224 133 C217 129 210 124 207 118 Z" fill="#FFF8EC"/><ellipse cx="211" cy="105" rx="7.5" ry="4.5" fill="#FF8FA3" opacity="0.75"/><g class="ele-ojo"><path d="M191 90 Q199 81 207 90" stroke="#1B2436" stroke-width="3.6" fill="none" stroke-linecap="round"/></g></g>
+    </g></g></svg></div>
+  <span class="paseo-dice"></span>
+</div>
 <div class="fijo" id="fijo" aria-hidden="true"><a class="btn btn--p" href="../?crear=1" data-cta tabindex="-1">Empieza gratis</a></div>
 
 <script>
@@ -618,6 +663,84 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
   function upd() { var ver = !heroVis && !finVis; fijo.classList.toggle("ver", ver); fijo.setAttribute("aria-hidden", !ver); fijo.querySelector("a").tabIndex = ver ? 0 : -1; }
   new IntersectionObserver(function (es) { heroVis = es[0].isIntersecting; upd(); }).observe(hero);
   new IntersectionObserver(function (es) { finVis = es[0].isIntersecting; upd(); }).observe(fin);
+})();
+/* El elefante sale a pasear de vez en cuando (después de la portada, cada 40 a 70 segundos, hasta 6 veces):
+   entra por un lado, se detiene, saluda y dice algo sobre lo que estás leyendo, y sale por el otro.
+   Si lo tocas, salta. No sale con «reducir movimiento», con la pestaña oculta ni con el video andando. */
+(function () {
+  var p = document.getElementById("paseo"); if (!p || !("IntersectionObserver" in window)) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  var svg = p.querySelector(".ele-svg"), dice = p.querySelector(".paseo-dice"), fijo = document.getElementById("fijo");
+  var FRASES = [
+    ["#como", ["Yo te aviso en la mañana… y en la noche.", "Dos minutos en la mañana. Yo te espero."]],
+    ["#bujo", ["• > @ ✕ … yo también anoto así.", "A la tercera postergación, te pregunto. 👀"]],
+    ["#sola", ["Tú decides. Yo me acuerdo del resto.", "Lo pendiente lo paso a mañana. Tranqui."]],
+    ["#historia", ["¿Viste mi película? 🎬", "Así subimos el cerro: un bocado a la vez."]],
+    [".problema", ["Menos apps, más paseos."]],
+    [".todo", ["Todo en un solo lugar. Yo lo cuido."]],
+    [".ele", ["Así voy a crecer contigo.", "Algún día voy a ser sabio. 🎓"]],
+    ["#instalar", ["Llévame en tu pantalla de inicio."]],
+    ["#precio", ["Pagas una vez y me quedo contigo."]],
+    [".faq", ["¿Dudas? Aquí están las respuestas."]],
+    [".final", ["¿Empezamos hoy?"]]
+  ];
+  var GENERICAS = ["Un bocado a la vez.", "Psst… ¿ya elegiste tu primer bocado?"];
+  var azar = function (a) { return a[Math.floor(Math.random() * a.length)]; };
+  function frase() {
+    var mitad = innerHeight / 2;
+    for (var i = 0; i < FRASES.length; i++) {
+      var el = document.querySelector(FRASES[i][0]); if (!el) continue;
+      var r = el.getBoundingClientRect(); if (r.top <= mitad && r.bottom >= mitad) return azar(FRASES[i][1]);
+    }
+    return azar(GENERICAS);
+  }
+  var decirT = null;
+  function decir(txt, ms) { dice.textContent = txt; dice.classList.add("ver"); clearTimeout(decirT); decirT = setTimeout(function () { dice.classList.remove("ver"); }, ms); }
+  function reaccion(cls) { svg.classList.remove(cls); void svg.offsetWidth; svg.classList.add(cls); }
+  // En el celular, si está el botón fijo, camina sobre él
+  function piso() { p.classList.toggle("sobre", !!fijo && fijo.classList.contains("ver") && getComputedStyle(fijo).display !== "none"); }
+  if (fijo) new MutationObserver(piso).observe(fijo, { attributes: true, attributeFilter: ["class"] });
+  var huellasT = null, paso = 0;
+  function caminar(x, seg, listo) {
+    p.style.setProperty("--dur", seg + "s"); void p.offsetWidth;
+    p.classList.add("caminando"); p.style.setProperty("--x", x + "px");
+    clearInterval(huellasT);
+    huellasT = setInterval(function () {
+      if (p.classList.contains("sobre")) return;
+      var r = p.getBoundingClientRect(), h = document.createElement("i");
+      h.className = "paseo-huella"; h.style.left = (r.left + r.width * (paso % 2 ? .3 : .55)) + "px"; h.style.bottom = (paso++ % 2 ? 2 : 6) + "px";
+      document.body.appendChild(h); setTimeout(function () { h.remove(); }, 2300);
+    }, 260);
+    setTimeout(function () { clearInterval(huellasT); p.classList.remove("caminando"); listo(); }, seg * 1000);
+  }
+  var VEL = 90, veces = 0, MAX = 6, activo = false, prox = null;
+  function programar(ms) { clearTimeout(prox); if (veces < MAX) prox = setTimeout(pasear, ms); }
+  function videoAndando() { var v = document.querySelector("#cine video"); return v && !v.paused; }
+  function pasear() {
+    if (activo) return;
+    if (document.hidden || heroVis || videoAndando()) return programar(12000);
+    activo = true; veces++;
+    var W = innerWidth, w = p.offsetWidth, deIzq = Math.random() < .5;
+    var x0 = deIzq ? -w - 20 : W + 20, x2 = deIzq ? W + 20 : -w - 20;
+    var m = Math.min(W / 2, 140), x1 = Math.round(m + Math.random() * Math.max(0, W - 2 * m) - w / 2);
+    p.classList.toggle("izq", !deIzq); p.classList.remove("caminando");
+    p.style.setProperty("--x", x0 + "px"); piso(); p.hidden = false;
+    setTimeout(function () {
+      caminar(x1, Math.abs(x1 - x0) / VEL, function () {
+        reaccion("re-saluda"); decir(frase(), 3400);
+        setTimeout(function () {
+          caminar(x2, Math.abs(x2 - x1) / VEL, function () { p.hidden = true; activo = false; programar(40000 + Math.random() * 30000); });
+        }, 4000);
+      });
+    }, 60);
+  }
+  p.addEventListener("click", function () { reaccion("re-salta"); if (!p.classList.contains("caminando")) decir(frase(), 2600); });
+  // La primera vez sale poco después de dejar la portada
+  var heroVis = true, primera = true;
+  new IntersectionObserver(function (es) {
+    heroVis = es[0].isIntersecting;
+    if (!heroVis && primera) { primera = false; programar(2500); }
+  }).observe(document.querySelector(".hero"));
 })();
 </script>
 </body>

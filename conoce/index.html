@@ -720,11 +720,12 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
     if (activo) return;
     if (document.hidden || heroVis || videoAndando()) return programar(12000);
     activo = true; veces++;
+    p.classList.remove("caminando"); p.hidden = false;   // antes de medirlo: oculto mide 0 (se pone fuera de la pantalla en esta misma vuelta, sin pintarse)
     var W = innerWidth, w = p.offsetWidth, deIzq = Math.random() < .5;
     var x0 = deIzq ? -w - 20 : W + 20, x2 = deIzq ? W + 20 : -w - 20;
     var m = Math.min(W / 2, 140), x1 = Math.round(m + Math.random() * Math.max(0, W - 2 * m) - w / 2);
-    p.classList.toggle("izq", !deIzq); p.classList.remove("caminando");
-    p.style.setProperty("--x", x0 + "px"); piso(); p.hidden = false;
+    p.classList.toggle("izq", !deIzq);
+    p.style.setProperty("--x", x0 + "px"); piso();
     setTimeout(function () {
       caminar(x1, Math.abs(x1 - x0) / VEL, function () {
         reaccion("re-saluda"); decir(frase(), 3400);

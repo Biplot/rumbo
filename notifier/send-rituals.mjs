@@ -1,7 +1,9 @@
 /* ============================================================
    Rumbo · Envío de recordatorios de ritual (mañana / noche, semana, mes y trimestre)
-   Corre en GitHub Actions cada ~15 min y manda Web Push a quien
-   le toque su hora local. Idempotente vía la tabla notif_sent.
+   Corre en GitHub Actions y manda Web Push a quien le toque su hora local.
+   Lo dispara Supabase Cron cada 5 min (supabase/cron-recordatorios.sql); el
+   horario propio de GitHub queda de respaldo, porque GitHub lo corre cada varias horas.
+   Idempotente vía la tabla notif_sent.
 
    Secrets (env) que necesita:
      SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
@@ -9,7 +11,7 @@
    ============================================================ */
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
-import { ultimoDiaMes, lunesDe, avisoSemana, avisoTrimestre, avisoMediodia } from "./reglas.mjs";
+import { ultimoDiaMes, lunesDe, avisoSemana, avisoTrimestre, avisoMediodia, enVentana, horasEnVentana } from "./reglas.mjs";
 
 const trim = v => (v == null ? "" : String(v).trim());
 const SUPABASE_URL = trim(process.env.SUPABASE_URL);
@@ -62,10 +64,21 @@ function localMinutes(tz) {
 function localDate(tz) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
-function toMin(hhmm) { const [h, m] = String(hhmm || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); }
 
-const { data: usuarios, error } = await sb.from("estado_usuario").select("user_id, data");
+/* 1) De cada cuenta, solo sus avisos: así correr cada 5 minutos no lee el estado completo de todos */
+const { data: filas, error } = await sb.from("estado_usuario").select("user_id, notif:data->settings->notif");
 if (error) { console.error("No se pudo leer estado_usuario:", error.message); process.exit(1); }
+const candidatos = (filas || []).filter(({ notif: n }) =>
+  n && n.enabled && (n.subs || []).length && horasEnVentana(n, localMinutes(n.tz || "America/Santiago"), WINDOW_MIN).length
+).map(f => f.user_id);
+
+/* 2) El estado completo solo de quien tiene alguna hora en la ventana ahora */
+let usuarios = [];
+if (candidatos.length) {
+  const r = await sb.from("estado_usuario").select("user_id, data").in("user_id", candidatos);
+  if (r.error) { console.error("No se pudo leer estado_usuario:", r.error.message); process.exit(1); }
+  usuarios = r.data || [];
+}
 
 let enviados = 0, fallidos = 0, saltados = 0;
 
@@ -102,8 +115,7 @@ for (const row of usuarios || []) {
       if (!tri) continue;                         // hoy no toca o ya está hecho
       hora = tri.hora;
     }
-    const diff = nowMin - toMin(notif[hora]);
-    if (diff < 0 || diff >= WINDOW_MIN) continue; // fuera de la ventana
+    if (!enVentana(nowMin, notif[hora], WINDOW_MIN)) continue; // fuera de la ventana
 
     // Dedup: registrar el envío; si ya existe (PK duplicada) o falla, no reenviar
     const { error: insErr } = await sb.from("notif_sent").insert({ user_id: row.user_id, tipo, fecha: hoy });
@@ -124,4 +136,4 @@ for (const row of usuarios || []) {
   }
 }
 
-console.log(`Listo. usuarios=${(usuarios || []).length} enviados=${enviados} saltados=${saltados} fallidos=${fallidos}`);
+console.log(`Listo. usuarios=${(filas || []).length} en_hora=${usuarios.length} enviados=${enviados} saltados=${saltados} fallidos=${fallidos}`);

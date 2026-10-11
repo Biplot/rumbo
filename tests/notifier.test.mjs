@@ -1,7 +1,23 @@
 /* Tests de las reglas del notificador (notifier/reglas.mjs): semana y trimestre */
 export default async function ({ test, assert }) {
   console.log("\nAvisos del servidor");
-  const { avisoSemana, avisoTrimestre } = await import("../notifier/reglas.mjs");
+  const { avisoSemana, avisoTrimestre, enVentana, horasEnVentana } = await import("../notifier/reglas.mjs");
+
+  test("ventana: desde la hora en punto hasta 30 minutos después", () => {
+    assert.equal(enVentana(8 * 60, "08:00", 30), true);
+    assert.equal(enVentana(8 * 60 + 29, "08:00", 30), true);
+    assert.equal(enVentana(8 * 60 + 30, "08:00", 30), false);
+    assert.equal(enVentana(7 * 60 + 59, "08:00", 30), false);
+  });
+
+  test("ventana: solo las horas que tocan ahora; mediodía solo si la eligió", () => {
+    const n = { manana: "08:00", noche: "21:00", mediodia: "13:00" };
+    assert.deepEqual(horasEnVentana(n, 8 * 60 + 5, 30), ["manana"]);
+    assert.deepEqual(horasEnVentana(n, 13 * 60 + 10, 30), ["mediodia"]);
+    assert.deepEqual(horasEnVentana(n, 21 * 60 + 20, 30), ["noche"]);
+    assert.deepEqual(horasEnVentana(n, 16 * 60, 30), []);
+    assert.deepEqual(horasEnVentana({ ...n, mediodia: null }, 13 * 60 + 10, 30), []);
+  });
 
   test("trimestre: cierre el penúltimo día en la noche, solo si falta cerrarlo", () => {
     assert.equal(avisoTrimestre("tri-cierre", "2026-12-30", {}).clave, "2026-Q4");

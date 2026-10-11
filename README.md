@@ -7,7 +7,7 @@ Hecha con la identidad de marca **BiPlot** (azul profundo · cian · coral).
 ## Producción
 - **Repositorio:** organización **Biplot** (`Biplot/rumbo`).
 - **App:** desplegada con GitHub Pages en `https://biplot.github.io/rumbo/` (dominio propio en configuración).
-- **Notificaciones:** recordatorios de ritual (mañana/noche, semana y mes) vía GitHub Actions + Web Push (`notifier/`).
+- **Notificaciones:** recordatorios de ritual (mañana/noche, semana y mes) vía GitHub Actions + Web Push (`notifier/`). Supabase Cron dispara el flujo cada 5 minutos (`supabase/cron-recordatorios.sql`); el horario propio de GitHub queda de respaldo porque en la práctica corre cada varias horas.
 
 ## Tecnología
 - **Frontend:** HTML, CSS y JavaScript sin frameworks (estático).

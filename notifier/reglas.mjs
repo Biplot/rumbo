@@ -3,6 +3,15 @@
    Todas reciben la fecha local "YYYY-MM-DD" de la persona y lo que ya hizo.
    ============================================================ */
 
+/* ¿La hora "HH:MM" cae en la ventana de envío? (de la hora en punto hasta `ventana` minutos después) */
+export function toMin(hhmm) { const [h, m] = String(hhmm || "").split(":").map(Number); return (h || 0) * 60 + (m || 0); }
+export function enVentana(nowMin, hhmm, ventana) { const diff = nowMin - toMin(hhmm); return diff >= 0 && diff < ventana; }
+/* Las horas de la persona (mañana, mediodía si la eligió, noche) que caen en la ventana ahora.
+   Si no hay ninguna, en esta pasada no hay nada que mandarle y no hace falta leer su estado completo. */
+export function horasEnVentana(notif, nowMin, ventana) {
+  return ["manana", "mediodia", "noche"].filter(h => (h !== "mediodia" || notif.mediodia) && enVentana(nowMin, notif[h], ventana));
+}
+
 export function ultimoDiaMes(iso) { const [y, m] = iso.split("-").map(Number); return new Date(Date.UTC(y, m, 0)).getUTCDate(); }
 export function sumarDias(iso, n) { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
 export function lunesDe(iso) { const dow = new Date(iso + "T12:00:00Z").getUTCDay(); return sumarDias(iso, -((dow + 6) % 7)); }

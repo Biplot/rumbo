@@ -1,0 +1,28 @@
+{
+  "$schema": "../biplot-nucleo/09-integracion/ficha-publica.schema.json",
+  "contrato": "ficha-publica/1",
+  "id": "rumbo",
+  "tipo": "propio",
+  "nombre": "Rumbo",
+  "rubro": "App de desarrollo personal",
+  "calle": "otro",
+  "solucion": "Producto propio",
+  "acento": "#3E9C95",
+  "esencia": "Un rincón tranquilo donde cada día es un paso.",
+  "resumen": "Tu vida en un solo lugar. Una app de BiPlot para ordenar lo personal: ritual de mañana y de noche, hábitos, finanzas, metas, lecturas, salud y diario, con rangos e insignias para no soltarlo.",
+  "puntos": [
+    { "titulo": "Ritual diario", "detalle": "apertura y cierre del día, con recordatorio" },
+    { "titulo": "Todo junto", "detalle": "hábitos, finanzas y metas en una pantalla" },
+    { "titulo": "Recompensas", "detalle": "rangos e insignias para seguir" }
+  ],
+  "modulos": [
+    { "modulo": "Ritual diario", "titulo": "Apertura y cierre del día.", "detalle": "Con recordatorio, para no soltarlo." },
+    { "modulo": "Todo junto", "titulo": "Hábitos, finanzas y metas.", "detalle": "En una sola pantalla." },
+    { "modulo": "Recompensas", "titulo": "Rangos e insignias.", "detalle": "Para seguir un día más." }
+  ],
+  "enlaces": [
+    { "texto": "Abrir Rumbo", "url": "https://rumbo.biplot.cl", "tipo": "producto" }
+  ],
+  "equipo": ["architect", "engine", "grilla", "bucle", "tamandua", "faro", "pepa"],
+  "nota": "Racha y hábitos de ejemplo."
+}

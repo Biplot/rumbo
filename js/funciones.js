@@ -21,10 +21,9 @@ const FUNCIONES = [
   { id: "informe-anio", icon: "🗂️", nombre: "Informe del año", costo: 400,
     desc: "Tu año completo en una imagen para guardar o compartir: días cerrados, hábitos, metas, libros y tu mejor mes.",
     donde: "Tendencias → Tu evolución (en diciembre, y cuando quieras para años anteriores)" },
-  { id: "mediodia", icon: "🔔", nombre: "Recordatorio de mediodía", costo: 300,
-    desc: "Un tercer aviso a la hora que elijas: “¿Cómo va tu primer bocado?”.",
-    donde: "Notificaciones" },
 ];
+/* El "Recordatorio de mediodía" se vendía aquí (300 ⭐) hasta la v73: ahora es gratis en
+   🔔 Notificaciones, con el resto de los avisos opcionales (ver retirarFunciones en state.js). */
 /* Plantillas de rutina: hábitos + tareas recurrentes ya armados (200 ⭐ cada una) */
 const PLANTILLAS = [
   { id: "manana", icon: "🌅", nombre: "Mañana productiva", costo: 200,

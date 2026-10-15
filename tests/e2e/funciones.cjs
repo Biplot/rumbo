@@ -15,7 +15,7 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 1) Tienda: sección Funciones; comprar Modo enfoque
   await p.goto(URL + "#tienda"); await p.waitForTimeout(400);
-  ok(await p.locator("[data-fun]").count() === 5, "la Tienda muestra las 5 funciones");
+  ok(await p.locator("[data-fun]").count() === 4, "la Tienda muestra las 4 funciones (el aviso de mediodía ya no se vende)");
   await p.click('.ficha[data-fun="fun:enfoque"]'); await p.waitForTimeout(200);
   await p.click('#modal [data-action="fun-buy"]'); await p.waitForTimeout(300); await p.evaluate(() => closeModal());
   ok(await p.evaluate(() => funcion("enfoque")), "Modo enfoque desbloqueado");
@@ -64,10 +64,11 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.locator('#h-iconos [data-ic="🚴"]').count() === 1, "el pack de íconos aparece al crear un hábito");
   await p.evaluate(() => closeModal());
 
-  // 7) Mediodía en Notificaciones
+  // 7) Mediodía en Notificaciones: gratis desde la v73, con un interruptor
   await p.goto(URL + "#notif"); await p.waitForTimeout(300);
-  ok(await p.locator("#notif-mediodia").count() === 0, "sin la función no aparece la hora de mediodía");
-  await p.evaluate(() => { ledgerComprar(STATE, "fun-mediodia", 300); saveState(); rerender(); });
+  ok(await p.locator("#notif-mediodia").count() === 0, "con el aviso de mediodía apagado no aparece su hora");
+  await p.click('[data-action="notif-aviso"][data-k="mediodia"]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => avisosActivos(STATE.settings.notif).mediodia && STATE.settings.notif.mediodia === "13:00"), "al encenderlo queda con la hora sugerida, sin pasar por la Tienda");
   await p.fill("#notif-mediodia", "13:15"); await p.click('[data-action="notif-times"]'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => STATE.settings.notif.mediodia) === "13:15", "guarda la hora del aviso de mediodía");
   await ctx.close();

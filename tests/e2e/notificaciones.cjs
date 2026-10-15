@@ -17,6 +17,19 @@ module.exports = async ({ b, ok, errs }) => {
   ok(pedidas === 1, "la clave pública se pide al servidor de la app (api/push/)");
   ok(await p.locator('[data-action="notif-test"]').count() === 0, "la prueba solo aparece con el dispositivo activado");
 
+  // 1b) Qué avisos recibir: niveles de un toque e interruptores, guardados en la cuenta
+  ok(await p.locator('[data-action="notif-nivel"][data-n="recomendado"].is-active').count() === 1, "por defecto, el nivel Recomendado (como siempre)");
+  await p.click('[data-action="notif-nivel"][data-n="esencial"]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => { const a = avisosActivos(STATE.settings.notif); return a.manana && a.noche && !a.semana && !a.mes && !a.trimestre; }), "Lo esencial deja solo abrir y cerrar el día");
+  await p.click('[data-action="notif-aviso"][data-k="habitos"]'); await p.waitForTimeout(200);
+  ok(await p.locator("#notif-habitos").inputValue() === "20:00" && (await p.locator(".card", { hasText: "Qué avisos" }).innerText()).includes("Elegiste tus propios avisos"),
+    "encender hábitos muestra su hora sugerida y el nivel pasa a personalizado");
+  await p.fill("#notif-habitos", "19:30"); await p.click('[data-action="notif-times"]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => STATE.settings.notif.habitosHora) === "19:30", "guarda la hora de los hábitos");
+  await p.click('[data-action="notif-nivel"][data-n="todo"]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => Object.values(avisosActivos(STATE.settings.notif)).every(Boolean) && !!STATE.settings.notif.mediodia), "Todo enciende cada aviso (mediodía con su hora sugerida)");
+  await shot(p, "notificaciones-avisos");
+
   // 2) Quien las tenía con el sistema anterior ve que debe volver a activarlas
   await p.evaluate(() => { STATE.settings.notif.enabled = true; delete STATE.settings.notif.version; saveState(); rerender(); });
   await p.waitForTimeout(200);
@@ -35,6 +48,7 @@ module.exports = async ({ b, ok, errs }) => {
   await q.goto(URL + "#notif"); await q.waitForTimeout(500);
   ok((await q.locator(".notif-banner").innerText()).includes("pantalla de inicio"), "iPhone sin instalar: explica Compartir → Agregar a inicio");
   ok(await q.locator('[data-action="notif-enable"]').isDisabled(), "iPhone sin instalar: Activar queda deshabilitado");
+  ok(await q.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "en el celular la lista de avisos no se sale de la pantalla");
   await shot(q, "notificaciones-iphone");
   await ios.close();
 };

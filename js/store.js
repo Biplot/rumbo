@@ -22,6 +22,17 @@ function _hash(s) {
   return "h" + (h >>> 0);
 }
 
+/* Llama a la función de notificaciones de la app (api/push.js, en Vercel) */
+async function _pushFetch(metodo, body, jwt) {
+  try {
+    const headers = { "Content-Type": "application/json" };
+    if (jwt) headers.Authorization = "Bearer " + jwt;
+    const r = await fetch("api/push/", { method: metodo, headers, cache: "no-store", body: metodo === "GET" ? undefined : JSON.stringify(body || {}) });
+    const d = await r.json().catch(() => ({}));
+    return r.ok ? d : { error: d.error || "http-" + r.status, status: r.status };
+  } catch (e) { return { error: "red" }; }
+}
+
 const LocalBackend = {
   /* Sin servidor: la función no existe (las pruebas la simulan en /functions/v1/…) */
   async llamarFuncion(nombre, body) {
@@ -31,6 +42,13 @@ const LocalBackend = {
       return r.ok ? d : { error: d.error || "http-" + r.status, status: r.status };
     } catch (e) { return { error: "red" }; }
   },
+  /* Notificaciones: sin servidor, los dispositivos se anotan en este navegador (las pruebas simulan api/push/) */
+  _pushSubs() { try { return JSON.parse(localStorage.getItem("rumbo_push_subs") || "[]"); } catch { return []; } },
+  _savePushSubs(s) { try { localStorage.setItem("rumbo_push_subs", JSON.stringify(s)); } catch {} },
+  async pushRegistrar(d) { this._savePushSubs(this._pushSubs().filter(x => x.endpoint !== d.endpoint).concat([d])); return { ok: true }; },
+  async pushQuitar(endpoint) { this._savePushSubs(this._pushSubs().filter(x => x.endpoint !== endpoint)); return { ok: true }; },
+  async pushExiste(endpoint) { return this._pushSubs().some(x => x.endpoint === endpoint); },
+  async pushApi(metodo, body) { return _pushFetch(metodo, body, null); },
   _users() { try { return JSON.parse(localStorage.getItem("rumbo_users") || "{}"); } catch { return {}; } },
   _saveUsers(u) { try { localStorage.setItem("rumbo_users", JSON.stringify(u)); } catch {} },
   _pub(u) { return { id: u.id, email: u.email, name: u.name }; },
@@ -380,6 +398,25 @@ const SupabaseBackend = {
       const d = await r.json().catch(() => ({}));
       return r.ok ? d : { error: d.error || "http-" + r.status, status: r.status };
     } catch (e) { return { error: "red" }; }
+  },
+  /* Notificaciones al celular (como Fundos 360): cada dispositivo es una fila de suscripciones_push
+     (supabase/notificaciones.sql); el envío lo hace api/push.js cuando la base se lo pide. */
+  async pushRegistrar(d) {
+    const { error } = await this._client().rpc("registrar_suscripcion_push", { p_endpoint: d.endpoint, p_p256dh: d.p256dh, p_auth: d.auth, p_dispositivo: d.dispositivo });
+    return error ? { error: error.message } : { ok: true };
+  },
+  async pushQuitar(endpoint) {
+    const { error } = await this._client().from("suscripciones_push").delete().eq("endpoint", endpoint);
+    return error ? { error: error.message } : { ok: true };
+  },
+  /* ¿Este dispositivo sigue registrado en esta cuenta? null = no se pudo saber (sin red o sin el SQL) */
+  async pushExiste(endpoint) {
+    const { data, error } = await this._client().from("suscripciones_push").select("id").eq("endpoint", endpoint).maybeSingle();
+    return error ? null : !!data;
+  },
+  async pushApi(metodo, body) {
+    const { data } = await this._client().auth.getSession();
+    return _pushFetch(metodo, body, data && data.session && data.session.access_token);
   },
   /* ¿Está activo "Iniciar sesión con Google" en Supabase? (Authentication → Providers → Google).
      Se consulta al mostrar la pantalla de acceso: así el botón aparece solo cuando funciona. */

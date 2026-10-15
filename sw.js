@@ -1,7 +1,7 @@
 /* Rumbo · Service Worker
    Cachea el "app shell" (mismo origen) con estrategia stale-while-revalidate.
    No toca peticiones a Supabase ni a otros dominios (siempre van a la red). */
-const CACHE = "rumbo-cache-v29";
+const CACHE = "rumbo-cache-v30";
 
 self.addEventListener("install", () => self.skipWaiting());
 /* Al activar una versión nueva se borran las cachés anteriores */
@@ -42,6 +42,7 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;                 // no cachear POST (escrituras a la nube)
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;  // solo mismo origen (no Supabase/CDNs)
+  if (url.pathname.startsWith("/api/")) return;     // funciones del servidor (api/push.js): siempre a la red
 
   e.respondWith(
     caches.open(CACHE).then((cache) =>

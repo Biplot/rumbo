@@ -114,6 +114,7 @@ async function enterApp(user) {
   onRoute();
   retomarEnfoque();       // ⏱️ sesión de enfoque en curso en este equipo
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
+  revisarDispositivoPush();              // 🔔 ¿este dispositivo sigue activado para esta cuenta?
   if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
   else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
   else if (debeElegirElefante()) setTimeout(openElegirElefante, 600);
@@ -428,6 +429,7 @@ async function doForgot() {
   authError(""); toast("Si existe la cuenta te llegará un correo (se activa con Supabase).");
 }
 async function doLogout() {
+  await soltarDispositivoPush();   // 🔔 este dispositivo deja de recibir los avisos de quien sale
   await BACKEND.logout();
   CURRENT_USER = null; STATE = null; location.hash = "";
   authError(""); showAuth();

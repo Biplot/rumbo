@@ -8,8 +8,8 @@ const path = require("path");
 const URL = "http://localhost:5178/";
 const SHOTS = process.env.E2E_SHOTS || "";   // carpeta para capturas (opcional)
 
-async function nuevoContexto(browser, { w = 1360, h = 900, fecha = "2026-09-23T10:00:00", dpr = 1 } = {}) {
-  const ctx = await browser.newContext({ serviceWorkers: "block", viewport: { width: w, height: h }, deviceScaleFactor: dpr });
+async function nuevoContexto(browser, { w = 1360, h = 900, fecha = "2026-09-23T10:00:00", dpr = 1, ua } = {}) {
+  const ctx = await browser.newContext({ serviceWorkers: "block", viewport: { width: w, height: h }, deviceScaleFactor: dpr, ...(ua ? { userAgent: ua } : {}) });
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ body: "", contentType: "text/css" }));
   await ctx.route("**/js/store.js*", async r => {
     const res = await r.fetch();

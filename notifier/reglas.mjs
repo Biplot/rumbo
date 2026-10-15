@@ -38,8 +38,14 @@ export function avisoSemana(tipo, hoy, diaSem, semanas) {
    · tri-apertura: el día 2 del trimestre en la mañana (el 1 ya lleva el de apertura de mes),
      si aún no se abre; si el anterior tampoco se cerró, el aviso invita a hacer las dos cosas
    Devuelve { hora, clave, pendienteAnterior } o null si hoy no toca. */
-/* ¿Compró una función de la Tienda? (movimiento "compra:fun-<id>" vigente en el ledger) */
-export function tieneFuncion(gamif, id) { return !!(gamif && Array.isArray(gamif.ledger) && gamif.ledger.some(m => m && m.id === "compra:fun-" + id && !m.anulado)); }
+/* ¿Tiene una función de la Tienda? La misma regla que la app (gamif.owned en recalcGamif):
+   comprada (movimiento "compra:fun-<id>" vigente en el ledger) o desbloqueada sin compra
+   (gamif.perks, como la cuenta dueña). */
+export function tieneFuncion(gamif, id) {
+  if (!gamif) return false;
+  if (Array.isArray(gamif.perks) && gamif.perks.includes("fun-" + id)) return true;
+  return Array.isArray(gamif.ledger) && gamif.ledger.some(m => m && m.id === "compra:fun-" + id && !m.anulado);
+}
 /* Aviso de mediodía: solo con la función, una hora elegida, y si el día está abierto y sin cerrar */
 export function avisoMediodia(data, hoy) {
   const notif = data && data.settings && data.settings.notif;

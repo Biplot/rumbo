@@ -58,4 +58,17 @@ export default async function ({ G, test, assert, clone }) {
     const cerrado = clone(data); cerrado.ritual.dias["2026-09-28"].cerrado = true;
     assert.equal(avisoMediodia(cerrado, "2026-09-28"), null);
   });
+
+  test("notificador: la función vale igual que en la app (comprada o desbloqueada sin compra, como la cuenta dueña)", () => {
+    const duena = { settings: { notif: { mediodia: "17:30" } }, gamif: { perks: ["fun-mediodia"], ledger: [] }, ritual: { dias: {} } };
+    assert.equal(tieneFuncion(duena.gamif, "mediodia"), true);
+    assert.ok(avisoMediodia(duena, "2026-10-15"));
+    assert.equal(tieneFuncion({ ledger: [{ id: "compra:fun-mediodia", anulado: true }] }, "mediodia"), false);
+    assert.equal(tieneFuncion({ perks: ["fun-enfoque"], ledger: [] }, "mediodia"), false);
+    // Misma respuesta que funcion() de la app sobre el mismo estado
+    for (const gamif of [duena.gamif, { ledger: [{ id: "compra:fun-mediodia" }] }, { ledger: [{ id: "compra:fun-mediodia", anulado: true }] }, { perks: [], ledger: [] }]) {
+      const s = clone({ gamif }); G("recalcGamif")(s);
+      assert.equal(tieneFuncion(gamif, "mediodia"), funcion("mediodia", s));
+    }
+  });
 }

@@ -178,6 +178,21 @@ a { color: var(--cian-ink); }
 .notif-horas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .notif-hora label { display: block; margin-bottom: 8px; }
 .notif-hora .input { width: 100%; text-align: center; font-size: 17px; font-weight: 600; padding: 13px; }
+/* Qué avisos recibir: un interruptor por aviso, con su hora al lado cuando la tiene */
+.aviso-grupo { margin-top: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+.aviso { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.aviso:last-of-type { border-bottom: 0; }
+.aviso__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.aviso__t { font-weight: 600; font-size: 14px; }
+.aviso .input.aviso__hora { order: 1; width: 140px; flex: 0 0 auto; padding: 8px 10px; text-align: center; font-weight: 600; }
+.sw { order: 2; position: relative; display: inline-block; width: 44px; height: 26px; flex-shrink: 0; }
+.sw input { position: absolute; inset: -9px; width: calc(100% + 18px); height: calc(100% + 18px); margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
+.sw span { position: absolute; inset: 0; border-radius: 999px; background: var(--surface-3); border: 1px solid var(--line-strong); transition: background .15s, border-color .15s; }
+.sw span::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .15s; }
+.sw input:checked + span { background: var(--cian); border-color: var(--cian); }
+.sw input:checked + span::after { transform: translateX(18px); }
+.sw input:focus-visible + span { outline: 2px solid var(--cian); outline-offset: 2px; }
+@media (max-width: 420px) { .aviso { flex-wrap: wrap; } .aviso__txt { flex-basis: calc(100% - 56px); } .aviso .input.aviso__hora { order: 3; margin-left: auto; } }
 
 /* Botón flotante de acción del día (solo móvil; se activa en el breakpoint) */
 .day-fab { display: none; }

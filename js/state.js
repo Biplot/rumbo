@@ -270,6 +270,7 @@ function migrate(s) {
   migrarElefante(s);       // v62: accesorios de emoji → ropa del elefante vectorial
   if (s.gamif && s.gamif.equipped && (!s.gamif.equipped.avatar || typeof s.gamif.equipped.avatar !== "object")) s.gamif.equipped.avatar = { id: null, propio: null, ts: 0 };   // v66: avatares
   retirarConsumibles(s);   // v61: protector, día libre, rescate y pase ya no se venden (se devuelve lo no usado)
+  retirarFunciones(s);     // v73: el aviso de mediodía es gratis (se devuelve lo pagado)
   if (!s.enfoque || typeof s.enfoque !== "object" || Array.isArray(s.enfoque)) s.enfoque = {};
   if (!Array.isArray(s.enfoque.sesiones)) s.enfoque.sesiones = [];   // modo enfoque
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
@@ -416,6 +417,51 @@ function retirarConsumibles(s, hoy) {
   });
   if (cambio) recalcGamif(s);
   return s;
+}
+
+/* Funciones que dejaron de venderse (v73): el aviso de mediodía pasó a ser gratis para todos,
+   como el resto de los avisos opcionales. La compra se anula (vuelven las ⭐) y el aviso sigue
+   igual. Idempotente: una segunda pasada no encuentra nada que anular. */
+const FUNCIONES_RETIRADAS = ["mediodia"];
+function retirarFunciones(s) {
+  const g = s && s.gamif;
+  if (!g || !Array.isArray(g.ledger)) return s;
+  let cambio = false;
+  g.ledger.forEach(m => {
+    if (!m || m.anulado || !FUNCIONES_RETIRADAS.some(id => m.id === "compra:fun-" + id)) return;
+    m.anulado = true; m.ts = (m.ts || 0) + 1; m.motivo = (m.motivo || "Compra") + " · devuelta (ahora es gratis)"; cambio = true;
+  });
+  if (cambio) recalcGamif(s);
+  return s;
+}
+
+/* ============================================================
+   Avisos al celular: qué recibe cada persona (🔔 Notificaciones)
+   settings.notif.avisos guarda solo lo que la persona eligió ({ semana: false, habitos: true, … });
+   lo que no eligió vale como en el nivel "Recomendado" (lo de siempre). El aviso de mediodía,
+   antes de la Tienda, sigue encendido para quien ya tenía su hora.
+   El servidor usa la misma regla (notifier/reglas.mjs): si cambias una, cambia la otra.
+   ============================================================ */
+const AVISOS_TIPOS = ["manana", "noche", "insistencia", "pendientes", "mediodia", "semana", "mes", "trimestre", "habitos", "cumpleanos", "contactos"];
+const AVISOS_NIVELES = {
+  esencial: ["manana", "noche"],
+  recomendado: ["manana", "noche", "semana", "mes", "trimestre"],
+  todo: AVISOS_TIPOS,
+};
+const AVISOS_HORAS = { manana: "08:00", noche: "21:00", mediodia: "13:00", habitos: "20:00" };
+function avisosActivos(n) {
+  n = n || {};
+  const elegidos = n.avisos && typeof n.avisos === "object" ? n.avisos : {};
+  const base = new Set(AVISOS_NIVELES.recomendado);
+  if (n.mediodia) base.add("mediodia");
+  const out = {};
+  AVISOS_TIPOS.forEach(k => { out[k] = typeof elegidos[k] === "boolean" ? elegidos[k] : base.has(k); });
+  return out;
+}
+/* El nivel que coincide exactamente con lo encendido, o "personalizado" */
+function nivelAvisos(n) {
+  const a = avisosActivos(n);
+  return Object.keys(AVISOS_NIVELES).find(nv => AVISOS_TIPOS.every(k => a[k] === AVISOS_NIVELES[nv].includes(k))) || "personalizado";
 }
 
 /* Fusión de usos de consumibles: por id, gana el ts más reciente */

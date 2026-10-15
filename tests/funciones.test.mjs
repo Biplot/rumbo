@@ -4,7 +4,7 @@ export default async function ({ G, test, assert, clone }) {
   const defaultState = G("defaultState"), migrate = G("migrate"), mergeStates = G("mergeStates");
   const ledgerRegistrar = G("ledgerRegistrar"), ledgerComprar = G("ledgerComprar"), funcion = G("funcion");
   const aplicarPlantilla = G("aplicarPlantilla"), pronosticoDia = G("pronosticoDia"), minutosFoco = G("minutosFoco"), nuevaTarea = G("nuevaTarea");
-  const { tieneFuncion, avisoMediodia } = await import("../notifier/reglas.mjs");
+  const { avisoMediodia } = await import("../notifier/reglas.mjs");
 
   test("función: se compra una vez y queda (también tras fusionar)", () => {
     const s = migrate(defaultState()); ledgerRegistrar(s, "saldo-test", 1000, 0, "t");
@@ -49,26 +49,26 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(mergeStates(clone(viejo), clone(a)).enfoque.sesiones.length, 1);
   });
 
-  test("notificador: aviso de mediodía solo con la función, hora elegida y el día sin cerrar", () => {
-    const data = { settings: { notif: { mediodia: "13:00" } }, gamif: { ledger: [{ id: "compra:fun-mediodia", delta: -300 }] }, ritual: { dias: { "2026-09-28": { hecho: true, sapo: "Propuesta" } } } };
-    assert.equal(tieneFuncion(data.gamif, "mediodia"), true);
-    assert.ok(avisoMediodia(data, "2026-09-28").body.includes("Propuesta"));
-    assert.equal(avisoMediodia({ ...data, gamif: { ledger: [] } }, "2026-09-28"), null);
-    assert.equal(avisoMediodia({ ...data, settings: { notif: { mediodia: null } } }, "2026-09-28"), null);
+  test("notificador: el aviso de mediodía es gratis: con su hora o encendido, y solo con el día sin cerrar", () => {
+    const data = { settings: { notif: { mediodia: "13:00" } }, gamif: { ledger: [] }, ritual: { dias: { "2026-09-28": { hecho: true, sapo: "Propuesta" } } } };
+    assert.ok(avisoMediodia(data, "2026-09-28").body.includes("Propuesta"));                         // sin compra
+    assert.equal(avisoMediodia({ ...data, settings: { notif: { mediodia: "13:00", avisos: { mediodia: false } } } }, "2026-09-28"), null);
+    assert.equal(avisoMediodia({ ...data, settings: { notif: {} } }, "2026-09-28"), null);          // ni hora ni encendido
+    assert.ok(avisoMediodia({ ...data, settings: { notif: { avisos: { mediodia: true } } } }, "2026-09-28"));   // encendido: hora sugerida
     const cerrado = clone(data); cerrado.ritual.dias["2026-09-28"].cerrado = true;
     assert.equal(avisoMediodia(cerrado, "2026-09-28"), null);
   });
 
-  test("notificador: la función vale igual que en la app (comprada o desbloqueada sin compra, como la cuenta dueña)", () => {
-    const duena = { settings: { notif: { mediodia: "17:30" } }, gamif: { perks: ["fun-mediodia"], ledger: [] }, ritual: { dias: {} } };
-    assert.equal(tieneFuncion(duena.gamif, "mediodia"), true);
-    assert.ok(avisoMediodia(duena, "2026-10-15"));
-    assert.equal(tieneFuncion({ ledger: [{ id: "compra:fun-mediodia", anulado: true }] }, "mediodia"), false);
-    assert.equal(tieneFuncion({ perks: ["fun-enfoque"], ledger: [] }, "mediodia"), false);
-    // Misma respuesta que funcion() de la app sobre el mismo estado
-    for (const gamif of [duena.gamif, { ledger: [{ id: "compra:fun-mediodia" }] }, { ledger: [{ id: "compra:fun-mediodia", anulado: true }] }, { perks: [], ledger: [] }]) {
-      const s = clone({ gamif }); G("recalcGamif")(s);
-      assert.equal(tieneFuncion(gamif, "mediodia"), funcion("mediodia", s));
-    }
+  test("Tienda: el aviso de mediodía ya no se vende y quien lo compró recupera sus ⭐ (una sola vez)", () => {
+    assert.equal(G("FUNCIONES").some(f => f.id === "mediodia"), false);
+    const s = migrate(defaultState()); ledgerRegistrar(s, "saldo-test", 1000, 0, "t");
+    assert.equal(ledgerComprar(s, "fun-mediodia", 300).ok, true);
+    assert.equal(s.gamif.puntos, 700);
+    migrate(s);
+    assert.equal(s.gamif.puntos, 1000);
+    assert.ok(s.gamif.ledger.find(m => m.id === "compra:fun-mediodia").motivo.includes("devuelta"));
+    migrate(s);
+    assert.equal(s.gamif.puntos, 1000);
+    const otro = clone(s); assert.equal(mergeStates(otro, s).gamif.puntos, 1000);   // la fusión no la vuelve a cobrar
   });
 }

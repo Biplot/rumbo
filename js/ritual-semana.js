@@ -650,7 +650,7 @@ function renderSemana() {
   <details class="hb-more mt-16"><summary>⚙️ Tu día de ritual semanal${hist ? " y semanas anteriores" : ""}</summary>
     <div class="card mt-16"><div class="seg" style="display:inline-flex">${segDia}</div>
       <p class="text-xs muted mt-16">Ese día cierras la semana y planificas la siguiente, todo seguido. Puedes cerrar desde el viernes en la tarde.
-        ${STATE.settings.notif && STATE.settings.notif.enabled ? `Te avisaremos el ${dia ? "lunes en la mañana" : "domingo en la noche"}${dia ? " y el martes" : " y el lunes en la mañana"} si aún no planificas.` : "Activa las notificaciones para que te lo recordemos."}</p></div>
+        ${STATE.settings.notif && STATE.settings.notif.enabled && avisosActivos(STATE.settings.notif).semana ? `Te avisaremos el ${dia ? "lunes en la mañana" : "domingo en la noche"}${dia ? " y el martes" : " y el lunes en la mañana"} si aún no planificas.` : "Activa las notificaciones para que te lo recordemos."}</p></div>
     ${hist ? `<div class="card mt-16">${hist}</div>` : ""}
   </details>`;
 }

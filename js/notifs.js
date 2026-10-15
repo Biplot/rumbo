@@ -126,27 +126,88 @@ function renderNotificaciones() {
       : `<button class="btn btn--primary btn-block mt-16" data-action="notif-enable" ${soporte !== "si" || perm === "denied" ? "disabled" : ""}>Activar notificaciones</button>`}
   </div>
 
-  <div class="card mt-16">
-    <div class="card__title" style="font-size:15px">Horarios</div>
-    <div class="notif-horas mt-16">
-      <div class="notif-hora"><label class="text-xs muted">🌅 Mañana · iniciar</label>
-        <input class="input" type="time" id="notif-manana" value="${n.manana || "08:00"}"></div>
-      <div class="notif-hora"><label class="text-xs muted">🌙 Noche · cerrar</label>
-        <input class="input" type="time" id="notif-noche" value="${n.noche || "21:00"}"></div>
-      ${funcion("mediodia") ? `<div class="notif-hora"><label class="text-xs muted">☀️ Mediodía · primer bocado</label>
-        <input class="input" type="time" id="notif-mediodia" value="${n.mediodia || ""}" placeholder="13:00"></div>` : ""}
-    </div>
-    ${funcion("mediodia") ? `<p class="text-xs muted mt-8">☀️ Déjalo en blanco para no recibir el aviso de mediodía.</p>` : `<p class="text-xs muted mt-8">🔔 ¿Quieres un aviso a mediodía para tu primer bocado? Desbloquéalo en la <a href="#tienda">Tienda</a>.</p>`}
-    <button class="btn btn--cian btn-block mt-16" data-action="notif-times">Guardar horarios</button>
-    <p class="text-xs muted mt-16">📅 Ritual semanal: ${diaRitualSemanal() === 1
-      ? "el <b>lunes</b> a tu hora de la mañana, y el martes si aún no planificas tu semana."
-      : "el <b>domingo</b> a tu hora de la noche, y el lunes en la mañana si aún no planificas tu semana."} Cambia el día en Ritual → Semana.</p>
-    <p class="text-xs muted mt-8">🗓️ Mes: el día 1 en la mañana para abrirlo y el último día en la noche para cerrarlo.
-      🧭 Trimestre: el penúltimo día del trimestre en la noche para cerrarlo y el día 2 del siguiente en la mañana para abrirlo. Solo si aún no lo haces.</p>
-  </div>
+  ${renderAvisos(n)}
 
   ${activo ? `<button class="btn-ghost btn-block mt-16" data-action="notif-test">Enviar una notificación de prueba</button>` : ""}
   <p class="text-xs muted mt-16">📱 Se activan en cada dispositivo por separado. En iPhone, Rumbo tiene que estar instalada en la pantalla de inicio.</p>`;
+}
+
+/* ---------- Qué avisos recibir (settings.notif.avisos; catálogo y niveles en state.js) ---------- */
+const AVISOS_INFO = {
+  manana: ["🌅", "Abrir el día", "Para iniciar tu ritual. No llega si ya lo abriste."],
+  noche: ["🌙", "Cerrar el día", "Para cerrarlo. No llega si ya lo cerraste."],
+  insistencia: ["🔁", "Segundo aviso de cierre", "Una hora después del de la noche, solo si aún no cierras el día."],
+  pendientes: ["⏳", "Días sin cerrar", "Si te quedó un día sin cerrar (tienes 3 días para hacerlo). Va dentro del aviso de la mañana."],
+  mediodia: ["☀️", "Mediodía", "“¿Cómo va tu primer bocado?”, a la hora que elijas."],
+  semana: ["📅", "Ritual semanal", ""],
+  mes: ["🗓️", "Ritual de mes", "El día 1 en la mañana para abrirlo y el último día en la noche para cerrarlo."],
+  trimestre: ["🧭", "Revisión trimestral", "El penúltimo día del trimestre en la noche y el día 2 del siguiente en la mañana."],
+  habitos: ["✅", "Hábitos pendientes", "A la hora que elijas, solo si te falta alguno de los que tocan hoy."],
+  cumpleanos: ["🎂", "Cumpleaños", "En la mañana del día, de las personas que tienes en Relaciones."],
+  contactos: ["💬", "Contactos pendientes", "Los domingos en la mañana: a quién hace tiempo que no le escribes (según Relaciones)."],
+};
+const AVISOS_GRUPOS = [
+  ["Tu día", ["manana", "noche", "insistencia", "pendientes", "mediodia"]],
+  ["Semana, mes y trimestre · solo si aún no lo haces", ["semana", "mes", "trimestre"]],
+  ["Hábitos y relaciones", ["habitos", "cumpleanos", "contactos"]],
+];
+const AVISOS_NIVEL_TXT = {
+  esencial: "Abrir y cerrar el día.",
+  recomendado: "Abrir y cerrar el día, más semana, mes y trimestre.",
+  todo: "Todos los avisos.",
+  personalizado: "Elegiste tus propios avisos.",
+};
+/* Hora editable al lado del aviso (mañana y noche siempre; mediodía y hábitos cuando están encendidos) */
+const AVISOS_HORA = { manana: ["notif-manana", "manana"], noche: ["notif-noche", "noche"], mediodia: ["notif-mediodia", "mediodia"], habitos: ["notif-habitos", "habitosHora"] };
+
+function renderAvisos(n) {
+  const act = avisosActivos(n), nivel = nivelAvisos(n);
+  const semanaTxt = diaRitualSemanal() === 1
+    ? "El lunes a tu hora de la mañana, y el martes si aún no planificas tu semana. Cambia el día en Ritual → Semana."
+    : "El domingo a tu hora de la noche, y el lunes en la mañana si aún no planificas tu semana. Cambia el día en Ritual → Semana.";
+  const fila = k => {
+    const [ic, titulo, desc] = AVISOS_INFO[k];
+    const h = AVISOS_HORA[k], conHora = h && (k === "manana" || k === "noche" || act[k]);
+    const hora = conHora ? `<input class="input aviso__hora" type="time" id="${h[0]}" value="${n[h[1]] || AVISOS_HORAS[k === "habitos" ? "habitos" : k]}" aria-label="Hora: ${titulo}">` : "";
+    return `<div class="aviso">
+      <div class="aviso__txt"><span class="aviso__t">${ic} ${titulo}</span><span class="text-xs muted">${k === "semana" ? semanaTxt : desc}</span></div>
+      <label class="sw"><input type="checkbox" role="switch" data-action="notif-aviso" data-k="${k}" ${act[k] ? "checked" : ""} aria-label="${titulo}"><span></span></label>
+      ${hora}
+    </div>`;
+  };
+  return `
+  <div class="card mt-16">
+    <div class="card__title" style="font-size:15px">Qué avisos quieres recibir</div>
+    <div class="seg seg--full mt-16" role="group" aria-label="Nivel de avisos">${[["esencial", "Lo esencial"], ["recomendado", "Recomendado"], ["todo", "Todo"]]
+      .map(([k, l]) => `<button class="${nivel === k ? "is-active" : ""}" aria-pressed="${nivel === k}" data-action="notif-nivel" data-n="${k}">${l}</button>`).join("")}</div>
+    <p class="text-xs muted mt-8">${AVISOS_NIVEL_TXT[nivel]} Valen para todos tus dispositivos.</p>
+    ${AVISOS_GRUPOS.map(([g, ks]) => `<div class="aviso-grupo">${g}</div>${ks.map(fila).join("")}`).join("")}
+    <button class="btn btn--cian btn-block mt-16" data-action="notif-times">Guardar horarios</button>
+  </div>`;
+}
+
+/* Un interruptor: se guarda al tiro. Al encender mediodía u hábitos sin hora, queda la sugerida. */
+function cambiarAviso(k, on) {
+  if (!AVISOS_TIPOS.includes(k)) return;
+  const n = STATE.settings.notif = STATE.settings.notif || { subs: [] };
+  n.avisos = Object.assign({}, n.avisos, { [k]: !!on });
+  if (on && k === "mediodia" && !n.mediodia) n.mediodia = AVISOS_HORAS.mediodia;
+  if (on && k === "habitos" && !n.habitosHora) n.habitosHora = AVISOS_HORAS.habitos;
+  saveState();
+  rerender();
+}
+/* Un nivel de un toque: deja encendido exactamente lo de ese nivel */
+function elegirNivelAvisos(nivel) {
+  if (!AVISOS_NIVELES[nivel]) return;
+  const n = STATE.settings.notif = STATE.settings.notif || { subs: [] };
+  const on = new Set(AVISOS_NIVELES[nivel]);
+  n.avisos = {};
+  AVISOS_TIPOS.forEach(k => { n.avisos[k] = on.has(k); });
+  if (on.has("mediodia") && !n.mediodia) n.mediodia = AVISOS_HORAS.mediodia;
+  if (on.has("habitos") && !n.habitosHora) n.habitosHora = AVISOS_HORAS.habitos;
+  saveState();
+  rerender();
+  toast("🔔 Avisos: " + ({ esencial: "lo esencial", recomendado: "recomendado", todo: "todos" })[nivel]);
 }
 
 async function enableNotifications() {
@@ -202,7 +263,9 @@ function saveNotifTimes() {
   STATE.settings.notif.noche = no;
   try { STATE.settings.notif.tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
   const md = document.getElementById("notif-mediodia");
-  if (md) STATE.settings.notif.mediodia = md.value || null;
+  if (md && md.value) STATE.settings.notif.mediodia = md.value;
+  const hb = document.getElementById("notif-habitos");
+  if (hb && hb.value) STATE.settings.notif.habitosHora = hb.value;
   saveState();
   rerender();
   toast("Horarios guardados ⏰");

@@ -121,7 +121,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 15;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 16;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -262,6 +262,11 @@ const NOVEDADES = {
     ["💪", "Salud renovada", "Resumen con tu peso, un recetario y Entrenar con ejercicios reales, series y peso. Entrenamiento ahora vive aquí."],
     ["📝", "Notas como post-its", "Escribe arriba, ordena con #etiquetas, fija las importantes y pasa una nota a tarea con un toque."],
     ["🛒", "Tienda más simple", "Fichas chicas con ícono y precio. Toca una para ver qué hace y comprarla."],
+  ],
+  16: [
+    ["🔔", "Notificaciones a tu medida", "Elige qué avisos recibir: lo esencial, lo recomendado o todo, o cada uno por separado. Llegan avisos nuevos: segundo aviso de cierre, días sin cerrar, hábitos pendientes, cumpleaños y contactos."],
+    ["📲", "Vuelve a activarlas", "Renovamos cómo llegan los avisos para que sean puntuales. Entra a 🔔 Notificaciones y toca Activar en cada teléfono donde quieras recibirlos."],
+    ["☀️", "Mediodía, gratis", "El aviso de mediodía ya no se compra en la Tienda. Si lo habías comprado, te devolvimos las ⭐."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -803,6 +808,8 @@ function onClick(e) {
     case "notif-disable": disableNotifications(); break;
     case "notif-times": saveNotifTimes(); break;
     case "notif-test": testNotification(); break;
+    case "notif-aviso": cambiarAviso(d.k, el.checked); break;
+    case "notif-nivel": elegirNivelAvisos(d.n); break;
 
     /* Portal de usuarios */
     case "auth-tab": switchAuthTab(d.tab); break;

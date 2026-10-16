@@ -52,6 +52,9 @@
   --sidebar-w: 250px;
   --sidebar-bg: #FFFFFF;
   --topbar-bg: #F2F4F7;
+  /* Fondo de base de la página (html), del color de las barras. En el iPhone, iOS tiñe con este
+     color el difuminado que pone bajo la hora; el fondo del contenido (--bg) va en .app. */
+  --lienzo: var(--topbar-bg);
   --font-body: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font: var(--font-body);
@@ -59,11 +62,9 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+html { background: var(--lienzo); }
 body {
   font-family: var(--font-body);
-  background: var(--bg);
-  background-image: var(--bg-grad);
-  background-attachment: fixed;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
@@ -78,7 +79,7 @@ a { color: var(--cian-ink); }
 ::selection { background: var(--cian-soft); }
 
 /* ---------- Layout ---------- */
-.app { display: flex; min-height: 100vh; }
+.app { display: flex; min-height: 100vh; background: var(--bg); background-image: var(--bg-grad); background-attachment: fixed; }
 
 .sidebar {
   width: var(--sidebar-w);
@@ -824,6 +825,9 @@ html[data-theme="claro"] .topbar, html[data-theme="claro"] .bottombar, html[data
   color: var(--text);
 }
 html[data-theme="claro"] .topbar, html[data-theme="claro"] .bottombar { border-color: transparent; }
+html[data-theme="claro"] { --lienzo: #0E2A47; }
+/* Pantallas completas con su propio fondo (ingreso, modo enfoque): el lienzo toma ese fondo */
+html:has(#authScreen:not([hidden])), html:has(#enfoque:not([hidden])) { --lienzo: var(--bg); }
 
 /* TIENDA · Grafito (oscuro neutro) */
 html[data-theme="grafito"] {

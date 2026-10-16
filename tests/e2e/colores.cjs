@@ -41,5 +41,26 @@ module.exports = async ({ b, ok, errs }) => {
   }).filter(Boolean));
   await p.evaluate(() => applyTheme(STATE.settings.theme));
   ok(!vidrio.length, "barra de arriba sólida y sin desenfoque en todos los temas " + vidrio.join(", "));
+
+  // 6) El fondo de base de la página (html) es del color de la barra de arriba: en la app instalada,
+  //    iOS tiñe con él el difuminado bajo la hora. El fondo del contenido va en .app.
+  const lienzo = await p.evaluate(() => THEMES.map(t => {
+    applyTheme(t.id);
+    const bg = el => getComputedStyle(el).backgroundColor;
+    const html = bg(document.documentElement), barra = bg(document.querySelector(".topbar")), body = bg(document.body);
+    return html === barra && body === "rgba(0, 0, 0, 0)" ? null : `${t.id}: html ${html} · barra ${barra} · body ${body}`;
+  }).filter(Boolean));
+  ok(!lienzo.length, "el fondo de base de la página es del color de la barra en todos los temas " + lienzo.join(", "));
+  const claro = await p.evaluate(() => {
+    applyTheme("claro");
+    const r = [getComputedStyle(document.documentElement).backgroundColor, getComputedStyle(document.querySelector(".app")).backgroundColor];
+    document.getElementById("authScreen").hidden = false;
+    r.push(getComputedStyle(document.documentElement).backgroundColor);
+    document.getElementById("authScreen").hidden = true;
+    applyTheme(STATE.settings.theme);
+    return r;
+  });
+  ok(claro[0] === "rgb(14, 42, 71)" && claro[1] === "rgb(242, 244, 247)", `Claro: base azul y contenido gris claro (${claro[0]} · ${claro[1]})`);
+  ok(claro[2] === "rgb(242, 244, 247)", `Claro: con la pantalla de ingreso, la base toma su fondo (${claro[2]})`);
   await ctx.close();
 };

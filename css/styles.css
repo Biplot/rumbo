@@ -51,7 +51,7 @@
 
   --sidebar-w: 250px;
   --sidebar-bg: #FFFFFF;
-  --topbar-bg: rgba(242, 244, 247, 0.85);
+  --topbar-bg: #F2F4F7;
   --font-body: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font: var(--font-body);
@@ -123,7 +123,9 @@ a { color: var(--cian-ink); }
 .topbar {
   border-bottom: 1px solid var(--line);
   position: sticky; top: 0; z-index: 20;
-  background: var(--topbar-bg); backdrop-filter: blur(10px);
+  /* Color sólido y sin desenfoque: desde iOS 26 el iPhone difumina el borde de arriba de la app instalada
+     salvo que una barra fija o pegada (sticky) con color sólido lo cubra. Un backdrop-filter la vuelve "vidrio". */
+  background: var(--topbar-bg);
   padding-top: env(safe-area-inset-top, 0px);
 }
 .topbar__inner {
@@ -806,7 +808,7 @@ html[data-theme="navy"] {
   --text:#EDF1F5; --text-soft:#B7C5D6; --text-muted:#93A6BC;
   --cian:#17C3B2; --cian-ink:#2CCDBC; --on-cian:#0A1E33; --coral:#FF7F62; --coral-btn:#FF6B4A; --on-coral:#0E2A47;
   --cian-soft:rgba(23,195,178,.16); --coral-soft:rgba(255,127,98,.16);
-  --sidebar-bg:#0A1E33; --topbar-bg:rgba(10,30,51,.85);
+  --sidebar-bg:#0A1E33; --topbar-bg:#0A1E33;
   --shadow:0 1px 2px rgba(0,0,0,.28), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
 }
 /* BASE · Claro: las barras (arriba, abajo y el menú del computador) van en Azul Profundo.
@@ -814,7 +816,7 @@ html[data-theme="navy"] {
    menú de la cuenta) se ajusta solo. Con la barra de estado del iPhone en blanco, la hora se lee. */
 html[data-theme="claro"] .topbar, html[data-theme="claro"] .bottombar, html[data-theme="claro"] .sidebar {
   --surface:#0E2A47; --surface-2:#16385C; --surface-3:#1D4268;
-  --sidebar-bg:#0E2A47; --topbar-bg:rgba(14,42,71,.97);
+  --sidebar-bg:#0E2A47; --topbar-bg:#0E2A47;
   --line:rgba(237,241,245,.12); --line-strong:rgba(237,241,245,.22);
   --text:#EDF1F5; --text-soft:#C3D0DE; --text-muted:#A9BACD;
   --cian:#17C3B2; --cian-ink:#2CCDBC; --on-cian:#0A1E33; --coral:#FF7F62;
@@ -830,7 +832,7 @@ html[data-theme="grafito"] {
   --text:#E9ECEF; --text-soft:#B4BAC1; --text-muted:#8A9199;
   --cian:#39B9AE; --cian-ink:#39B9AE; --on-cian:#06231f; --coral:#E8563A; --coral-btn:#CF4228;
   --cian-soft:rgba(57,185,174,.15); --coral-soft:rgba(232,86,58,.16);
-  --sidebar-bg:#111418; --topbar-bg:rgba(17,20,24,.82);
+  --sidebar-bg:#111418; --topbar-bg:#111418;
   --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.32);
   --on-coral:#FFFFFF;
 }
@@ -841,7 +843,7 @@ html[data-theme="medianoche"] {
   --text:#E7EAF4; --text-soft:#AFB6D0; --text-muted:#8C93AE;
   --cian:#8B93E8; --cian-ink:#8B93E8; --on-cian:#10142a; --coral:#E8563A; --coral-btn:#CF4228;
   --cian-soft:rgba(139,147,232,.16); --coral-soft:rgba(232,86,58,.16);
-  --sidebar-bg:#131A2C; --topbar-bg:rgba(19,26,44,.82);
+  --sidebar-bg:#131A2C; --topbar-bg:#131A2C;
   --shadow:0 1px 2px rgba(0,0,0,.28), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
   --on-coral:#FFFFFF;
 }
@@ -856,7 +858,7 @@ html[data-theme="bosque-claro"] {
   --cian:#C8A165; --cian-ink:#7A5C2A; --on-cian:#0A140E; --cian-soft:rgba(200,161,101,.18);
   --coral:#16301F; --coral-btn:var(--coral); --on-coral:#F7F5F0; --coral-soft:rgba(22,48,31,.10);
   --azul:#16301F;
-  --sidebar-bg:#FFFFFF; --topbar-bg:rgba(247,245,240,.88);
+  --sidebar-bg:#FFFFFF; --topbar-bg:#F7F5F0;
   --shadow:0 1px 2px rgba(10,20,14,.05), 0 12px 28px -20px rgba(10,20,14,.30); --shadow-sm:0 1px 2px rgba(10,20,14,.05);
   --font-display:"Cormorant Garamond", Georgia, serif;
   --font-body:"Mulish", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -869,7 +871,7 @@ html[data-theme="bosque-oscuro"] {
   --cian:#C8A165; --cian-ink:#C8A165; --on-cian:#0A140E; --cian-soft:rgba(200,161,101,.16);
   --coral:#C8A165; --coral-btn:var(--coral); --on-coral:#0A140E; --coral-soft:rgba(200,161,101,.14);
   --azul:#16301F;
-  --sidebar-bg:#0A140E; --topbar-bg:rgba(10,20,14,.86);
+  --sidebar-bg:#0A140E; --topbar-bg:#0A140E;
   --shadow:0 1px 2px rgba(0,0,0,.35), 0 16px 34px -22px rgba(0,0,0,.7); --shadow-sm:0 1px 2px rgba(0,0,0,.35);
   --font-display:"Cormorant Garamond", Georgia, serif;
   --font-body:"Mulish", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -890,7 +892,7 @@ html[data-theme="atardecer"] {
   --text:#F7EEF6; --text-soft:#D4C4DC; --text-muted:#A897B5;
   --cian:#FF9E7A; --cian-ink:#FFB08F; --on-cian:#2A1320; --coral:#E8618A; --coral-btn:var(--coral); --on-coral:#1E0F18;
   --cian-soft:rgba(255,158,122,.16); --coral-soft:rgba(232,97,138,.18);
-  --sidebar-bg:#1D1530; --topbar-bg:rgba(29,21,48,.84);
+  --sidebar-bg:#1D1530; --topbar-bg:#1D1530;
   --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 34px -22px rgba(0,0,0,.65); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
 }
 /* TIENDA · Océano (oscuro, petróleo y turquesa) */
@@ -901,7 +903,7 @@ html[data-theme="oceano"] {
   --text:#E6F4F5; --text-soft:#A9CDD2; --text-muted:#7FA6AC;
   --cian:#39D0E0; --cian-ink:#5ADAE8; --on-cian:#04262B; --coral:#FFB84D; --coral-btn:var(--coral); --on-coral:#2A1A00;
   --cian-soft:rgba(57,208,224,.15); --coral-soft:rgba(255,184,77,.16);
-  --sidebar-bg:#06222A; --topbar-bg:rgba(6,34,42,.84);
+  --sidebar-bg:#06222A; --topbar-bg:#06222A;
   --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 34px -22px rgba(0,0,0,.65); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
 }
 /* TIENDA · Cuaderno (claro, papel, tinta azul y roja, cuadrícula de puntos) */
@@ -912,7 +914,7 @@ html[data-theme="cuaderno"] {
   --text:#1F2A3D; --text-soft:#3F4A5C; --text-muted:#6B6454;
   --cian:#2F4B7C; --cian-ink:#2F4B7C; --on-cian:#FFFFFF; --coral:#B23A2E; --coral-btn:var(--coral); --on-coral:#FFFFFF;
   --cian-soft:rgba(47,75,124,.10); --coral-soft:rgba(178,58,46,.10); --azul:#2F4B7C;
-  --sidebar-bg:#FBF7EE; --topbar-bg:rgba(244,239,227,.9);
+  --sidebar-bg:#FBF7EE; --topbar-bg:#F4EFE3;
   --shadow:0 1px 2px rgba(60,45,20,.06), 0 12px 28px -20px rgba(60,45,20,.28); --shadow-sm:0 1px 2px rgba(60,45,20,.06);
   --font-display:"Fraunces", Georgia, serif;
   --font-body:"Karla", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -928,7 +930,7 @@ html[data-theme="terminal"] {
   --text:#D8FFE4; --text-soft:#9FD9B3; --text-muted:#74AD8A;
   --cian:#39FF88; --cian-ink:#39FF88; --on-cian:#03170A; --coral:#FFB000; --coral-btn:var(--coral); --on-coral:#1A1100;
   --cian-soft:rgba(57,255,136,.12); --coral-soft:rgba(255,176,0,.14);
-  --sidebar-bg:#0A0F0B; --topbar-bg:rgba(10,15,11,.88);
+  --sidebar-bg:#0A0F0B; --topbar-bg:#0A0F0B;
   --shadow:none; --shadow-sm:none;
   --font-display:"IBM Plex Mono", ui-monospace, monospace; --font-body:"IBM Plex Mono", ui-monospace, monospace;
   --r-sm:4px; --r:6px; --r-lg:8px;
@@ -941,7 +943,7 @@ html[data-theme="sakura"] {
   --text:#3A2230; --text-soft:#5E4452; --text-muted:#7F6371;
   --cian:#E26D8A; --cian-ink:#A8395A; --on-cian:#3A0E1C; --coral:#4F7A39; --coral-btn:var(--coral); --on-coral:#FFFFFF;
   --cian-soft:rgba(226,109,138,.12); --coral-soft:rgba(79,122,57,.12); --azul:#A8395A;
-  --sidebar-bg:#FFFFFF; --topbar-bg:rgba(255,246,247,.9);
+  --sidebar-bg:#FFFFFF; --topbar-bg:#FFF6F7;
   --shadow:0 1px 2px rgba(90,40,60,.05), 0 12px 28px -20px rgba(90,40,60,.25); --shadow-sm:0 1px 2px rgba(90,40,60,.05);
 }
 /* TIENDA · Alto contraste (gratis, accesibilidad) */
@@ -951,7 +953,7 @@ html[data-theme="alto-contraste"] {
   --text:#FFFFFF; --text-soft:#F2F2F2; --text-muted:#D6D6D6;
   --cian:#FFD400; --cian-ink:#FFD400; --on-cian:#000000; --coral:#FFFFFF; --coral-btn:var(--coral); --on-coral:#000000;
   --cian-soft:rgba(255,212,0,.18); --coral-soft:rgba(255,255,255,.14);
-  --sidebar-bg:#000000; --topbar-bg:rgba(0,0,0,.92);
+  --sidebar-bg:#000000; --topbar-bg:#000000;
   --shadow:none; --shadow-sm:none;
 }
 html[data-theme="alto-contraste"] :focus-visible { outline:3px solid #FFD400 !important; outline-offset:2px; }

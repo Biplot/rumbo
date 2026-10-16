@@ -29,5 +29,17 @@ module.exports = async ({ b, ok, errs }) => {
   await p.evaluate(() => { STATE.settings.theme = "navy"; saveState(); applyTheme("navy"); rerender(); });
   const [topN] = await fondos();
   ok(topN.includes("10, 30, 51"), `Navy: la barra de arriba sigue en su azul (${topN})`);
+
+  // 5) La barra de arriba es sólida y sin desenfoque en todos los temas: si no, desde iOS 26 el
+  //    iPhone difumina el borde de arriba de la app instalada (la hora queda sobre un degradado gris)
+  const vidrio = await p.evaluate(() => THEMES.map(t => {
+    applyTheme(t.id);
+    const cs = getComputedStyle(document.querySelector(".topbar"));
+    const solido = /^rgb\(/.test(cs.backgroundColor);
+    const sinBlur = !cs.backdropFilter || cs.backdropFilter === "none";
+    return solido && sinBlur ? null : `${t.id}: ${cs.backgroundColor} ${cs.backdropFilter}`;
+  }).filter(Boolean));
+  await p.evaluate(() => applyTheme(STATE.settings.theme));
+  ok(!vidrio.length, "barra de arriba sólida y sin desenfoque en todos los temas " + vidrio.join(", "));
   await ctx.close();
 };

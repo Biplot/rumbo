@@ -121,7 +121,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 16;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 17;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -267,6 +267,10 @@ const NOVEDADES = {
     ["🔔", "Notificaciones a tu medida", "Elige qué avisos recibir: lo esencial, lo recomendado o todo, o cada uno por separado. Llegan avisos nuevos: segundo aviso de cierre, días sin cerrar, hábitos pendientes, cumpleaños y contactos."],
     ["📲", "Vuelve a activarlas", "Renovamos cómo llegan los avisos para que sean puntuales. Entra a 🔔 Notificaciones y toca Activar en cada teléfono donde quieras recibirlos."],
     ["☀️", "Mediodía, gratis", "El aviso de mediodía ya no se compra en la Tienda. Si lo habías comprado, te devolvimos las ⭐."],
+  ],
+  17: [
+    ["🎨", "Colores de BiPlot", "Navy y Claro estrenan los colores de la marca: azul profundo, acento cian y grises con un toque azul. En Claro, las barras ahora van en azul."],
+    ["🎯", "Un solo botón coral", "Cada pantalla destaca en coral solo lo más importante: abrir o cerrar tu día cuando toca. Lo demás queda con borde."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -611,9 +615,23 @@ function initGestures() {
 function rerender() {
   if (typeof checkBadges === "function") checkBadges();
   const route = ROUTE_MAP[CURRENT];
-  document.getElementById("view").innerHTML = route.render();
+  const view = document.getElementById("view");
+  view.innerHTML = route.render();
+  unSoloCoral(view);
   mountAfterRender();
   updateFab();
+}
+/* Un solo botón coral por pantalla (manual de marca BiPlot: si todo es urgente, nada lo es).
+   Manda lo que lleva data-coral="dia" (abrir o cerrar el día cuando toca); si no hay, el primer
+   botón coral. Los demás quedan como botón con borde. Los modales no pasan por aquí: son su propia pantalla. */
+function unSoloCoral(root) {
+  const coral = [...root.querySelectorAll(".btn--primary")];
+  const manda = root.querySelector('[data-coral="dia"]') || coral[0];
+  coral.forEach(b => {
+    if (b === manda || (manda && manda.contains(b))) return;
+    b.classList.remove("btn--primary");
+    b.classList.add("btn--borde");
+  });
 }
 
 /* Botón del día: vive en la barra inferior (móvil) y arriba del menú (computador) */
@@ -1282,10 +1300,10 @@ const FONT_MULISH = "'Mulish',sans-serif";
 /* Orden = orden en la Tienda */
 const THEMES = [
   /* --- 2 bases gratis --- */
-  { id: "navy", nombre: "Navy sobrio", base: "Base", concepto: "Oscuro calmado: navy profundo y planos, sin neón. El tema predeterminado.", costo: 0,
-    bg: "#0C1B2C", card: "#122539", accent: "#2BB6A5", cta: "#E8563A", onCta: "#FFFFFF", text: "#EAF0F6", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
-  { id: "claro", nombre: "Claro", base: "Base", concepto: "Fondo claro, mucho aire y un acento azul. Sereno y profesional.", costo: 0,
-    bg: "#FBFBF9", card: "#FFFFFF", accent: "#3B6FB0", cta: "#E8563A", onCta: "#FFFFFF", text: "#111F31", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
+  { id: "navy", nombre: "Navy sobrio", base: "Base", concepto: "Los colores de BiPlot en oscuro: azul profundo, acento cian y un solo botón coral. El tema predeterminado.", costo: 0,
+    bg: "#0A1E33", card: "#0F2740", accent: "#17C3B2", cta: "#FF6B4A", onCta: "#0E2A47", text: "#EDF1F5", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
+  { id: "claro", nombre: "Claro", base: "Base", concepto: "Los colores de BiPlot en claro: mucho aire, grises con un toque azul y el mismo acento cian.", costo: 0,
+    bg: "#F2F4F7", card: "#FFFFFF", accent: "#13A294", cta: "#FF6B4A", onCta: "#0E2A47", text: "#0E2A47", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
   /* --- Tienda --- */
   { id: "grafito", nombre: "Grafito", base: "Navy sobrio", concepto: "Modo oscuro neutro en grafito. Elegante y de bajo perfil.", costo: 400,
     bg: "#111418", card: "#1A1E24", accent: "#39B9AE", cta: "#E8563A", onCta: "#FFFFFF", text: "#E9ECEF", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
@@ -1429,7 +1447,7 @@ function heroDia(title, sub, btnLabel, action, segundo) {
     <div class="hero-dia__top"><div style="min-width:0;flex:1">
       <div class="hero-focus__title">${title}</div>
       <div class="text-sm muted" style="margin-top:4px">${sub}</div></div>${eleHero()}</div>
-    <div class="hero-dia__acc"><button class="btn btn--primary" data-action="${action}">${btnLabel}</button>
+    <div class="hero-dia__acc"><button class="btn btn--primary" data-coral="dia" data-action="${action}">${btnLabel}</button>
       <button class="btn btn--soft" data-action="${segundo.action}">${segundo.label}</button></div></div>`;
 }
 function renderDayHero() {

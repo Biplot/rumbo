@@ -11,6 +11,8 @@ const SHOTS = process.env.E2E_SHOTS || "";   // carpeta para capturas (opcional)
 async function nuevoContexto(browser, { w = 1360, h = 900, fecha = "2026-09-23T10:00:00", dpr = 1, ua } = {}) {
   const ctx = await browser.newContext({ serviceWorkers: "block", viewport: { width: w, height: h }, deviceScaleFactor: dpr, ...(ua ? { userAgent: ua } : {}) });
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ body: "", contentType: "text/css" }));
+  // El consultorio de La Línea (biplot.cl): sin edición, salvo en la prueba que lo revisa (consultorio.cjs)
+  await ctx.route("https://biplot.cl/diario/ultima.json", r => r.fulfill({ status: 200, contentType: "application/json", body: '{"edicion":null}' }));
   await ctx.route("**/js/store.js*", async r => {
     const res = await r.fetch();
     r.fulfill({ status: 200, headers: { "content-type": "text/javascript" }, body: (await res.text()).replace("const BACKEND = SupabaseBackend;", "const BACKEND = LocalBackend;") });

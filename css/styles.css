@@ -1614,3 +1614,10 @@ button.dmap__c { cursor: pointer; color: #0E2A47; }
 .ficha-detalle > .card, .ficha-detalle > div > .card { border: 0; padding: 0; background: none; box-shadow: none; }
 @media (max-width: 760px) { .fichas { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .ficha { padding: 10px 4px; } .ficha__ico { width: 46px; height: 46px; font-size: 24px; } }
 .tienda-sec .section-title:first-child { margin-top: 22px; }
+
+/* El consultorio de La Línea (el diario de BiPlot): el consejo de la semana en Inicio, con tu elefante */
+.consultorio { display: grid; grid-template-columns: 92px 1fr; gap: 16px; align-items: start; }
+.consultorio__ele .ele-svg { width: 92px; height: auto; display: block; }
+.consultorio__ceja { font: 700 11px/1.4 'Space Mono', monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--cian-ink); margin-bottom: 4px; }
+.consultorio p { margin: 6px 0 12px; line-height: 1.5; }
+@media (max-width: 520px) { .consultorio { grid-template-columns: 64px 1fr; gap: 12px; } .consultorio__ele .ele-svg { width: 64px; } }

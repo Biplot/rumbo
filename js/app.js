@@ -1198,6 +1198,7 @@ function onClick(e) {
 
     /* Perfil / onboarding */
     case "edit-profile": openProfileModal(); break;
+    case "consultorio-cerrar": cerrarConsultorio(); break;
     case "profile-save": saveProfile(); break;
     case "onboarding-save": saveOnboarding(); break;
     case "onb-next": onbMover(1); break;
@@ -1643,6 +1644,7 @@ function renderInicio() {
       : '<div class="empty">Sin metas pendientes este mes. 🎉</div>'}
     </div>
   </div>
+  ${renderConsultorioCard()}
   ${kpis.length ? `<div class="grid grid-${Math.min(3, kpis.length)} mt-24">${kpis.join("")}</div>` : ""}
 
   <div class="card mt-24" style="background:linear-gradient(120deg, var(--surface), var(--surface-2))">

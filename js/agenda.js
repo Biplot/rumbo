@@ -300,7 +300,7 @@ function tareaRowHtml(t, iso, op) {
   return `<div class="item-row tarea-row ${viva ? "" : "is-moved"} ${hecha ? "is-hecha" : ""}${just} ${t.esSapo ? "is-bocado" : ""}"${swipe} style="padding:${op.compacto ? "8px 10px" : "9px 11px"}">
     ${marca}
     <div class="item-row__main"><div class="item-row__title text-sm ${hecha || e === "soltada" ? "strike" : ""}"${editar}>${t.esSapo ? BOCADO.emoji + " " : t.prioridad ? '<span title="Prioridad de la semana">🎯</span> ' : t.recurrente ? '<span title="Tarea recurrente">🔁</span> ' : ""}${escapeHtml(t.txt)}</div>
-      ${t.esSapo && !op.compacto && viva ? `<div class="item-row__sub hl-coral">${BOCADO.titulo} · ${BOCADO.accion}</div>` : ""}
+      ${t.esSapo && !op.compacto && !op.sinSub && viva ? `<div class="item-row__sub hl-coral">${BOCADO.titulo} · ${BOCADO.accion}</div>` : ""}
       ${meta ? `<div class="tarea-meta">${meta}</div>` : ""}</div>
     ${acciones}</div>`;
 }

@@ -103,7 +103,7 @@ function openExpressApertura() {
       <div class="seg" id="xp-energia">${[1, 2, 3, 4, 5].map(v => `<button type="button" class="${v === energia ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'xp-energia-v')">${v}</button>`).join("")}</div>
       <input type="hidden" id="xp-energia-v" value="${energia}"></div>
     <p class="text-xs muted" style="margin:-4px 0 12px">Tus tareas de hoy quedan como están. Puedes completar tu misión y tus tareas después, con el ritual completo.</p>
-    <button class="btn btn--primary btn-block" data-action="express-apertura-save">Abrir mi día (+${EXPRESS_MONEDAS.apertura} ⭐)</button>`);
+    <div class="modal__cta"><button class="btn btn--primary btn-block btn--precio" data-action="express-apertura-save"><span>Abrir mi día</span><span class="btn__precio">+${EXPRESS_MONEDAS.apertura} ${iconoLinea("estrella", 16)}</span></button></div>`);
 }
 function expressElegir(btn) {
   document.getElementById("xp-sapo").value = btn.dataset.txt;
@@ -117,6 +117,7 @@ function saveExpressApertura() {
   });
   const pagado = nuevo && registrarMovimiento("ritual-apertura:" + iso, EXPRESS_MONEDAS.apertura, EXPRESS_MONEDAS.apertura, "Apertura express", true);
   saveState(); closeModal(); updateTopbar(); rerender();
+  if (nuevo) vibrar(20);
   toast(`⚡ Día abierto${pagado ? ` · +${EXPRESS_MONEDAS.apertura} ⭐` : ""}. ¡Empieza por tu bocado!`);
 }
 
@@ -144,7 +145,7 @@ function openExpressCierre(date) {
       <button type="button" class="btn-ghost mt-8" data-action="day-close" data-date="${iso}">Decidir una por una (cierre completo)</button></div>`
     : (cronicas.length ? "" : `<p class="text-sm muted" style="margin-bottom:12px">No te quedan pendientes. 🎉</p>`)}
     <div class="field"><label>Algo que agradeces (opcional)</label><input class="input" id="xc-gratitud" value="${escapeAttr((r.cierre && r.cierre.mejor) || "")}" placeholder="Una línea basta"></div>
-    <button class="btn btn--primary btn-block" data-action="express-cierre-save">Cerrar mi día (+${EXPRESS_MONEDAS.cierre} ⭐)</button>`);
+    <div class="modal__cta"><button class="btn btn--primary btn-block btn--precio" data-action="express-cierre-save"><span>Cerrar mi día</span><span class="btn__precio">+${EXPRESS_MONEDAS.cierre} ${iconoLinea("estrella", 16)}</span></button></div>`);
 }
 function expressMood(btn) {
   document.getElementById("xc-mood").value = btn.dataset.v;
@@ -160,6 +161,7 @@ function saveExpressCierre() {
   const pagado = nuevo && registrarMovimiento("ritual-cierre:" + iso, monedas, monedas, "Cierre express", true);
   saveState(); closeModal(); updateTopbar(); rerender();
   if (pagado && typeof sonar === "function") sonar("cierre");
+  if (nuevo) { vibrar([15, 60, 25]); animarRacha(); }
   if (nuevo && typeof celebrarCierreElefante === "function") celebrarCierreElefante();
   const t = textoTriage(n);
   toast(`⚡ Día cerrado${pagado ? ` · +${monedas} ⭐` : ""}${t ? " · " + t : ""}`);

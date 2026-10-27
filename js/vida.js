@@ -3,6 +3,7 @@
    ============================================================ */
 
 const MOODS = ["😞", "😕", "😐", "🙂", "😄"];
+const MOOD_ETI = ["Difícil", "Regular", "Normal", "Bien", "Muy bien"];
 
 function fechaCorta(iso) {
   if (!iso) return "";

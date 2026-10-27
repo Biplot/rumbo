@@ -1621,3 +1621,197 @@ button.dmap__c { cursor: pointer; color: #0E2A47; }
 .consultorio__ceja { font: 700 11px/1.4 'Space Mono', monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--cian-ink); margin-bottom: 4px; }
 .consultorio p { margin: 6px 0 12px; line-height: 1.5; }
 @media (max-width: 520px) { .consultorio { grid-template-columns: 64px 1fr; gap: 12px; } .consultorio__ele .ele-svg { width: 64px; } }
+
+/* ============================================================
+   DISEÑO RUTA (v78) · tu día como un recorrido
+   Inspirado en las apps de movilidad: blanco, negro y un solo
+   acento coral; letras grandes (Inter Tight) y una acción clara.
+   Ruta = predeterminado (claro, con la barra de arriba negra para
+   que la hora del iPhone se lea). Ruta noche = su versión oscura.
+   La tarjeta del día en Inicio (.ruta-dia) usa las variables del
+   tema, así que se ve bien con cualquiera.
+   ============================================================ */
+html[data-theme="ruta"] {
+  --azul:#0B0B0C;
+  --bg:#FFFFFF; --bg-grad:none; --surface:#FFFFFF; --surface-2:#F3F3F3; --surface-3:#E8E8E8;
+  --line:#EBEBEB; --line-strong:#D6D6D6;
+  --text:#0B0B0C; --text-soft:#3A3A3C; --text-muted:#5E5E5E;
+  --cian:#0B0B0C; --cian-ink:#0B0B0C; --on-cian:#FFFFFF; --cian-soft:rgba(11,11,12,.06);
+  --coral:#C23A20; --coral-btn:#0B0B0C; --on-coral:#FFFFFF; --coral-soft:#FBE9E5;
+  --r-sm:12px; --r:16px; --r-lg:22px;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 14px 32px -20px rgba(0,0,0,.28); --shadow-sm:none;
+  --sidebar-bg:#FFFFFF; --topbar-bg:#0B0B0C; --lienzo:#0B0B0C;
+  --font-body:"Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:"Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+/* La barra de arriba va en negro (como la de las apps de movilidad): adentro rigen los colores de noche */
+html[data-theme="ruta"] .topbar {
+  --surface:#0B0B0C; --surface-2:#232325; --surface-3:#2E2E31;
+  --line:rgba(255,255,255,.10); --line-strong:rgba(255,255,255,.20);
+  --text:#FFFFFF; --text-soft:#D4D4D8; --text-muted:#A9A9AE;
+  --cian:#FFFFFF; --cian-ink:#FFFFFF; --on-cian:#0B0B0C; --cian-soft:rgba(255,255,255,.12);
+  --coral:#FF7A5C; --coral-soft:rgba(255,122,92,.18);
+  color: var(--text);
+}
+html[data-theme="ruta-noche"] {
+  --azul:#0B0B0C;
+  --bg:#0B0B0C; --bg-grad:none; --surface:#161617; --surface-2:#1F1F21; --surface-3:#2A2A2D;
+  --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.18);
+  --text:#F5F5F5; --text-soft:#C7C7CC; --text-muted:#A1A1A6;
+  --cian:#FFFFFF; --cian-ink:#FFFFFF; --on-cian:#0B0B0C; --cian-soft:rgba(255,255,255,.10);
+  --coral:#FF7A5C; --coral-btn:#FFFFFF; --on-coral:#0B0B0C; --coral-soft:rgba(255,122,92,.16);
+  --r-sm:12px; --r:16px; --r-lg:22px;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 16px 34px -22px rgba(0,0,0,.7); --shadow-sm:none;
+  --sidebar-bg:#0B0B0C; --topbar-bg:#0B0B0C; --lienzo:#0B0B0C;
+  --font-body:"Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:"Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Tipografía: títulos grandes y apretados */
+html[data-theme^="ruta"] h1, html[data-theme^="ruta"] h2, html[data-theme^="ruta"] h3,
+html[data-theme^="ruta"] .big-num, html[data-theme^="ruta"] .stat__value { letter-spacing: -0.025em; }
+html[data-theme^="ruta"] h1, html[data-theme^="ruta"] .big-num, html[data-theme^="ruta"] .stat__value { font-weight: 800; }
+html[data-theme^="ruta"] .card__title { font-weight: 700; letter-spacing: -0.015em; }
+html[data-theme^="ruta"] .hero-focus__title { font-weight: 800; letter-spacing: -0.025em; }
+html[data-theme^="ruta"] .section-title { font-weight: 700; }
+html[data-theme^="ruta"] .brand-name { font-weight: 800; letter-spacing: -0.03em; }
+
+/* Tarjetas planas con borde fino; sin bordes de acento a la izquierda */
+html[data-theme^="ruta"] .card { box-shadow: none; }
+html[data-theme^="ruta"] .hero-focus { border-left: 1px solid var(--line); }
+
+/* Botones: negro para lo principal, gris para lo secundario, todo redondeado */
+html[data-theme^="ruta"] .btn { border-radius: 14px; font-weight: 700; }
+html[data-theme^="ruta"] .btn--soft { background: var(--surface-2); border-color: transparent; }
+html[data-theme^="ruta"] .btn--soft:hover { background: var(--surface-3); }
+html[data-theme^="ruta"] .btn--borde { color: var(--text); border: 1.5px solid var(--text); }
+html[data-theme^="ruta"] .btn--borde:hover { background: var(--surface-2); }
+html[data-theme^="ruta"] .btn-ghost { border-radius: 999px; color: var(--text); font-weight: 600; }
+html[data-theme^="ruta"] .btn-ghost:hover { border-color: var(--text); }
+html[data-theme^="ruta"] .icon-btn:hover { color: var(--text); }
+
+/* Campos: grises, sin borde, como la barra de "¿A dónde vas?" */
+html[data-theme^="ruta"] .input, html[data-theme^="ruta"] .select, html[data-theme^="ruta"] textarea.input {
+  background: var(--surface-2); border-color: transparent; border-radius: 14px; }
+html[data-theme^="ruta"] .input:focus, html[data-theme^="ruta"] .select:focus, html[data-theme^="ruta"] textarea.input:focus {
+  border-color: var(--text); background: var(--surface); }
+
+/* Chips, barras, checks y filas */
+html[data-theme^="ruta"] .chip { background: var(--surface-2); font-weight: 600; }
+html[data-theme^="ruta"] .chip--cian, html[data-theme^="ruta"] .chip--done { background: var(--surface-2); color: var(--text); }
+html[data-theme^="ruta"] .chip--coral { background: var(--coral-soft); color: var(--coral); }
+html[data-theme^="ruta"] .bar { height: 8px; background: var(--surface-3); }
+html[data-theme^="ruta"] .bar__fill { background: var(--cian); }
+html[data-theme^="ruta"] .bar__fill--coral { background: var(--coral); }
+html[data-theme^="ruta"] .check { border-radius: 50%; border-color: var(--text); background: var(--surface); }
+html[data-theme^="ruta"] .check.is-on { background: var(--text); border-color: var(--text); color: var(--surface); }
+html[data-theme^="ruta"] .item-row { background: var(--surface); border-radius: 14px; }
+html[data-theme^="ruta"] .stat__ico { background: var(--surface-2); }
+html[data-theme^="ruta"] .seg { background: var(--surface-2); border-color: transparent; border-radius: 14px; padding: 4px; }
+html[data-theme^="ruta"] .seg button { border-radius: 10px; color: var(--text); }
+html[data-theme^="ruta"] .seg button.is-active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.16); }
+html[data-theme="ruta-noche"] .seg button.is-active { background: var(--surface-3); }
+html[data-theme^="ruta"] .seg.seg--triage { background: none; padding: 0; border-radius: 0; }
+html[data-theme^="ruta"] .seg.seg--triage button { background: var(--surface); border-radius: 999px; }
+html[data-theme^="ruta"] .seg.seg--triage button.is-active { background: var(--text); border-color: var(--text); color: var(--surface); box-shadow: none; }
+html[data-theme^="ruta"] .months button, html[data-theme^="ruta"] .mnav__arrow, html[data-theme^="ruta"] .mnav__center { border-color: transparent; }
+html[data-theme^="ruta"] .hab-chip.is-on { background: var(--surface-2); border-color: var(--text); }
+html[data-theme^="ruta"] .mood-btn.is-on { background: var(--surface-2); border-color: var(--text); }
+html[data-theme^="ruta"] .tabs__b.is-active { border-bottom-color: var(--text); }
+html[data-theme^="ruta"] .pill { background: var(--surface-2); border-color: transparent; }
+
+/* Marca: el elefante con bocado en negro y blanco, con su punto coral */
+html[data-theme="ruta"] .brand-mark svg > rect, html[data-theme="ruta"] .auth__brand svg > rect { fill: #0B0B0C; stroke: #0B0B0C; }
+html[data-theme="ruta"] .brand-mark svg > circle[mask], html[data-theme="ruta"] .auth__brand svg > circle[mask] { fill: #FFFFFF; }
+html[data-theme="ruta"] .brand-mark svg > path, html[data-theme="ruta"] .auth__brand svg > path { stroke: #0B0B0C; }
+html[data-theme="ruta-noche"] .brand-mark svg > rect, html[data-theme="ruta-noche"] .auth__brand svg > rect { fill: #FFFFFF; stroke: #FFFFFF; }
+html[data-theme="ruta-noche"] .brand-mark svg > circle[mask], html[data-theme="ruta-noche"] .auth__brand svg > circle[mask] { fill: #0B0B0C; }
+html[data-theme="ruta-noche"] .brand-mark svg > path, html[data-theme="ruta-noche"] .auth__brand svg > path { stroke: #FFFFFF; }
+
+/* Barra de arriba: título grueso y contadores en píldoras */
+html[data-theme^="ruta"] .topbar { border-bottom-color: transparent; }
+html[data-theme^="ruta"] .topbar__title h1 { font-weight: 800; }
+html[data-theme^="ruta"] .topbar__meta button.pill { background: var(--surface-2); border-color: transparent; color: var(--text); font-weight: 700; }
+
+/* Menú del computador: el activo en negro */
+html[data-theme^="ruta"] .nav__item { border-radius: 12px; font-weight: 600; }
+html[data-theme^="ruta"] .nav__item.is-active { background: var(--text); color: var(--surface); box-shadow: none; }
+html[data-theme^="ruta"] .nav__item.is-active .nav__ico, html[data-theme^="ruta"] .nav__item.is-active .ico-linea { color: inherit; }
+html[data-theme^="ruta"] .nav-dia { border-radius: 14px; }
+html[data-theme^="ruta"] .nav-dia.is-cerrar { background: var(--surface-2); border-color: transparent; }
+html[data-theme^="ruta"] .nav-pie { background: var(--surface-2); border-color: transparent; }
+html[data-theme^="ruta"] .nav-pie.is-active { box-shadow: inset 0 0 0 1.5px var(--text); }
+html[data-theme^="ruta"] .cuenta-menu { border-color: var(--line); }
+
+/* Hoja "Más": las secciones como fichas grises (Todo lo tuyo) */
+html[data-theme^="ruta"] .sheet-overlay { background: rgba(0,0,0,.45); }
+html[data-theme^="ruta"] .sheet { border-radius: 24px 24px 0 0; border-top-color: var(--line); }
+html[data-theme^="ruta"] .sheet__head h2 { font-weight: 800; font-size: 24px; letter-spacing: -0.03em; }
+html[data-theme^="ruta"] .mas-grid { gap: 10px; }
+html[data-theme^="ruta"] .mas-mod { background: var(--surface-2); min-height: 80px; font-weight: 600; font-size: 12px; overflow-wrap: anywhere; }
+html[data-theme^="ruta"] .mas-mod .ico-linea { color: var(--text); }
+html[data-theme^="ruta"] .mas-mod.is-active, html[data-theme^="ruta"] .mas-mod:active { background: var(--text); color: var(--surface); }
+html[data-theme^="ruta"] .mas-mod.is-active .ico-linea, html[data-theme^="ruta"] .mas-mod:active .ico-linea { color: inherit; }
+html[data-theme^="ruta"] .mas-mod--sutil { background: none; border: 1.5px dashed var(--line-strong); }
+
+/* Ventanas: bordes grandes, sin línea bajo el título */
+html[data-theme^="ruta"] .modal-overlay { background: rgba(0,0,0,.45); backdrop-filter: none; }
+html[data-theme^="ruta"] .modal { border-color: var(--line); border-radius: 24px; }
+html[data-theme^="ruta"] .modal__head { border-bottom-color: transparent; padding-bottom: 6px; }
+html[data-theme^="ruta"] .modal__head h3 { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+
+@media (max-width: 760px) {
+  /* Barra inferior blanca; el botón del día es un círculo negro */
+  html[data-theme^="ruta"] .bottombar { background: var(--surface); border-top: 1px solid var(--line); }
+  html[data-theme^="ruta"] .bottombar__item { color: var(--text-muted); }
+  html[data-theme^="ruta"] .bottombar__item.is-active { color: var(--text); }
+  html[data-theme^="ruta"] .bb-dia.is-abrir .bb-dia__c, html[data-theme^="ruta"] .bb-dia.is-cerrar .bb-dia__c { background: var(--text); color: var(--surface); border: 0; }
+  html[data-theme^="ruta"] .bb-dia.is-cerrado .bb-dia__c { background: var(--surface-2); color: var(--text); }
+  html[data-theme^="ruta"] .topbar__meta button.pill { background: var(--surface-2); border-color: transparent; }
+  /* En el celular, las ventanas suben desde abajo (como la hoja de un viaje) */
+  html[data-theme^="ruta"] .modal-overlay { place-items: end center; padding: 0; }
+  html[data-theme^="ruta"] .modal { max-width: 100%; border-radius: 24px 24px 0 0; max-height: 92vh;
+    border-bottom: 0; animation: sheetIn .22s ease; padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+
+/* ---------- Tarjeta del día: el recorrido (Abre → Primer bocado → Cierra) ---------- */
+.ruta-dia { margin-bottom: 20px; padding: 20px 22px 14px; }
+.ruta-dia__top { display: flex; align-items: flex-start; gap: 14px; }
+.ruta-dia__cab { flex: 1; min-width: 0; }
+.ruta-dia__fecha { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.ruta-dia__saludo { font-size: 15px; font-weight: 600; color: var(--text-soft); margin-top: 4px; }
+.ruta-dia__t { font-family: var(--font-display); font-size: 30px; line-height: 1.05; font-weight: 800; letter-spacing: -0.03em; margin-top: 2px; color: var(--text); }
+.ruta { list-style: none; margin: 14px 0 0; padding: 0; }
+.ruta__p { position: relative; display: flex; align-items: center; gap: 14px; min-height: 62px; padding: 8px 0; }
+.ruta__p::before { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: var(--text); }
+.ruta__p:first-child::before { top: 50%; }
+.ruta__p:last-child::before { bottom: 50%; }
+.ruta__p.is-pend::before { background: var(--line-strong); }
+.ruta__m { position: relative; z-index: 1; width: 14px; height: 14px; flex-shrink: 0; box-sizing: border-box; }
+.ruta__m--abre { border-radius: 50%; background: var(--text); }
+.ruta__p.is-actual .ruta__m--abre { background: var(--surface); border: 3px solid var(--text); }
+.ruta__m--bocado { background: var(--coral); }
+.ruta__p.is-pend .ruta__m--bocado { background: var(--surface); border: 2px solid var(--coral); }
+.ruta__m--cierre { background: var(--surface); border: 2px solid var(--text); }
+.ruta__p.is-actual .ruta__m--cierre { background: var(--text); }
+.ruta__p.is-pend .ruta__m--cierre { border-color: var(--line-strong); }
+.ruta__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ruta__t { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.ruta__t--vacio { color: var(--text-muted); font-weight: 600; }
+.ruta__p.is-hecho .ruta__t { color: var(--text); }
+.ruta__eti { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--coral); }
+.ruta__s { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+.ruta__hora { font-size: 14px; font-weight: 600; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.ruta__acc { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+.ruta__acc .btn--primary { min-width: 170px; }
+.ruta__hecho { border-radius: 999px; padding: 9px 18px; }
+.ruta-dia__pie { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0 4px 28px; }
+@media (max-width: 760px) {
+  .ruta-dia { padding: 16px 14px 10px; }
+  .ruta-dia__t { font-size: 26px; }
+  .ruta__p { flex-wrap: wrap; row-gap: 8px; }
+  .ruta__acc { width: 100%; padding-left: 28px; }
+  .ruta__acc .btn--primary { flex: 1; min-width: 0; }
+  .ruta__p .ruta__hora { margin-left: auto; }
+  .ruta__p:has(.ruta__hora) .ruta__acc, .ruta__p:has(.ruta__hecho) .ruta__acc { width: auto; padding-left: 0; }
+}

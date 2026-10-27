@@ -121,7 +121,7 @@ async function enterApp(user) {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 17;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 18;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -271,6 +271,11 @@ const NOVEDADES = {
   17: [
     ["🎨", "Colores de BiPlot", "Navy y Claro estrenan los colores de la marca: azul profundo, acento cian y grises con un toque azul. En Claro, las barras ahora van en azul."],
     ["🎯", "Un solo botón coral", "Cada pantalla destaca en coral solo lo más importante: abrir o cerrar tu día cuando toca. Lo demás queda con borde."],
+  ],
+  18: [
+    ["🖤", "Nuevo diseño: Ruta", "Rumbo estrena su diseño: blanco, negro y un solo acento coral, letras grandes y una acción clara a la vez."],
+    ["📍", "Tu día como un recorrido", "En Inicio ves tu día en tres paradas: abres, das tu primer bocado y lo cierras. Marca tu primer bocado como hecho desde ahí mismo."],
+    ["🌙", "Ruta noche", "¿Prefieres oscuro? Ruta noche es gratis en Recompensas → Tienda → Temas. Si tenías otro tema elegido, lo conservas; Navy sigue disponible."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -449,7 +454,8 @@ async function doLogout() {
    Recompensas y la cuenta viven en el pie (ver navegacion.js). */
 function buildNav() {
   const nav = document.getElementById("nav");
-  const item = r => `<button class="nav__item" data-route="${r.id}"><span class="nav__ico">${r.icon}</span><span>${r.label}</span></button>`;
+  // Íconos de línea (los mismos de la barra inferior); el emoji queda solo si una sección no tiene dibujo
+  const item = r => `<button class="nav__item" data-route="${r.id}"><span class="nav__ico">${ICONOS_LINEA[r.id] ? iconoLinea(r.id, 20) : r.icon}</span><span>${r.label}</span></button>`;
   const principal = ROUTES.filter(r => r.id && !r.mas && !r.pie);
   const mods = ROUTES.filter(r => r.id && r.mas && !moduloOculto(r.id));
   let abierto = true;
@@ -457,7 +463,7 @@ function buildNav() {
   nav.innerHTML = principal.map(item).join("")
     + `<details class="nav-mods" id="navMods"${abierto ? " open" : ""}><summary class="nav__label nav-mods__sum">Módulos (${mods.length})${iconoLinea("chevron", 16)}</summary>
       ${mods.map(item).join("")}
-      <button class="nav__item nav__item--sub" data-action="menu-personalizar"><span class="nav__ico">⚙️</span><span>Personalizar menú</span></button></details>`;
+      <button class="nav__item nav__item--sub" data-action="menu-personalizar"><span class="nav__ico">${iconoLinea("personalizar", 20)}</span><span>Personalizar menú</span></button></details>`;
   const det = document.getElementById("navMods");
   det.addEventListener("toggle", () => { try { localStorage.setItem("rumbo-nav-modulos", det.open ? "1" : "0"); } catch (e) {} });
   document.getElementById("brandName").innerHTML = `${STATE.settings.appName.replace("i","<em>i</em>")}`;
@@ -1080,6 +1086,7 @@ function onClick(e) {
       nuevaTarea(STATE, d.fecha, { txt, ambito: ambEl && ambEl.value === "pro" ? "pro" : "per" });
       saveState(); rerender(); break;
     }
+    case "bocado-hecho":   // la parada del primer bocado en Inicio marca la misma tarea
     case "tarea-toggle": {
       const t = buscarTarea(STATE, d.fecha, d.id); if (!t) break;
       const hecha = estadoTarea(t) !== "hecha";
@@ -1128,7 +1135,7 @@ function onClick(e) {
     case "tema-preview": openThemePreview(d.theme); break;
     case "set-theme": {
       if (!themeOwned(d.theme)) break;
-      STATE.settings.theme = d.theme; saveState(); applyTheme(d.theme); closeModal(); rerender();
+      STATE.settings.theme = d.theme; STATE.settings.temaElegido = d.theme; saveState(); applyTheme(d.theme); closeModal(); rerender();
       toast("Tema aplicado: " + (THEMES.find(t => t.id === d.theme) || {}).nombre);
       break;
     }
@@ -1140,7 +1147,7 @@ function onClick(e) {
       if (!confirm(`¿Desbloquear el tema "${th.nombre}" por ${th.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - th.costo} ⭐.`)) break;
       const res = ledgerComprar(STATE, "tema-" + d.theme, th.costo);
       if (!res.ok && !res.yaTenia) { toast("Te faltan " + (res.falta || th.costo) + " ⭐", true); break; }
-      STATE.settings.theme = d.theme; saveState(); applyTheme(d.theme); updateTopbar(); closeModal(); rerender();
+      STATE.settings.theme = d.theme; STATE.settings.temaElegido = d.theme; saveState(); applyTheme(d.theme); updateTopbar(); closeModal(); rerender();
       toast("🛍️ Tema " + th.nombre + " desbloqueado y aplicado");
       break;
     }
@@ -1235,14 +1242,17 @@ function onClick(e) {
   }
 }
 
-const BASE_THEMES = ["navy", "claro", "alto-contraste"];   // gratis (alto contraste: accesibilidad)
-const DEFAULT_THEME = "navy";
+const BASE_THEMES = ["ruta", "ruta-noche", "navy", "claro", "alto-contraste"];   // gratis (alto contraste: accesibilidad)
+const DEFAULT_THEME = "ruta";   // v78: diseño Ruta (negro, blanco y coral) para todos
 /* Fuentes de los temas Bosque: se cargan solo cuando se aplica uno de ellos */
 const FUNDOS_FONTS_URL = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Mulish:wght@400;500;600;700&display=swap";
 function applyTheme(t) {
   const id = THEMES.some(x => x.id === t) ? t : DEFAULT_THEME;
   document.documentElement.setAttribute("data-theme", id);
   loadThemeFonts(id);
+  // El color del navegador (Android) y de la barra de estado sigue a la barra de arriba del tema
+  const meta = document.querySelector('meta[name="theme-color"]'), th = THEMES.find(x => x.id === id);
+  if (meta && th) meta.setAttribute("content", th.barra || th.bg);
 }
 /* Fuentes por tema: se piden solo al usar el tema (o su vista previa) */
 const THEME_FONTS = {
@@ -1296,15 +1306,20 @@ function grantOwnerPerks() {
 }
 
 const FONT_SG = "'Space Grotesk',sans-serif";
+const FONT_IT = "'Inter Tight',sans-serif";
 const FONT_CORMORANT = "'Cormorant Garamond',Georgia,serif";
 const FONT_MULISH = "'Mulish',sans-serif";
 /* Orden = orden en la Tienda */
 const THEMES = [
-  /* --- 2 bases gratis --- */
-  { id: "navy", nombre: "Navy sobrio", base: "Base", concepto: "Los colores de BiPlot en oscuro: azul profundo, acento cian y un solo botón coral. El tema predeterminado.", costo: 0,
+  /* --- Bases gratis: Ruta (predeterminado desde v78) y su versión de noche --- */
+  { id: "ruta", nombre: "Ruta", base: "Base", concepto: "El diseño de Rumbo: blanco, negro y un solo acento coral. Letras grandes y una acción clara a la vez. El tema predeterminado.", costo: 0,
+    bg: "#FFFFFF", card: "#F3F3F3", accent: "#0B0B0C", cta: "#0B0B0C", onCta: "#FFFFFF", text: "#0B0B0C", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
+  { id: "ruta-noche", nombre: "Ruta noche", base: "Base", concepto: "El diseño Ruta en oscuro: negro profundo, texto blanco y el mismo acento coral. Descansa la vista en la noche.", costo: 0,
+    bg: "#0B0B0C", card: "#1F1F21", accent: "#FFFFFF", cta: "#FFFFFF", onCta: "#0B0B0C", text: "#F5F5F5", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
+  { id: "navy", nombre: "Navy sobrio", base: "Base", concepto: "Los colores de BiPlot en oscuro: azul profundo, acento cian y un solo botón coral.", costo: 0,
     bg: "#0A1E33", card: "#0F2740", accent: "#17C3B2", cta: "#FF6B4A", onCta: "#0E2A47", text: "#EDF1F5", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
   { id: "claro", nombre: "Claro", base: "Base", concepto: "Los colores de BiPlot en claro: mucho aire, grises con un toque azul y el mismo acento cian.", costo: 0,
-    bg: "#F2F4F7", card: "#FFFFFF", accent: "#13A294", cta: "#FF6B4A", onCta: "#0E2A47", text: "#0E2A47", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
+    bg: "#F2F4F7", card: "#FFFFFF", accent: "#13A294", cta: "#FF6B4A", onCta: "#0E2A47", text: "#0E2A47", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px", barra: "#0E2A47" },
   /* --- Tienda --- */
   { id: "grafito", nombre: "Grafito", base: "Navy sobrio", concepto: "Modo oscuro neutro en grafito. Elegante y de bajo perfil.", costo: 400,
     bg: "#111418", card: "#1A1E24", accent: "#39B9AE", cta: "#E8563A", onCta: "#FFFFFF", text: "#E9ECEF", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
@@ -1442,43 +1457,56 @@ function eleHero() {
   const papel = TIPOS_ELEFANTE[tipoElefante()].papel ? " papel" : "";
   return `<div class="ele-hero ele-toca${papel}" data-action="ele-toca" role="button" tabindex="0" title="Tócalo" aria-label="Tu elefante: ${escapeAttr(nombreElefante())}">${elefanteSVG()}</div>`;
 }
-/* Saludo del día: texto y elefante arriba, la acción principal y Express abajo */
-function heroDia(title, sub, btnLabel, action, segundo) {
-  return `<div class="card hero-focus hero-dia" style="margin-bottom:20px">
-    <div class="hero-dia__top"><div style="min-width:0;flex:1">
-      <div class="hero-focus__title">${title}</div>
-      <div class="text-sm muted" style="margin-top:4px">${sub}</div></div>${eleHero()}</div>
-    <div class="hero-dia__acc"><button class="btn btn--primary" data-coral="dia" data-action="${action}">${btnLabel}</button>
-      <button class="btn btn--soft" data-action="${segundo.action}">${segundo.label}</button></div></div>`;
-}
+/* Tu día como un recorrido (diseño Ruta): abres, das tu primer bocado y llegas al cierre.
+   Cada parada muestra su estado y su acción; el botón principal (coral de la marca) es uno solo. */
+function horaCorta(ts) { return ts ? new Date(ts).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }) : ""; }
 function renderDayHero() {
   const iso = todayISO();
   const r = STATE.ritual.dias[iso];
   const st = dayState();
+  if (st === "cerrado") return renderCierreResumen(r);
   const name = escapeHtml(STATE.profile.name);
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 20 ? "Buenas tardes" : "Buenas noches";
+  const fecha = new Date().toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+  const abierto = st !== "por-abrir", porCerrar = st === "por-cerrar";
+  const tb = tareasDelDia(iso).find(t => t.esSapo && !tareaMovida(t));
+  const bocadoTxt = (tb && tb.txt) || (r && r.sapo) || "";
+  const bocadoHecho = tb ? estadoTarea(tb) === "hecha" : !!(r && r.cierre && r.cierre.sapo);
+  const paso = (estado, marca, cuerpo, acc) => `<li class="ruta__p is-${estado}"><span class="ruta__m ruta__m--${marca}" aria-hidden="true"></span>
+      <div class="ruta__txt">${cuerpo}</div>${acc ? `<div class="ruta__acc">${acc}</div>` : ""}</li>`;
 
-  if (st === "por-abrir")
-    return heroDia(`${saludo}, ${name}.`, "Elige tu primer bocado y arranca. Toma 30 segundos (o 3 toques en express).", "🌅 Abre tu día", "day-open", { label: "⚡ Express", action: "day-open-express" });
+  // 1) Abrir el día
+  const det = abierto ? [r.mision ? "Misión: " + escapeHtml(r.mision) : "", r.energia ? "Energía " + r.energia + "/5" : "", r.pilar ? escapeHtml(r.pilar) : ""].filter(Boolean).join(" · ") : "";
+  const p1 = !abierto
+    ? paso("actual", "abre", `<span class="ruta__t">Abre tu día</span><span class="ruta__s">Elige tu primer bocado y arranca. Toma 30 segundos (o 3 toques en express).</span>`,
+        `<button class="btn btn--primary" data-coral="dia" data-action="day-open">🌅 Abre tu día</button><button class="btn btn--soft" data-action="day-open-express">⚡ Express</button>`)
+    : paso("hecho", "abre", `<span class="ruta__t">Abriste tu día</span>${det ? `<span class="ruta__s">${det}</span>` : ""}`,
+        r.abiertoTs ? `<span class="ruta__hora">${horaCorta(r.abiertoTs)}</span>` : "");
 
-  if (st === "por-cerrar")
-    return heroDia(`${saludo}, ${name}.`, "Tu día está por terminar. Cierra el ritual y reflexiona.", "🌙 Cierra tu día", "day-close", { label: "⚡ Express", action: "day-close-express" });
+  // 2) Primer bocado
+  const p2 = paso(bocadoHecho ? "hecho" : abierto ? "actual" : "pend", "bocado",
+    `<span class="ruta__eti">${BOCADO.emoji} ${BOCADO.corto}</span><span class="ruta__t${bocadoTxt ? "" : " ruta__t--vacio"}">${bocadoTxt ? escapeHtml(bocadoTxt) : abierto ? "Sin primer bocado hoy" : "Lo eliges al abrir tu día"}</span>`,
+    tb && abierto ? `<button class="btn ${bocadoHecho ? "btn--soft" : "btn--cian"} ruta__hecho" data-action="bocado-hecho" data-fecha="${iso}" data-id="${tb.id}" aria-pressed="${bocadoHecho}" aria-label="${bocadoHecho ? "Desmarcar tu primer bocado" : "Marcar tu primer bocado como hecho"}">${bocadoHecho ? "✓ Hecho" : "Hecho"}</button>` : "");
 
-  if (st === "cerrado") return renderCierreResumen(r);
+  // 3) Cerrar el día
+  const p3 = paso(porCerrar ? "actual" : "pend", "cierre",
+    `<span class="ruta__t">Cierra tu día</span><span class="ruta__s">${porCerrar ? "Tu día está por terminar. Cierra el ritual y reflexiona." : "En la noche: dos minutos para decidir qué pasa con lo pendiente y agradecer."}</span>`,
+    !abierto ? "" : porCerrar
+      ? `<button class="btn btn--primary" data-coral="dia" data-action="day-close">🌙 Cierra tu día</button><button class="btn btn--soft" data-action="day-close-express">⚡ Express</button>`
+      : `<button class="btn btn--soft" data-action="day-close">🌙 Cerrar el día</button><button class="btn-ghost" data-action="day-close-express">⚡ Express</button>`);
 
-  // en-curso
-  const rd = resumenDia(STATE, iso);
-  const chips = `<div class="row-wrap" style="gap:8px;margin-top:8px">
-    ${r.mision ? `<span class="chip chip--cian">🎯 ${escapeHtml(r.mision)}</span>` : ""}
-    ${r.sapo ? `<span class="chip chip--coral">${BOCADO.emoji} ${escapeHtml(r.sapo)}</span>` : ""}
-    ${r.servir ? `<span class="chip">🙌 ${escapeHtml(r.servir)}</span>` : ""}
-    ${r.pilar ? `<span class="chip">${escapeHtml(r.pilar)}</span>` : ""}
-    ${rd.planificadas ? `<span class="chip">📋 ${rd.hechas}/${rd.planificadas} tareas</span>` : ""}</div>`;
-  return `<div class="card hero-dia" style="margin-bottom:20px;border-left:3px solid var(--cian)">
-    <div class="hero-dia__top"><div style="min-width:0;flex:1"><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">${saludo}, ${name} · tu enfoque de hoy</div>${chips}</div>${eleHero()}</div>
-    <div class="hero-dia__acc"><button class="btn btn--soft" data-action="day-close">🌙 Cerrar el día</button>
-      <button class="btn-ghost" data-action="day-close-express">⚡ Express</button></div></div>`;
+  const rd = abierto ? resumenDia(STATE, iso) : null;
+  const pie = rd && (rd.planificadas || r.servir) ? `<div class="ruta-dia__pie">
+      ${rd.planificadas ? `<span class="chip">📋 ${rd.hechas}/${rd.planificadas} tareas</span>` : ""}
+      ${r.servir ? `<span class="chip">🙌 ${escapeHtml(r.servir)}</span>` : ""}</div>` : "";
+  return `<section class="card hero-focus ruta-dia" data-estado="${st}">
+    <div class="ruta-dia__top"><div class="ruta-dia__cab">
+      <div class="ruta-dia__fecha">${fecha}</div>
+      <div class="ruta-dia__saludo">${saludo}, ${name}.</div>
+      <h2 class="ruta-dia__t">${porCerrar ? "Llegaste al final del día" : "¿A dónde va tu día?"}</h2></div>${eleHero()}</div>
+    <ol class="ruta">${p1}${p2}${p3}</ol>${pie}
+  </section>`;
 }
 function cumpliChip(v) {
   if (v === "si") return `<span class="chip chip--done">cumplida</span>`;
@@ -1816,6 +1844,8 @@ async function doDeleteAccount() {
    Utilidades UI compartidas (modal, toast, escape)
    ============================================================ */
 function openModal(title, bodyHtml, op) {
+  // La ventana se reutiliza: al abrirse de nuevo parte desde arriba (si ya estaba abierta, conserva su posición)
+  if (document.getElementById("modalOverlay").hidden) document.getElementById("modal").scrollTop = 0;
   document.getElementById("modal").classList.toggle("modal--ancho", !!(op && op.ancho));
   document.getElementById("modal").classList.remove("modal--hoja");
   document.getElementById("modalTitle").textContent = title;

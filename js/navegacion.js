@@ -36,6 +36,14 @@ const ICONOS_LINEA = {
   luna: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
   hecho: '<path d="M5 12l5 5 9-10"/>',
   chevron: '<path d="M6 9l6 6 6-6"/>',
+  mision: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/>',
+  reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  historial: '<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5"/><path d="M12 8v4l3 2"/>',
+  rayo: '<path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/>',
+  llama: '<path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.8 1.2 2.8 2.5 3.2C12 9 11 6 12 3z"/>',
+  estrella: '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/>',
+  compartir: '<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',
+  flecha: '<path d="M9 6l6 6-6 6"/>',
 };
 function iconoLinea(id, tam = 22) {
   const d = ICONOS_LINEA[id] || ICONOS_LINEA.mas;
@@ -47,7 +55,8 @@ function estadoBotonDia() {
   const st = dayState();
   if (st === "por-abrir") return { accion: "day-open", ico: "sol", texto: "Abrir día", largo: "Abre tu día", clase: "is-abrir" };
   if (st === "cerrado") return { ruta: "ritual", ico: "hecho", texto: "Día cerrado", largo: "Día cerrado", clase: "is-cerrado" };
-  return { accion: "day-close", ico: "luna", texto: "Cerrar día", largo: "Cierra tu día", clase: "is-cerrar" };
+  // De noche, el botón late suave: es hora de llegar
+  return { accion: "day-close", ico: "luna", texto: "Cerrar día", largo: "Cierra tu día", clase: "is-cerrar" + (st === "por-cerrar" ? " is-ahora" : "") };
 }
 function pintarBotonDia(el, e, largo) {
   if (!el) return;

@@ -1813,5 +1813,146 @@ html[data-theme^="ruta"] .modal__head h3 { font-size: 20px; font-weight: 800; le
   .ruta__acc { width: 100%; padding-left: 28px; }
   .ruta__acc .btn--primary { flex: 1; min-width: 0; }
   .ruta__p .ruta__hora { margin-left: auto; }
-  .ruta__p:has(.ruta__hora) .ruta__acc, .ruta__p:has(.ruta__hecho) .ruta__acc { width: auto; padding-left: 0; }
+  .ruta__acc.ruta__acc--chica { width: auto; padding-left: 0; }
+}
+
+/* ============================================================
+   DETALLES DE APP DE VIAJES (v79)
+   Lo que hace que una app se sienta bien: el destino primero,
+   la hora de llegada a la vista, accesos a un toque, el precio
+   en el botón, un recibo al llegar y respuestas al tacto.
+   ============================================================ */
+/* Barra de misión: tu destino del día, como "¿A dónde vas?" */
+.mision-barra { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; margin-top: 14px; padding: 8px 8px 8px 16px;
+  background: var(--surface-2); border: 0; border-radius: 16px; color: var(--text); text-align: left; cursor: pointer; font: inherit;
+  transition: background .15s, transform .12s; }
+.mision-barra:hover { background: var(--surface-3); }
+.mision-barra > .ico-linea { flex-shrink: 0; }
+.mision-barra__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.mision-barra__eti { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+.mision-barra__v { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; overflow: hidden; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mision-barra__v.is-vacia { color: var(--text-muted); font-weight: 600; }
+.mision-barra__hoy { flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; border-radius: 999px;
+  background: var(--surface); color: var(--text); font-size: 13px; font-weight: 700; }
+/* Misiones recientes: un toque y la eliges */
+.recientes { margin-top: 4px; }
+.reciente { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 58px; padding: 8px 2px 8px 6px; background: none; border: 0;
+  border-bottom: 1px solid var(--line); color: var(--text); text-align: left; cursor: pointer; font: inherit; }
+.reciente:last-child { border-bottom: 0; }
+.reciente > .ico-linea:first-child { flex-shrink: 0; width: 38px; height: 38px; padding: 9px; box-sizing: border-box; border-radius: 50%; background: var(--surface-2); }
+.reciente > .ico-linea:last-child { flex-shrink: 0; color: var(--text-muted); }
+.reciente__txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.reciente__txt b { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reciente__txt small { font-size: 13px; color: var(--text-muted); }
+.reciente:hover .reciente__txt b { text-decoration: underline; text-underline-offset: 3px; }
+/* Avance del día hasta tu hora de cierre */
+.ruta-eta { margin: 2px 0 4px 28px; }
+.ruta-eta__barra { height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.ruta-eta__barra i { display: block; height: 100%; border-radius: inherit; background: var(--text); transition: width .6s ease; }
+.ruta-eta__fila { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: 6px;
+  font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.ruta-eta__txt { color: var(--text); font-size: 13px; font-weight: 700; text-align: center; }
+.ruta__acc .btn .ico-linea, .ruta__acc .btn-ghost .ico-linea { flex-shrink: 0; }
+.ruta__acc .btn-ghost { display: inline-flex; align-items: center; gap: 6px; }
+/* Todo en un lugar (solo en el celular: en el computador está el menú) */
+.atajos { display: none; }
+@media (max-width: 760px) {
+  .atajos { display: block; margin: 0 0 22px; }
+  .atajos__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; padding: 0 2px; }
+  .atajos__head h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+  .atajos__todo { background: none; border: 0; padding: 8px 2px; font: inherit; font-size: 14px; font-weight: 600; color: var(--text-muted); }
+  .atajos__grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .atajo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-height: 80px; padding: 10px 4px;
+    border: 0; border-radius: 16px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 12px; font-weight: 600;
+    overflow-wrap: anywhere; text-align: center; transition: transform .12s, background .15s; }
+}
+/* El precio en el botón: lo que ganas al confirmar, a la derecha (como el valor del viaje) */
+.btn--precio { justify-content: space-between; min-height: 54px; padding-left: 20px; padding-right: 18px; font-size: 16px; }
+.btn__precio { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+/* El botón de confirmar queda siempre a mano al fondo de la ventana */
+.modal__cta { position: sticky; bottom: 0; z-index: 2; margin: 6px -20px -20px; padding: 14px 20px 20px;
+  background: linear-gradient(to bottom, transparent, var(--surface) 26%); }
+
+/* Fin del recorrido (arriba del cierre): las horas de tu día en una línea */
+.fin-ruta { margin: -4px 0 18px; padding: 14px 16px 12px; border-radius: 16px; background: var(--surface-2); }
+.fin-ruta__eti { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.fin-ruta__linea { position: relative; display: flex; list-style: none; margin: 12px 0 0; padding: 0; }
+.fin-ruta__linea::before { content: ""; position: absolute; left: 7px; right: 7px; top: 6px; height: 2px; background: var(--text); }
+.fin-ruta__linea li { position: relative; flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.fin-ruta__linea li:last-child { align-items: flex-end; text-align: right; }
+.fin-ruta__linea li:not(:first-child):not(:last-child) { align-items: center; text-align: center; }
+.fin-ruta__m { width: 14px; height: 14px; box-sizing: border-box; margin-bottom: 8px; border-radius: 50%; background: var(--text); }
+.fin-ruta__linea .is-bocado .fin-ruta__m { border-radius: 0; background: var(--coral); }
+.fin-ruta__linea .is-ahora .fin-ruta__m { background: var(--surface); border: 3px solid var(--text); }
+.fin-ruta__linea b { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); }
+.fin-ruta__linea span:last-child { font-size: 12px; color: var(--text-muted); }
+.mood-eti { margin-left: 6px; font-weight: 700; color: var(--text); }
+
+/* El recibo del día cerrado */
+.recibo__ok { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 5px 10px 5px 8px; border-radius: 999px;
+  background: var(--surface-2); color: var(--text); font-size: 13px; font-weight: 700; }
+.recibo__racha { display: flex; align-items: center; gap: 14px; margin: 14px 0 4px; }
+.recibo__n { font-family: var(--font-display); font-size: 64px; line-height: .9; font-weight: 800; letter-spacing: -0.05em; color: var(--text);
+  font-variant-numeric: tabular-nums; display: inline-block; }
+.recibo__n.is-sube { animation: rachaSube .5s cubic-bezier(.2,1.4,.4,1); }
+@keyframes rachaSube { 0% { transform: translateY(18px) scale(.7); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.recibo__racha span { font-size: 15px; font-weight: 600; line-height: 1.25; color: var(--text-soft); }
+.recibo__filas { margin: 6px 0 0; border-top: 1px solid var(--line); }
+.recibo__fila { display: flex; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.recibo__fila dt { width: 76px; flex-shrink: 0; font-size: 13px; color: var(--text-muted); padding-top: 1px; }
+.recibo__fila dd { flex: 1; min-width: 0; margin: 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.recibo__mov { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.recibo__nota { padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 15px; overflow-wrap: anywhere; }
+.recibo__nota > span { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 2px; }
+.recibo__total { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 4px; font-size: 16px; font-weight: 700; }
+.recibo__total b { display: inline-flex; align-items: center; gap: 5px; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.recibo__acc { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.recibo__acc .btn { flex: 1; min-width: 180px; }
+.recibo__pie { margin-top: 12px; }
+
+/* Avisos con acción (Deshacer) */
+.toast--accion { display: flex; align-items: center; gap: 14px; padding: 8px 8px 8px 20px; }
+.toast__acc { background: none; border: 0; padding: 8px 12px; border-radius: 999px; color: inherit; font: inherit; font-weight: 800;
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+@media (max-width: 760px) { .toast { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); } }
+
+/* Racha y monedas con íconos de línea; las monedas "saltan" al ganar */
+.pill { position: relative; }
+.pill__ico { flex-shrink: 0; vertical-align: -3px; }
+.pill__ico--llama { color: var(--coral); }
+.pill__ico--estrella { color: #F5B82E; }
+#ptsPill.is-gana { animation: ptsSalto .45s ease; }
+@keyframes ptsSalto { 40% { transform: scale(1.12); } }
+.pts-flota { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); pointer-events: none; white-space: nowrap;
+  padding: 3px 8px; border-radius: 999px; background: var(--coral); color: #FFFFFF; font-size: 12px; font-weight: 800;
+  animation: ptsFlota 1.05s ease forwards; z-index: 5; }
+@keyframes ptsFlota { 0% { opacity: 0; transform: translate(-50%, 6px); } 20% { opacity: 1; transform: translate(-50%, 2px); }
+  75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -6px); } }
+
+/* Al tocar, todo responde: se hunde apenas */
+.btn:active, .atajo:active, .mision-barra:active, .reciente:active, .hab-chip:active, button.chip:active,
+.bottombar__item:active, .mas-mod:active { transform: scale(.97); }
+.bottombar__item, button.chip, .reciente { transition: transform .12s, background .15s, color .15s; }
+
+/* Cambiar de sección: la pantalla entra suave */
+.view-entra { animation: viewEntra .22s ease both; }
+@keyframes viewEntra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* De noche, el botón del día late suave (es hora de cerrar) */
+.bb-dia__c { position: relative; }
+.bb-dia.is-ahora .bb-dia__c::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid var(--coral);
+  animation: latido 2.2s ease-out infinite; pointer-events: none; }
+@keyframes latido { 0% { transform: scale(.9); opacity: .9; } 70%, 100% { transform: scale(1.25); opacity: 0; } }
+
+/* Ventanas del celular: asa para arrastrar hacia abajo */
+@media (max-width: 760px) {
+  .modal { position: relative; transition: transform .2s ease; }
+  .modal::before { content: ""; position: absolute; top: 8px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--line-strong); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-entra, .recibo__n.is-sube, #ptsPill.is-gana, .bb-dia.is-ahora .bb-dia__c::after { animation: none; }
+  .btn:active, .atajo:active, .mision-barra:active, .reciente:active, .hab-chip:active, button.chip:active,
+  .bottombar__item:active, .mas-mod:active { transform: none; }
 }

@@ -47,7 +47,8 @@ module.exports = async ({ b, ok, errs }) => {
   });
   await p.waitForTimeout(200);
   const primera = await p.locator("#view .ruta__p").first().innerText();
-  ok(primera.includes("Abriste tu día") && primera.includes("Misión: Cerrar el informe") && /08:30/.test(primera), "la primera parada muestra la misión y la hora en que abriste: " + primera.replace(/\s+/g, " "));
+  ok(primera.includes("Abriste tu día") && /08:30/.test(primera), "la primera parada muestra la hora en que abriste: " + primera.replace(/\s+/g, " "));
+  ok((await p.locator("#view .mision-barra").innerText()).includes("Cerrar el informe"), "la misión va arriba, en la barra de destino");
   ok(await p.locator('#view [data-action="bocado-hecho"]').count() === 1, "la parada del bocado tiene su botón Hecho");
   await p.click('#view [data-action="bocado-hecho"]'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => estadoTarea(tareasDelDia(todayISO()).find(t => t.esSapo)) === "hecha"), "Hecho marca la tarea del primer bocado");

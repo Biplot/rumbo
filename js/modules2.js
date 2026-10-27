@@ -103,9 +103,11 @@ function renderRitualDia() {
   </div>`;
 }
 
-function openRitualModal() {
+/* op: { mision: misión elegida (una reciente), foco: id del campo donde parte el cursor } */
+function openRitualModal(op) {
+  op = op || {};
   const r = STATE.ritual.dias[todayISO()] || {};
-  let misionDefault = r.mision || "";
+  let misionDefault = op.mision || r.mision || "";
   if (!misionDefault) {
     const y = new Date(); y.setDate(y.getDate() - 1);
     const yc = STATE.ritual.dias[isoLocal(y)];
@@ -156,7 +158,19 @@ function openRitualModal() {
         oninput="document.getElementById('r-elabel').textContent=this.value"></div>
     <div class="field"><label>¿A quién sirves hoy?</label><input class="input" id="r-servir" value="${escapeAttr(r.servir || "")}" placeholder="Persona, equipo, cliente..."></div>
     <div class="field"><label>Proyectos de hoy (separa con comas)</label><input class="input" id="r-proy" value="${escapeAttr((r.proyectos || []).join(", "))}" placeholder="Proyecto A, Proyecto B"></div>
-    <button class="btn btn--primary btn-block" data-action="ritual-save">Guardar ritual (+50 ⭐)</button>`);
+    <div class="modal__cta">${r.hecho ? `<button class="btn btn--primary btn-block" data-action="ritual-save">Guardar cambios</button>`
+      : `<button class="btn btn--primary btn-block btn--precio" data-action="ritual-save"><span>Abrir mi día</span><span class="btn__precio">+50 ${iconoLinea("estrella", 16)}</span></button>`}</div>`);
+  if (op.foco) enfocarCampo(op.foco);
+}
+/* Deja el cursor al final de un campo de la ventana (como al tocar la barra de búsqueda de una app de viajes) */
+function enfocarCampo(id) {
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    if (el.setSelectionRange && el.type !== "range") { const n = el.value.length; try { el.setSelectionRange(n, n); } catch (e) {} }
+    el.scrollIntoView({ block: "center" });
+  }, 60);
 }
 /* Cuántas tareas quedan en el plan del día (sin repetir líneas) */
 let RITUAL_VIENEN = [];
@@ -221,6 +235,7 @@ function saveRitual() {
   if (!yaHecho) {
     STATE.ritual.pilares[pilar] = (STATE.ritual.pilares[pilar] || 0) + 1;
     registrarMovimiento("ritual-apertura:" + iso, 50, 50, "Ritual de apertura");
+    vibrar(20);
   }
   saveState(); closeModal(); updateTopbar(); rerender();
 }
@@ -243,14 +258,15 @@ function openCierreModal(date) {
   const tr = tareasDia.length ? tareasResumen(tareasDia) : (c.tareas || null);
   const sapoDone = c.sapo !== undefined ? c.sapo : (sapoTask ? estadoTarea(sapoTask) === "hecha" : false);
   const sapoCur = sapoDone ? "1" : "0";
-  const titulo = esHoy ? "Ritual de cierre" : "Cerrar el " + dObj.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+  const titulo = esHoy ? "Cierra tu " + dObj.toLocaleDateString("es-CL", { weekday: "long" }) : "Cerrar el " + dObj.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
   const mananaLabel = esHoy ? "Una cosa para mañana" : "Una cosa para el día siguiente";
   const segBtn = (grupo, v, label, cur) =>
     `<button type="button" class="${cur === v ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'${grupo}-v')">${label}</button>`;
   openModal(titulo, `
-    <div class="field"><label>¿Cómo te sentiste hoy?</label>
+    ${finRecorridoHtml(iso, r, sapoTask)}
+    <div class="field"><label>¿Cómo te sentiste hoy? <b class="mood-eti" id="c-mood-eti">${MOOD_ETI[moodCur - 1] || ""}</b></label>
       <div class="row mt-8" id="c-moods" style="gap:8px">
-        ${MOODS.map((m, i) => `<button type="button" class="mood-btn ${i + 1 === moodCur ? "is-on" : ""}" data-v="${i + 1}" onclick="cierreMoodPick(this)">${m}</button>`).join("")}
+        ${MOODS.map((m, i) => `<button type="button" class="mood-btn ${i + 1 === moodCur ? "is-on" : ""}" data-v="${i + 1}" aria-label="${MOOD_ETI[i]}" onclick="cierreMoodPick(this)">${m}</button>`).join("")}
       </div><input type="hidden" id="c-mood" value="${moodCur}"></div>
     <div class="field"><label>¿Cumpliste tu misión?</label>
       <div class="seg" id="c-mision">
@@ -278,9 +294,23 @@ function openCierreModal(date) {
     <div class="field"><label>${mananaLabel}</label><input class="input" id="c-manana" value="${escapeAttr(c.manana || "")}" placeholder="Se sembrará como tu misión del día siguiente"></div>
     <div class="field"><label>Nota de cierre (libre)</label><textarea class="input" id="c-nota" placeholder="¿Cómo estuvo el día?">${escapeHtml(c.nota || "")}</textarea></div>
     <p class="text-xs muted" style="margin:-4px 0 12px">📔 Tu ánimo, esta nota y tu gratitud se guardan en tu <b>Diario de vida</b>.</p>
-    <button class="btn btn--primary btn-block" data-action="cierre-save">${r.cerrado ? "Guardar cambios" : "Cerrar el día (+40 ⭐)"}</button>`);
+    <div class="modal__cta">${r.cerrado ? `<button class="btn btn--primary btn-block" data-action="cierre-save">Guardar cambios</button>`
+      : `<button class="btn btn--primary btn-block btn--precio" data-action="cierre-save"><span>Cerrar el día</span><span class="btn__precio">+40 ${iconoLinea("estrella", 16)}</span></button>`}</div>`);
+}
+/* Fin del recorrido: las horas de tu día, como el resumen de un viaje al llegar */
+function finRecorridoHtml(iso, r, sapoTask) {
+  const hitos = [];
+  if (r.abiertoTs) hitos.push({ h: horaCorta(r.abiertoTs), t: "Abriste", c: "abre" });
+  if (sapoTask && estadoTarea(sapoTask) === "hecha") hitos.push({ h: sapoTask.hechaTs ? horaCorta(sapoTask.hechaTs) : "Hecho", t: BOCADO.corto, c: "bocado" });
+  if (r.cerradoTs) hitos.push({ h: horaCorta(r.cerradoTs), t: "Cerraste", c: "ahora" });
+  else if (iso === todayISO()) hitos.push({ h: horaCorta(Date.now()), t: "Ahora", c: "ahora" });
+  if (hitos.length < 2) return "";
+  return `<div class="fin-ruta"><div class="fin-ruta__eti">Fin del recorrido</div>
+    <ol class="fin-ruta__linea">${hitos.map(x => `<li class="is-${x.c}"><span class="fin-ruta__m" aria-hidden="true"></span><b>${x.h}</b><span>${x.t}</span></li>`).join("")}</ol></div>`;
 }
 function cierreMoodPick(btn) {
+  const eti = document.getElementById("c-mood-eti");
+  if (eti) eti.textContent = MOOD_ETI[+btn.dataset.v - 1] || "";
   document.getElementById("c-mood").value = btn.dataset.v;
   document.querySelectorAll("#c-moods .mood-btn").forEach(b => b.classList.remove("is-on"));
   btn.classList.add("is-on");
@@ -320,7 +350,7 @@ function saveCierre() {
   if (!yaCerrado) registrarMovimiento("ritual-cierre:" + iso, 40, 40, "Ritual de cierre");
   saveState(); closeModal(); updateTopbar(); rerender();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
-  if (!yaCerrado) { sonar("cierre"); if (typeof celebrarCierreElefante === "function") celebrarCierreElefante(); }
+  if (!yaCerrado) { sonar("cierre"); vibrar([15, 60, 25]); animarRacha(); if (typeof celebrarCierreElefante === "function") celebrarCierreElefante(); }
   const resumenTr = decid ? textoTriage(decid) : "";
   toast(resumenTr ? `Día cerrado 🌙 · ${resumenTr}` : "Día cerrado 🌙 ¡Descansa!");
 }

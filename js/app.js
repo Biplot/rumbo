@@ -61,6 +61,7 @@ async function boot() {
   document.getElementById("sidebarBackdrop").addEventListener("click", () => setSidebar(false));
   initGestures();
   initHojaMas();
+  initArrastreVentana();
   window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
   // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube;
   // al ocultarla/cerrarla, subir de inmediato lo pendiente (no perder el cierre recién hecho).
@@ -274,7 +275,8 @@ const NOVEDADES = {
   ],
   18: [
     ["🖤", "Nuevo diseño: Ruta", "Rumbo estrena su diseño: blanco, negro y un solo acento coral, letras grandes y una acción clara a la vez."],
-    ["📍", "Tu día como un recorrido", "En Inicio ves tu día en tres paradas: abres, das tu primer bocado y lo cierras. Marca tu primer bocado como hecho desde ahí mismo."],
+    ["📍", "Tu día como un recorrido", "En Inicio, tu misión va arriba como un destino y tu día en tres paradas: abres, das tu primer bocado y cierras. Una barra te muestra cuánto falta para tu hora de cierre."],
+    ["🧾", "El recibo de tu día", "Al cerrar ves tu racha, tus horas y lo que ganaste, y puedes compartir la imagen de tu día en tus historias. ¿Borraste una tarea sin querer? Toca Deshacer."],
     ["🌙", "Ruta noche", "¿Prefieres oscuro? Ruta noche es gratis en Recompensas → Tienda → Temas. Si tenías otro tema elegido, lo conservas; Navy sigue disponible."],
   ],
 };
@@ -478,6 +480,7 @@ function onRoute() {
   cerrarMas(); cerrarMenuCuenta();
   updateTopbar();
   rerender();
+  entrarVista();
   marcarNavActiva();
   setSidebar(false);
   document.querySelector(".main").scrollTo?.(0, 0);
@@ -651,7 +654,7 @@ function updateTopbar() {
   if (ayuda) ayuda.hidden = !tourDePantalla(CURRENT);
   document.getElementById("todayPill").textContent = "📅 " + fechaLarga();
   document.getElementById("streakVal").textContent = computeClosedStreak();
-  document.getElementById("ptsVal").textContent = STATE.gamif.puntos;
+  pintarMonedas(STATE.gamif.puntos);
 }
 
 /* -------- Estado del día (ciclo apertura → cierre) -------- */
@@ -748,16 +751,15 @@ function dayAutoSummary() {
 function registrarMovimiento(id, delta, xp, motivo, silencioso) {
   const ok = ledgerRegistrar(STATE, id, delta, xp == null ? Math.max(0, delta) : xp, motivo);
   if (!ok) return false;
-  saveState(); refreshPts();
-  if (delta > 0 && !silencioso) toast("+" + delta + " ⭐");
+  saveState(); refreshPts(delta > 0 && !silencioso ? delta : 0);
+  if (delta > 0 && !silencioso && !monedasALaVista()) toast("+" + delta + " ⭐");
   return true;
 }
 function anularMovimiento(id) {
   if (ledgerAnular(STATE, id)) { saveState(); refreshPts(); }
 }
-function refreshPts() {
-  const el = document.getElementById("ptsVal");
-  if (el) el.textContent = STATE.gamif.puntos;
+function refreshPts(ganado) {
+  pintarMonedas(STATE.gamif.puntos, ganado);
   pintarPieNav();
 }
 function computeRitualStreak() {
@@ -826,6 +828,7 @@ function onClick(e) {
     case "mas-cerrar": cerrarMas(); break;
     case "cuenta-menu": toggleMenuCuenta(); break;
     case "info-racha": openInfoRachas(); break;
+    case "compartir-dia": compartirDia(); break;
 
     /* Notificaciones */
     case "notif-enable": enableNotifications(); break;
@@ -1026,6 +1029,8 @@ function onClick(e) {
 
     /* Ciclo del día */
     case "day-open": openRitualModal(); break;
+    case "mision-barra": openRitualModal({ foco: "r-mision" }); break;
+    case "mision-reciente": openRitualModal({ mision: d.txt, foco: "r-sapo" }); break;
     case "day-close": openCierreModal(d.date); break;
     case "day-open-express": openExpressApertura(); break;
     case "day-close-express": openExpressCierre(d.date); break;
@@ -1090,9 +1095,9 @@ function onClick(e) {
     case "tarea-toggle": {
       const t = buscarTarea(STATE, d.fecha, d.id); if (!t) break;
       const hecha = estadoTarea(t) !== "hecha";
-      marcarTarea(t, hecha ? "hecha" : "pendiente");
+      marcarTarea(t, hecha ? "hecha" : "pendiente", hecha ? { hechaTs: Date.now() } : null);
       hecha ? registrarMovimiento("tarea:" + t.id, 15, 15, "Tarea") : anularMovimiento("tarea:" + t.id);
-      if (hecha) alCompletarTarea(t);   // sonido y celebraciones de la Tienda
+      if (hecha) { alCompletarTarea(t); vibrar(t.esSapo ? [12, 50, 18] : 10); }   // sonido y celebraciones de la Tienda
       saveState(); rerender(); break;
     }
     case "tarea-editar": openEditarTarea(d.fecha, d.id); break;
@@ -1104,7 +1109,14 @@ function onClick(e) {
     }
     case "tarea-del": {
       const t = buscarTarea(STATE, d.fecha, d.id);
-      if (t) { borrarTarea(t); saveState(); rerender(); }
+      if (!t) break;
+      borrarTarea(t); saveState(); rerender(); vibrar(10);
+      // Sin preguntar "¿seguro?": se borra al tiro y se puede deshacer
+      const fecha = d.fecha, id = d.id;
+      toastAccion("Tarea borrada", "Deshacer", () => {
+        const u = buscarTarea(STATE, fecha, id);
+        if (u) { delete u.borrada; u.ts = Date.now(); saveState(); rerender(); }
+      });
       break;
     }
     case "tarea-deshacer": {
@@ -1407,7 +1419,7 @@ function toggleHabitDate(habitId, year, monthIdx, day) {
   const cur = STATE.habitos.log[key][habitId][day];
   const movId = "habito:" + habitId + ":" + isoLocal(new Date(year, monthIdx, day));
   if (cur) { delete STATE.habitos.log[key][habitId][day]; anularMovimiento(movId); }
-  else { STATE.habitos.log[key][habitId][day] = true; registrarMovimiento(movId, 5, 5); }
+  else { STATE.habitos.log[key][habitId][day] = true; registrarMovimiento(movId, 5, 5); vibrar(10); }
   actualizarMetaHabito(habitId, isoLocal(new Date(year, monthIdx, day)));
   saveState();
   updateTopbar();
@@ -1458,8 +1470,53 @@ function eleHero() {
   return `<div class="ele-hero ele-toca${papel}" data-action="ele-toca" role="button" tabindex="0" title="Tócalo" aria-label="Tu elefante: ${escapeAttr(nombreElefante())}">${elefanteSVG()}</div>`;
 }
 /* Tu día como un recorrido (diseño Ruta): abres, das tu primer bocado y llegas al cierre.
-   Cada parada muestra su estado y su acción; el botón principal (coral de la marca) es uno solo. */
+   Como en una app de viajes: arriba el destino (tu misión), abajo las paradas con su hora
+   y una barra que avanza hasta tu hora de cierre. El botón principal es uno solo. */
 function horaCorta(ts) { return ts ? new Date(ts).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }) : ""; }
+/* La hora en que piensas cerrar: la del recordatorio de la noche (21:00 si no hay) */
+function horaCierrePlan() {
+  const n = STATE.settings.notif;
+  return n && /^\d{1,2}:\d{2}$/.test(n.noche || "") ? n.noche.padStart(5, "0") : "21:00";
+}
+function duracionCorta(min) { const h = Math.floor(min / 60), m = min % 60; return h ? `${h} h${m ? ` ${m} min` : ""}` : `${m} min`; }
+/* Cuánto llevas del día y cuánto falta para tu cierre (como la llegada de un viaje) */
+function etaCierre(abiertoTs) {
+  const [hh, mm] = horaCierrePlan().split(":").map(Number);
+  const ahora = new Date();
+  const fin = new Date(ahora); fin.setHours(hh, mm, 0, 0);
+  const ini = abiertoTs ? new Date(abiertoTs) : new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 8);
+  // (si abriste después de tu hora de cierre, el recorrido ya está completo)
+  const pct = ini >= fin ? 100 : Math.max(0, Math.min(100, Math.round((ahora - ini) / (fin - ini) * 100)));
+  const min = Math.round((fin - ahora) / 60000);
+  return { pct, min, ini: horaCorta(ini.getTime()), fin: horaCierrePlan(),
+    falta: min <= 0 ? "Es hora de cerrar tu día" : `Faltan ${duracionCorta(min)} para tu cierre` };
+}
+/* La barra de avance se mueve sola mientras miras Inicio */
+function refrescarEta() {
+  const el = document.querySelector("#view .ruta-eta");
+  if (!el || document.hidden) return;
+  const e = etaCierre(+el.dataset.abierto || 0);
+  el.querySelector(".ruta-eta__barra i").style.width = e.pct + "%";
+  el.querySelector(".ruta-eta__txt").textContent = e.falta;
+}
+setInterval(refrescarEta, 60000);
+/* Misiones de los días anteriores, para elegir con un toque (como los destinos recientes) */
+function misionesRecientes(max = 2) {
+  const out = [], vistos = new Set();
+  const add = (txt, sub) => {
+    const t = String(txt || "").trim(), k = t.toLowerCase();
+    if (!t || vistos.has(k) || out.length >= max) return;
+    vistos.add(k); out.push({ txt: t, sub });
+  };
+  for (let b = 1; b <= 14 && out.length < max; b++) {
+    const d = new Date(); d.setDate(d.getDate() - b);
+    const iso = isoLocal(d), r = STATE.ritual.dias[iso];
+    if (!r) continue;
+    if (b === 1 && r.cierre && r.cierre.manana) add(r.cierre.manana, "Lo anotaste anoche para hoy");
+    if (r.mision) add(r.mision, b === 1 ? "Tu misión de ayer" : "Tu misión del " + diaCorto(iso));
+  }
+  return out;
+}
 function renderDayHero() {
   const iso = todayISO();
   const r = STATE.ritual.dias[iso];
@@ -1473,39 +1530,58 @@ function renderDayHero() {
   const tb = tareasDelDia(iso).find(t => t.esSapo && !tareaMovida(t));
   const bocadoTxt = (tb && tb.txt) || (r && r.sapo) || "";
   const bocadoHecho = tb ? estadoTarea(tb) === "hecha" : !!(r && r.cierre && r.cierre.sapo);
-  const paso = (estado, marca, cuerpo, acc) => `<li class="ruta__p is-${estado}"><span class="ruta__m ruta__m--${marca}" aria-hidden="true"></span>
-      <div class="ruta__txt">${cuerpo}</div>${acc ? `<div class="ruta__acc">${acc}</div>` : ""}</li>`;
+  const paso = (estado, marca, cuerpo, hora, acc, accChica) => `<li class="ruta__p is-${estado}"><span class="ruta__m ruta__m--${marca}" aria-hidden="true"></span>
+      <div class="ruta__txt">${cuerpo}</div>${hora ? `<span class="ruta__hora">${hora}</span>` : ""}${acc ? `<div class="ruta__acc${accChica ? " ruta__acc--chica" : ""}">${acc}</div>` : ""}</li>`;
+
+  // El destino: tu misión de hoy, en una barra como la de "¿A dónde vas?"
+  const mision = abierto && r.mision ? r.mision : "";
+  const barra = `<button type="button" class="mision-barra" data-action="mision-barra" aria-label="${mision ? "Misión de hoy: " + escapeAttr(mision) + ". Tócala para cambiarla" : "Escribe tu misión de hoy"}">
+      ${iconoLinea("mision", 22)}
+      <span class="mision-barra__txt"><span class="mision-barra__eti">Misión de hoy</span>
+        <span class="mision-barra__v${mision ? "" : " is-vacia"}">${mision ? escapeHtml(mision) : abierto ? "Sin misión · escríbela" : "¿Cuál es tu misión?"}</span></span>
+      <span class="mision-barra__hoy">${iconoLinea("reloj", 15)}Hoy</span></button>`;
+  const rec = abierto ? [] : misionesRecientes();
+  const recientes = rec.length ? `<div class="recientes" aria-label="Misiones recientes">${rec.map(m =>
+    `<button type="button" class="reciente" data-action="mision-reciente" data-txt="${escapeAttr(m.txt)}">${iconoLinea("historial", 18)}
+      <span class="reciente__txt"><b>${escapeHtml(m.txt)}</b><small>${m.sub}</small></span>${iconoLinea("flecha", 16)}</button>`).join("")}</div>` : "";
 
   // 1) Abrir el día
-  const det = abierto ? [r.mision ? "Misión: " + escapeHtml(r.mision) : "", r.energia ? "Energía " + r.energia + "/5" : "", r.pilar ? escapeHtml(r.pilar) : ""].filter(Boolean).join(" · ") : "";
+  const det = abierto ? [r.energia ? "Energía " + r.energia + "/5" : "", r.pilar ? escapeHtml(r.pilar) : ""].filter(Boolean).join(" · ") : "";
   const p1 = !abierto
-    ? paso("actual", "abre", `<span class="ruta__t">Abre tu día</span><span class="ruta__s">Elige tu primer bocado y arranca. Toma 30 segundos (o 3 toques en express).</span>`,
-        `<button class="btn btn--primary" data-coral="dia" data-action="day-open">🌅 Abre tu día</button><button class="btn btn--soft" data-action="day-open-express">⚡ Express</button>`)
-    : paso("hecho", "abre", `<span class="ruta__t">Abriste tu día</span>${det ? `<span class="ruta__s">${det}</span>` : ""}`,
-        r.abiertoTs ? `<span class="ruta__hora">${horaCorta(r.abiertoTs)}</span>` : "");
+    ? paso("actual", "abre", `<span class="ruta__t">Abre tu día</span><span class="ruta__s">Elige tu primer bocado y arranca. Toma 30 segundos (o 3 toques en express).</span>`, "",
+        `<button class="btn btn--primary" data-coral="dia" data-action="day-open">${iconoLinea("sol", 18)}Abre tu día</button><button class="btn btn--soft" data-action="day-open-express">${iconoLinea("rayo", 16)}Express</button>`)
+    : paso("hecho", "abre", `<span class="ruta__t">Abriste tu día</span>${det ? `<span class="ruta__s">${det}</span>` : ""}`, horaCorta(r.abiertoTs));
 
-  // 2) Primer bocado
+  // 2) Primer bocado (con la hora en que lo diste)
   const p2 = paso(bocadoHecho ? "hecho" : abierto ? "actual" : "pend", "bocado",
-    `<span class="ruta__eti">${BOCADO.emoji} ${BOCADO.corto}</span><span class="ruta__t${bocadoTxt ? "" : " ruta__t--vacio"}">${bocadoTxt ? escapeHtml(bocadoTxt) : abierto ? "Sin primer bocado hoy" : "Lo eliges al abrir tu día"}</span>`,
-    tb && abierto ? `<button class="btn ${bocadoHecho ? "btn--soft" : "btn--cian"} ruta__hecho" data-action="bocado-hecho" data-fecha="${iso}" data-id="${tb.id}" aria-pressed="${bocadoHecho}" aria-label="${bocadoHecho ? "Desmarcar tu primer bocado" : "Marcar tu primer bocado como hecho"}">${bocadoHecho ? "✓ Hecho" : "Hecho"}</button>` : "");
+    `<span class="ruta__eti">${BOCADO.corto}</span><span class="ruta__t${bocadoTxt ? "" : " ruta__t--vacio"}">${bocadoTxt ? escapeHtml(bocadoTxt) : abierto ? "Sin primer bocado hoy" : "Lo eliges al abrir tu día"}</span>`,
+    bocadoHecho && tb && tb.hechaTs ? horaCorta(tb.hechaTs) : "",
+    tb && abierto ? `<button class="btn ${bocadoHecho ? "btn--soft" : "btn--cian"} ruta__hecho" data-action="bocado-hecho" data-fecha="${iso}" data-id="${tb.id}" aria-pressed="${bocadoHecho}" aria-label="${bocadoHecho ? "Desmarcar tu primer bocado" : "Marcar tu primer bocado como hecho"}">${bocadoHecho ? iconoLinea("hecho", 16) + "Hecho" : "Hecho"}</button>` : "", true);
 
-  // 3) Cerrar el día
+  // 3) Cerrar el día (a tu hora de siempre)
   const p3 = paso(porCerrar ? "actual" : "pend", "cierre",
-    `<span class="ruta__t">Cierra tu día</span><span class="ruta__s">${porCerrar ? "Tu día está por terminar. Cierra el ritual y reflexiona." : "En la noche: dos minutos para decidir qué pasa con lo pendiente y agradecer."}</span>`,
+    `<span class="ruta__t">Cierra tu día</span><span class="ruta__s">${porCerrar ? "Tu día está por terminar. Cierra el ritual y reflexiona." : "Dos minutos para decidir qué pasa con lo pendiente y agradecer."}</span>`,
+    abierto ? horaCierrePlan() : "",
     !abierto ? "" : porCerrar
-      ? `<button class="btn btn--primary" data-coral="dia" data-action="day-close">🌙 Cierra tu día</button><button class="btn btn--soft" data-action="day-close-express">⚡ Express</button>`
-      : `<button class="btn btn--soft" data-action="day-close">🌙 Cerrar el día</button><button class="btn-ghost" data-action="day-close-express">⚡ Express</button>`);
+      ? `<button class="btn btn--primary" data-coral="dia" data-action="day-close">${iconoLinea("luna", 18)}Cierra tu día</button><button class="btn btn--soft" data-action="day-close-express">${iconoLinea("rayo", 16)}Express</button>`
+      : `<button class="btn btn--soft" data-action="day-close">${iconoLinea("luna", 18)}Cerrar el día</button><button class="btn-ghost" data-action="day-close-express">${iconoLinea("rayo", 15)}Express</button>`);
 
+  // Avance del día hacia tu cierre
+  const e = abierto ? etaCierre(r.abiertoTs) : null;
+  const eta = e ? `<div class="ruta-eta" data-abierto="${r.abiertoTs || ""}">
+      <div class="ruta-eta__barra" aria-hidden="true"><i style="width:${e.pct}%"></i></div>
+      <div class="ruta-eta__fila"><span>${e.ini}</span><b class="ruta-eta__txt">${e.falta}</b><span>${e.fin}</span></div></div>` : "";
   const rd = abierto ? resumenDia(STATE, iso) : null;
   const pie = rd && (rd.planificadas || r.servir) ? `<div class="ruta-dia__pie">
-      ${rd.planificadas ? `<span class="chip">📋 ${rd.hechas}/${rd.planificadas} tareas</span>` : ""}
-      ${r.servir ? `<span class="chip">🙌 ${escapeHtml(r.servir)}</span>` : ""}</div>` : "";
+      ${rd.planificadas ? `<span class="chip">${rd.hechas} de ${rd.planificadas} tareas</span>` : ""}
+      ${r.servir ? `<span class="chip">Hoy sirves a ${escapeHtml(r.servir)}</span>` : ""}</div>` : "";
   return `<section class="card hero-focus ruta-dia" data-estado="${st}">
     <div class="ruta-dia__top"><div class="ruta-dia__cab">
       <div class="ruta-dia__fecha">${fecha}</div>
       <div class="ruta-dia__saludo">${saludo}, ${name}.</div>
       <h2 class="ruta-dia__t">${porCerrar ? "Llegaste al final del día" : "¿A dónde va tu día?"}</h2></div>${eleHero()}</div>
-    <ol class="ruta">${p1}${p2}${p3}</ol>${pie}
+    ${barra}${recientes}
+    <ol class="ruta">${p1}${p2}${p3}</ol>${eta}${pie}
   </section>`;
 }
 function cumpliChip(v) {
@@ -1514,43 +1590,57 @@ function cumpliChip(v) {
   if (v === "no") return `<span class="chip">no</span>`;
   return "";
 }
+/* Monedas que ganaste hoy (las que no se anularon) */
+function monedasDeHoy() {
+  const hoy = todayISO();
+  return ((STATE.gamif && STATE.gamif.ledger) || [])
+    .filter(m => !m.anulado && m.delta > 0 && m.ts && isoLocal(new Date(m.ts)) === hoy)
+    .reduce((a, m) => a + m.delta, 0);
+}
+/* Al llegar: el recibo de tu día (como el de un viaje), con tu racha, tus paradas y lo que ganaste */
 function renderCierreResumen(r) {
+  const iso = todayISO();
   const c = r.cierre || {};
   const s = dayAutoSummary();
-  const rd = resumenDia(STATE, todayISO());
+  const rd = resumenDia(STATE, iso);
   const mov = rd.migradas + rd.programadas;
   // El bocado que no se dio muestra qué se decidió con él (> < @ ✕)
-  const tb = tareasDelDia(todayISO()).find(t => t.esSapo);
+  const tb = tareasDelDia(iso).find(t => t.esSapo);
   const eb = tb ? estadoTarea(tb) : null;
-  const chipBocado = c.sapo ? '<span class="chip chip--done">hecho</span>'
-    : eb && eb !== "pendiente" && eb !== "hecha" ? `<span class="chip chip--sig">${signoTarea(tb)}</span>` : '<span class="chip">pendiente</span>';
-  return `<div class="card" style="margin-bottom:24px;background:linear-gradient(120deg,var(--cian-soft),var(--surface))">
-    <div class="hero-dia__top" style="margin-bottom:12px"><div style="flex:1;min-width:0"><div class="card__title">✅ Día cerrado</div>
-      <span class="chip chip--streak mt-8" style="color:var(--coral)">🔥 ${computeClosedStreak()} días cerrados</span></div>${eleHero()}</div>
-    <div class="grid grid-2">
-      <div>
-        <div class="text-xs muted">Misión</div><div class="mt-8">${r.mision ? escapeHtml(r.mision) : "—"} ${cumpliChip(c.mision)}</div>
-        <div class="text-xs muted mt-16">${BOCADO.emoji} ${BOCADO.corto}</div><div class="mt-8">${r.sapo ? escapeHtml(r.sapo) : "—"} ${chipBocado}</div>
-        <div class="text-xs muted mt-16">Energía inicio → cierre</div>
-        <div class="mt-8">${r.energia || "—"} → ${c.energia || "—"} / 5</div>
-      </div>
-      <div>
-        ${c.mejor ? `<div class="text-xs muted">Lo mejor / gratitud</div><div class="mt-8">${escapeHtml(c.mejor)}</div>` : ""}
-        ${c.manana ? `<div class="text-xs muted mt-16">Una cosa para mañana</div><div class="mt-8 hl-cian">${escapeHtml(c.manana)}</div>` : ""}
-        <div class="row-wrap mt-16" style="gap:8px">
-          <span class="chip">📊 Hábitos ${s.habDone}/${s.habTotal}</span>
-          ${c.tareas ? `<span class="chip">${AMBITOS.pro.icon} ${c.tareas.pro[0]}/${c.tareas.pro[1]}</span>
-            <span class="chip">${AMBITOS.per.icon} ${c.tareas.per[0]}/${c.tareas.per[1]}</span>`
-            : `<span class="chip">🗂️ Tareas ${s.tareasDone}/${s.tareasTotal}</span>`}
-          ${mov ? `<span class="chip">↪ ${mov} a otro día</span>` : ""}
-          ${rd.delegadas ? `<span class="chip">@ ${rd.delegadas} delegada${rd.delegadas === 1 ? "" : "s"}</span>` : ""}
-          ${rd.soltadas ? `<span class="chip">✕ ${rd.soltadas} soltada${rd.soltadas === 1 ? "" : "s"}</span>` : ""}
-        </div>
-      </div>
-    </div>
-    ${c.nota ? `<div class="divider"></div><div class="text-sm soft">"${escapeHtml(c.nota)}"</div>` : ""}
-    <div class="text-sm muted mt-16">Mañana volvemos a empezar 🌅</div>
-  </div>`;
+  const racha = computeClosedStreak();
+  const ganadas = monedasDeHoy();
+  const fecha = new Date().toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+  const parada = (marca, t, sub, hora) => `<li class="ruta__p is-hecho"><span class="ruta__m ruta__m--${marca}" aria-hidden="true"></span>
+      <div class="ruta__txt"><span class="ruta__t">${t}</span>${sub ? `<span class="ruta__s">${sub}</span>` : ""}</div>${hora ? `<span class="ruta__hora">${hora}</span>` : ""}</li>`;
+  const bocadoSub = !r.sapo ? "" : c.sapo ? "Hecho" : eb && eb !== "pendiente" && eb !== "hecha" ? signoTarea(tb) : "Quedó pendiente";
+  const paradas = parada("abre", r.sinApertura ? "Día sin apertura" : "Abriste tu día", r.pilar ? escapeHtml(r.pilar) : "", horaCorta(r.abiertoTs))
+    + (r.sapo ? parada("bocado", escapeHtml(r.sapo), `${BOCADO.corto} · ${bocadoSub}`, c.sapo && tb && tb.hechaTs ? horaCorta(tb.hechaTs) : "") : "")
+    + parada("cierre", "Cerraste tu día", "", horaCorta(r.cerradoTs));
+  const tot = c.tareas ? [c.tareas.pro[0] + c.tareas.per[0], c.tareas.pro[1] + c.tareas.per[1]] : [s.tareasDone, s.tareasTotal];
+  const movidas = [mov ? `↪ ${mov} a otro día` : "", rd.delegadas ? `@ ${rd.delegadas} delegada${rd.delegadas === 1 ? "" : "s"}` : "",
+    rd.soltadas ? `✕ ${rd.soltadas} soltada${rd.soltadas === 1 ? "" : "s"}` : ""].filter(Boolean);
+  const fila = (k, v) => `<div class="recibo__fila"><dt>${k}</dt><dd>${v}</dd></div>`;
+  const filas = fila("Misión", `${r.mision ? escapeHtml(r.mision) : "—"} ${cumpliChip(c.mision)}`)
+    + (tot[1] ? fila("Tareas", `${tot[0]} de ${tot[1]} hechas${movidas.length ? `<span class="recibo__mov">${movidas.map(m => `<span class="chip">${m}</span>`).join("")}</span>` : ""}`) : "")
+    + (s.habTotal ? fila("Hábitos", `${s.habDone} de ${s.habTotal}`) : "")
+    + fila("Energía", `${r.energia || "—"} → ${c.energia || "—"} de 5`);
+  const notas = (c.mejor ? `<div class="recibo__nota"><span>Agradeces</span>${escapeHtml(c.mejor)}</div>` : "")
+    + (c.manana ? `<div class="recibo__nota"><span>Para mañana</span><b class="hl-cian">${escapeHtml(c.manana)}</b></div>` : "")
+    + (c.nota ? `<div class="recibo__nota"><span>Tu nota</span>"${escapeHtml(c.nota)}"</div>` : "");
+  return `<section class="card hero-focus ruta-dia recibo" data-estado="cerrado">
+    <div class="ruta-dia__top"><div class="ruta-dia__cab">
+      <div class="ruta-dia__fecha">${fecha}</div>
+      <div class="recibo__ok">${iconoLinea("hecho", 16)}Día cerrado</div>
+      <h2 class="ruta-dia__t">Llegaste, ${escapeHtml(STATE.profile.name)}.</h2></div>${eleHero()}</div>
+    <div class="recibo__racha"><b class="recibo__n" data-n="${racha}">${racha}</b><span>${racha === 1 ? "día cerrado<br>seguido" : "días cerrados<br>seguidos"}</span></div>
+    <ol class="ruta">${paradas}</ol>
+    <dl class="recibo__filas">${filas}</dl>
+    ${notas}
+    ${ganadas ? `<div class="recibo__total"><span>Ganaste hoy</span><b>+${ganadas} ${iconoLinea("estrella", 18)}</b></div>` : ""}
+    <div class="recibo__acc"><button class="btn btn--soft" data-action="compartir-dia">${iconoLinea("compartir", 18)}Compartir mi día</button>
+      <button class="btn-ghost" data-action="day-close">Editar el cierre</button></div>
+    <div class="text-sm muted recibo__pie">Mañana volvemos a empezar.</div>
+  </section>`;
 }
 /* Chip de ámbito de una tarea (clic para alternar Pro/Personal) */
 function ambitoChip(t, iso, compacto) {
@@ -1642,7 +1732,7 @@ function renderInicio() {
     <div class="card__head"><div class="card__title">📋 Tareas de hoy</div>
       <div class="row" style="gap:10px">${funcion("enfoque") ? `<button class="btn-ghost" data-action="enfoque-open" style="padding:4px 10px">⏱️ Enfocarme</button>` : ""}<a class="card__hint" href="#semana">Ver semana →</a></div></div>
     ${renderBandejaPendientes()}
-    ${tareasHoy.length ? (bocado ? tareaRowHtml(bocado, hoyISO) : "") + grupo("pro") + grupo("per")
+    ${tareasHoy.length ? (bocado ? tareaRowHtml(bocado, hoyISO, { sinSub: true }) : "") + grupo("pro") + grupo("per")
     : '<div class="empty" style="padding:14px">Sin tareas para hoy. Defínelas en tu ritual de apertura.</div>'}
     <div class="row mt-8">${ambitoPicker("inicio-amb", "per")}<input class="input" id="inicio-tarea" placeholder="Nueva tarea..." style="padding:9px 11px">
       <button class="btn btn--cian" data-action="tarea-add" data-fecha="${hoyISO}" data-input="inicio-tarea" data-amb="inicio-amb" style="padding:9px 12px">+</button></div>
@@ -1655,22 +1745,22 @@ function renderInicio() {
   ${renderMesBanner()}
   ${renderSemanaBanner()}
   <div data-tour="dia">${renderDayHero()}</div>
+  ${renderAtajos()}
   ${renderMisionCard()}
   ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
-  <div class="grid grid-3 inicio-main">
+  <div class="grid grid-${metasMes.length ? 3 : 2} inicio-main">
     ${tareasCard}
     <div class="card">
       <div class="card__head"><div class="card__title">Hábitos de hoy${habToca.length ? ` <span class="muted" style="font-weight:500;white-space:nowrap">· ${doneToday} de ${habToca.length}</span>` : ""}</div>
         <a class="card__hint" href="#habitos">Ver panel →</a></div>
       ${habitsToday || '<div class="empty">Agrega hábitos en el panel.</div>'}
     </div>
-    <div class="card">
+    ${metasMes.length ? `<div class="card">
       <div class="card__head"><div class="card__title">Metas de ${MESES[mIdx]}</div>
         <a class="card__hint" href="#metas">Ver metas →</a></div>
-      ${metasMes.length ? metasMes.map(m => `<div class="item-row"><span class="check"></span>
-        <div class="item-row__main"><div class="item-row__title">${escapeHtml(m.texto)}</div></div></div>`).join("")
-      : '<div class="empty">Sin metas pendientes este mes. 🎉</div>'}
-    </div>
+      ${metasMes.map(m => `<div class="item-row"><span class="check"></span>
+        <div class="item-row__main"><div class="item-row__title">${escapeHtml(m.texto)}</div></div></div>`).join("")}
+    </div>` : ""}
   </div>
   ${renderConsultorioCard()}
   ${kpis.length ? `<div class="grid grid-${Math.min(3, kpis.length)} mt-24">${kpis.join("")}</div>` : ""}
@@ -1692,6 +1782,17 @@ function renderInicio() {
       <button class="btn-ghost" data-action="edit-profile">✎ Editar perfil</button>
     </div>
   </div>`;
+}
+
+/* Todo en un lugar: tus secciones a un toque, como los servicios en la portada de una app
+   de viajes (en el celular; en el computador ya están en el menú de la izquierda) */
+function renderAtajos() {
+  const mods = typeof modulosMas === "function" ? modulosMas().slice(0, 4) : [];
+  if (mods.length < 2) return "";
+  return `<section class="atajos" aria-label="Todo en un lugar">
+    <div class="atajos__head"><h2>Todo en un lugar</h2><button class="atajos__todo" data-action="open-menu">Ver todo</button></div>
+    <div class="atajos__grid">${mods.map(r => `<button class="atajo" data-route="${r.id}">${iconoLinea(r.id, 24)}<span>${escapeHtml(r.label)}</span></button>`).join("")}</div>
+  </section>`;
 }
 
 function statCard(ico, label, value, sub, pct) {

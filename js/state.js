@@ -33,7 +33,7 @@ function defaultState() {
       motto: "Construyendo mi mejor versión",
     },
     settings: {
-      appName: "Rumbo", year: YEAR, theme: "navy", onboarded: false, introVersion: 0, metaLibros: 12,
+      appName: "Rumbo", year: YEAR, theme: "ruta", onboarded: false, introVersion: 0, metaLibros: 12,
       notif: { enabled: false, manana: "08:00", noche: "21:00", subs: [] },
       ritualSemanal: { dia: 0 },   // día del ritual semanal: 0 = domingo, 1 = lunes
       menu: { ocultos: [] },       // módulos de "Más" que la persona ocultó del menú
@@ -260,11 +260,16 @@ function migrate(s) {
   generarRecurrentes(s); // tareas recurrentes de las próximas 2 semanas (id fijo: no duplica)
   if (!s.anios || typeof s.anios !== "object" || Array.isArray(s.anios)) s.anios = {};   // años distintos al base
   if (s.finanzas && Array.isArray(s.finanzas.meses)) s.finanzas.meses.forEach(fm => { if (fm && fm.metaAhorro == null) fm.metaAhorro = 0; });
-  // Temas: los existentes conservan el suyo. Retirados: bosque → bosque-claro; el resto → navy.
+  // Temas: los existentes conservan el suyo. Retirados: bosque → bosque-claro; el resto → ruta.
+  // v78 (diseño Ruta): Navy era el predeterminado, así que quien está en Navy pasa a Ruta, salvo que lo
+  // haya elegido en la Tienda desde este cambio (settings.temaElegido). Se mira en cada carga y no con una
+  // marca de una vez: si un equipo con la versión anterior devuelve el tema a Navy, aquí vuelve a Ruta.
+  // Los demás temas, elegidos o comprados, se respetan.
   if (s.settings) {
-    const TEMAS = ["navy", "claro", "grafito", "medianoche", "bosque-claro", "bosque-oscuro", "atardecer", "oceano", "cuaderno", "terminal", "sakura", "alto-contraste"];
+    const TEMAS = ["ruta", "ruta-noche", "navy", "claro", "grafito", "medianoche", "bosque-claro", "bosque-oscuro", "atardecer", "oceano", "cuaderno", "terminal", "sakura", "alto-contraste"];
     if (s.settings.theme === "bosque") s.settings.theme = "bosque-claro";
-    if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "navy";
+    if (s.settings.theme === "navy" && s.settings.temaElegido !== "navy") s.settings.theme = "ruta";
+    if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "ruta";
   }
   if (s.gamif && !Array.isArray(s.gamif.usos)) s.gamif.usos = [];   // consumibles de la Tienda
   migrarElefante(s);       // v62: accesorios de emoji → ropa del elefante vectorial

@@ -88,12 +88,14 @@ module.exports = async ({ b, ok, errs }) => {
   ok(arrastre.medio === "translateY(80px)" && arrastre.cerrada, "la ventana sigue al dedo y se cierra al soltarla abajo: " + JSON.stringify(arrastre));
 
   // 7) Con movimiento reducido no hay animaciones ni vibración
+  await p.waitForFunction(() => !document.querySelector("#ptsPill .pts-flota"), null, { timeout: 3000 }).catch(() => {});   // que se vaya el «+15» del bocado
   await p.emulateMedia({ reducedMotion: "reduce" });
   await p.evaluate(() => { window.__vib = []; nuevaTarea(STATE, todayISO(), { txt: "Quieta", ambito: "per" }); saveState(); rerender(); });
   const idq = await p.evaluate(() => tareasDelDia(todayISO()).find(t => t.txt === "Quieta").id);
   await p.click(`#view [data-action="tarea-toggle"][data-id="${idq}"]`); await p.waitForTimeout(80);
-  ok(await p.locator("#ptsPill .pts-flota").count() === 0 && await p.evaluate(() => +document.getElementById("ptsVal").textContent === STATE.gamif.puntos && !window.__vib.length),
-    "con «reducir movimiento», las monedas cambian sin animación y no vibra");
+  ok(await p.locator("#ptsPill .pts-flota").count() === 0, "con «reducir movimiento», no flota el «+N»");
+  ok(await p.evaluate(() => +document.getElementById("ptsVal").textContent === STATE.gamif.puntos), "con «reducir movimiento», el contador cambia al tiro");
+  ok(await p.evaluate(() => !window.__vib.length), "con «reducir movimiento», no vibra");
   await p.emulateMedia({ reducedMotion: "no-preference" });
   await ctx.close();
 

@@ -459,6 +459,16 @@ function openEditarTarea(iso, id) {
     <button class="btn btn--primary btn-block" data-action="tarea-editar-save">Guardar</button>`);
   const el = document.getElementById("te-txt"); if (el) { el.focus(); el.select(); }
 }
+/* Nueva tarea para hoy en una ventana (el atajo «Nueva tarea» del ícono) */
+function openNuevaTarea() {
+  const iso = todayISO();
+  openModal("Nueva tarea para hoy", `
+    <div class="field"><div class="row" style="gap:8px">${ambitoPicker("nt-amb", "per")}
+      <input class="input" id="nt-txt" placeholder="¿Qué tienes que hacer?" style="flex:1;min-width:0"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('nt-ok').click()}"></div></div>
+    <div class="modal__cta"><button class="btn btn--primary btn-block" id="nt-ok" data-action="tarea-add" data-fecha="${iso}" data-input="nt-txt" data-amb="nt-amb" data-cerrar="1">Agregar a hoy</button></div>`);
+  enfocarCampo("nt-txt");
+}
 function guardarEditarTarea() {
   const el = document.getElementById("te-txt"); if (!el) return;
   const t = buscarTarea(STATE, el.dataset.fecha, el.dataset.id), txt = el.value.trim();

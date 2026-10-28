@@ -33,7 +33,7 @@ function defaultState() {
       motto: "Construyendo mi mejor versión",
     },
     settings: {
-      appName: "Rumbo", year: YEAR, theme: "ruta", onboarded: false, introVersion: 0, metaLibros: 12,
+      appName: "Rumbo", year: YEAR, theme: "auto", onboarded: false, introVersion: 0, metaLibros: 12,
       notif: { enabled: false, manana: "08:00", noche: "21:00", subs: [] },
       ritualSemanal: { dia: 0 },   // día del ritual semanal: 0 = domingo, 1 = lunes
       menu: { ocultos: [] },       // módulos de "Más" que la persona ocultó del menú
@@ -265,11 +265,13 @@ function migrate(s) {
   // haya elegido en la Tienda desde este cambio (settings.temaElegido). Se mira en cada carga y no con una
   // marca de una vez: si un equipo con la versión anterior devuelve el tema a Navy, aquí vuelve a Ruta.
   // Los demás temas, elegidos o comprados, se respetan.
+  // v80: el predeterminado es "auto" (Ruta de día, Ruta noche de noche). Quien está en Ruta o en Navy
+  // sin haberlo elegido en la Tienda pasa a automático, con la misma regla de cada carga.
   if (s.settings) {
-    const TEMAS = ["ruta", "ruta-noche", "navy", "claro", "grafito", "medianoche", "bosque-claro", "bosque-oscuro", "atardecer", "oceano", "cuaderno", "terminal", "sakura", "alto-contraste"];
+    const TEMAS = ["auto", "ruta", "ruta-noche", "navy", "claro", "grafito", "medianoche", "bosque-claro", "bosque-oscuro", "atardecer", "oceano", "cuaderno", "terminal", "sakura", "alto-contraste"];
     if (s.settings.theme === "bosque") s.settings.theme = "bosque-claro";
-    if (s.settings.theme === "navy" && s.settings.temaElegido !== "navy") s.settings.theme = "ruta";
-    if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "ruta";
+    if (["navy", "ruta"].includes(s.settings.theme) && s.settings.temaElegido !== s.settings.theme) s.settings.theme = "auto";
+    if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "auto";
   }
   if (s.gamif && !Array.isArray(s.gamif.usos)) s.gamif.usos = [];   // consumibles de la Tienda
   migrarElefante(s);       // v62: accesorios de emoji → ropa del elefante vectorial

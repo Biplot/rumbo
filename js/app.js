@@ -93,8 +93,10 @@ async function boot() {
 }
 
 function showAuth() {
+  applyTheme(DEFAULT_THEME);   // la pantalla de acceso también sigue el modo del teléfono
   document.getElementById("app").hidden = true;
   document.getElementById("authScreen").hidden = false;
+  quitarSplash();
   // "Continuar con Google" solo si está activo en Supabase
   const g = document.getElementById("auth-google");
   if (g && BACKEND.googleDisponible) BACKEND.googleDisponible().then(ok => { g.hidden = !ok; });
@@ -113,16 +115,43 @@ async function enterApp(user) {
   document.getElementById("app").hidden = false;
   updateTopbar();
   onRoute();
+  quitarSplash();
   retomarEnfoque();       // ⏱️ sesión de enfoque en curso en este equipo
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
   revisarDispositivoPush();              // 🔔 ¿este dispositivo sigue activado para esta cuenta?
   if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
   else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
   else if (debeElegirElefante()) setTimeout(openElegirElefante, 600);
+  procesarAtajo();
+}
+/* La pantalla de carga (index.html) se va cuando ya se ve la app o el acceso */
+function quitarSplash() {
+  const s = document.getElementById("splash");
+  if (!s) return;
+  s.classList.add("is-fuera");
+  setTimeout(() => s.remove(), 300);
+}
+/* Atajos del ícono (mantener presionado el ícono de Rumbo): ?atajo=abrir | tarea | cerrar.
+   La bienvenida, las novedades y la elección del elefante van primero. */
+function procesarAtajo() {
+  const a = new URLSearchParams(location.search).get("atajo");
+  if (!a) return;
+  history.replaceState(null, "", location.pathname + location.hash);   // que recargar no lo repita
+  if (!STATE.settings.onboarded || (STATE.settings.introVersion || 1) < INTRO_VERSION || debeElegirElefante()) return;
+  setTimeout(() => {
+    if (a === "abrir") {
+      if (dayState() === "por-abrir") openRitualModal({ foco: "r-mision" }); else toast("Ya abriste tu día ✓");
+    } else if (a === "cerrar") {
+      const iso = puedeCerrarDia(todayISO()) ? todayISO() : pendingCierreDate();
+      if (dayState() === "cerrado" && iso === todayISO()) toast("Tu día ya está cerrado ✓");
+      else if (iso) openCierreModal(iso);
+      else toast("Primero abre tu día 🌅", true);
+    } else if (a === "tarea") openNuevaTarea();
+  }, 400);
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 18;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 19;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -278,6 +307,10 @@ const NOVEDADES = {
     ["📍", "Tu día como un recorrido", "En Inicio, tu misión va arriba como un destino y tu día en tres paradas: abres, das tu primer bocado y cierras. Una barra te muestra cuánto falta para tu hora de cierre."],
     ["🧾", "El recibo de tu día", "Al cerrar ves tu racha, tus horas y lo que ganaste, y puedes compartir la imagen de tu día en tus historias. ¿Borraste una tarea sin querer? Toca Deshacer."],
     ["🌙", "Ruta noche", "¿Prefieres oscuro? Ruta noche es gratis en Recompensas → Tienda → Temas. Si tenías otro tema elegido, lo conservas; Navy sigue disponible."],
+  ],
+  19: [
+    ["🌗", "Tema automático", "Rumbo sigue el modo de tu teléfono: Ruta de día y Ruta noche de noche. ¿Lo quieres siempre claro u oscuro? Elige Ruta o Ruta noche en Recompensas → Tienda → Temas."],
+    ["📲", "Atajos en el ícono", "Mantén presionado el ícono de Rumbo (Android y computador) para abrir tu día, agregar una tarea o cerrar tu día de una."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1089,7 +1122,9 @@ function onClick(e) {
       const txt = input.value.trim(); if (!txt) return;
       const ambEl = d.amb && document.getElementById(d.amb);
       nuevaTarea(STATE, d.fecha, { txt, ambito: ambEl && ambEl.value === "pro" ? "pro" : "per" });
-      saveState(); rerender(); break;
+      saveState(); rerender();
+      if (d.cerrar) { closeModal(); toast("Tarea agregada a hoy ✓"); }
+      break;
     }
     case "bocado-hecho":   // la parada del primer bocado en Inicio marca la misma tarea
     case "tarea-toggle": {
@@ -1254,12 +1289,20 @@ function onClick(e) {
   }
 }
 
-const BASE_THEMES = ["ruta", "ruta-noche", "navy", "claro", "alto-contraste"];   // gratis (alto contraste: accesibilidad)
-const DEFAULT_THEME = "ruta";   // v78: diseño Ruta (negro, blanco y coral) para todos
+const BASE_THEMES = ["auto", "ruta", "ruta-noche", "navy", "claro", "alto-contraste"];   // gratis (alto contraste: accesibilidad)
+const DEFAULT_THEME = "auto";   // v80: Ruta de día y Ruta noche de noche, según el modo del teléfono
+/* "auto" no es un tema en sí: según el teléfono (modo claro u oscuro) se ve Ruta o Ruta noche */
+const OSCURO = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+function resolverTema(t) { return t === "auto" ? (OSCURO && OSCURO.matches ? "ruta-noche" : "ruta") : t; }
+// Si el teléfono pasa a modo oscuro (o vuelve a claro) con la app abierta, Rumbo lo sigue al tiro
+if (OSCURO) {
+  const alCambiar = () => { if (!STATE || STATE.settings.theme === "auto") applyTheme(STATE ? STATE.settings.theme : DEFAULT_THEME); };
+  OSCURO.addEventListener ? OSCURO.addEventListener("change", alCambiar) : OSCURO.addListener && OSCURO.addListener(alCambiar);
+}
 /* Fuentes de los temas Bosque: se cargan solo cuando se aplica uno de ellos */
 const FUNDOS_FONTS_URL = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Mulish:wght@400;500;600;700&display=swap";
 function applyTheme(t) {
-  const id = THEMES.some(x => x.id === t) ? t : DEFAULT_THEME;
+  const id = resolverTema(THEMES.some(x => x.id === t) ? t : DEFAULT_THEME);
   document.documentElement.setAttribute("data-theme", id);
   loadThemeFonts(id);
   // El color del navegador (Android) y de la barra de estado sigue a la barra de arriba del tema
@@ -1323,8 +1366,10 @@ const FONT_CORMORANT = "'Cormorant Garamond',Georgia,serif";
 const FONT_MULISH = "'Mulish',sans-serif";
 /* Orden = orden en la Tienda */
 const THEMES = [
-  /* --- Bases gratis: Ruta (predeterminado desde v78) y su versión de noche --- */
-  { id: "ruta", nombre: "Ruta", base: "Base", concepto: "El diseño de Rumbo: blanco, negro y un solo acento coral. Letras grandes y una acción clara a la vez. El tema predeterminado.", costo: 0,
+  /* --- Bases gratis: Automático (predeterminado desde v80), Ruta y su versión de noche --- */
+  { id: "auto", nombre: "Automático", base: "Base", auto: true, concepto: "Ruta de día y Ruta noche de noche: sigue el modo claro u oscuro de tu teléfono. El tema predeterminado.", costo: 0,
+    bg: "#FFFFFF", card: "#F3F3F3", accent: "#0B0B0C", cta: "#0B0B0C", onCta: "#FFFFFF", text: "#0B0B0C", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
+  { id: "ruta", nombre: "Ruta", base: "Base", concepto: "El diseño de Rumbo: blanco, negro y un solo acento coral. Letras grandes y una acción clara a la vez. Siempre claro, aunque tu teléfono esté en modo oscuro.", costo: 0,
     bg: "#FFFFFF", card: "#F3F3F3", accent: "#0B0B0C", cta: "#0B0B0C", onCta: "#FFFFFF", text: "#0B0B0C", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
   { id: "ruta-noche", nombre: "Ruta noche", base: "Base", concepto: "El diseño Ruta en oscuro: negro profundo, texto blanco y el mismo acento coral. Descansa la vista en la noche.", costo: 0,
     bg: "#0B0B0C", card: "#1F1F21", accent: "#FFFFFF", cta: "#FFFFFF", onCta: "#0B0B0C", text: "#F5F5F5", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
@@ -1358,11 +1403,11 @@ const THEMES = [
 /* renderTienda: ver js/tienda.js (fichas) */
 
 function openThemePreview(themeId) {
-  const t = THEMES.find(x => x.id === themeId); if (!t) return;
-  loadThemeFonts(t.id);
-  const owned = themeOwned(t.id);
-  const active = STATE.settings.theme === t.id;
-  const mock = `
+  const t0 = THEMES.find(x => x.id === themeId); if (!t0) return;
+  loadThemeFonts(resolverTema(t0.id));
+  const owned = themeOwned(t0.id);
+  const active = STATE.settings.theme === t0.id;
+  const maqueta = t => `
     <div style="background:${t.bg};border-radius:14px;padding:14px;font-family:${t.font};color:${t.text}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div style="font-weight:700;font-size:17px;font-family:${t.fontDisplay || t.font}">Rumbo</div>
@@ -1379,13 +1424,16 @@ function openThemePreview(themeId) {
         <button style="margin-left:auto;background:${t.cta};color:${t.onCta || "#fff"};border:none;border-radius:${t.radius};padding:8px 16px;font-size:12px;font-weight:700;font-family:${t.font}">Abre tu día</button>
       </div>
     </div>`;
+  const mock = t0.auto
+    ? ["ruta", "ruta-noche"].map((id, i) => `<div class="text-xs muted" style="margin:${i ? "12px" : "0"} 0 6px">${i ? "De noche (modo oscuro)" : "De día (modo claro)"}</div>${maqueta(THEMES.find(x => x.id === id))}`).join("")
+    : maqueta(t0);
   const cta = active
     ? `<button class="btn btn--soft btn-block" data-action="close-modal">Ya es tu tema actual</button>`
     : owned
-      ? `<button class="btn btn--cian btn-block" data-action="set-theme" data-theme="${t.id}">Aplicar este tema</button>`
-      : botonCompra(t.costo, `data-action="tema-buy" data-theme="${t.id}"`, "Desbloquear");
-  openModal("Vista previa · " + t.nombre, `
-    <p class="text-sm muted" style="margin-bottom:14px">${escapeHtml(t.concepto)}</p>
+      ? `<button class="btn btn--cian btn-block" data-action="set-theme" data-theme="${t0.id}">Aplicar este tema</button>`
+      : botonCompra(t0.costo, `data-action="tema-buy" data-theme="${t0.id}"`, "Desbloquear");
+  openModal("Vista previa · " + t0.nombre, `
+    <p class="text-sm muted" style="margin-bottom:14px">${escapeHtml(t0.concepto)}</p>
     ${mock}
     <div class="mt-16">${cta}</div>`);
 }

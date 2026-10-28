@@ -41,7 +41,10 @@ const TIENDA_CATS = [["utiles", "Útiles"], ["funciones", "Funciones"], ["temas"
 function fichaHtml(it) {
   const precio = it.estado === "equipado" ? "En uso" : it.estado === "tuyo" ? (it.cat === "elefante" ? it.precioTxt : "Es tuyo")
     : it.estado === "bloqueado" ? "🔒 " + (it.bloqueoTxt || "Bloqueado") : (it.precioTxt || it.costo + " ⭐");
-  const icono = it.tema ? `<span class="ficha__ico ficha__ico--tema" style="background:${it.tema.auto ? "linear-gradient(135deg, #FFFFFF 50%, #0B0B0C 50%)" : it.tema.bg}"><i style="background:${it.tema.cta}"></i><i style="background:${it.tema.accent}"></i></span>`
+  const icono = it.tema ? (it.tema.auto
+      // Automático: mitad Ruta (día) y mitad Ruta noche, con un punto de cada uno
+      ? `<span class="ficha__ico ficha__ico--tema" style="background:linear-gradient(90deg, #FFFFFF 50%, #0B0B0C 50%)"><i style="background:#0B0B0C"></i><i style="background:#FFFFFF"></i></span>`
+      : `<span class="ficha__ico ficha__ico--tema" style="background:${it.tema.bg}"><i style="background:${it.tema.cta}"></i><i style="background:${it.tema.accent}"></i></span>`)
     : `<span class="ficha__ico">${it.icon}</span>`;
   return `<button class="ficha is-${it.estado}${it.tema ? " ficha--tema" : ""}" ${it.accion || `data-action="tienda-ficha" data-key="${escapeAttr(it.key)}"`} ${it.attr || ""}>
     ${it.estado === "tuyo" || it.estado === "equipado" ? `<span class="ficha__ok" aria-hidden="true">✓</span>` : ""}

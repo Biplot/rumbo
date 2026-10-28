@@ -64,6 +64,7 @@ function findBadge(id) { return BADGES.find(b => b.id === id); }
 function checkBadges() {
   const g = STATE.gamif; g.badges = g.badges || [];
   let gained = 0, count = 0, last = "";
+  const nuevas = [];
   BADGES.forEach(b => {
     if (g.badges.includes(b.id)) return;
     let ok = false; try { ok = b.check(STATE); } catch (e) { ok = false; }
@@ -71,14 +72,16 @@ function checkBadges() {
       g.badges.push(b.id);
       // La recompensa sale de su movimiento "insignia:<id>": nunca se paga dos veces
       if (registrarMovimiento("insignia:" + b.id, b.reward || 0, b.reward || 0, "Insignia " + b.nombre, true)) gained += b.reward || 0;
-      count++; last = b.nombre;
+      count++; last = b.nombre; nuevas.push(b.id);
     }
   });
   if (typeof avisarElefantes === "function") avisarElefantes();   // 🐘 tipos de elefante que se ganan
   if (typeof avisarAvatares === "function") avisarAvatares();     // 🎭 avatares del elenco que se ganan
   if (count > 0) {
     saveState(); refreshPts();
-    if (gained > 0) toast(count === 1 ? `🏅 ${last} · +${gained} ⭐` : `🏅 ${count} insignias · +${gained} ⭐`);
+    // El momento de ganar (cielo.js): al cerrar el día, o un aviso que se toca para ver la medalla
+    const anunciadas = typeof anunciarInsignias === "function" && anunciarInsignias(nuevas);
+    if (gained > 0 && !anunciadas) toast(count === 1 ? `🏅 ${last} · +${gained} ⭐` : `🏅 ${count} insignias · +${gained} ⭐`);
   }
 }
 

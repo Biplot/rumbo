@@ -440,9 +440,7 @@ function crearMotorCielo(T, D) {
   }
 
   /* Medallas nuevas desde la última visita: llegan como estrella fugaz */
-  const CLAVE_VISTO = "rumbo-cielo-visto";
-  function leerVisto() { try { const v = JSON.parse(localStorage.getItem(CLAVE_VISTO) || "null"); return Array.isArray(v) ? v : null; } catch (e) { return null; } }
-  function guardarVisto(ids) { try { localStorage.setItem(CLAVE_VISTO, JSON.stringify(ids)); } catch (e) {} }
+  const leerVisto = () => D.visto(), guardarVisto = ids => D.guardarVisto(ids);
   const V0 = new T.Vector3();
   function llegar(E, demora) {
     const ini = enCielo(E.yaw + 0.42, E.pitch + 0.2), fin = E.pos;
@@ -566,14 +564,105 @@ function crearMotorCielo(T, D) {
     } else { brillo(fondo, 0x7B5BFF, 10, 0, 0, 0, 0.35); brillo(fondo, 0xC7AEFF, 5, 1.2, 0.6, 0, 0.2); fondo.position.set(0, 0, -6); }
     brillo(fondo, luz, 8.5, cx, cy, 0, I.gano ? 0.42 : 0.12);
     const anim = t => { cuerpo.position.y = CALMO ? 0 : Math.sin(t * 1.3) * 0.06; chis.rotation.y = CALMO ? 0 : -t * 0.12; };
-    return { g, anim, fondo, cuerpo };
+    return { g, anim, fondo, cuerpo, A: new Animador() };
   }
-  function ponerHero(id, pop) {
+  /* El momento de ganar: la medalla llega girando entre chispas, se luce un momento y sube a su
+     estrella en la constelación, que se enciende (y se vuelve dorada si con ella se completa) */
+  const ALZA = 2.3;   // su estrella queda arriba de la medalla, para que se vea el viaje
+  function heroGanar(id) {
+    const I = D.info(id), g = new T.Group(), luz = new T.Color(METAL[I.metal].luz), An = new Animador();
+    const cuerpo = new T.Group(); cuerpo.add(heroMedalla(I)); g.add(cuerpo);
+    const aura = brillo(g, luz, 5.5, 0, 0, -0.5, 0);
+    // Chispas que salen disparadas cuando llega
+    const nb = 80, pb = new Float32Array(nb * 3), dir = [], rb = semilla(id.length * 17 + 3);
+    for (let i = 0; i < nb; i++) { const u = rb() * 6.283, y = rb() * 2 - 1, q = Math.sqrt(1 - y * y), v = 1.4 + rb() * 1.6; dir.push([Math.cos(u) * q * v, y * v * 0.8, Math.sin(u) * q * v * 0.6]); }
+    const gb = new T.BufferGeometry(); gb.setAttribute("position", new T.BufferAttribute(pb, 3));
+    const mb = new T.PointsMaterial({ color: luz, size: 0.07, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending });
+    g.add(new T.Points(gb, mb));
+    const fondo = new T.Group(), S = 3.2, F = FIG[I.fam], h = { g, fondo, cuerpo, A: An, y0: 0, vuela: false };
+    let nodo = null, rot = null, anillo = null, llegada = null, objetivo = null, completa = false, n = 0, N = 0;
+    const lineas = [];
+    if (F && I.idx >= 0 && F.p[I.idx]) {
+      const lista = FAM[I.fam].ids.map(x => D.info(x)), P = j => new T.Vector3(F.p[j][0] * S, F.p[j][1] * S, 0);
+      const cx = F.p[I.idx][0] * S, cy = F.p[I.idx][1] * S;
+      fondo.position.set(-cx, -cy + ALZA, -6); objetivo = new T.Vector3(0, ALZA, -6);
+      F.l.forEach(par => {
+        const a = lista[par[0]], b = lista[par[1]]; if (!a || !b) return;
+        const toca = par[0] === I.idx || par[1] === I.idx, on = a.gano && b.gano, antes = on && !toca;
+        const desde = P(toca && par[1] === I.idx ? par[1] : par[0]), hasta = P(toca && par[1] === I.idx ? par[0] : par[1]);
+        const gl = new T.BufferGeometry().setFromPoints([desde, antes ? hasta : desde.clone()]);
+        const m = new T.LineBasicMaterial({ color: antes ? 0xA9B8E8 : 0x6F7DB0, transparent: true, opacity: antes ? 0.45 : 0.15, depthWrite: false });
+        fondo.add(new T.Line(gl, m)); lineas.push({ m, gl, desde, hasta, on, nueva: on && toca });
+        if (!on) gl.attributes.position.setXYZ(1, hasta.x, hasta.y, hasta.z);   // tenue pero entera
+      });
+      lista.forEach((E, j) => {
+        if (!E || !F.p[j]) return;
+        const yo = j === I.idx, prendida = E.gano && !yo;
+        const sp = new T.Sprite(new T.SpriteMaterial({ map: texNodo(E, prendida), transparent: true, opacity: prendida ? 1 : 0.55, depthWrite: false }));
+        sp.position.copy(P(j)); sp.scale.setScalar(prendida ? 1.15 : 0.8); fondo.add(sp); if (yo) nodo = sp;
+      });
+      N = lista.length; n = lista.filter(E => E && E.gano).length; completa = n === N;
+      // La figura entera (con su rótulo abajo): la cámara se aleja hasta verla cuando la medalla sube
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      F.p.forEach(q => { x0 = Math.min(x0, q[0] * S); x1 = Math.max(x1, q[0] * S); y0 = Math.min(y0, q[1] * S); y1 = Math.max(y1, q[1] * S); });
+      rot = new T.Sprite(new T.SpriteMaterial({ map: texTexto(figNombre(I.fam), `${FAM[I.fam].n.toUpperCase()} · ${n - 1} DE ${N}`), transparent: true, opacity: 0, depthWrite: false }));
+      rot.position.set((x0 + x1) / 2, y0 - 1.5, 0); rot.scale.set(3.4, 0.85, 1); fondo.add(rot);
+      const abajo = y0 - 2;
+      h.vista = { k: 0, c: new T.Vector3(fondo.position.x + (x0 + x1) / 2, fondo.position.y + (abajo + y1) / 2, -6), mw: Math.max((x1 - x0) / 2, 1.7) + 1, mh: (y1 - abajo) / 2 + 0.9 };
+      llegada = brillo(fondo, luz, 4.5, cx, cy, 0, 0);
+      anillo = new T.Sprite(new T.SpriteMaterial({ map: texAnillo(), color: luz, transparent: true, opacity: 0, depthWrite: false })); anillo.position.set(cx, cy, 0); fondo.add(anillo);
+    } else { brillo(fondo, 0x7B5BFF, 10, 0, 0, 0, 0.35); brillo(fondo, 0xC7AEFF, 5, 1.2, 0.6, 0, 0.2); fondo.position.set(0, 0, -6); }
+    const encender = () => {   // su estrella queda prendida y sus trazos, dibujados
+      if (!nodo) return;
+      nodo.material.map = texNodo(I, true); nodo.material.opacity = 1; nodo.material.needsUpdate = true;
+      rot.material.map.dispose(); rot.material.map = texTexto(figNombre(I.fam), completa ? "¡COMPLETA!" : `${FAM[I.fam].n.toUpperCase()} · ${n} DE ${N}`); rot.material.needsUpdate = true;
+    };
+    const trazo = (o, k) => { const p = o.gl.attributes.position, V = o.desde.clone().lerp(o.hasta, eOut(k)); p.setXYZ(1, V.x, V.y, V.z); p.needsUpdate = true; o.m.color.set(completa ? 0xFFE3A3 : 0xA9B8E8); o.m.opacity = 0.15 + 0.4 * k; };
+    h.anim = t => { if (!h.vuela) cuerpo.position.y = h.y0 + (CALMO ? 0 : Math.sin(t * 1.3) * 0.05); };
+    if (QUIETO) {   // sin movimiento: la medalla al frente y su estrella ya encendida
+      aura.material.opacity = 0.5; encender(); if (nodo) { nodo.scale.setScalar(1.15); rot.material.opacity = 0.85; }
+      lineas.forEach(o => { if (o.nueva) trazo(o, 1); if (completa && o.on) { o.m.color.set(0xFFE3A3); o.m.opacity = 0.9; } });
+      return h;
+    }
+    cuerpo.scale.setScalar(0.001);
+    An.add(1.3, k => { cuerpo.scale.setScalar(Math.max(0.001, eBack(k))); cuerpo.rotation.y = lerp(-3 * Math.PI, 0, eOut(k)); h.y0 = lerp(-0.6, 0, eOut(k)); aura.material.opacity = 0.55 * eOut(k); });
+    An.add(1.3, k => {
+      const p = gb.attributes.position, e = eOut(k) * 1.6;
+      for (let i = 0; i < nb; i++) p.setXYZ(i, dir[i][0] * e, dir[i][1] * e - 0.6 * k * k, dir[i][2] * e);
+      p.needsUpdate = true; mb.opacity = k < 0.12 ? k / 0.12 : 1 - (k - 0.12) / 0.88;
+    }, 0.3);
+    An.add(1.7, k => { cuerpo.rotation.y = Math.sin(k * Math.PI * 2) * 0.35 * (1 - k * 0.4); }, 1.3);
+    if (!objetivo) return h;   // las secretas no tienen figura: se quedan brillando
+    const P0 = new T.Vector3();
+    An.add(1.2, k => {
+      if (!h.vuela) { h.vuela = true; P0.copy(cuerpo.position); }
+      const q = eIO(k); cuerpo.position.lerpVectors(P0, objetivo, q); cuerpo.scale.setScalar(lerp(1, 0.12, q));
+      cuerpo.rotation.y = q * Math.PI * 2; aura.material.opacity = 0.55 * (1 - q);
+    }, 3.1, () => { cuerpo.visible = false; });
+    An.add(1.7, k => { h.vista.k = eIO(k); }, 3.1);
+    An.add(0.7, k => { rot.material.opacity = 0.85 * k; }, 4.5);
+    An.add(0.75, k => {
+      if (k > 0 && nodo.material.opacity < 1) encender();
+      nodo.scale.setScalar(k < 0.35 ? lerp(0.8, 1.9, k / 0.35) : lerp(1.9, 1.15, eOut((k - 0.35) / 0.65)));
+      llegada.material.opacity = 0.7 * Math.sin(Math.PI * k);
+      anillo.scale.setScalar(lerp(0.6, 3.6, eOut(k))); anillo.material.opacity = 0.9 * (1 - k);
+    }, 4.3);
+    lineas.filter(o => o.nueva).forEach(o => An.add(0.6, k => trazo(o, k), 4.45));
+    if (completa) An.add(1.0, k => { lineas.forEach(o => { if (o.on) { o.m.color.set(0xA9B8E8).lerp(new T.Color(0xFFE3A3), k); o.m.opacity = lerp(0.45, 0.9, k); } }); llegada.material.opacity = Math.max(llegada.material.opacity, 0.35 * k); }, 5.0);
+    return h;
+  }
+  function quitarHero() {
+    if (!hero) return;
+    if (hero.g.parent) hero.g.parent.remove(hero.g);
+    est.escena.remove(hero.fondo); liberar(hero.g); liberar(hero.fondo); hero = null;
+  }
+  function ponerHero(id, pop, ganar) {
     const s = estudio();
-    if (hero) { s.giro.remove(hero.g); s.escena.remove(hero.fondo); liberar(hero.g); liberar(hero.fondo); }
-    hero = heroDe(id); s.giro.add(hero.g); s.escena.add(hero.fondo);
+    quitarHero();
+    hero = ganar ? heroGanar(id) : heroDe(id);
+    (ganar ? s.escena : s.giro).add(hero.g); s.escena.add(hero.fondo);   // al ganar, la medalla no gira con el dedo: viaja
     giro.rot = giro.obj = 0; giro.vel = 0; giro.quieto = 0;
-    if (pop && !QUIETO) { const c = hero.cuerpo; c.scale.setScalar(0.001); A.add(0.55, k => { c.scale.setScalar(Math.max(0.001, eBack(k))); }); }
+    if (pop && !QUIETO && !ganar) { const c = hero.cuerpo; c.scale.setScalar(0.001); hero.A.add(0.55, k => { c.scale.setScalar(Math.max(0.001, eBack(k))); }); }
     pedir();
   }
   /* Aleja la cámara hasta que la medalla (una esfera de radio 2) quepa entera en la vista */
@@ -591,6 +680,14 @@ function crearMotorCielo(T, D) {
     }
     d *= giro.zoom;
     camI.fov = 30; camI.aspect = asp; camI.position.set(0, d * sp, d * cp); camI.lookAt(0, 0, 0); camI.updateProjectionMatrix();
+  }
+
+  /* Al subir la medalla, la cámara pasa de mirarla a ella a mirar su constelación entera */
+  const P1 = new T.Vector3(), M1 = new T.Vector3();
+  function mirarFigura(v) {
+    const t = Math.tan(15 * Math.PI / 180), d = Math.max(v.mh / t, v.mw / (t * ancho / alto));
+    P1.set(v.c.x, v.c.y + d * Math.sin(giro.pitch), v.c.z + d * Math.cos(giro.pitch));
+    camI.position.lerp(P1, v.k); M1.set(0, 0, 0).lerp(v.c, v.k); camI.lookAt(M1); camI.updateProjectionMatrix();
   }
 
   /* ============================================================
@@ -620,8 +717,9 @@ function crearMotorCielo(T, D) {
   function cuadro(now) {
     raf = 0;
     if (!modo || !caja || !document.body.contains(canvas)) return;
-    const dt = Math.min(0.05, ultimo ? (now - ultimo) / 1000 : 0.016); ultimo = now;
-    const ocupado = !A.vacio() || arrastre || (modo === "cielo" && etqNueva) || Math.abs(giro.vel) > 1e-4 || (modo === "cerca" && Math.abs(giro.obj - giro.rot) > 1e-3);
+    if (LENTO && ultimo && now - ultimo < 66) { raf = requestAnimationFrame(cuadro); return; }   // por software: unos 15 cuadros por segundo
+    const dt = Math.min(LENTO ? 0.1 : 0.05, ultimo ? (now - ultimo) / 1000 : 0.016); ultimo = now;
+    const ocupado = !A.vacio() || arrastre || (modo === "cielo" && etqNueva) || (modo === "cerca" && hero && !hero.A.vacio()) || Math.abs(giro.vel) > 1e-4 || (modo === "cerca" && Math.abs(giro.obj - giro.rot) > 1e-3);
     if (!visible && modo === "cielo") return;   // el cielo quedó fuera de la vista: vuelve al reaparecer
     if (CALMO && !ocupado && !sucio) return;   // sin movimiento: se dibuja solo cuando algo cambia (pedir)
     raf = requestAnimationFrame(cuadro);
@@ -653,7 +751,8 @@ function crearMotorCielo(T, D) {
       // quieta un rato: se mece un poco para que el metal juegue con la luz
       const mece = CALMO || arrastre || giro.quieto < 1.2 ? 0 : Math.sin((giro.quieto - 1.2) * 0.7) * 0.35 * Math.min(1, (giro.quieto - 1.2) / 1.5);
       est.giro.rotation.y = giro.rot + mece;
-      hero.anim(reloj); encuadrar();
+      hero.A.tick(dt); hero.anim(reloj); encuadrar();
+      if (hero.vista && hero.vista.k > 0) mirarFigura(hero.vista);
       r.toneMappingExposure = 1; r.render(est.escena, camI);
     }
   }
@@ -707,10 +806,16 @@ function crearMotorCielo(T, D) {
     },
     lento: LENTO,
     abrir(id, c) { hover(null); etqNueva = null; etiqueta(null); modo = "cerca"; canvas.style.touchAction = "none"; giro.pitch = 0.12; giro.zoom = 1; colgar(c); ponerHero(id, true); arrancar(); },
-    cambiar(id) { if (modo === "cerca") { ponerHero(id, true); arrancar(); } },
+    cambiar(id) { if (modo === "cerca") { giro.pitch = 0.12; ponerHero(id, true); arrancar(); } },
+    /* El momento de ganar (cielo.js lo abre al cerrar el día o desde el aviso de medalla nueva) */
+    ganar(id, c) {
+      hover(null); etqNueva = null; etiqueta(null); modo = "cerca"; canvas.style.touchAction = "none"; giro.pitch = 0.04; giro.zoom = 1;
+      if (c) colgar(c);
+      ponerHero(id, false, true); arrancar();
+    },
     voltear() { if (modo !== "cerca") return; const base = Math.round(giro.rot / Math.PI) * Math.PI; giro.obj = base + Math.PI; giro.vel = 0; giro.quieto = 0; pedir(); },
     /* Dónde está una medalla en el lienzo (para las pruebas) */
     donde(id) { const E = cielo.nodos[id]; if (!E || modo !== "cielo" || !E.nodo.visible) return null; ponerCamara(reloj); return enPantalla(E.pos); },
-    cerrar() { if (hero && est) { est.giro.remove(hero.g); est.escena.remove(hero.fondo); liberar(hero.g); liberar(hero.fondo); hero = null; } modo = null; detener(); },
+    cerrar() { if (est) quitarHero(); modo = null; detener(); },
   };
 }

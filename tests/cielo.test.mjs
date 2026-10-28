@@ -41,4 +41,25 @@ export default async function ({ G, test, assert }) {
     assert.equal(cieloInfo("medio-camino", s).avance, null);                  // sin meta anual no hay porcentaje que mostrar
     s.gamif.badges.push("buho"); assert.equal(cieloInfo("buho", s).oculta, false); assert.equal(cieloInfo("buho", s).fecha, "");
   });
+
+  test("recibo: las medallas de un día salen del ledger, en orden; «lo más cerca» es la de mayor avance", () => {
+    const insigniasDelDia = G("insigniasDelDia"), cieloMasCerca = G("cieloMasCerca");
+    const s = migrate(defaultState());
+    const gana = (id, ts) => { s.gamif.badges.push(id); ledgerRegistrar(s, "insignia:" + id, 10, 10, "Insignia", ts); };
+    gana("semana-fuego", new Date(2026, 9, 28, 21, 5).getTime());
+    gana("primer-paso", new Date(2026, 9, 28, 21, 0).getTime());
+    gana("madrugador", new Date(2026, 9, 27, 8, 0).getTime());
+    ledgerRegistrar(s, "insignia:centurion", 40, 40, "Insignia", new Date(2026, 9, 28, 22, 0).getTime());   // sin ganarla de verdad: no cuenta
+    assert.equal(insigniasDelDia(s, "2026-10-28").join(","), "primer-paso,semana-fuego");
+    assert.equal(insigniasDelDia(s, "2026-10-26").length, 0);
+    // 3 aperturas antes de las 7 (Alba 3 de 10) y un libro terminado (Devorador 1 de 3: el que está más cerca)
+    const t = migrate(defaultState());
+    for (let d = 1; d <= 3; d++) t.ritual.dias[`2026-10-0${d}`] = { hecho: true, abiertoTs: new Date(2026, 9, d, 6, 15).getTime() };
+    t.lecturas = [{ id: "l1", titulo: "Uno", estado: "terminado" }];
+    t.gamif.badges.push("pagina-uno");
+    const c = cieloMasCerca(t);
+    assert.equal(c.id, "devorador"); assert.equal(c.a.txt, "1 de 3 libros");
+    t.gamif.badges.push("devorador", "madrugador");
+    assert.equal(cieloMasCerca(t).id, "alba-b");                                // y de cada serie, solo su próximo nivel
+  });
 }

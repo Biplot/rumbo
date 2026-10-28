@@ -242,6 +242,7 @@ function renderInsignias() {
   const f = (v, l) => `<button class="${INS_FILTRO === v ? "is-active" : ""}" data-action="ins-filtro" data-v="${v}">${l}</button>`;
   return `
   ${tabsRecompensas()}
+  ${typeof cieloHtml === "function" ? cieloHtml(g) : ""}
   <div class="flex-between" style="flex-wrap:wrap;gap:10px;margin-bottom:14px">
     <div class="section-title" style="margin:0">🏅 Insignias · ${g.badges.length}/${BADGES.length}</div>
     <div class="seg">${f("todas", "Todas")}${f("ganadas", "Ganadas")}${f("porganar", "Por ganar")}</div>

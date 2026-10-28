@@ -151,7 +151,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 19;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 20;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -311,6 +311,10 @@ const NOVEDADES = {
   19: [
     ["🌗", "Tema automático", "Rumbo sigue el modo de tu teléfono: Ruta de día y Ruta noche de noche. ¿Lo quieres siempre claro u oscuro? Elige Ruta o Ruta noche en Recompensas → Tienda → Temas."],
     ["📲", "Atajos en el ícono", "Mantén presionado el ícono de Rumbo (Android y computador) para abrir tu día, agregar una tarea o cerrar tu día de una."],
+  ],
+  20: [
+    ["🌌", "Tu cielo de insignias", "En Recompensas → Insignias cada insignia es una medalla en el cielo, y cada familia una constelación: La Copa, La Brújula, El Elefante, El Sol, La Columna y La Medalla. Enciéndelas una a una."],
+    ["🏅", "Medallas de cerca", "Toca cualquier medalla, en el cielo o en la lista, para verla en 3D: gírala, dale vuelta y mira cuándo la ganaste o cuánto te falta."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -598,7 +602,7 @@ function initGestures() {
     if (!document.getElementById("modalOverlay").hidden) return;
     if (document.getElementById("sidebar").classList.contains("is-open")) return;
     if (startsInScrollableX(e.target) || isFormEl(e.target)) return;
-    if (e.target.closest && e.target.closest("[data-swipe]")) return;   // deslizar una tarea no cambia de sección
+    if (e.target.closest && e.target.closest("[data-swipe], [data-gesto]")) return;   // deslizar una tarea (o mirar el cielo) no cambia de sección
     sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); valid = true;
   }, { passive: true });
   view.addEventListener("touchend", e => {
@@ -1202,6 +1206,7 @@ function onClick(e) {
     /* Recompensas / cosméticos */
     case "cos-buy": buyItem(d.id); break;
     case "cos-equip": equipItem(d.id); break;
+    case "ins-ver": abrirInsignia(d.id); break;
     case "badge-destacar":
       STATE.gamif.equipped.insignia = (STATE.gamif.equipped.insignia === d.id ? null : d.id);
       saveState(); rerender(); break;

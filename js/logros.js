@@ -153,13 +153,15 @@ function registrarCompartido() {
   saveState();
 }
 
-/* Tarjetas de insignias para Recompensas: las series muestran su nivel y la meta siguiente */
+/* Tarjetas de insignias para Recompensas: las series muestran su nivel y la meta siguiente.
+   Tocar una tarjeta abre su medalla de cerca (cielo.js) */
 function insigniasHtml(g) {
   const tiene = id => g.badges.includes(id);
+  const ver = (id, nombre) => typeof abrirInsignia === "function" ? ` data-action="ins-ver" data-id="${id}" role="button" tabindex="0" aria-label="Ver de cerca: ${nombre}"` : "";
   const destacar = (id) => `<button class="btn-ghost btn-block mt-8" data-action="badge-destacar" data-id="${id}">${g.equipped.insignia === id ? "★ Destacada" : "Destacar"}</button>`;
   const simple = b => {
     const earned = tiene(b.id), oculta = b.secreta && !earned;
-    return `<div class="card badge-card ${earned ? "" : "is-locked"}" style="text-align:center">
+    return `<div class="card badge-card ${earned ? "" : "is-locked"}" style="text-align:center"${ver(b.id, oculta ? "insignia secreta" : b.nombre)}>
       <div style="font-size:32px;line-height:1">${oculta ? "❔" : b.icon}</div>
       <div class="card__title" style="font-size:14px;margin-top:6px">${oculta ? "???" : b.nombre}</div>
       <div class="text-xs muted" style="margin-top:4px">${oculta ? "Insignia secreta" : b.desc}</div>
@@ -171,7 +173,7 @@ function insigniasHtml(g) {
     const k = ids.reduce((a, id, i) => (tiene(id) ? i : a), -1);
     const sig = se.niveles[k + 1], valor = (() => { try { return se.metrica(STATE); } catch (e) { return 0; } })();
     const med = k >= 0 ? MEDALLAS["bpo"[k]] : null;
-    return `<div class="card badge-card ${k >= 0 ? "" : "is-locked"}" style="text-align:center">
+    return `<div class="card badge-card ${k >= 0 ? "" : "is-locked"}" style="text-align:center"${ver(ids[Math.max(k, 0)], se.nombre)}>
       <div style="font-size:32px;line-height:1">${se.icon}${med ? `<span class="badge-med">${med.ico}</span>` : ""}</div>
       <div class="card__title" style="font-size:14px;margin-top:6px">${se.nombre}${med ? ` · ${med.n}` : ""}</div>
       <div class="text-xs muted" style="margin-top:4px">${sig ? se.desc(sig[0]) : "¡Nivel máximo! 🥇"}</div>

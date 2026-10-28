@@ -6,22 +6,25 @@ module.exports = async ({ b, ok, errs }) => {
   await registrar(p, "ruta@test.cl");
   await p.evaluate(() => { STATE.settings.introVersion = INTRO_VERSION; saveState(); });
 
-  // 1) Cuenta nueva: Ruta es el tema, con la barra de arriba negra (la hora del iPhone se lee en blanco)
-  ok(await p.evaluate(() => STATE.settings.theme === "ruta" && document.documentElement.dataset.theme === "ruta"), "una cuenta nueva parte con el diseño Ruta");
+  // 1) Cuenta nueva: tema automático (con el teléfono en modo claro se ve Ruta), con la barra de arriba negra
+  ok(await p.evaluate(() => STATE.settings.theme === "auto" && document.documentElement.dataset.theme === "ruta"), "una cuenta nueva parte en automático: de día, Ruta");
   const barra = await p.evaluate(() => [getComputedStyle(document.querySelector(".topbar")).backgroundColor, getComputedStyle(document.querySelector(".app")).backgroundColor]);
   ok(barra[0] === "rgb(11, 11, 12)" && barra[1] === "rgb(255, 255, 255)", `barra de arriba negra y contenido blanco (${barra.join(" · ")})`);
   ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content === "#0B0B0C"), "el color del navegador sigue a la barra");
-  ok(await p.evaluate(() => themeOwned("ruta") && themeOwned("ruta-noche")), "Ruta y Ruta noche son gratis");
+  ok(await p.evaluate(() => themeOwned("auto") && themeOwned("ruta") && themeOwned("ruta-noche")), "Automático, Ruta y Ruta noche son gratis");
 
-  // 2) Paso desde Navy: quien seguía en Navy pasa a Ruta una sola vez; los demás temas se respetan
+  // 2) Paso desde Navy y Ruta: quien seguía en el predeterminado pasa a automático; lo elegido se respeta
   const mig = await p.evaluate(() => {
     const base = () => JSON.parse(JSON.stringify(STATE));
     const a = base(); a.settings.theme = "navy"; delete a.settings.temaElegido;
     const c = base(); c.settings.theme = "sakura";
     const d = base(); d.settings.theme = "navy"; d.settings.temaElegido = "navy";   // eligió Navy en la Tienda después del cambio
-    return [migrate(a).settings.theme, migrate(c).settings.theme, migrate(d).settings.theme];
+    const e = base(); e.settings.theme = "ruta"; delete e.settings.temaElegido;      // Ruta por defecto (v78-79)
+    const f = base(); f.settings.theme = "ruta"; f.settings.temaElegido = "ruta";    // eligió Ruta: siempre claro
+    const g = base(); g.settings.theme = "tema-que-no-existe";
+    return [a, c, d, e, f, g].map(x => migrate(x).settings.theme);
   });
-  ok(JSON.stringify(mig) === '["ruta","sakura","navy"]', "Navy (el predeterminado de antes) pasa a Ruta; Sakura y un Navy elegido después se quedan: " + mig);
+  ok(JSON.stringify(mig) === '["auto","sakura","navy","auto","ruta","auto"]', "Navy o Ruta por defecto pasan a automático; Sakura, un Navy elegido y un Ruta elegido se quedan: " + mig);
 
   // Elegir Navy en la Tienda lo deja guardado: una recarga no lo vuelve a cambiar
   await p.evaluate(() => { STATE.settings.introVersion = INTRO_VERSION; saveState(); });

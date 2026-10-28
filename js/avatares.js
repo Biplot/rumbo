@@ -151,7 +151,7 @@ const AVATAR_METAS = {
   architect: { gana: "Planifica y cierra 4 semanas seguidas", metrica: s => typeof g_semanasSeguidas === "function" && g_semanasSeguidas(s, 4) ? 1 : 0, meta: 1 },
   celda:     { gana: "Cierra un mes (o desbloquea Comparar meses)", metrica: s => (Object.values((s.ritual && s.ritual.meses) || {}).some(m => m && m.cierre) || ((s.gamif.owned || []).includes("fun-comparar"))) ? 1 : 0, meta: 1 },
   engine:    { gana: "Crea 5 tareas recurrentes", metrica: s => typeof recurrentes === "function" ? recurrentes(s).filter(r => r && !r.borrada).length : 0, meta: 5 },
-  grilla:    { gana: "Cambia de tema por primera vez", metrica: s => s.settings && s.settings.theme && !["navy", "ruta"].includes(s.settings.theme) ? 1 : 0, meta: 1 },
+  grilla:    { gana: "Cambia de tema por primera vez", metrica: s => s.settings && s.settings.theme && !["navy", "ruta", "auto"].includes(s.settings.theme) ? 1 : 0, meta: 1 },
   bucle:     { gana: "Completa 100 tareas", metrica: s => typeof lg_tareas === "function" ? lg_memo(s, "hechas", x => lg_tareas(x, t => estadoTarea(t) === "hecha")) : 0, meta: 100 },
   tamandua:  { gana: "Logra una semana en Bandeja Cero", metrica: s => typeof lg_bandejaCero === "function" && lg_bandejaCero(s) ? 1 : 0, meta: 1 },
   faro:      { gana: "Llega a 30 días cerrados seguidos", metrica: s => typeof eleMejorRacha === "function" ? eleMejorRacha(s) : 0, meta: 30 },

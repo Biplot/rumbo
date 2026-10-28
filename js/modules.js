@@ -962,6 +962,7 @@ function saveEvento() {
    afterRender hook
    ============================================================ */
 function afterRender(route) {
+  if (typeof cieloTrasRender === "function") cieloTrasRender(route);   // el cielo de Insignias (cielo.js)
   // Chips que se desplazan de lado (Salud): mostrar el elegido
   const chipOn = document.querySelector("#view .chips-f .chip-f.is-on");
   if (chipOn && chipOn.parentElement.scrollWidth > chipOn.parentElement.clientWidth) chipOn.parentElement.scrollLeft = chipOn.offsetLeft - 12;

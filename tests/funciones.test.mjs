@@ -90,4 +90,17 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(s.gamif.puntos, 900);   // una sola vez
     const otro = clone(s); assert.equal(mergeStates(otro, s).gamif.puntos, 900);
   });
+
+  test("Tienda: Bosque pasa a ser una sola compra; quien compró los dos recupera 300 ⭐, una sola vez", () => {
+    const s = migrate(defaultState()); ledgerRegistrar(s, "saldo-test", 1500, 0, "t");
+    assert.equal(ledgerComprar(s, "tema-bosque-claro", 550).ok, true);
+    assert.equal(ledgerComprar(s, "tema-bosque-oscuro", 650).ok, true);
+    assert.equal(s.gamif.puntos, 300);
+    migrate(s);
+    assert.equal(s.gamif.puntos, 600);
+    migrate(s); assert.equal(s.gamif.puntos, 600);
+    const otro = clone(s); assert.equal(mergeStates(otro, s).gamif.puntos, 600);
+    const u = migrate(defaultState()); ledgerRegistrar(u, "saldo-test", 1000, 0, "t"); ledgerComprar(u, "tema-bosque-claro", 550);
+    migrate(u); assert.equal(u.gamif.puntos, 450);   // con uno solo no hay devolución (ya tiene la familia)
+  });
 }

@@ -4,12 +4,12 @@
    abajo una hoja que se arrastra: asomada, a media altura o completa (en pantallas anchas
    es un panel al costado). Al subir la hoja, el 3D se encuadra en lo que queda libre.
    Se entra desde la tarjeta del lugar (crece desde ahí); ‹ o Escape vuelven a donde estabas.
-   Sin WebGL no hay pantalla completa: el lugar sigue en su tarjeta (cielo.js vuelve a su base).
    Lugares: tu casa (casa.js) y tu vitrina de medallas (cielo.js).
-   En Inicio, tu casa y tu vitrina son dos botones que llevan directo a la pantalla completa.
+   Se llega por las dos puertas de la barra de arriba (la cara de tu elefante y tus medallas) o tocando a tu
+   elefante en la tarjeta del día. Sin WebGL, el lugar se ve como una página con su hoja.
    ============================================================ */
 const LUGAR = { volver: null, desde: null, hoja: "asomada" };
-const LUGAR_BASE = { cuarto: "recompensas", cielo: "insignias" };   // donde vive su tarjeta
+const LUGAR_BASE = { cuarto: "inicio", cielo: "inicio" };   // a dónde vuelve ‹ si llegaste directo
 const HOJA_ESTADOS = ["asomada", "media", "completa"];
 function lugarAncho() { return window.matchMedia && matchMedia("(min-width: 900px)").matches; }
 
@@ -121,32 +121,39 @@ function lugarTrasRender() {
     if (hoja && hoja.animate) hoja.animate([{ transform: "translateY(100%)" }, { transform: getComputedStyle(hoja).transform }], { duration: 460, delay: 120, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" });
   } else if (el.animate && !reduceMotion()) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200 });
 }
-/* Desde un botón (Inicio, ⤢ en la tarjeta): crece desde ese botón; sin 3D, va a la tarjeta del lugar */
+/* Desde una puerta (o tu elefante del día): crece desde ese botón; sin 3D, el lugar se abre como página */
 function lugarAbrir(ruta, el) {
   if (!LUGAR_BASE[ruta]) return;
-  const desde = (el && el.closest && el.closest(".mundo__b, .ele-hero")) || document.getElementById({ cuarto: "casa", cielo: "cielo" }[ruta]);
-  if (!lugarEntrar(ruta, desde)) go(LUGAR_BASE[ruta]);
+  const desde = el && el.closest && el.closest(".puerta, .ele-hero, .ruta-dia__ele");
+  if (!lugarEntrar(ruta, desde)) { LUGAR.volver = CURRENT !== ruta ? CURRENT : LUGAR.volver; go(ruta); }
+}
+/* Sin WebGL: el lugar es una página normal con lo de su hoja (y, en tu casa, tu elefante dibujado) */
+function lugarPlanoHtml(o) {
+  return `<section class="card lugar-plano${o.oscuro ? " lugar-plano--osc" : ""}" aria-label="${escapeAttr(o.titulo)}">
+    <div class="lugar-plano__cab">${o.dibujo ? `<div class="lugar-plano__dib" aria-hidden="true">${o.dibujo}</div>` : ""}
+      <div><h2 class="lugar-plano__t">${o.titulo}</h2>${o.sub ? `<div class="text-sm muted">${o.sub}</div>` : ""}</div></div>
+    <div class="hoja__cab">${o.cab}</div><div class="hoja__cuerpo">${o.cuerpo || ""}</div>
+  </section>`;
 }
 
-/* -------- En Inicio: tu casa y tu vitrina, a un toque de la pantalla completa --------
-   Tu casa cuenta lo que hace tu elefante ahora (lo mismo que encuentras al entrar);
-   tu vitrina, cuántas medallas tienes y las últimas que ganaste */
-function mundoHtml() {
-  if (!STATE || typeof eleActividadAhora !== "function" || typeof cieloOrden !== "function") return "";
-  const a = eleActividadAhora(STATE), hace = a.txt.charAt(0).toUpperCase() + a.txt.slice(1);
+/* -------- Las puertas de la barra de arriba (en todas las pantallas) --------
+   La cara de tu elefante lleva a Tu casa (con una «z» mientras duerme la siesta) y la estrella, con
+   cuántas medallas tienes, a Tu vitrina (con un punto cuando hay una que todavía no viste en el cielo). */
+let PUERTA_CARA = "";
+function pintarPuertas() {
+  if (!STATE || typeof cieloOrden !== "function") return;
+  const cara = document.getElementById("puertaCara");
+  if (cara && typeof elefanteCaraSVG === "function") { const svg = elefanteCaraSVG(); if (svg !== PUERTA_CARA) { PUERTA_CARA = svg; cara.innerHTML = svg; } }
+  const a = typeof eleActividadAhora === "function" ? eleActividadAhora(STATE) : null, z = document.getElementById("puertaZ");
+  if (z) z.hidden = !(a && a.id === "siesta");
+  const casa = document.getElementById("puertaCasa");
+  if (casa && a) casa.setAttribute("aria-label", `Tu casa: tu elefante ${a.txt}`);
   const orden = cieloOrden(), g = STATE.gamif.badges || [], n = orden.filter(id => g.includes(id)).length;
-  const ult = g.slice().reverse().filter(id => orden.includes(id)).slice(0, 3).map(findBadge).filter(Boolean);
-  const ir = `<span class="mundo__ir" aria-hidden="true">${iconoLinea("expandir", 14)}</span>`;
-  return `<section class="mundo" aria-label="Tu casa y tu vitrina">
-    <button type="button" class="mundo__b mundo__b--casa" data-action="lugar-entrar" data-ruta="cuarto" aria-label="${escapeAttr(`Tu casa: tu elefante ${a.txt}. Abrir a pantalla completa`)}">
-      <span class="mundo__dib" aria-hidden="true"><i class="mundo__vent"></i><i class="mundo__alf"></i><span class="mundo__ele">${typeof elefanteSVG === "function" ? elefanteSVG({ anim: false }) : "🐘"}</span>${ir}</span>
-      <span class="mundo__tx"><b>Tu casa</b><small>${a.ico} ${escapeHtml(hace)}</small></span>
-    </button>
-    <button type="button" class="mundo__b mundo__b--vitrina" data-action="lugar-entrar" data-ruta="cielo" aria-label="${escapeAttr(`Tu vitrina: ${n} de ${orden.length} medallas. Abrir a pantalla completa`)}">
-      <span class="mundo__dib" aria-hidden="true"><span class="mundo__meds">${ult.length ? ult.map(b => medChip(b, "")).join("") : `<span class="mundo__vacia">✨</span>`}</span>${ir}</span>
-      <span class="mundo__tx"><b>Tu vitrina</b><small>${n === 1 ? "1 medalla" : `${n} medallas`} de ${orden.length}</small></span>
-    </button>
-  </section>`;
+  const visto = typeof cieloVisto === "function" ? cieloVisto() : null, nuevas = visto ? g.filter(id => orden.includes(id) && !visto.includes(id)).length : 0;
+  const num = document.getElementById("puertaN"); if (num) num.textContent = n;
+  const punto = document.getElementById("puertaNuevo"); if (punto) punto.hidden = !nuevas;
+  const vit = document.getElementById("puertaVitrina");
+  if (vit) vit.setAttribute("aria-label", `Tu vitrina: ${n} de ${orden.length} medallas${nuevas ? ` · ${nuevas === 1 ? "1 nueva" : nuevas + " nuevas"}` : ""}`);
 }
 /* Desde la tarjeta de cada lugar (o tocando su 3D): casa → tu casa, cielo → tu vitrina */
 function lugarDesdeTarjeta(l) {

@@ -1,6 +1,6 @@
-/* Pruebas en navegador · Tu vitrina a pantalla completa: se entra desde su tarjeta en Insignias
-   (⤢ o tocando el 3D), la hoja trae las medallas por familia, una constelación se mira desde la hoja,
-   la rueda acerca el cielo, la medalla se abre encima y se vuelve con ‹ o Escape.
+/* Pruebas en navegador · Tu vitrina a pantalla completa: se entra por la estrella de la barra de arriba,
+   la hoja trae las medallas por familia (es la única lista), una constelación se mira desde la hoja,
+   la rueda acerca el cielo, la medalla se abre encima y se vuelve con ‹ o Escape a donde estabas.
    El camino del año ya no existe: ni en Tendencias ni como pantalla */
 const { chromium, URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 async function preparar(p, email) {
@@ -28,16 +28,14 @@ module.exports = async ({ b, ok, errs }) => {
     const ctx = await nuevoContexto(b3, { fecha: "2026-10-28T15:00:00", w: 390, h: 844 });
     const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
     await preparar(p, "lugares@test.cl");
-    // Tu vitrina
-    await p.goto(URL + "#insignias");
-    await p.waitForFunction(() => CIELO_ESTADO.motor && document.querySelector("#cieloLienzo .cielo__canvas"), null, { timeout: 20000 }).catch(() => {});
-    await p.waitForTimeout(500);
-    ok(await p.locator('.cielo [data-action="lugar-entrar"][data-ruta="cielo"]').isVisible() && (await vista(p)).libre === false, "en Insignias el cielo es una tarjeta, con su botón para abrirlo");
-    await p.click('.cielo [data-action="lugar-entrar"]');
+    // Tu vitrina, por la estrella de la barra de arriba (con cuántas medallas tienes)
+    await p.goto(URL + "#semana"); await p.waitForTimeout(400);
+    ok((await p.locator("#puertaVitrina").innerText()).trim() === "8", "la estrella de la barra de arriba cuenta tus 8 medallas");
+    await p.click("#puertaVitrina");
     await p.waitForFunction(() => CURRENT === "cielo" && CIELO_ESTADO.motor && CIELO_ESTADO.motor.vista().libre, null, { timeout: 8000 }).catch(() => {});
     await p.waitForTimeout(600);
     const v0 = await vista(p);
-    ok(await p.evaluate(() => CURRENT === "cielo" && document.body.classList.contains("en-lugar")) && v0.modo === "cielo" && v0.libre && v0.enc.arriba > 40 && v0.enc.abajo > 100, "⤢ abre tu vitrina de borde a borde, encuadrado sobre la hoja");
+    ok(await p.evaluate(() => CURRENT === "cielo" && document.body.classList.contains("en-lugar")) && v0.modo === "cielo" && v0.libre && v0.enc.arriba > 40 && v0.enc.abajo > 100, "la estrella abre tu vitrina de borde a borde, encuadrada sobre la hoja");
     ok((await p.locator(".lugar__t b").innerText()) === "Tu vitrina" && (await p.locator(".lugar__t").innerText()).includes("8 de 56"), "la barra dice Tu vitrina y cuenta tus medallas encendidas");
     ok(await p.locator('#lugarHoja [data-action="cielo-mirar"]').count() === 6 && await p.locator('#lugarHoja .med-chip[data-action="ins-ver"]').count() === 56, "la hoja trae las 6 constelaciones y las 56 medallas por familia");
     await shot(p, "lugar-cielo-celular");
@@ -51,13 +49,22 @@ module.exports = async ({ b, ok, errs }) => {
     ok((await vista(p)).zoom < 0.9, "la rueda (o pellizcar) acerca el cielo");
     // Una medalla de la hoja se abre de cerca, encima; al cerrarla seguimos en el cielo
     await p.click('[data-action="hoja-alternar"]'); await p.waitForTimeout(700);
+    await p.evaluate(() => { guardarRepisa(STATE, []); saveState(); });   // repisa elegida y vacía: la medalla todavía no está
     await p.click('#lugarHoja .med-chip[data-id="buho"]'); await p.waitForTimeout(600);
     ok(await p.locator("#insCerca").isVisible() && (await p.locator("#insCercaT").innerText()) === "Búho", "una medalla de la hoja se abre de cerca, encima del cielo");
+    ok(await p.locator('#insCerca [data-action="badge-destacar"]').count() === 0 && (await p.locator('#insCerca [data-action="repisa-medalla"]').innerText()).includes("Poner en tu repisa"), "en vez de «Destacar», la medalla se pone en tu repisa");
+    await p.click('#insCerca [data-action="repisa-medalla"]'); await p.waitForTimeout(300);
+    ok(await p.evaluate(() => repisaIds(STATE)[0] === "buho" && insigniaDestacada().id === "buho") && (await p.locator('#insCerca [data-action="repisa-medalla"]').innerText()).includes("En tu repisa"),
+      "queda primera en tu repisa (y es la que luces en tu perfil)");
     await p.keyboard.press("Escape"); await p.waitForTimeout(700);
     ok(await p.locator("#insCerca").isHidden() && await p.evaluate(() => CURRENT === "cielo") && (await vista(p)).libre, "al cerrarla sigues en tu vitrina a pantalla completa");
     await p.keyboard.press("Escape");
-    await p.waitForFunction(() => CURRENT === "insignias", null, { timeout: 5000 }).catch(() => {});
-    ok(await p.evaluate(() => CURRENT === "insignias" && !document.body.classList.contains("en-lugar")), "Escape vuelve a Insignias");
+    await p.waitForFunction(() => CURRENT === "semana", null, { timeout: 5000 }).catch(() => {});
+    ok(await p.evaluate(() => CURRENT === "semana" && !document.body.classList.contains("en-lugar")), "Escape vuelve a donde estabas");
+    // Los enlaces viejos a Insignias llegan a Tu vitrina
+    await p.goto(URL + "#insignias"); await p.waitForTimeout(800);
+    ok(await p.evaluate(() => CURRENT === "cielo" && location.hash === "#cielo"), "#insignias (el enlace de antes) abre Tu vitrina");
+    await p.evaluate(() => lugarVolver()); await p.waitForTimeout(600);
     // El camino del año ya no está: ni en Tendencias ni como pantalla
     await p.goto(URL + "#tendencias"); await p.waitForTimeout(600);
     ok(await p.locator(".camino-card, #camino").count() === 0, "Tendencias ya no tiene el camino del año");
@@ -91,7 +98,10 @@ module.exports = async ({ b, ok, errs }) => {
     const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
     await preparar(p, "lugares-plano@test.cl");
     await p.goto(URL + "#cielo"); await p.waitForTimeout(2500);
-    ok(await p.evaluate(() => CURRENT === "insignias"), "sin WebGL, #cielo vuelve a Insignias");
+    ok(await p.evaluate(() => CURRENT === "cielo" && !document.body.classList.contains("en-lugar")) && await p.locator('.lugar-plano .med-chip[data-action="ins-ver"]').count() === 56,
+      "sin WebGL, #cielo es una página con la lista de las 56 medallas por constelación");
+    await p.click('.lugar-plano .med-chip[data-id="buho"]'); await p.waitForTimeout(500);
+    ok(await p.locator("#insCerca").isVisible() && (await p.locator("#insCercaT").innerText()) === "Búho", "y cada una se abre de cerca");
     await ctx.close();
   }
 };

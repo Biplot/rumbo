@@ -179,84 +179,37 @@ function launchConfetti() {
 /* ============================================================
    Página Recompensas
    ============================================================ */
+/* Recompensas (v95): tu rango y tus monedas arriba, y la Tienda abajo. Tu elefante y su cuarto viven en Tu casa,
+   y tus medallas en Tu vitrina (las dos puertas de la barra de arriba). */
 function renderRecompensas() {
   const g = STATE.gamif;
   const { cur, next, idx } = rankFor(g.xp || 0);
   const prog = next ? Math.min(100, Math.round(((g.xp - cur.min) / (next.min - cur.min)) * 100)) : 100;
   const falta = next ? (next.min - g.xp) : 0;
-
-  const heroRank = `<div class="card" style="background:linear-gradient(120deg, var(--surface), var(--surface-2));border-left:3px solid ${cur.color}">
-    <div class="flex-between" style="flex-wrap:wrap;gap:16px">
-      <div class="row" style="gap:14px">
-        <div style="font-size:44px;line-height:1">${cur.icon}</div>
-        <div>
-          <div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">Rango ${idx + 1} de ${RANGOS.length}</div>
-          <div class="big-num" style="color:${cur.color}">${cur.nombre}</div>
-          <div class="text-sm muted">${(g.xp || 0).toLocaleString("es-CL")} XP acumulada</div>
-        </div>
-      </div>
-      <div style="text-align:right">
-        <div class="pill pill--pts" style="font-size:16px">⭐ ${g.puntos}</div>
-        <div class="text-xs muted mt-8">monedas gastables</div>
-      </div>
-    </div>
-    <div class="mt-16">
-      <div class="flex-between text-xs muted"><span>${cur.nombre}</span>${next ? `<span>${next.icon} ${next.nombre} · faltan ${falta.toLocaleString("es-CL")} XP</span>` : "<span>¡Rango máximo! 👑</span>"}</div>
-      <div class="bar mt-8"><div class="bar__fill" style="width:${prog}%"></div></div>
-    </div>
-  </div>`;
-
-  const ganadas = g.badges.length;
-
-  // Escalera de rangos (aspiracional, compacta)
+  // La escalera de rangos, en puntos bajo la barra (cada uno dice su rango al pasar el dedo o el mouse)
   const escalera = RANGOS.map((r, i) => {
     const estado = i < idx ? "logrado" : (i === idx ? "actual" : "bloqueado");
-    return `<div class="rank-pill ${estado}" title="${r.nombre} · ${r.min.toLocaleString("es-CL")} XP">
-      <span class="rank-pill__ico">${r.icon}</span>
-      <div class="rank-pill__txt"><span class="rank-pill__name">${r.nombre}</span><span class="rank-pill__xp">${r.min >= 1000 ? (r.min / 1000) + "k" : r.min} XP</span></div>
-    </div>`;
+    return `<i class="rank-punto ${estado}" title="${r.nombre} · ${r.min.toLocaleString("es-CL")} XP" aria-label="${r.nombre}${i === idx ? " (tu rango)" : ""}"></i>`;
   }).join("");
-
   return `
-  ${tabsRecompensas()}
-  ${heroRank}
-
-  <div class="section-title">🏔️ Escalera de rangos</div>
-  <div class="card"><div class="rank-ladder">${escalera}</div></div>
-
-  ${typeof casaCardHtml === "function" ? `<div class="mt-24">${casaCardHtml()}</div>` : typeof renderElefanteCard === "function" ? `<div class="mt-24">${renderElefanteCard()}</div>` : ""}
-
-  <div class="card mt-24">
-    <div class="flex-between" style="flex-wrap:wrap;gap:10px">
-      <div><div class="card__title">🏅 Insignias · ${ganadas} ganadas</div>
-        <div class="text-sm muted mt-8">Logros con bronce, plata, oro y algunas secretas.</div></div>
-      <button class="btn btn--soft" data-route="insignias">Ver insignias</button>
+  <div class="card rango-card" data-tour="rango">
+    <div class="rango-card__cab">
+      <span class="rango-card__ico" aria-hidden="true">${cur.icon}</span>
+      <div class="rango-card__tx"><div class="rango-card__eti">Rango ${idx + 1} de ${RANGOS.length}</div>
+        <div class="rango-card__n">${cur.nombre}</div><div class="text-sm muted">${(g.xp || 0).toLocaleString("es-CL")} XP · nunca baja</div></div>
+      <div class="rango-card__saldo"><b>${(g.puntos || 0).toLocaleString("es-CL")} ⭐</b><small>para gastar</small></div>
     </div>
-  </div>`;
-}
-
-/* Pestaña Insignias (con filtro Todas · Ganadas · Por ganar) */
-let INS_FILTRO = "todas";
-function renderInsignias() {
-  const g = STATE.gamif;
-  const badgesOld = BADGES.map(b => {
-    const earned = g.badges.includes(b.id);
-    return `<div class="card badge-card ${earned ? "" : "is-locked"}" style="text-align:center">
-      <div style="font-size:32px;line-height:1">${b.icon}</div>
-      <div class="card__title" style="font-size:14px;margin-top:6px">${b.nombre}</div>
-      <div class="text-xs muted" style="margin-top:4px">${b.desc}</div></div>`;
-  }).join("");
-  const f = (v, l) => `<button class="${INS_FILTRO === v ? "is-active" : ""}" data-action="ins-filtro" data-v="${v}">${l}</button>`;
-  return `
-  ${tabsRecompensas()}
-  ${typeof cieloHtml === "function" ? cieloHtml(g) : ""}
-  <div class="flex-between" style="flex-wrap:wrap;gap:10px;margin-bottom:14px">
-    <div class="section-title" style="margin:0">🏅 Insignias · ${g.badges.length}/${BADGES.length}</div>
-    <div class="seg">${f("todas", "Todas")}${f("ganadas", "Ganadas")}${f("porganar", "Por ganar")}</div>
+    <div class="bar mt-16"><div class="bar__fill" style="width:${prog}%"></div></div>
+    <div class="rango-card__pie"><span class="rank-ladder" role="list" aria-label="Escalera de rangos">${escalera}</span>
+      <span class="text-xs muted">${next ? `${next.icon} ${next.nombre} · faltan ${falta.toLocaleString("es-CL")} XP` : "¡Rango máximo! 👑"}</span></div>
   </div>
-  <div class="grid grid-auto ins-filtro--${INS_FILTRO}">${typeof insigniasHtml === "function" ? insigniasHtml(g) : badgesOld}</div>`;
+  ${tiendaHtml()}`;
 }
 
 /* Helpers para mostrar lo equipado en Inicio */
 function tituloEquipado() { const id = STATE.gamif.equipped.titulo; return id ? TITULOS.find(t => t.id === id) : null; }
-function insigniaDestacada() { const id = STATE.gamif.equipped.insignia; return id ? findBadge(id) : null; }
+/* La medalla que luces en tu perfil: la primera de tu repisa (antes se elegía con «Destacar») */
+function insigniaDestacada() {
+  const id = typeof repisaElegida === "function" && repisaElegida(STATE) ? repisaIds(STATE)[0] : STATE.gamif.equipped.insignia;
+  return id ? findBadge(id) : null;
+}

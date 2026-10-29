@@ -92,7 +92,7 @@ function marcarNavActiva() {
   document.querySelectorAll(".nav__item, .bottombar__item, .tabs__b[data-route], .nav-pie").forEach(el =>
     el.classList.toggle("is-active", el.dataset.route === CURRENT));
   const pie = document.querySelector(".nav-pie");
-  if (pie) pie.classList.toggle("is-active", ["recompensas", "tienda", "insignias"].includes(CURRENT));
+  if (pie) pie.classList.toggle("is-active", CURRENT === "recompensas");
   const mas = document.getElementById("bbMas");
   if (mas) mas.classList.toggle("is-active", !BOTTOM_NAV.includes(CURRENT));
   // En computador, abrir "Módulos" si estás en uno de ellos
@@ -115,7 +115,10 @@ function openMas() {
   const ov = document.getElementById("masOverlay");
   if (!ov) return;
   const mods = modulosMas().map(r => `<button class="mas-mod${r.id === CURRENT ? " is-active" : ""}" data-route="${r.id}">${iconoLinea(r.id, 26)}<span>${r.label.replace("Salud y bienestar", "Salud").replace("Rueda de la vida", "Rueda")}</span></button>`).join("");
-  const pie = PIE_MAS.map(p => `<button class="mas-fila" data-route="${p.ruta}">${iconoLinea(p.ruta, 22)}<span>${p.label}</span>${p.ruta === "recompensas" ? `<b class="mas-pts">${STATE.gamif.puntos} ⭐</b>` : ""}</button>`).join("");
+  // En el celular la ayuda «?» de cada pantalla vive aquí (arriba van las puertas a Tu casa y Tu vitrina)
+  const ayuda = typeof tourDePantalla === "function" && tourDePantalla(CURRENT)
+    ? `<button class="mas-fila" data-action="tour-pantalla">${iconoLinea("tutoriales", 22)}<span>Ayuda de esta pantalla</span></button>` : "";
+  const pie = ayuda + PIE_MAS.map(p => `<button class="mas-fila" data-route="${p.ruta}">${iconoLinea(p.ruta, 22)}<span>${p.label}</span>${p.ruta === "recompensas" ? `<b class="mas-pts">${STATE.gamif.puntos} ⭐</b>` : ""}</button>`).join("");
   ov.querySelector(".sheet").innerHTML = `
     <div class="sheet__asa" aria-hidden="true"></div>
     <div class="sheet__head"><h2>Más</h2><button class="sheet__x" data-action="mas-cerrar" aria-label="Cerrar">${iconoLinea("cerrar", 22)}</button></div>
@@ -168,12 +171,6 @@ document.addEventListener("click", e => {
 function pintarPieNav() {
   const pts = document.getElementById("navPts");
   if (pts && STATE) pts.textContent = STATE.gamif.puntos + " ⭐";
-}
-
-/* -------- Pestañas de Recompensas: Progreso · Tienda · Insignias -------- */
-function tabsRecompensas() {
-  const t = (ruta, txt) => `<button class="tabs__b${CURRENT === ruta ? " is-active" : ""}" role="tab" aria-selected="${CURRENT === ruta}" data-route="${ruta}">${txt}</button>`;
-  return `<div class="tabs" role="tablist" aria-label="Recompensas">${t("recompensas", "Progreso")}${t("tienda", "Tienda")}${t("insignias", "Insignias")}</div>`;
 }
 
 /* -------- Rachas y monedas: qué significa cada una -------- */

@@ -14,7 +14,11 @@ module.exports = async ({ b, ok, errs }) => {
   });
 
   await p.goto(URL + "#tienda"); await p.waitForTimeout(400);
-  ok(await p.evaluate(() => new Set([...document.querySelectorAll("[data-cos]")].map(e => e.dataset.cos)).size) === 15, "la Tienda muestra los 15 cosméticos nuevos");
+  ok(await p.evaluate(() => CURRENT === "recompensas"), "#tienda (el enlace de antes) abre Recompensas, donde está la Tienda");
+  await p.click('[data-action="tienda-sec"][data-v="estilo"]'); await p.waitForTimeout(200);
+  ok(await p.locator('[data-action="tienda-mas"]').count() > 0, "en Para tu estilo, los grupos largos muestran sus primeras fichas y «Ver todo»");
+  while (await p.locator('[data-action="tienda-mas"]').count()) { await p.locator('[data-action="tienda-mas"]').first().click(); await p.waitForTimeout(150); }
+  ok(await p.evaluate(() => new Set([...document.querySelectorAll("[data-cos]")].map(e => e.dataset.cos)).size) === 15, "Para tu estilo muestra los 15 cosméticos (efectos, marcos y plantillas del informe)");
   // Cada ficha abre su detalle con el botón de compra
   const enFicha = async (id, accion) => { await p.click(`.ficha[data-cos="${id}"]`); await p.waitForTimeout(150);
     const n = await p.locator(`#modal [data-action="${accion}"]`).count(); if (n) { await p.click(`#modal [data-action="${accion}"]`); await p.waitForTimeout(150); }
@@ -22,6 +26,10 @@ module.exports = async ({ b, ok, errs }) => {
   for (const id of ["cel-estrellas", "cel-elefante", "chk-sello", "snd-pack", "mar-llama", "pla-cuaderno"]) await enFicha(id, "cos-buy");
   ok(await p.evaluate(() => ["cel-estrellas", "chk-sello", "mar-llama", "pla-cuaderno"].every(isOwned)), "compra celebraciones, check, marco y plantilla");
   ok(await enFicha("mar-diamante", "cos-buy") === 0 && await p.locator('.ficha.is-bloqueado[data-cos="mar-diamante"]').count() === 1, "el marco Diamante no se compra (rango Élite)");
+  ok(await p.locator('#view .ficha[data-cos="chk-sello"], #view .ficha[data-cos="mar-llama"]').count() === 0, "lo que compraste sale de la Tienda");
+  // Lo tuyo se usa en Cuenta › Apariencia
+  await p.goto(URL + "#apariencia"); await p.waitForTimeout(400);
+  ok(await p.locator('#view .ficha[data-cos="chk-sello"]').count() === 1 && await p.locator('#view .ficha[data-cos="mar-llama"]').count() === 1, "en Apariencia está lo que compraste");
   await enFicha("chk-sello", "cos-equip"); await enFicha("mar-llama", "cos-equip");
   ok(await p.evaluate(() => document.documentElement.dataset.check) === "sello", "el estilo de check se aplica");
   ok(await p.locator("#accountBox .account__avatar.marco--llama").count() === 1, "el marco se ve en el avatar");

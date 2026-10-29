@@ -25,11 +25,10 @@ const ROUTES = [
   { id: "listas", mas: true, label: "Listas", icon: "🧾", render: renderListas, subtitle: "Compras, películas, viajes y más." },
   { id: "aprendizajes", mas: true, label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
   { id: "notas", mas: true, label: "Notas", icon: "📝", render: renderNotas, subtitle: "Tus ideas como post-its, con #etiquetas." },
-  { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tu elefante y tu progreso." },
-  { id: "tienda", pie: true, label: "Recompensas", icon: "🛒", render: renderTienda, subtitle: "Útiles, funciones y cosméticos para tus ⭐." },
-  { id: "insignias", pie: true, label: "Recompensas", icon: "🏅", render: renderInsignias, subtitle: "Tus logros, con bronce, plata, oro y secretas." },
+  { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus monedas y la Tienda." },
   { id: "cuarto", pie: true, lugar: true, label: "Tu casa", icon: "🏠", render: renderCuarto, subtitle: "Tu elefante en su casa, a pantalla completa." },
   { id: "cielo", pie: true, lugar: true, label: "Tu vitrina", icon: "✨", render: renderCielo, subtitle: "Tus medallas en el cielo, a pantalla completa." },
+  { id: "apariencia", pie: true, label: "Apariencia", icon: "🎨", render: renderApariencia, subtitle: "Tu tema, tus títulos, tus marcos y tus efectos." },
   { id: "cuenta", pie: true, label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
   { id: "notif", pie: true, label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
   { id: "tutoriales", pie: true, label: "Ayuda", icon: "🎓", render: renderTutoriales, subtitle: "Recorridos guiados para aprender Rumbo a tu ritmo." },
@@ -153,7 +152,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 32;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 33;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -366,6 +365,13 @@ const NOVEDADES = {
   32: [
     ["📲", "Arriba, sin difuminado", "En el iPhone, la hora ahora va en una barra sólida del color de tu tema, sin el difuminado de iOS 26. Si ya tenías Rumbo en tu pantalla de inicio, bórralo y agrégalo de nuevo desde Safari para estrenarla."],
   ],
+  33: [
+    ["🐘", "Tu casa y Tu vitrina, arriba", "La cara de tu elefante y la estrella con tus medallas están en la barra de arriba, en todas las pantallas. Una «z» si duerme la siesta y un punto si ganaste una medalla."],
+    ["🏆", "Recompensas, más simple", "Tu rango arriba y la Tienda abajo, en dos secciones: Para tu día y Para tu estilo. Solo ves lo que puedes comprar; la ropa y los muebles de tu elefante se compran en Tu casa."],
+    ["🎨", "Apariencia", "Lo que ya tienes se elige en Cuenta › Apariencia: tu tema (de día, de noche o automático), títulos, marcos y efectos."],
+    ["✨", "Tus medallas, en el cielo", "Tu vitrina es el único lugar de tus medallas: la lista está en su hoja y cada una se abre de cerca. «Poner en tu repisa» reemplaza a Destacar."],
+    ["🌲", "Bosque, una sola compra", "Trae día y noche por 900 ⭐. Si tenías uno de los dos, ya tienes los dos; si compraste los dos, te devolvimos 300 ⭐."],
+  ],
 };
 let NOVEDADES_ABIERTAS = false;
 function openNovedades() {
@@ -562,9 +568,13 @@ function buildNav() {
 
 function onRoute() {
   if (!CURRENT_USER) return;
-  const hash = location.hash.replace("#", "") || "inicio";
+  let hash = location.hash.replace("#", "") || "inicio";
+  // v95: la Tienda está en Recompensas y las insignias en Tu vitrina (los enlaces viejos siguen sirviendo)
+  const VIEJAS = { tienda: "recompensas", insignias: "cielo" };
+  if (VIEJAS[hash]) { hash = VIEJAS[hash]; history.replaceState(null, "", "#" + hash); }
   CURRENT = ROUTE_MAP[hash] ? hash : "inicio";
-  document.body.classList.toggle("en-lugar", !!ROUTE_MAP[CURRENT].lugar);   // a pantalla completa: sin barras (lugar.js)
+  // a pantalla completa: sin barras (lugar.js); sin 3D, el lugar es una página con sus barras
+  document.body.classList.toggle("en-lugar", !!ROUTE_MAP[CURRENT].lugar && !CIELO_ESTADO.sin3d);
   cerrarMas(); cerrarMenuCuenta();
   updateTopbar();
   rerender();
@@ -743,6 +753,7 @@ function updateTopbar() {
   document.getElementById("todayPill").textContent = "📅 " + fechaLarga();
   document.getElementById("streakVal").textContent = computeClosedStreak();
   pintarMonedas(STATE.gamif.puntos);
+  if (typeof pintarPuertas === "function") pintarPuertas();
 }
 
 /* -------- Estado del día (ciclo apertura → cierre) -------- */
@@ -981,7 +992,8 @@ function onClick(e) {
     case "habit-view": HABIT_VIEW = d.v; rerender(); break;
     case "habit-layout": HABIT_LAYOUT = d.v; rerender(); break;
     case "tienda-ficha": openFicha(d.key); break;
-    case "tienda-mios": TIENDA_MIOS = !TIENDA_MIOS; rerender(); break;
+    case "tienda-sec": TIENDA_SEC = d.v; rerender(); break;
+    case "tienda-mas": TIENDA_ABIERTOS.add(d.v); rerender(); break;
     /* Salud: Resumen · Recetas · Entrenar */
     case "salud-tab": SALUD_TAB = d.v; if (CURRENT !== "salud") go("salud"); else rerender(); break;
     case "salud-peso": guardarPeso(); break;
@@ -1003,12 +1015,6 @@ function onClick(e) {
     case "ejercicio-guardar": guardarEjercicio(); break;
     case "ejercicio-borrar": borrarEjercicio(); break;
     case "entreno-terminar": terminarEntreno(d.dia); break;
-    case "ins-filtro": INS_FILTRO = d.v; rerender(); break;
-    case "tienda-ir": {
-      const sec = document.getElementById("tienda-" + d.id);
-      if (sec) sec.scrollIntoView({ behavior: sinMovimiento() ? "auto" : "smooth", block: "start" });
-      document.querySelectorAll(".tienda-cat").forEach(b => b.classList.toggle("is-active", b === el)); break;
-    }
     case "habit-vista":
       HABIT_VIEW = d.v === "mes" ? "mensual" : d.v === "anio" ? "anual" : "diario";
       if (d.v === "hoy" || d.v === "semana") HABIT_LAYOUT = d.v;
@@ -1243,17 +1249,16 @@ function onClick(e) {
       break;
     }
     case "tema-buy": {
-      const th = THEMES.find(t => t.id === d.theme) || {};
-      if (themeOwned(d.theme)) break;
+      const f = familiaDeTema(d.theme);
+      if (!f || familiaTuya(f)) break;
       recalcGamif(STATE);
-      if (STATE.gamif.puntos < th.costo) { toast("Te faltan " + (th.costo - STATE.gamif.puntos) + " ⭐", true); break; }
-      if (!confirm(`¿Desbloquear el tema "${th.nombre}" por ${th.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - th.costo} ⭐.`)) break;
-      const res = ledgerComprar(STATE, "tema-" + d.theme, th.costo);
-      if (!res.ok && !res.yaTenia) { toast("Te faltan " + (res.falta || th.costo) + " ⭐", true); break; }
-      // Desde la vista previa de un automático: si con esta compra ya tienes los dos, se aplica el automático
-      const aplicar = d.luego && themeOwned(d.luego) ? d.luego : d.theme;
+      if (STATE.gamif.puntos < f.costo) { toast("Te faltan " + (f.costo - STATE.gamif.puntos) + " ⭐", true); break; }
+      if (!confirm(`¿Desbloquear ${f.nombre} por ${f.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - f.costo} ⭐.`)) break;
+      const res = ledgerComprar(STATE, "tema-" + f.id, f.costo);
+      if (!res.ok && !res.yaTenia) { toast("Te faltan " + (res.falta || f.costo) + " ⭐", true); break; }
+      const aplicar = f.solo || f.auto;   // los de día y noche quedan en automático
       STATE.settings.theme = aplicar; STATE.settings.temaElegido = aplicar; saveState(); applyTheme(aplicar); updateTopbar(); closeModal(); rerender();
-      toast("🛍️ Tema " + th.nombre + " desbloqueado" + (aplicar !== d.theme ? " · ahora usas " + THEMES.find(t => t.id === aplicar).nombre : " y aplicado"));
+      toast("🛍️ " + f.nombre + " desbloqueado y aplicado");
       break;
     }
 
@@ -1264,7 +1269,7 @@ function onClick(e) {
     case "cuarto-ver": cuartoVer(); break;
     case "cuarto-entrar": cuartoEntrar(); break;
     case "lugar-entrar": lugarAbrir(d.ruta, el); break;
-    case "ele-casa": tocarElefante(el); if (!CIELO_ESTADO.sin3d) setTimeout(() => { if (CURRENT === "inicio") lugarAbrir("cuarto", el); }, sinMovimiento() ? 0 : 420); break;
+    case "ele-casa": tocarElefante(el); setTimeout(() => { if (CURRENT === "inicio") lugarAbrir("cuarto", el); }, sinMovimiento() ? 0 : 420); break;
     case "cielo-mirar": if (CIELO_ESTADO.motor) CIELO_ESTADO.motor.mirarFamilia(d.id); break;
     case "lugar-volver": lugarVolver(); break;
     case "hoja-alternar": hojaAlternar(); break;
@@ -1273,9 +1278,7 @@ function onClick(e) {
     case "repisa-toggle": repisaToggle(d.id); break;
     case "repisa-guardar": repisaGuardar(false); break;
     case "repisa-auto": repisaGuardar(true); break;
-    case "badge-destacar":
-      STATE.gamif.equipped.insignia = (STATE.gamif.equipped.insignia === d.id ? null : d.id);
-      saveState(); rerender(); break;
+    case "repisa-medalla": repisaMedalla(d.id); break;
 
     /* Vida · Diario */
     case "diario-save": {
@@ -1338,7 +1341,7 @@ function onClick(e) {
     case "gcal-config": openGcalConfig(); break;
     case "gcal-guardar": gcalGuardarConfig(); break;
     case "gcal-desconectar": gcalDesconectar(); break;
-    case "tour-pantalla": if (tourDePantalla(CURRENT)) tourIniciar(tourDePantalla(CURRENT)); break;
+    case "tour-pantalla": cerrarMas(); if (tourDePantalla(CURRENT)) tourIniciar(tourDePantalla(CURRENT)); break;
     case "tour-next": tourMover(1); break;
     case "tour-prev": tourMover(-1); break;
     case "tour-salir": tourTerminar(); break;
@@ -1407,8 +1410,8 @@ function loadFundosFonts() {
   document.head.appendChild(l);
 }
 function themeOwned(id) {
-  const par = parDeTema(id);   // un automático es tuyo cuando tienes los dos temas de su par
-  if (par) return par.every(themeOwned);
+  const f = typeof familiaDeTema === "function" && familiaDeTema(id);   // v95: los temas se tienen por familia
+  if (f) return familiaTuya(f);
   return BASE_THEMES.includes(id) || (STATE.gamif.owned || []).includes("tema-" + id);
 }
 /* Cuenta dueña: desbloquea todos los temas automáticamente al entrar.
@@ -1483,13 +1486,37 @@ const THEMES = [
     bg: "#000000", card: "#0B0B0B", accent: "#FFD400", cta: "#FFFFFF", onCta: "#000000", text: "#FFFFFF", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
 ];
 
-/* renderTienda: ver js/tienda.js (fichas) */
+/* -------- Temas como familias (v95) --------
+   Norte, Ruta y Bosque tienen día y noche: son una sola ficha con su modo (Automático, Día o Noche).
+   Bosque se compra una vez, con los dos modos; quien ya tenía uno de los dos, tiene la familia. */
+const TEMA_FAMILIAS = [
+  { id: "norte", nombre: "Norte", auto: "auto", dia: "norte", noche: "norte-noche", costo: 0,
+    concepto: "El tema de Rumbo: una aguja ámbar para lo que sigue, sobre tinta índigo. De día es la luz de la mañana; de noche, el cielo de tu vitrina." },
+  { id: "ruta", nombre: "Ruta", auto: "ruta-auto", dia: "ruta", noche: "ruta-noche", costo: 0,
+    concepto: "Como una app de viajes: blanco y negro, un solo acento coral y letras grandes. De noche, negro profundo." },
+  { id: "bosque", nombre: "Bosque", auto: "bosque-auto", dia: "bosque-claro", noche: "bosque-oscuro", costo: 900,
+    concepto: "Marfil y verde bosque de día, verde profundo de noche, con detalles dorados y títulos con serifa. Una compra, con los dos modos." },
+  { id: "atardecer", nombre: "Atardecer", solo: "atardecer", modo: "noche", costo: 800 },
+  { id: "oceano", nombre: "Océano", solo: "oceano", modo: "noche", costo: 800 },
+  { id: "cuaderno", nombre: "Cuaderno", solo: "cuaderno", modo: "dia", costo: 900 },
+  { id: "terminal", nombre: "Terminal", solo: "terminal", modo: "noche", costo: 1000 },
+  { id: "sakura", nombre: "Sakura", solo: "sakura", modo: "dia", costo: 900 },
+  { id: "alto-contraste", nombre: "Alto contraste", solo: "alto-contraste", modo: "noche", costo: 0 },
+];
+const temasDeFamilia = f => f.solo ? [f.solo] : [f.auto, f.dia, f.noche];
+function familiaDeTema(id) { return TEMA_FAMILIAS.find(f => f.id === id || temasDeFamilia(f).includes(id)) || null; }
+/* Tuya si es gratis, si la compraste como familia o si tenías uno de sus temas (antes de v95 se compraban por separado) */
+function familiaTuya(f) {
+  if (!f.costo) return true;
+  const o = STATE.gamif.owned || [];
+  return o.includes("tema-" + f.id) || temasDeFamilia(f).some(id => o.includes("tema-" + id));
+}
 
-function openThemePreview(themeId) {
-  const t0 = THEMES.find(x => x.id === themeId); if (!t0) return;
-  loadThemeFonts(resolverTema(t0.id));
-  const owned = themeOwned(t0.id);
-  const active = STATE.settings.theme === t0.id;
+/* Vista previa de un tema (por su familia): cómo se ve, y su modo si es tuya o el botón para desbloquearla */
+function openThemePreview(id) {
+  const f = familiaDeTema(id); if (!f) return;
+  const temas = f.solo ? [f.solo] : [f.dia, f.noche];
+  temas.forEach(t => loadThemeFonts(t));
   const maqueta = t => `
     <div style="background:${t.bg};border-radius:14px;padding:14px;font-family:${t.font};color:${t.text}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -1507,20 +1534,18 @@ function openThemePreview(themeId) {
         <button style="margin-left:auto;background:${t.cta};color:${t.onCta || "#fff"};border:none;border-radius:${t.radius};padding:8px 16px;font-size:12px;font-weight:700;font-family:${t.font}">Abre tu día</button>
       </div>
     </div>`;
-  const mock = t0.auto
-    ? t0.par.map((id, i) => `<div class="text-xs muted" style="margin:${i ? "12px" : "0"} 0 6px">${i ? "De noche (modo oscuro)" : "De día (modo claro)"}</div>${maqueta(THEMES.find(x => x.id === id))}`).join("")
-    : maqueta(t0);
-  const faltan = t0.par ? t0.par.filter(id => !themeOwned(id)).map(id => THEMES.find(x => x.id === id)) : [];
-  const cta = active
-    ? `<button class="btn btn--soft btn-block" data-action="close-modal">Ya es tu tema actual</button>`
-    : owned
-      ? `<button class="btn btn--cian btn-block" data-action="set-theme" data-theme="${t0.id}">Aplicar este tema</button>`
-      : faltan.length
-        ? `<p class="text-sm muted" style="margin-bottom:10px">Desbloquea ${faltan.map(x => escapeHtml(x.nombre)).join(" y ")} para usarlo.</p>`
-          + faltan.map((x, i) => `<div${i ? ' class="mt-8"' : ""}>${botonCompra(x.costo, `data-action="tema-buy" data-theme="${x.id}" data-luego="${t0.id}"`, "Desbloquear " + escapeHtml(x.nombre))}</div>`).join("")
-        : botonCompra(t0.costo, `data-action="tema-buy" data-theme="${t0.id}"`, "Desbloquear");
-  openModal("Vista previa · " + t0.nombre, `
-    <p class="text-sm muted" style="margin-bottom:14px">${escapeHtml(t0.concepto)}</p>
+  const mock = temas.map((id, i) => `${f.solo ? "" : `<div class="text-xs muted" style="margin:${i ? "12px" : "0"} 0 6px">${i ? "De noche" : "De día"}</div>`}${maqueta(THEMES.find(x => x.id === id))}`).join("");
+  const actual = STATE.settings.theme;
+  const cta = !familiaTuya(f)
+    ? botonCompra(f.costo, `data-action="tema-buy" data-theme="${f.id}"`, "Desbloquear " + escapeHtml(f.nombre))
+    : f.solo
+      ? (actual === f.solo ? `<button class="btn btn--soft btn-block" data-action="close-modal">Ya es tu tema actual</button>`
+        : `<button class="btn btn--cian btn-block" data-action="set-theme" data-theme="${f.solo}">Aplicar este tema</button>`)
+      : `<div class="tema-modos">${[["auto", "Automático", "Sigue el modo claro u oscuro de tu teléfono"], ["dia", "Siempre de día", ""], ["noche", "Siempre de noche", ""]].map(([k, l, sub]) =>
+          `<button class="tema-modo${actual === f[k] ? " is-on" : ""}" data-action="set-theme" data-theme="${f[k]}" aria-pressed="${actual === f[k]}"><b>${l}</b>${sub ? `<small>${sub}</small>` : ""}${actual === f[k] ? "<span>✓</span>" : ""}</button>`).join("")}</div>`;
+  const concepto = f.concepto || (THEMES.find(x => x.id === f.solo) || {}).concepto || "";
+  openModal(f.nombre, `
+    <p class="text-sm muted" style="margin-bottom:14px">${escapeHtml(concepto)}</p>
     ${mock}
     <div class="mt-16">${cta}</div>`);
 }
@@ -1707,9 +1732,11 @@ function renderDayHero() {
       <div class="ruta-eta__barra" aria-hidden="true"><i style="width:${e.pct}%"></i></div>
       <div class="ruta-eta__fila"><span>${e.ini}</span><b class="ruta-eta__txt">${e.falta}</b><span>${e.fin}</span></div></div>` : "";
   const rd = abierto ? resumenDia(STATE, iso) : null;
-  const pie = rd && (rd.planificadas || r.servir) ? `<div class="ruta-dia__pie">
-      ${rd.planificadas ? `<span class="chip">${rd.hechas} de ${rd.planificadas} tareas</span>` : ""}
-      ${r.servir ? `<span class="chip">Hoy sirves a ${escapeHtml(r.servir)}</span>` : ""}</div>` : "";
+  // En el celular la racha no cabe en la barra de arriba (van las puertas): va aquí, al pie de tu día
+  const racha = computeClosedStreak(), chips = [rd && rd.planificadas ? `<span class="chip">${rd.hechas} de ${rd.planificadas} tareas</span>` : "",
+    rd && r.servir ? `<span class="chip">Hoy sirves a ${escapeHtml(r.servir)}</span>` : ""].filter(Boolean);
+  const pie = `<div class="ruta-dia__pie${chips.length ? "" : " solo-movil"}">
+      <button type="button" class="chip ruta-dia__racha" data-action="info-racha">${iconoLinea("llama", 14)} ${racha === 1 ? "1 día cerrado" : racha + " días cerrados"}</button>${chips.join("")}</div>`;
   return `<section class="card hero-focus ruta-dia" data-estado="${st}">
     <div class="ruta-dia__top"><div class="ruta-dia__cab">
       <div class="ruta-dia__fecha">${fecha}</div>
@@ -1767,7 +1794,7 @@ function renderCierreResumen(r) {
       <div class="ruta-dia__fecha">${fecha}</div>
       <div class="recibo__ok">${iconoLinea("hecho", 16)}Día cerrado</div>
       <h2 class="ruta-dia__t">Llegaste, ${escapeHtml(STATE.profile.name)}.</h2></div>${eleHero()}</div>
-    <div class="recibo__racha"><b class="recibo__n" data-n="${racha}">${racha}</b><span>${racha === 1 ? "día cerrado<br>seguido" : "días cerrados<br>seguidos"}</span></div>
+    <div class="recibo__racha" data-action="info-racha" role="button" tabindex="0" title="Qué es la racha"><b class="recibo__n" data-n="${racha}">${racha}</b><span>${racha === 1 ? "día cerrado<br>seguido" : "días cerrados<br>seguidos"}</span></div>
     <ol class="ruta">${paradas}</ol>
     <dl class="recibo__filas">${filas}</dl>
     ${notas}
@@ -1900,7 +1927,6 @@ function renderInicio() {
   ${renderMesBanner()}
   ${renderSemanaBanner()}
   <div data-tour="dia">${renderDayHero()}</div>
-  ${mundoHtml()}
   ${renderAtajos()}
   ${renderMisionCard()}
   ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
@@ -2015,6 +2041,10 @@ function renderCuenta() {
     <div class="card__title">👤 Tu cuenta</div>
     <div class="mt-8 text-sm soft">Sesión iniciada como <b>${escapeHtml(email)}</b></div>
   </div>
+
+  <button type="button" class="card mt-16 cuenta-apariencia" data-route="apariencia">
+    <span class="cuenta-apariencia__ico">${iconoLinea("personalizar", 22)}</span>
+    <span class="cuenta-apariencia__tx"><b>Apariencia</b><small>Tu tema (de día, de noche o automático), títulos, marcos y efectos</small></span>${iconoLinea("chevron", 18)}</button>
 
   ${renderAvatarCuenta()}
 

@@ -1,5 +1,6 @@
-/* Pruebas en navegador · Temas (v92): Grafito y Medianoche se retiran (con devolución) y la hora del iPhone
-   se lee en todos los temas: en el celular, la barra de arriba es oscura (la hora va en blanco). */
+/* Pruebas en navegador · Temas: Grafito y Medianoche se retiran (con devolución); los temas son familias (v95):
+   la Tienda vende las que no tienes y Apariencia elige el modo (Auto, Día, Noche); Bosque es una sola compra;
+   la hora del iPhone se lee en todos los temas y la barra de estado ya no es translúcida. */
 const { URL, nuevoContexto, registrar } = require("./lib.cjs");
 // Contraste WCAG entre dos colores rgb()/rgba() de getComputedStyle
 const contraste = (a, b) => {
@@ -11,10 +12,14 @@ module.exports = async ({ b, ok, errs }) => {
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
   await registrar(p, "temas@test.cl");
 
-  // 1) La Tienda ya no trae Grafito ni Medianoche
-  await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
-  const fichas = await p.evaluate(() => [...document.querySelectorAll('.ficha[data-theme]')].map(x => x.dataset.theme));
-  ok(fichas.length === 15 && !fichas.includes("grafito") && !fichas.includes("medianoche"), "la Tienda trae 15 temas, sin Grafito ni Medianoche: " + fichas.join(", "));
+  // 1) La Tienda vende familias de temas (las que no tienes), sin Grafito ni Medianoche
+  await p.goto(URL + "#recompensas"); await p.waitForTimeout(300);
+  await p.click('[data-action="tienda-sec"][data-v="estilo"]'); await p.waitForTimeout(250);
+  const fichas = await p.evaluate(() => [...document.querySelectorAll('#view .ficha[data-theme]')].map(x => x.dataset.theme).sort());
+  ok(JSON.stringify(fichas) === '["atardecer","bosque","cuaderno","oceano","sakura","terminal"]', "la Tienda vende 6 familias de temas (Norte, Ruta y Alto contraste son gratis y ya son tuyas): " + fichas.join(", "));
+  ok((await p.locator('#view .ficha[data-theme="bosque"]').innerText()).replace(/\s+/g, " ").includes("Día · Noche · Auto"), "Bosque es una sola ficha, con día, noche y automático");
+  await p.goto(URL + "#apariencia"); await p.waitForTimeout(300);
+  ok(JSON.stringify(await p.evaluate(() => [...document.querySelectorAll(".fam-card")].map(x => x.dataset.familia))) === '["norte","ruta","alto-contraste"]', "Apariencia trae tus temas: Norte, Ruta y Alto contraste");
 
   // 2) En el celular, la hora (blanca) se lee sobre la barra de arriba de todos los temas, y el título también
   const barras = await p.evaluate(() => THEMES.filter(t => !t.auto).map(t => {
@@ -29,34 +34,34 @@ module.exports = async ({ b, ok, errs }) => {
   ok(tinta["bosque-claro"] === "rgb(22, 48, 31) #16301F" && tinta.cuaderno === "rgb(36, 57, 95) #24395F" && tinta.sakura === "rgb(58, 34, 48) #3A2230",
     "Bosque Claro, Cuaderno y Sakura llevan su tinta oscura arriba (y el color del navegador la sigue): " + JSON.stringify(tinta));
 
-  // 3) Los temas de a dos también siguen al teléfono: Ruta automático (gratis) y Bosque automático (con los dos)
+  // 3) Los temas de a dos siguen al teléfono: Ruta en Auto (gratis); Bosque se compra una vez, con los dos modos
   const usar = id => p.evaluate(id => { const x = document.createElement("button"); x.dataset.action = "set-theme"; x.dataset.theme = id; document.getElementById("view").appendChild(x); x.click(); }, id);
-  await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
-  ok(await p.evaluate(() => themeOwned("ruta-auto")), "Ruta automático es gratis");
-  await usar("ruta-auto"); await p.waitForTimeout(150);
+  await p.click('.fam-card[data-familia="ruta"] .fam-card__modos [data-theme="ruta-auto"]'); await p.waitForTimeout(200);
   const rutaDia = await p.evaluate(() => document.documentElement.dataset.theme);
   await p.emulateMedia({ colorScheme: "dark" }); await p.waitForTimeout(150);
   const rutaNoche = await p.evaluate(() => document.documentElement.dataset.theme);
   await p.emulateMedia({ colorScheme: "light" }); await p.waitForTimeout(150);
-  ok(rutaDia === "ruta" && rutaNoche === "ruta-noche", `Ruta automático: de día Ruta y, con el teléfono oscuro, Ruta noche (${rutaDia} → ${rutaNoche})`);
-  const icoRuta = await p.evaluate(() => { rerender(); const i = document.querySelector('.ficha[data-theme="ruta-auto"] .ficha__ico'); return i && i.style.background; });
-  ok(/255, 255, 255\) 50%.*11, 11, 12\) 50%/.test(icoRuta), "su ficha es mitad Ruta y mitad Ruta noche: " + icoRuta);
-  const bosque = await p.evaluate(() => { rerender(); const f = document.querySelector('.ficha[data-theme="bosque-auto"]'); return f && [f.className, f.innerText.replace(/\s+/g, " ")]; });
-  ok(!(await p.evaluate(() => themeOwned("bosque-auto"))) && /is-bloqueado/.test(bosque[0]) && /Con los dos/.test(bosque[1]), "Bosque automático queda bloqueado hasta tener los dos Bosque: " + bosque[1]);
-  await p.evaluate(() => { ledgerRegistrar(STATE, "saldo-bosque", 1200, 0, "t"); saveState(); openThemePreview("bosque-auto"); });
+  ok(rutaDia === "ruta" && rutaNoche === "ruta-noche" && await p.evaluate(() => STATE.settings.theme === "ruta-auto"), `en Apariencia, Ruta en Auto: de día Ruta y, con el teléfono oscuro, Ruta noche (${rutaDia} → ${rutaNoche})`);
+  const icoRuta = await p.evaluate(() => { const i = document.querySelector('.fam-card[data-familia="ruta"] .fam-card__mini'); return i && i.style.background; });
+  ok(/255, 255, 255\) 50%.*11, 11, 12\) 50%/.test(icoRuta), "su miniatura es mitad Ruta y mitad Ruta noche: " + icoRuta);
+  await p.click('.fam-card[data-familia="ruta"] .fam-card__modos [data-theme="ruta-noche"]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => STATE.settings.theme === "ruta-noche" && document.documentElement.dataset.theme === "ruta-noche"), "y en Noche queda siempre oscuro");
+  ok(!(await p.evaluate(() => themeOwned("bosque-auto") || themeOwned("bosque-claro"))), "Bosque todavía no es tuyo");
+  await p.evaluate(() => { ledgerRegistrar(STATE, "saldo-bosque", 1200, 0, "t"); saveState(); openThemePreview("bosque"); });
   await p.waitForTimeout(300);
-  ok(await p.locator('#modal [data-action="tema-buy"][data-luego="bosque-auto"]').count() === 2 && /Desbloquea Bosque Claro y Bosque Oscuro/.test(await p.locator("#modalBody").innerText()),
-    "su vista previa ofrece desbloquear Bosque Claro y Bosque Oscuro");
+  ok(await p.locator('#modal [data-action="tema-buy"][data-theme="bosque"]').count() === 1 && /900/.test(await p.locator('#modal [data-action="tema-buy"]').innerText()) && /De día/.test(await p.locator("#modalBody").innerText()),
+    "su vista previa muestra el día y la noche, y se desbloquea una vez por 900 ⭐");
   p.on("dialog", d => d.accept());
-  await p.click('#modal [data-action="tema-buy"][data-theme="bosque-claro"]'); await p.waitForTimeout(300);
-  ok(await p.evaluate(() => STATE.settings.theme === "bosque-claro" && !themeOwned("bosque-auto")), "con uno solo, se aplica ese Bosque");
-  await p.evaluate(() => openThemePreview("bosque-auto")); await p.waitForTimeout(300);
-  await p.click('#modal [data-action="tema-buy"][data-theme="bosque-oscuro"]'); await p.waitForTimeout(300);
-  const bDia = await p.evaluate(() => [STATE.settings.theme, document.documentElement.dataset.theme, themeOwned("bosque-auto")].join(" "));
+  const antesB = await p.evaluate(() => STATE.gamif.puntos);
+  await p.click('#modal [data-action="tema-buy"][data-theme="bosque"]'); await p.waitForTimeout(300);
+  const bDia = await p.evaluate(() => [STATE.settings.theme, document.documentElement.dataset.theme, themeOwned("bosque-claro"), themeOwned("bosque-oscuro")].join(" "));
   await p.emulateMedia({ colorScheme: "dark" }); await p.waitForTimeout(150);
   const bNoche = await p.evaluate(() => document.documentElement.dataset.theme);
   await p.emulateMedia({ colorScheme: "light" });
-  ok(bDia === "bosque-auto bosque-claro true" && bNoche === "bosque-oscuro", `al completar el par se aplica Bosque automático: de día Bosque Claro y de noche Bosque Oscuro (${bDia} · ${bNoche})`);
+  ok(bDia === "bosque-auto bosque-claro true true" && bNoche === "bosque-oscuro" && await p.evaluate(a => STATE.gamif.puntos === a - 900, antesB),
+    `una compra trae los dos Bosque y queda en automático: de día Bosque Claro y de noche Bosque Oscuro (${bDia} · ${bNoche})`);
+  // Quien tenía uno de los dos (de antes) ya tiene la familia
+  ok(await p.evaluate(() => { const o = STATE.gamif.owned; STATE.gamif.owned = ["tema-bosque-oscuro"]; const r = themeOwned("bosque-claro") && themeOwned("bosque-auto"); STATE.gamif.owned = o; return r; }), "quien tenía solo Bosque Oscuro tiene también Bosque Claro y el automático");
 
   // 4) Sin barra de estado translúcida (iOS 26.1+ difumina el borde de arriba con ella); la de estado toma theme-color
   const html = await p.evaluate(async () => (await fetch("./")).text());

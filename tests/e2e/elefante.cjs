@@ -26,9 +26,9 @@ module.exports = async ({ b, ok, errs }) => {
   // 2) Inicio muestra el elefante vectorial junto al saludo
   ok(await p.locator(".ele-hero .ele-svg").count() === 1, "Inicio muestra el elefante dibujado junto al saludo");
 
-  // 3) Probador: probarse una prenda sin comprarla y después comprarla (desde Recompensas)
-  await p.goto(URL + "#recompensas"); await p.waitForTimeout(400);
-  await p.click('.ele-card [data-action="elefante-open"][data-v="ropa"]'); await p.waitForTimeout(250);
+  // 3) Probador: probarse una prenda sin comprarla y después comprarla (desde Tu casa › 👕 Vestir)
+  await p.goto(URL + "#cuarto"); await p.waitForTimeout(2500);
+  await p.click('#view .hoja__bts [data-action="elefante-open"][data-v="ropa"]'); await p.waitForTimeout(250);
   const antes = await p.evaluate(() => STATE.gamif.puntos);
   await p.click('[data-action="ele-probar"][data-id="jockey"]'); await p.waitForTimeout(250);
   ok(await p.locator(".vest-barra.is-compra").isVisible() && await p.locator(".vest-ficha.is-prueba").count() === 1 && await p.evaluate(() => STATE.gamif.equipped.ele.ropa.cabeza) == null, "probarse el jockey no lo compra ni lo guarda");
@@ -46,9 +46,9 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.locator(".ele-tipo.is-lock").count() === 4, "Mamut, Peluche, Geométrico y Tinta aparecen bloqueados con su meta");
   await p.evaluate(() => { closeModal(); for (let i = 1; i <= 30; i++) STATE.ritual.dias[`2026-08-${String(i).padStart(2, "0")}`] = { hecho: true, cerrado: true }; saveState(); });
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
-  await p.goto(URL + "#recompensas"); await p.waitForTimeout(500);
+  await p.goto(URL + "#cuarto"); await p.waitForTimeout(2500);
   ok(await p.evaluate(() => tipoDesbloqueado("peluche")), "una racha de 30 días desbloquea el Peluche");
-  await p.click('.ele-card [data-action="elefante-open"][data-v="tipo"]'); await p.waitForTimeout(250);
+  await p.click('#view .hoja__bts [data-action="elefante-open"][data-v="tipo"]'); await p.waitForTimeout(250);
   await p.click('[data-action="ele-tipo"][data-id="peluche"]'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => STATE.gamif.equipped.ele.tipo === "peluche" && STATE.gamif.equipped.ele.ropa.cabeza === "jockey"), "cambiar de tipo es gratis y conserva la ropa");
   await shot(p, "elefante-recompensas");
@@ -56,11 +56,11 @@ module.exports = async ({ b, ok, errs }) => {
   // 5) Animaciones: tocarlo, cerrar el día, crecer y desbloquear
   await p.evaluate(() => { localStorage.removeItem("rumbo-sin-escenas"); closeModal(); });
   await p.goto(URL + "#inicio"); await p.waitForTimeout(400);
-  // el de Inicio reacciona y te lleva a su casa (sin 3D, a Progreso, donde está su cuarto)
+  // el de Inicio reacciona y te lleva a su casa (con o sin 3D)
   await p.click(".ele-hero"); await p.waitForTimeout(120);
   const salta = await p.evaluate(() => document.querySelector(".ele-hero .ele-svg").getAttribute("class"));
-  await p.waitForFunction(() => ["cuarto", "recompensas"].includes(CURRENT), null, { timeout: 10000 }).catch(() => {});
-  ok(salta.includes("re-salta") && await p.evaluate(() => ["cuarto", "recompensas"].includes(CURRENT)), "el elefante de Inicio salta y te lleva a su casa");
+  await p.waitForFunction(() => CURRENT === "cuarto", null, { timeout: 10000 }).catch(() => {});
+  ok(salta.includes("re-salta") && await p.evaluate(() => CURRENT === "cuarto"), "el elefante de Inicio salta y te lleva a su casa");
   // en el probador (👕 Vestir), el dibujo salta, saluda y le salen corazones
   await p.goto(URL + "#recompensas"); await p.waitForTimeout(500);
   await p.evaluate(() => { ELE_REACCION = 0; openElefante("ropa"); }); await p.waitForTimeout(300);

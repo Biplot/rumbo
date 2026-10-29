@@ -26,6 +26,14 @@ module.exports = async ({ b, ok, errs }) => {
     ok(s.vistos.general > 0 && s.mision === "activa", "queda como visto y la misión Primeros pasos activa");
     await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
     ok((await p.locator("[data-tour=mision]").innerText()).includes("0/6"), "Inicio muestra la misión 0/6");
+    // En el celular no hay «?» arriba (van las puertas a Tu casa y Tu vitrina): la ayuda de cada pantalla está en Más
+    await p.evaluate(() => { STATE.settings.tutorial.auto = false; saveState(); });
+    await p.goto(URL + "#semana"); await p.waitForTimeout(400);
+    ok(await p.locator("#helpBtn").isHidden(), "en el celular no hay «?» arriba");
+    await p.click("#bbMas"); await p.waitForTimeout(300);
+    await p.click('.mas-fila[data-action="tour-pantalla"]'); await p.waitForTimeout(500);
+    ok((await p.locator(".tour-pop__t").innerText().catch(() => "")) === "Muévete entre semanas" && await p.evaluate(() => document.getElementById("masOverlay").hidden), "Más › Ayuda de esta pantalla abre la ayuda de Semana");
+    await p.click('[data-action="tour-salir"]').catch(() => {});
     await ctx.close();
   }
 

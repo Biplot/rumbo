@@ -40,9 +40,9 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => { applyTheme("navy"); const t = document.documentElement.dataset.theme; applyTheme(STATE.settings.theme); return t; }) === "norte",
     "si algo pide Navy, se ve Norte");
 
-  // 4) Elegir Norte noche en la Tienda: queda guardado y se ve oscuro aunque el teléfono esté en claro
-  await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
-  await p.evaluate(() => { const x = document.createElement("button"); x.dataset.action = "set-theme"; x.dataset.theme = "norte-noche"; document.getElementById("view").appendChild(x); x.click(); });
+  // 4) Elegir Norte en Noche (en Apariencia): queda guardado y se ve oscuro aunque el teléfono esté en claro
+  await p.goto(URL + "#apariencia"); await p.waitForTimeout(300);
+  await p.click('.fam-card[data-familia="norte"] .fam-card__modos [data-theme="norte-noche"]'); await p.waitForTimeout(200);
   await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(400);
   ok(await p.evaluate(() => STATE.settings.theme === "norte-noche" && STATE.settings.temaElegido === "norte-noche" && document.documentElement.dataset.theme === "norte-noche"),
     "quien elige Norte noche lo conserva al recargar, aunque el teléfono esté en claro");

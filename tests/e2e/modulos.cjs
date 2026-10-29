@@ -115,7 +115,7 @@ module.exports = async ({ b, ok, errs }) => {
   // ---------- Tienda en fichas ----------
   await p.evaluate(() => { ledgerRegistrar(STATE, "saldo-tienda", 450, 0, "test"); saveState(); });
   await p.goto(URL + "#tienda"); await p.waitForTimeout(350);
-  ok(await p.locator(".ficha").count() > 30 && await p.locator(".util-card, .cos-card").count() === 0, "la Tienda muestra fichas chicas, sin textos largos");
+  ok(await p.locator("#view .ficha").count() >= 5 && await p.locator(".util-card, .cos-card").count() === 0, "la Tienda muestra fichas chicas, sin textos largos");
   const alcanza = await p.evaluate(() => [...document.querySelectorAll(".tienda-sec")][0].innerText);
   ok(alcanza.toLowerCase().includes("te alcanza") && !alcanza.includes("600"), "primero lo que te alcanza (nada que cueste más que tu saldo)");
   await p.click('.ficha[data-fun="fun:pronostico"]'); await p.waitForTimeout(200);
@@ -123,10 +123,8 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('#modal [data-action="fun-buy"]'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => funcion("pronostico")) && (await p.locator("#modal").innerText()).includes("Desbloqueada"), "comprar desde el detalle lo desbloquea y el detalle se actualiza");
   await p.evaluate(() => closeModal());
-  ok(await p.locator('.ficha.is-tuyo[data-fun="fun:pronostico"]').count() === 1, "la ficha queda marcada como tuya");
-  await p.click('[data-action="tienda-mios"]'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => [...document.querySelectorAll(".ficha")].every(f => f.classList.contains("is-tuyo") || f.classList.contains("is-equipado"))) && await p.locator('.ficha[data-fun="fun:pronostico"]').count() === 1, "Ver lo que tengo muestra solo lo tuyo");
-  await p.click('[data-action="tienda-mios"]'); await p.waitForTimeout(200);
+  ok(await p.locator('#view .ficha[data-fun="fun:pronostico"]').count() === 0, "ya es tuya: sale de la Tienda (solo se ve lo que puedes comprar)");
+  ok(await p.locator('#view .tienda-link[data-route="apariencia"]').count() === 1, "y un enlace lleva a lo que ya tienes, en Apariencia");
   ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "Tienda: sin scroll horizontal en el celular");
   await shot(p, "modulos-tienda");
 };

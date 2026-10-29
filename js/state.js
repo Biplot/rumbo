@@ -286,6 +286,7 @@ function migrate(s) {
   retirarConsumibles(s);   // v61: protector, día libre, rescate y pase ya no se venden (se devuelve lo no usado)
   retirarFunciones(s);     // v73: el aviso de mediodía es gratis (se devuelve lo pagado)
   retirarTemas(s);         // v92: Grafito y Medianoche ya no se venden (se devuelve lo pagado)
+  bosqueFamilia(s);        // v95: Bosque es una sola compra (900 ⭐): quien compró los dos recupera la diferencia
   if (!s.enfoque || typeof s.enfoque !== "object" || Array.isArray(s.enfoque)) s.enfoque = {};
   if (!Array.isArray(s.enfoque.sesiones)) s.enfoque.sesiones = [];   // modo enfoque
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
@@ -442,6 +443,18 @@ function retirarFunciones(s) { return devolverCompras(s, FUNCIONES_RETIRADAS.map
 /* Temas que dejaron de venderse (v92): Grafito y Medianoche. Su compra se anula (vuelven las ⭐). */
 const TEMAS_RETIRADOS = ["grafito", "medianoche"];
 function retirarTemas(s) { return devolverCompras(s, TEMAS_RETIRADOS.map(id => "compra:tema-" + id), "devuelta (el tema se retiró)"); }
+/* v95: Bosque Claro (550) y Bosque Oscuro (650) pasan a ser una sola familia de 900 ⭐. Quien tenía uno ya tiene
+   la familia; quien compró los dos recibe los 300 ⭐ de diferencia, una sola vez (id fijo en el ledger). */
+function bosqueFamilia(s) {
+  const g = s && s.gamif;
+  if (!g || !Array.isArray(g.ledger) || typeof ledgerRegistrar !== "function") return s;
+  const vigente = id => g.ledger.some(m => m && !m.anulado && m.id === id);
+  if (vigente("compra:tema-bosque-claro") && vigente("compra:tema-bosque-oscuro") && !g.ledger.some(m => m && m.id === "devolucion:bosque")) {
+    ledgerRegistrar(s, "devolucion:bosque", 300, 0, "Bosque, ahora una sola compra: te devolvemos la diferencia");
+    recalcGamif(s);
+  }
+  return s;
+}
 /* Anula las compras vigentes con esos ids. Idempotente: una segunda pasada no encuentra nada que anular. */
 function devolverCompras(s, ids, nota) {
   const g = s && s.gamif;

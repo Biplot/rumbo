@@ -290,6 +290,14 @@ function elefanteSVG(op) {
       <g transform="${cab}"><g class="ele-cab"><g class="ele-ear">${d.oreja}</g>${d.cabeza}${d.colmillo}${d.cara}${g("ojos")}${g("cuello")}${g("cabeza")}${g("trompa")}${zz}</g></g>
     </g></g></g></svg>`;
 }
+/* Solo la cara de tu elefante (con su tipo, su etapa y lo que lleva en la cabeza): la puerta a Tu casa en la barra de arriba.
+   La cabeza se escala desde (168, 118) y el cuerpo desde (128, 222), así que el recuadro sigue a cada etapa. */
+function elefanteCaraSVG() {
+  const e = ETAPAS_ELEFANTE[etapaElefante(STATE.gamif.xp || 0).idx];
+  const cx = 128 + (168 + 10 * e.cab - 128) * e.s, cy = 222 + (118 - 16 * e.cab - 222) * e.s, m = 62 * e.cab * e.s;
+  return elefanteSVG({ anim: false }).replace(/viewBox="[^"]*"/, `viewBox="${(cx - m).toFixed(1)} ${(cy - m).toFixed(1)} ${(2 * m).toFixed(1)} ${(2 * m).toFixed(1)}"`)
+    .replace(/ role="img" aria-label="[^"]*"/, ' aria-hidden="true"');
+}
 /* Imagen para dibujar en canvas (informe del mes) */
 function elefanteImagen(op) {
   return new Promise(res => {

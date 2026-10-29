@@ -186,7 +186,6 @@ function cieloMotor() {
           repisa: () => (typeof repisaIds === "function" ? repisaIds(STATE) : []), cosas: () => (typeof casaCosas === "function" ? casaCosas(STATE).concat(cuartoPuestas(STATE)) : []),
           pared: () => (typeof cuartoPared === "function" ? cuartoPared(STATE) : null),
           libros: () => (typeof lg_libros === "function" ? lg_libros(STATE) : 0), vacio: () => { if (typeof openRepisa === "function") { REPISA_SEL = null; openRepisa(); } },
-          camino: () => (typeof caminoDatos === "function" ? caminoDatos() : { y: new Date().getFullYear(), medallas: [], hoy: 0 }),
           // Tu elefante en 3D (elefante-3d.js): el mismo del dibujo, con su tipo, etapa, ropa y ánimo
           elefante: () => (typeof tipoElefante === "function" ? { tipo: tipoElefante(), etapa: etapaElefante(STATE.gamif.xp || 0).idx, ropa: ropaPuesta(), animo: animoElefante() } : null),
           tocoEle: () => { if (typeof vibrar === "function") vibrar(12); },
@@ -210,21 +209,19 @@ function cieloMotor() {
 function cieloSin3d() {
   if (window.THREE) CIELO_ESTADO.sin3d = true;
   const sec = document.getElementById("cielo"); if (sec) sec.classList.add("is-sin3d");
-  document.querySelectorAll(".casa-card, .camino-card").forEach(c => c.classList.add("is-sin3d"));
+  document.querySelectorAll(".casa-card").forEach(c => c.classList.add("is-sin3d"));
   if (CERCA.id) pintarCerca();
   const L = typeof CURRENT !== "undefined" && CIELO_LUGARES[CURRENT];
   if (L && L.libre) go(L.base);   // sin 3D, el lugar vive en su tarjeta
 }
 
-/* Dónde vive el 3D en cada pantalla: el cielo en Insignias y el cuarto del elefante en Progreso
-   (en su tarjeta) y en Tu cuarto (a pantalla completa, libre: se gira y se acerca) */
+/* Dónde vive el 3D en cada pantalla: el cielo en Insignias y en Tu vitrina, y el cuarto del elefante
+   en Progreso (en su tarjeta) y en Tu casa (a pantalla completa, libre: se gira y se acerca) */
 const CIELO_LUGARES = {
   insignias: { lugar: "cielo", lienzo: "cieloLienzo", marco: ".cielo" },
   recompensas: { lugar: "casa", lienzo: "casaLienzo", marco: ".casa-card" },
   cuarto: { lugar: "casa", lienzo: "lugarLienzo", marco: ".lugar", libre: true, base: "recompensas" },
   cielo: { lugar: "cielo", lienzo: "lugarLienzo", marco: ".lugar", libre: true, base: "insignias" },
-  camino: { lugar: "camino", lienzo: "lugarLienzo", marco: ".lugar", libre: true, base: "tendencias" },
-  tendencias: { lugar: "camino", lienzo: "caminoLienzo", marco: ".camino-card" },
 };
 /* Tras cada render se monta (o se vuelve a colgar) el 3D de la pantalla; fuera de ellas, se pausa.
    Una ficha abierta manda: sigue abierta mientras no cambies de pantalla */
@@ -488,6 +485,25 @@ function cieloMasCerca(s) {
     if (!mejor || a.pct > mejor.a.pct || (a.pct === mejor.a.pct && a.meta - a.v < mejor.a.meta - mejor.a.v)) mejor = { id, b, a };
   });
   return mejor;
+}
+/* -------- Las medallas de un año o de un trimestre (del ledger, en orden): para los cierres -------- */
+function medallasDelAnio(s, y) {
+  const g = (s.gamif && s.gamif.badges) || [], ini = new Date(y, 0, 1).getTime(), fin = new Date(y + 1, 0, 1).getTime();
+  return ((s.gamif && s.gamif.ledger) || [])
+    .filter(m => m && !m.anulado && typeof m.id === "string" && m.id.startsWith("insignia:") && m.ts >= ini && m.ts < fin)
+    .sort((a, b) => a.ts - b.ts)
+    .map(m => ({ id: m.id.slice(9), ts: m.ts }))
+    .filter(x => g.includes(x.id) && findBadge(x.id));
+}
+function medallasDelTrimestre(s, y, q) { return medallasDelAnio(s, y).filter(m => Math.floor(new Date(m.ts).getMonth() / 3) === q); }
+function fechaMedalla(ts) { const d = new Date(ts); return `${d.getDate()} ${CIELO_MESES[d.getMonth()]}`; }
+function chipsMedallas(lista) {
+  return lista.map(m => { const b = findBadge(m.id); return `<button class="med-chip" data-action="ins-ver" data-id="${m.id}">${medChip(b, `${escapeHtml(b.nombre)} <small class="med-chip__f">${fechaMedalla(m.ts)}</small>`)}</button>`; }).join("");
+}
+function medallasCierreHtml(lista, titulo, pie) {
+  if (!lista.length) return "";
+  return `<div class="cierre-meds"><div class="recibo__k">${titulo} · ${lista.length}</div>
+    <div class="recibo__meds-l">${chipsMedallas(lista)}</div>${pie ? `<p class="text-xs muted mt-8">${pie}</p>` : ""}</div>`;
 }
 function medChip(b, etiqueta) {
   return `<span class="med-chip__m" style="--metal:${CIELO_METALES[cieloMetal(b)].css}" aria-hidden="true">${b.icon}</span>${etiqueta}`;

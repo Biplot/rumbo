@@ -260,7 +260,7 @@ function mesAperturaPaso(w) {
     const rows = STATE.habitos.defs.map(h => {
       const x = d.habitos[h.id];
       return `<div class="mes-hab ${x.pausado ? "is-paused" : ""}">
-        <div class="mes-hab__n">${h.icon} ${escapeHtml(h.nombre)}</div>
+        <div class="mes-hab__n">${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)}</div>
         <div class="row" style="gap:6px">
           <select class="select" id="mh-tipo-${h.id}" style="max-width:130px">${tipos.filter(([k]) => k !== "dias" || x.tipo === "dias").map(([k, l]) => `<option value="${k}" ${x.tipo === k ? "selected" : ""}>${l}</option>`).join("")}</select>
           <input class="input" type="number" min="1" max="25" id="mh-veces-${h.id}" value="${x.veces || 3}" style="width:64px" title="Veces (semanal o mensual)">
@@ -314,7 +314,7 @@ function mesCierrePaso(w) {
       <div class="field"><label>🌱 Una cosa para el próximo mes</label><input class="input" id="mc-prox" value="${escapeAttr(d.proximo)}" placeholder="Se precargará al abrir el próximo mes"></div>`;
   }
   if (w.paso === 5) return resumenAnioHtml(resumenAnio(STATE, w.y, d.nota))
-    + (typeof medallasCierreHtml === "function" ? medallasCierreHtml(medallasDelAnio(STATE, w.y), "🏅 Tus medallas del año", "En Tendencias está tu camino del año: cada una en el día en que la ganaste. Se puede compartir.") : "");
+    + (typeof medallasCierreHtml === "function" ? medallasCierreHtml(medallasDelAnio(STATE, w.y), "🏅 Tus medallas del año", "Todas brillan en tu vitrina.") : "");
   return `<div class="field"><label>Nota de ${MESES[w.m]}: <b id="mc-nl" style="font-size:20px">${d.nota}</b>/10</label>
     <input type="range" min="1" max="10" step="1" id="mc-nota" value="${d.nota}" style="width:100%;accent-color:var(--cian)"
       oninput="document.getElementById('mc-nl').textContent=this.value"></div>

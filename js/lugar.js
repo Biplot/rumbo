@@ -1,15 +1,15 @@
 /* ============================================================
-   RUMBO · Lugares a pantalla completa: tu casa, tu vitrina y tu camino
+   RUMBO · Lugares a pantalla completa: tu casa y tu vitrina
    El lugar llena la pantalla de borde a borde. Arriba flota una barra (‹, título y ⭐) y
    abajo una hoja que se arrastra: asomada, a media altura o completa (en pantallas anchas
    es un panel al costado). Al subir la hoja, el 3D se encuadra en lo que queda libre.
    Se entra desde la tarjeta del lugar (crece desde ahí); ‹ o Escape vuelven a donde estabas.
    Sin WebGL no hay pantalla completa: el lugar sigue en su tarjeta (cielo.js vuelve a su base).
-   Lugares: tu casa (casa.js), tu vitrina de medallas (cielo.js) y tu camino del año (camino.js).
+   Lugares: tu casa (casa.js) y tu vitrina de medallas (cielo.js).
    En Inicio, tu casa y tu vitrina son dos botones que llevan directo a la pantalla completa.
    ============================================================ */
 const LUGAR = { volver: null, desde: null, hoja: "asomada" };
-const LUGAR_BASE = { cuarto: "recompensas", cielo: "insignias", camino: "tendencias" };   // donde vive su tarjeta
+const LUGAR_BASE = { cuarto: "recompensas", cielo: "insignias" };   // donde vive su tarjeta
 const HOJA_ESTADOS = ["asomada", "media", "completa"];
 function lugarAncho() { return window.matchMedia && matchMedia("(min-width: 900px)").matches; }
 
@@ -124,7 +124,7 @@ function lugarTrasRender() {
 /* Desde un botón (Inicio, ⤢ en la tarjeta): crece desde ese botón; sin 3D, va a la tarjeta del lugar */
 function lugarAbrir(ruta, el) {
   if (!LUGAR_BASE[ruta]) return;
-  const desde = (el && el.closest && el.closest(".mundo__b, .ele-hero")) || document.getElementById({ cuarto: "casa", cielo: "cielo", camino: "camino" }[ruta]);
+  const desde = (el && el.closest && el.closest(".mundo__b, .ele-hero")) || document.getElementById({ cuarto: "casa", cielo: "cielo" }[ruta]);
   if (!lugarEntrar(ruta, desde)) go(LUGAR_BASE[ruta]);
 }
 
@@ -148,9 +148,9 @@ function mundoHtml() {
     </button>
   </section>`;
 }
-/* Desde la tarjeta de cada lugar (o tocando su 3D): casa → tu casa, cielo → tu vitrina, camino → tu camino */
+/* Desde la tarjeta de cada lugar (o tocando su 3D): casa → tu casa, cielo → tu vitrina */
 function lugarDesdeTarjeta(l) {
-  const ruta = { casa: "cuarto", cielo: "cielo", camino: "camino" }[l];
+  const ruta = { casa: "cuarto", cielo: "cielo" }[l];
   if (ruta) lugarEntrar(ruta, document.getElementById(l));
 }
 /* El motor ya colgó el lienzo: el encuadre se fija sin animar (si no, el lugar llegaría corriéndose) */

@@ -30,7 +30,6 @@ const ROUTES = [
   { id: "insignias", pie: true, label: "Recompensas", icon: "🏅", render: renderInsignias, subtitle: "Tus logros, con bronce, plata, oro y secretas." },
   { id: "cuarto", pie: true, lugar: true, label: "Tu casa", icon: "🏠", render: renderCuarto, subtitle: "Tu elefante en su casa, a pantalla completa." },
   { id: "cielo", pie: true, lugar: true, label: "Tu vitrina", icon: "✨", render: renderCielo, subtitle: "Tus medallas en el cielo, a pantalla completa." },
-  { id: "camino", pie: true, lugar: true, label: "Tu camino", icon: "🛤️", render: renderCamino, subtitle: "Tu año en un sendero, a pantalla completa." },
   { id: "cuenta", pie: true, label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
   { id: "notif", pie: true, label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
   { id: "tutoriales", pie: true, label: "Ayuda", icon: "🎓", render: renderTutoriales, subtitle: "Recorridos guiados para aprender Rumbo a tu ritmo." },
@@ -154,7 +153,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 27;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 28;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -328,7 +327,6 @@ const NOVEDADES = {
     ["🏅", "Tu repisa", "En su repisa tu elefante luce tus mejores medallas, o las que tú elijas en 🏅 Repisa. Tócalas para verlas de cerca."],
   ],
   23: [
-    ["🛤️", "El camino de tu año", "En Tendencias, tu año es un sendero de enero a diciembre: cada medalla que ganaste es un hito en el día en que pasó. Tócalo para verla de cerca y comparte tu camino."],
     ["🧭", "Medallas en tus cierres", "Al cerrar un trimestre o el año ves las medallas que ganaste en ese tiempo."],
   ],
   24: [
@@ -341,11 +339,16 @@ const NOVEDADES = {
   ],
   26: [
     ["✨", "Tu cielo a pantalla completa", "Toca el cielo en Insignias y llena la pantalla. Gíralo, pellizca para acercarte y elige una constelación en la hoja para ir hasta ella."],
-    ["🏝️", "Tu camino a pantalla completa", "Toca la isla en Tendencias: el año se recorre de borde a borde, cambias de año en la barra y la hoja trae tus trimestres y medallas."],
   ],
   27: [
     ["🏠", "Tu casa y tu vitrina, en Inicio", "Dos botones bajo tu día: Tu casa te lleva directo a tu elefante y Tu vitrina a tus medallas, a pantalla completa. Tocar a tu elefante del día también te lleva a su casa."],
     ["🐘", "Tu elefante vive su día", "Camina por su casa y hace de todo: mira por la ventana, admira sus medallas, duerme la siesta y, con lo que le compres, riega la planta, baila o le hace cariño al gato."],
+  ],
+  28: [
+    ["✏️", "Íconos de línea", "Hábitos, Tendencias y los packs de íconos de la Tienda usan íconos de línea, sobrios como los del menú."],
+    ["📊", "Gráficos con sus datos", "En Tendencias, cada barra y cada punto muestran su valor."],
+    ["✨", "Tu vitrina, con aire", "Las constelaciones y la repisa de tu casa están ordenadas: ninguna medalla tapa a otra."],
+    ["🐘", "Tu elefante, despierto", "Si no cierras tu día anda con sueño, pero solo duerme cuando toma su siesta."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1248,7 +1251,6 @@ function onClick(e) {
     case "hoja-alternar": hojaAlternar(); break;
     case "cuarto-decorar": cuartoDecorar(); break;
     case "repisa-elegir": REPISA_SEL = null; openRepisa(); break;
-    case "camino-compartir": compartirCamino(+d.y); break;
     case "repisa-toggle": repisaToggle(d.id); break;
     case "repisa-guardar": repisaGuardar(false); break;
     case "repisa-auto": repisaGuardar(true); break;
@@ -1791,11 +1793,11 @@ function renderInicio() {
     const on = habitDone(h.id, mIdx, day);
     const prog = progresoPeriodoActual(h);
     return `<button class="hab-chip${on ? " is-on" : ""}" data-action="quick-habit" data-id="${h.id}" aria-pressed="${on}"
-      title="${escapeAttr(h.nombre + " · " + prog.texto)}"><span class="hab-chip__i">${h.icon}</span><span class="hab-chip__n">${escapeHtml(h.nombre)}</span></button>`;
+      title="${escapeAttr(h.nombre + " · " + prog.texto)}"><span class="hab-chip__i">${icoHab(h.icon, 20)}</span><span class="hab-chip__n">${escapeHtml(h.nombre)}</span></button>`;
   };
   const { toca: habToca, cumplidos: habCumplidos } = habitosHoy();
   const habitsToday = (habToca.length ? `<div class="hab-chips">${habToca.map(habBtn).join("")}</div>` : "")
-    + (habCumplidos.length ? `<details class="hb-more"><summary>✅ Ya cumplidos este período (${habCumplidos.length})</summary>
+    + (habCumplidos.length ? `<details class="hb-more"><summary>${icoHab("✅", 15)} Ya cumplidos este período (${habCumplidos.length})</summary>
       <div class="hab-chips mt-8">${habCumplidos.map(habBtn).join("")}</div></details>` : "");
   const doneToday = habToca.filter(h => habitDone(h.id, mIdx, day)).length;
 
@@ -1903,7 +1905,7 @@ function statCard(ico, label, value, sub, pct) {
         <div class="stat__value">${value}</div>
         <div class="text-xs muted">${sub || ""}</div>
       </div>
-      <div class="stat__ico">${ico}</div>
+      <div class="stat__ico">${icoHab(ico, 20)}</div>
     </div>
     ${pct != null ? `<div class="bar mt-16"><div class="bar__fill" style="width:${pct}%"></div></div>` : ""}
   </div>`;

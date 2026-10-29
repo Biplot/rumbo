@@ -259,11 +259,11 @@ function renderHabitos() {
   <div class="hab-head">
     <div class="seg seg--full" role="tablist" aria-label="Vista">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${vista === k}" class="${vista === k ? "is-active" : ""}" data-action="habit-vista" data-v="${k}">${l}</button>`).join("")}</div>
     <div class="row" style="gap:8px">
-      <button class="btn-ghost" data-action="plantillas-open" title="Plantillas de rutina">📋 Plantillas</button>
+      <button class="btn-ghost" data-action="plantillas-open" title="Plantillas de rutina">${icoHab("📋", 16)} Plantillas</button>
       <button class="btn btn--primary" data-action="habit-add">+ Nuevo hábito</button>
     </div>
   </div>
-  <div class="pill pill--streak mt-16" style="display:inline-flex" title="Días seguidos cumpliendo todos los hábitos que tocaban">✅ ${racha} ${racha === 1 ? "día" : "días"} de hábitos seguidos</div>`;
+  <div class="pill pill--streak mt-16" style="display:inline-flex" title="Días seguidos cumpliendo todos los hábitos que tocaban">${icoHab("✅", 16)} ${racha} ${racha === 1 ? "día" : "días"} de hábitos seguidos</div>`;
   if (!defs.length) return head + `<div class="card mt-16"><div class="empty">Aún no tienes hábitos. Crea el primero con “+ Nuevo hábito”.</div></div>`;
   const body = HABIT_VIEW === "mensual" ? habitViewMensual() : HABIT_VIEW === "anual" ? habitViewAnual() : habitViewDiario();
   return head + `<div class="mt-16">${body}</div>`;
@@ -276,7 +276,7 @@ function habitTodayCard(h) {
   const pase = !on && hmPase(h, hoy);
   const libre = hmLibre(hoy) && ["diario", "dias"].includes(hmFreq(h).tipo);
   return `<div class="card hb-today ${on || pase ? "is-on" : ""}" data-action="habit-today" data-id="${h.id}" role="button" tabindex="0">
-      <div class="hb-today__ico">${h.icon}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
+      <div class="hb-today__ico">${icoHab(h.icon, 28)}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
       <div class="hb-today__prog">${pase ? "🎟️ Pase usado hoy" : libre ? "🌴 Día libre" : prog.texto}${rachaTxt(h) ? " · " + rachaTxt(h) : ""}</div>
       <div class="hb-today__check">${on ? "✓" : pase ? "🎟️" : ""}</div>
       <button class="hb-today__edit icon-btn" data-action="habit-edit" data-id="${h.id}" title="Editar hábito" aria-label="Editar">✎</button></div>`;
@@ -301,7 +301,7 @@ function habitViewDiario() {
           <span class="hb-day__dow">${DIAS_CORTO[d.getDay()]}</span><span class="hb-day__n">${d.getDate()}</span></button>`;
       }).join("");
       const meta = hmFreq(h).tipo === "mensual" ? progresoPeriodoActual(h).texto : `${hmMetaPeriodo(h, todayISO()).hecho}/${hmMetaPeriodo(h, todayISO()).esperado} esta semana`;
-      return `<div class="card hb-week ${h.pausado ? "is-paused" : ""}"><div class="hb-week__name">${h.icon} ${escapeHtml(h.nombre)} ${freqChip(h)}
+      return `<div class="card hb-week ${h.pausado ? "is-paused" : ""}"><div class="hb-week__name">${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)} ${freqChip(h)}
         <span class="text-xs muted" style="margin-left:auto">${h.pausado ? "" : meta}</span>
         <button class="icon-btn" data-action="habit-edit" data-id="${h.id}" title="Editar">✎</button></div><div class="hb-week__days">${cells}</div></div>`;
     }).join("");
@@ -314,10 +314,10 @@ function habitViewDiario() {
   const pausados = defs.filter(h => h.pausado);
   return sub + `<div class="text-sm muted" style="margin-bottom:12px">Hoy llevas <b>${done}/${toca.length}</b> hábitos que tocan hoy</div>
     <div class="hb-grid">${toca.map(habitTodayCard).join("") || '<div class="empty">Nada pendiente hoy 🎉</div>'}</div>
-    ${cumplidos.length ? `<details class="hb-more mt-16"><summary>✅ Ya cumplidos este período (${cumplidos.length})</summary>
+    ${cumplidos.length ? `<details class="hb-more mt-16"><summary>${icoHab("✅", 15)} Ya cumplidos este período (${cumplidos.length})</summary>
       <div class="hb-grid mt-16">${cumplidos.map(habitTodayCard).join("")}</div></details>` : ""}
     ${pausados.length ? `<details class="hb-more mt-16"><summary>⏸ Pausados (${pausados.length})</summary>
-      <div class="mt-8">${pausados.map(h => `<div class="item-row"><span>${h.icon}</span><div class="item-row__main">${escapeHtml(h.nombre)}</div>
+      <div class="mt-8">${pausados.map(h => `<div class="item-row"><span class="hab-ico">${icoHab(h.icon, 18)}</span><div class="item-row__main">${escapeHtml(h.nombre)}</div>
         <button class="btn-ghost" data-action="habit-edit" data-id="${h.id}">Editar</button></div>`).join("")}</div></details>` : ""}`;
 }
 
@@ -340,7 +340,7 @@ function habitGrid(m) {
       return `<td><span class="cell ${on ? "on" : ""} ${d === todayD ? "today" : ""} ${prog ? "prog" : ""}" data-action="habit-cell" data-id="${h.id}" data-day="${d}"></span></td>`;
     }).join("");
     const c = cumplimiento(h, desde, hasta);
-    return `<tr class="${h.pausado ? "is-paused" : ""}"><td class="name">${h.icon} ${escapeHtml(h.nombre)}
+    return `<tr class="${h.pausado ? "is-paused" : ""}"><td class="name">${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)}
       <button class="icon-btn" data-action="habit-edit" data-id="${h.id}" style="margin-left:4px" title="Editar">✎</button></td>
       ${cells}<td style="font-weight:600;color:var(--cian-ink)">${c.pct == null ? "—" : c.pct + "%"}</td></tr>`;
   }).join("");
@@ -363,7 +363,7 @@ function habitViewMensual() {
           <div class="text-sm muted mt-8">${g.hecho} de ${g.esperado} cumplimientos esperados${g.esperado ? "" : " (aún sin períodos cerrados)"}</div></div></div></div>
     <div class="card"><div class="card__title">Mejores hábitos del mes</div>
       <div class="mt-16">${ranking.map((r, i) => `<div class="flex-between" style="padding:6px 0;gap:8px">
-        <span class="text-sm">${i + 1}. ${r.h.icon} ${escapeHtml(r.h.nombre)} ${freqChip(r.h)}</span>
+        <span class="text-sm">${i + 1}. ${icoHab(r.h.icon, 16)} ${escapeHtml(r.h.nombre)} ${freqChip(r.h)}</span>
         <span class="hl-cian">${r.c.pct == null ? (r.c.enCurso ? "en curso" : "—") : r.c.pct + "%"}</span></div>`).join("")}</div></div>
   </div>
   <div class="section-title">Calendario del mes <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· los días programados se marcan con un borde</span></div>
@@ -390,7 +390,7 @@ function habitViewAnual() {
     <div class="card"><div class="card__head"><div class="card__title">Por mes</div><span class="card__hint">% de cumplimiento</span></div>${svgBar(porMes, { color: "var(--cian)", fmt: v => v + "%" })}</div>
     <div class="card"><div class="card__title">Top del año</div>
       <div class="mt-16">${ranking.map((x, i) => `<div class="flex-between" style="padding:6px 0;gap:8px">
-        <span class="text-sm">${i + 1}. ${x.h.icon} ${escapeHtml(x.h.nombre)} ${freqChip(x.h)}</span>
+        <span class="text-sm">${i + 1}. ${icoHab(x.h.icon, 16)} ${escapeHtml(x.h.nombre)} ${freqChip(x.h)}</span>
         <span class="text-xs muted">${x.r.n ? "🔥 " + x.r.n + " " + x.r.unidad : ""}</span>
         <span class="hl-cian">${x.c.pct == null ? "—" : x.c.pct + "%"}</span></div>`).join("")}</div></div>
   </div>`;
@@ -402,17 +402,19 @@ function openHabitModal(id) {
   const h = id ? STATE.habitos.defs.find(x => x.id === id) : null;
   HABIT_EDIT = h ? h.id : null;
   const f = h ? hmFreq(h) : { tipo: "diario" };
-  const iconos = Array.from(new Set(["🏋️","📖","✏️","🎵","🥗","💧","🧘","💊","🏃","☀️","🛏️","🚭","🧹","💻","📞","🙏"].concat(iconosExtra(), h ? [h.icon] : [])));
-  const icon = h ? h.icon : "🏋️";
+  const icon = h ? h.icon : "🏋️", sel = iconoDeEmoji(icon);
+  // Los íconos de línea (iconos.js), sin repetir dibujo; cada uno guarda su emoji de siempre
+  const vistos = new Set(), iconos = [icon].concat(["🏋️","📖","✏️","🎵","🥗","💧","🧘","💊","🏃","☀️","🛏️","🚭","🧹","💻","📞","🙏"], iconosExtra())
+    .filter(ic => { const m = iconoDeEmoji(ic), k = m ? m[0] : ic; if (vistos.has(k)) return false; vistos.add(k); return true; });
   const tipos = [["diario", "Diario"], ["semanal", "X por semana"], ["dias", "Días fijos"], ["mensual", "X al mes"]];
   const dias = f.tipo === "dias" ? f.dias : [0, 2, 4];
   openModal(h ? "Editar hábito" : "Nuevo hábito", `
     <div class="field"><label>Nombre del hábito</label><input class="input" id="h-nombre" value="${escapeAttr(h ? h.nombre : "")}" placeholder="Ej: Meditar"></div>
     <div class="field"><label>Ícono</label>
-      <div class="row-wrap" id="h-iconos">${iconos.map(ic =>
-        `<button type="button" class="btn--soft btn ${ic === icon ? "btn--cian" : ""}" style="padding:8px 12px" data-ic="${ic}" onclick="pickIcon(this)">${ic}</button>`).join("")}</div>
+      <div class="row-wrap ico-picks" id="h-iconos">${iconos.map(ic => { const m = iconoDeEmoji(ic), nombre = m ? m[1] : ic;
+        return `<button type="button" class="btn--soft btn ico-pick ${ic === icon || (m && sel && m[0] === sel[0]) ? "btn--cian" : ""}" data-ic="${ic}" aria-label="${escapeAttr(nombre)}" title="${escapeAttr(nombre)}" onclick="pickIcon(this)">${icoHab(ic, 22)}</button>`; }).join("")}</div>
       <input type="hidden" id="h-icon" value="${icon}">
-      ${PACKS_ICONOS.some(p => !funcion("iconos-" + p.id)) ? `<div class="text-xs muted mt-8">🎨 Más íconos (deporte, estudio, hogar, bienestar) en la Tienda.</div>` : ""}</div>
+      ${PACKS_ICONOS.some(p => !funcion("iconos-" + p.id)) ? `<div class="text-xs muted mt-8">${iconoSvg("palette", 14)} Más íconos (deporte, estudio, hogar, bienestar) en la Tienda.</div>` : ""}</div>
     <div class="field"><label>Frecuencia objetivo</label>
       <div class="seg" id="h-tipo-seg" style="flex-wrap:wrap">${tipos.map(([k, l]) => `<button type="button" class="${f.tipo === k ? "is-active" : ""}" data-v="${k}" onclick="habitTipoPick(this)">${l}</button>`).join("")}</div>
       <input type="hidden" id="h-tipo" value="${f.tipo}">

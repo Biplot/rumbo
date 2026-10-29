@@ -21,7 +21,7 @@ const REPISA_MAX = 5;
 
 /* -------- Lo que hace tu elefante en su cuarto --------
    Va de un rincón a otro y hace algo en cada uno (cielo-3d.js lo hace caminar). Lo que puede hacer
-   depende de lo que hay en el cuarto y de la hora (de noche, o con sueño, duerme más). Lo que hace
+   depende de lo que hay en el cuarto y de la hora (de noche duerme más, y con sueño, un poco más). Lo que hace
    «ahora» cambia cada 20 minutos: lo cuenta tu casa en Inicio y, al entrar, lo encuentras en eso.
    peso: [de día, al atardecer, de noche] */
 const ELE_ACTIVIDADES = [
@@ -43,7 +43,7 @@ function eleActividades(s, ahora) {
   const f = franjaCasa((ahora || new Date()).getHours()), cosas = new Set(casaCosas(s).concat(cuartoPuestas(s)));
   const meds = repisaIds(s).length > 0, sueno = animoElefante(s) === "sueno";
   return ELE_ACTIVIDADES.filter(a => (!a.cosa || cosas.has(a.cosa)) && (!a.medallas || meds))
-    .map(a => ({ ...a, w: a.peso[f] * (a.id === "siesta" && sueno ? 4 : 1) })).filter(a => a.w > 0);
+    .map(a => ({ ...a, w: a.peso[f] * (a.id === "siesta" && sueno ? 2 : 1) })).filter(a => a.w > 0);
 }
 /* Lo que hace ahora mismo: lo mismo durante 20 minutos (en Inicio y al entrar a tu casa) */
 function eleActividadAhora(s, ahora) {

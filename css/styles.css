@@ -431,12 +431,12 @@ textarea.input { resize: vertical; min-height: 84px; }
 .hb-today { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 12px;
   cursor: pointer; text-align: center; transition: .14s; position: relative; }
 .hb-today:hover { border-color: var(--cian); transform: translateY(-2px); }
-.hb-today__ico { font-size: 30px; line-height: 1; filter: grayscale(.5); opacity: .7; transition: .14s; }
+.hb-today__ico { font-size: 30px; line-height: 1; color: var(--text-muted); transition: .14s; }
 .hb-today__name { font-size: 13.5px; font-weight: 500; color: var(--text-soft); }
 .hb-today__check { position: absolute; top: 10px; right: 12px; width: 22px; height: 22px; border-radius: 999px;
   border: 1.5px solid var(--line-strong); display: grid; place-items: center; font-size: 13px; color: var(--on-cian); }
 .hb-today.is-on { border-color: var(--cian); background: var(--cian-soft); }
-.hb-today.is-on .hb-today__ico { filter: none; opacity: 1; }
+.hb-today.is-on .hb-today__ico { color: var(--cian-ink); }
 .hb-today.is-on .hb-today__name { color: var(--text); font-weight: 600; }
 .hb-today.is-on .hb-today__check { background: var(--cian); border-color: var(--cian); }
 
@@ -1231,6 +1231,21 @@ html[data-check="sello"] .tarea-row.is-just .strike::after { animation: chkSello
    Recompensas y cuenta, barra inferior y hoja "Más" (móvil)
    ============================================================ */
 .ico-linea { flex-shrink: 0; }
+/* Íconos de los hábitos y de Tendencias (iconos.js): en una línea de texto, alineados con las letras */
+.ico-hab { vertical-align: -0.2em; color: var(--text-soft); }
+.hb-today__ico .ico-hab, .hab-chip__i .ico-hab, .insight-ico .ico-hab, .stat__ico .ico-hab { vertical-align: 0; color: inherit; }
+.section-title .ico-hab, .card__title .ico-hab, .stat__label .ico-hab { margin-right: 4px; color: var(--text-muted); }
+.hab-ico { display: inline-grid; place-items: center; }
+.ico-picks { gap: 6px; }
+.ico-pick { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; }
+.ico-pick .ico-hab { vertical-align: 0; color: inherit; }
+.ico-pick.btn--cian { background: var(--cian-soft); color: var(--cian-ink); box-shadow: inset 0 0 0 1.5px var(--cian); }
+.pack-vista { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; color: var(--text-soft); }
+.ficha__ico .ico-hab, .util-ico .ico-hab { vertical-align: 0; color: var(--text); }
+/* Etiquetas de datos en los gráficos de Tendencias */
+.graf-dato { font-size: 15px; font-weight: 700; fill: var(--text-soft); font-variant-numeric: tabular-nums; }
+.insight-ico .ico-hab { color: var(--cian-ink); }
+.stat__ico .ico-hab { color: var(--text-soft); }
 .nav-dia { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 46px;
   border-radius: 12px; border: 1px solid transparent; font: 700 15px var(--font-body); margin: 0 0 12px; cursor: pointer; }
 .nav-dia[hidden] { display: none; }
@@ -1375,7 +1390,8 @@ a.card__hint:hover { text-decoration: underline; }
   padding: 6px 4px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text);
   font: 600 12px var(--font-body); cursor: pointer; transition: background .15s, border-color .15s, transform .08s; min-width: 0; }
 .hab-chip:active { transform: scale(.97); }
-.hab-chip__i { font-size: 22px; line-height: 1; }
+.hab-chip__i { font-size: 22px; line-height: 1; display: grid; place-items: center; color: var(--text-soft); }
+.hab-chip.is-on .hab-chip__i { color: var(--cian-ink); }
 .hab-chip__n { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hab-chip.is-on { background: var(--cian-soft); border: 1.5px solid var(--cian); }
 @media (max-width: 760px) {
@@ -2138,26 +2154,12 @@ html .ins-cerca .btn--linea:hover { background: rgba(255, 224, 138, .1); }
 .repisa-sel__b.is-on { border-color: var(--cian); background: var(--cian-soft, var(--surface-3)); box-shadow: inset 0 0 0 1px var(--cian); }
 .repisa-sel__b.is-on::after { content: "✓"; margin-left: 2px; font-weight: 800; color: var(--cian-ink, var(--cian)); }
 
-/* ---------- El camino del año en Tendencias (camino.js) ---------- */
-.camino { position: relative; height: clamp(280px, 58vw, 460px); margin-bottom: 12px; border-radius: var(--r); overflow: hidden; isolation: isolate; background: #9FD3EA; }
-.camino__lienzo { position: absolute; inset: 0; }
-.camino__vacio { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: max-content; max-width: calc(100% - 28px); padding: 8px 14px; border-radius: 999px;
-  background: rgba(255, 255, 255, .92); color: #2E3D6B; font-size: 13px; font-weight: 600; text-align: center; pointer-events: none; }
-.camino__carga { position: absolute; inset: 0 0 auto; display: none; justify-content: center; padding-top: 14px; font-size: 13px; color: #2E3D6B; }
-.camino-card.is-cargando .camino__carga { display: flex; }
-.camino-card.is-sin3d .camino { display: none; }
-.camino-card:not(.is-sin3d) .camino__vacio-txt { display: none; }
-.camino__tris { display: flex; gap: 8px; flex-wrap: wrap; }
-.camino__tris span { flex: 1; min-width: 64px; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface-2); text-align: center; font-size: 14px; font-variant-numeric: tabular-nums; }
-.camino__tris b { color: var(--text-muted); font-weight: 700; margin-right: 4px; }
-.camino__det { margin-top: 12px; }
-.camino__det summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-soft); margin-bottom: 8px; }
+/* ---------- Las medallas en los cierres de trimestre y año ---------- */
 .med-chip__f { font-weight: 500; color: var(--text-muted); font-size: 12px; margin-left: 2px; }
-.camino__pie { display: flex; justify-content: flex-end; margin-top: 12px; }
 .cierre-meds { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
 
 /* ============================================================
-   Lugares a pantalla completa (lugar.js): por ahora, tu cuarto
+   Lugares a pantalla completa (lugar.js): tu casa y tu vitrina
    ============================================================ */
 body.en-lugar { overflow: hidden; }
 .en-lugar .bottombar, .en-lugar .topbar { display: none; }
@@ -2213,12 +2215,6 @@ body.en-lugar { overflow: hidden; }
 /* Tu cielo: vidrio oscuro sobre la noche */
 .lugar--osc .vidrio { background: rgba(18, 20, 32, .58); color: #FFFFFF; border-color: rgba(255, 255, 255, .14); }
 .lugar--osc .lugar__carga { color: #A3A7B7; }
-/* Tu camino: el año en la barra */
-.lugar__anio { display: flex; align-items: center; gap: 2px; padding: 3px 4px; }
-.lugar__anio b { padding: 0 2px; }
-.lugar__anio button { width: 34px; height: 34px; border: 0; border-radius: 50%; background: none; color: inherit; font: inherit; font-size: 19px; font-weight: 700; cursor: pointer; }
-.lugar__anio button:disabled { opacity: .3; cursor: default; }
-.lugar__anio button:focus-visible { outline: 2px solid var(--coral); outline-offset: 1px; }
 /* En la hoja del cielo: las que faltan, apagadas */
 .med-chip.is-por { opacity: .72; }
 .med-chip__m--por { background: var(--surface-3); color: var(--text-muted); font-size: 11px; }

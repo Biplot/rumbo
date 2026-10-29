@@ -109,7 +109,7 @@ function crearElefante3D(T, op) {
 
   /* -------- La cabeza -------- */
   const cab = new T.Group(); cab.position.set(0.7, 1.5, 0); cab.scale.setScalar(ETAPA.cab); cuerpo.add(cab);
-  const cabBase = animo === "sueno" ? -0.12 : 0.04; cab.rotation.z = cabBase;
+  const cabBase = animo === "sueno" ? -0.05 : 0.04; cab.rotation.z = cabBase;
   const R = 0.66;
   bola(B, 0, 0, 0, R, R * 0.95, R, cab);
   if (tipo === "asiatico") { bola(B, -0.04, 0.34, 0.17, 0.32, 0.3, 0.3, cab); bola(B, -0.04, 0.34, -0.17, 0.32, 0.3, 0.3, cab); }
@@ -117,15 +117,15 @@ function crearElefante3D(T, op) {
   const C0 = new T.Vector3(0, 0, 0);
   const enCab = (x, y, z) => new T.Vector3(x, y, z).normalize();
 
-  // Ojos grandes con brillo (o arcos si está feliz o con sueño; botones en el Peluche; rombos en el Geométrico)
+  // Ojos grandes con brillo (arcos si está feliz; entrecerrados si tiene sueño; botones en el Peluche; rombos en el Geométrico)
   const ojos = [], rOjo = [0.128, 0.118, 0.11, 0.11][i];
   const dirOjo = s => enCab(0.72, 0.2, s * 0.58);
   [1, -1].forEach(s => {
     const n = dirOjo(s), pos = n.clone().multiplyScalar(R * (tipo === "peluche" ? 0.99 : 0.93));
     const grupo = new T.Group(); grupo.position.copy(pos); mirar(grupo, n); cab.add(grupo);
-    if (animo === "feliz" || animo === "sueno") {
+    if (animo === "feliz") {
       const arco = new T.Mesh(guardar(new T.TorusGeometry(rOjo * 0.75, rOjo * 0.22, 8, 20, Math.PI)), OJO);
-      arco.position.z = 0.02; if (animo === "sueno") arco.rotation.z = Math.PI; grupo.add(arco);
+      arco.position.z = 0.02; grupo.add(arco);
     } else if (tipo === "peluche") {
       const bt = new T.Mesh(guardar(new T.CylinderGeometry(rOjo, rOjo, 0.035, 24)), mat(i === 3 ? 0xE8563A : 0x2A2F3A, { roughness: 0.35, liso: true }));
       bt.rotation.x = Math.PI / 2; grupo.add(bt);
@@ -346,7 +346,8 @@ function crearElefante3D(T, op) {
     cab.rotation.y = 0.62 * Math.max(-1, Math.min(1, act.giro)) + (quieto ? 0 : 0.18 * b * Math.sin(t * 2.6));
     const aleteo = quieto ? 0 : Math.max(Math.pow(Math.max(0, Math.sin(t * 0.9)), 12), 0.35 * a * (0.5 + 0.5 * Math.sin(fase * 2)), 0.6 * b * (0.5 + 0.5 * Math.sin(t * 5.2)));
     orejas.forEach(o => { o.piv.rotation.y = -o.s * (abre + 0.5 * aleteo); });
-    const parp = Math.min(!quieto && animo === "normal" && (t % 4.3) < 0.13 ? 0.15 : 1, 1 - 0.9 * d);
+    const parpadea = !quieto && animo !== "feliz" && (t % (animo === "sueno" ? 5.2 : 4.3)) < (animo === "sueno" ? 0.3 : 0.13);
+    const parp = Math.min(parpadea ? 0.15 : animo === "sueno" ? 0.55 : 1, 1 - 0.9 * d);
     ojos.forEach(o => { if (o.userData.sy === undefined) o.userData.sy = o.scale.y; o.scale.y = o.userData.sy * parp; });
     cola.rotation.x = quieto ? 0 : Math.sin(t * (2.4 + 3 * a + 4 * b)) * (0.35 + 0.2 * b) * (1 - 0.7 * d);
     tr.olfa = act.olfa; tr.regar = act.regar; tr.baile = b * 0.7;
@@ -365,7 +366,7 @@ function crearElefante3D(T, op) {
     ponerTrompa(t);
     enTrompa.position.copy(punta);
     // los símbolos salen de la cabeza, donde esté (echado queda más abajo)
-    const yC = tope + cuerpo.position.y, sueno = Math.max(animo === "sueno" ? 1 : 0, d);
+    const yC = tope + cuerpo.position.y, sueno = d;   // los zzz, solo cuando duerme (con sueño, se le cierran los ojos)
     zzz.forEach((sp, k) => { const f = quieto ? (k ? -1 : 0.4) : (t * 0.28 + k / 3) % 1; sp.material.opacity = f < 0 || sueno < 0.05 ? 0 : (quieto ? 0.85 : Math.sin(f * Math.PI) * 0.9) * sueno; sp.position.set(cab.position.x + 0.2 + Math.sin(f * 5 + k) * 0.08, yC + f * 0.7, 0.15); });
     notas.forEach((sp, k) => { const f = quieto ? 0.4 : (t * 0.45 + k / 3) % 1; sp.material.opacity = b > 0.3 ? (quieto ? (k ? 0 : 0.85) : Math.sin(f * Math.PI) * 0.9) * b : 0; sp.position.set(-0.2 + Math.sin(f * 6 + k * 2) * 0.35, yC + 0.1 + f * 0.8, Math.cos(k * 2.1) * 0.35); });
     // al regar, las gotas salen de la punta de la trompa y caen hacia adelante

@@ -62,4 +62,20 @@ export default async function ({ G, test, assert }) {
     t.gamif.badges.push("devorador", "madrugador");
     assert.equal(cieloMasCerca(t).id, "alba-b");                                // y de cada serie, solo su próximo nivel
   });
+
+  test("las medallas del año y del trimestre salen del ledger, en orden (para los cierres)", () => {
+    const defaultState = G("defaultState"), migrate = G("migrate"), ledgerRegistrar = G("ledgerRegistrar");
+    const medallasDelAnio = G("medallasDelAnio"), medallasDelTrimestre = G("medallasDelTrimestre");
+    const s = migrate(defaultState());
+    const gana = (id, f) => { s.gamif.badges.push(id); ledgerRegistrar(s, "insignia:" + id, 1, 1, "x", f.getTime()); };
+    gana("semana-fuego", new Date(2026, 6, 2, 12));
+    gana("primer-paso", new Date(2026, 0, 1, 12));
+    gana("buho", new Date(2026, 11, 31, 23, 57));
+    gana("madrugador", new Date(2025, 11, 20));                                   // del año anterior
+    ledgerRegistrar(s, "insignia:centurion", 1, 1, "x", new Date(2026, 3, 1).getTime());   // no está ganada de verdad
+    assert.equal(medallasDelAnio(s, 2026).map(m => m.id).join(","), "primer-paso,semana-fuego,buho");
+    assert.equal(medallasDelAnio(s, 2025).map(m => m.id).join(","), "madrugador");
+    assert.equal(medallasDelTrimestre(s, 2026, 2).map(m => m.id).join(","), "semana-fuego");
+    assert.equal(medallasDelTrimestre(s, 2026, 1).length, 0);
+  });
 }

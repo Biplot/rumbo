@@ -98,6 +98,13 @@ export default async function ({ G, test, assert }) {
     const q2 = E.pose();
     assert.ok(Math.abs(q2.alto) < 0.01 && Math.abs(q2.pies[0][0] - 0.38) < 0.01 && q2.zzz === 0 && q2.notas === 0, "y vuelve a pararse como siempre");
     E.dispose();
+    // con sueño (no cerraste tu día) tiene los ojos entrecerrados, pero los zzz salen solo cuando duerme
+    const Z = crear(T, { tipo: "clasico", etapa: 2, animo: "sueno" });
+    for (let k = 0; k < 40; k++) Z.vivo(k / 30 + 1);
+    assert.ok(Z.pose().zzz === 0 && Z.pose().ojos > 0.4 && Z.pose().ojos < 0.7, "con sueño, despierto: ojos entrecerrados y sin zzz");
+    Z.postura({ echado: 1, dormir: 1 }); let zz = 0; for (let k = 0; k < 90; k++) { Z.vivo(k / 30 + 3); zz = Math.max(zz, Z.pose().zzz); }
+    assert.ok(zz > 0.5, "y al dormir la siesta, ahí sí los zzz");
+    Z.dispose();
     // en calma (sin animaciones) la postura llega de una: duerme echado, quieto
     const C = crear(T, { tipo: "peluche", etapa: 0, calmo: true });
     C.postura({ echado: 1, dormir: 1 }); C.vivo(0);

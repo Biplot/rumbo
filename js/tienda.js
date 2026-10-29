@@ -16,9 +16,9 @@ function tiendaItems() {
     items.push({ key: fid, cat: "funciones", icon: f.icon, nombre: f.nombre, costo: f.costo, estado: estado(funcion(claveFuncion(fid)), f.costo), attr: `data-fun="${fid}"`, detalle: () => funcionCard(fid, f) }); });
   items.push({ key: "plantillas", cat: "funciones", icon: "📋", nombre: "Plantillas de rutina", costo: 200, precioTxt: "200 ⭐ c/u",
     estado: PLANTILLAS.every(p => funcion("plantilla-" + p.id)) ? "tuyo" : estado(false, 200), accion: `data-action="plantillas-open"` });
-  PACKS_ICONOS.forEach(p => items.push({ key: "pack:" + p.id, cat: "funciones", icon: p.icon, nombre: "Íconos · " + p.nombre, costo: p.costo || 150,
+  PACKS_ICONOS.forEach(p => items.push({ key: "pack:" + p.id, cat: "funciones", icon: p.icon, iconoHtml: icoHab(p.icon, 26), nombre: "Íconos · " + p.nombre, costo: p.costo || 150,
     estado: estado(funcion("iconos-" + p.id), p.costo || 150), attr: `data-pack="${p.id}"`,
-    detalle: () => funcionCard("iconos:" + p.id, { icon: p.icon, nombre: "Íconos · " + p.nombre, costo: p.costo || 150, desc: `24 íconos nuevos para tus hábitos: ${p.iconos.slice(0, 12).join(" ")}…`, donde: "Hábitos → ✎ editar un hábito" }) }));
+    detalle: () => funcionCard("iconos:" + p.id, { icon: icoHab(p.icon, 24), nombre: "Íconos · " + p.nombre, costo: p.costo || 150, desc: `24 íconos de línea nuevos para tus hábitos:<span class="pack-vista">${p.iconos.slice(0, 12).map(e => icoHab(e, 20)).join("")}</span>`, donde: "Hábitos → ✎ editar un hábito" }) }));
   THEMES.forEach(t => { const tuyo = themeOwned(t.id);
     items.push({ key: "tema:" + t.id, cat: "temas", nombre: t.nombre, costo: t.costo, estado: STATE.settings.theme === t.id ? "equipado" : estado(tuyo, t.costo),
       tema: t, accion: `data-action="tema-preview" data-theme="${t.id}"` }); });
@@ -50,7 +50,7 @@ function fichaHtml(it) {
       ? `<span class="ficha__ico ficha__ico--tema" style="background:linear-gradient(90deg, #FFFFFF 50%, #0B0B0C 50%)"><i style="background:#0B0B0C"></i><i style="background:#FFFFFF"></i></span>`
       : `<span class="ficha__ico ficha__ico--tema" style="background:${it.tema.bg}"><i style="background:${it.tema.cta}"></i><i style="background:${it.tema.accent}"></i></span>`)
     : it.pared ? `<span class="ficha__ico ficha__ico--pared" style="--p1:${it.pared[0]};--p2:${it.pared[1]}" aria-hidden="true"></span>`
-    : `<span class="ficha__ico">${it.icon}</span>`;
+    : `<span class="ficha__ico">${it.iconoHtml || it.icon}</span>`;
   return `<button class="ficha is-${it.estado}${it.tema ? " ficha--tema" : ""}" ${it.accion || `data-action="tienda-ficha" data-key="${escapeAttr(it.key)}"`} ${it.attr || ""}>
     ${it.estado === "tuyo" || it.estado === "equipado" ? `<span class="ficha__ok" aria-hidden="true">✓</span>` : ""}
     ${icono}<span class="ficha__n">${escapeHtml(it.nombre)}</span><span class="ficha__p">${precio}${it.tienes ? ` · tienes ${it.tienes}` : ""}</span></button>`;

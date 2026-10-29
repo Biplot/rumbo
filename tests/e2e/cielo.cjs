@@ -45,7 +45,10 @@ module.exports = async ({ b, ok, errs }) => {
     ok(await titulo(p) === "Semana de Fuego", "la flecha › pasa a la siguiente de su constelación");
     await p.keyboard.press("ArrowLeft"); await p.waitForTimeout(400);
     ok(await titulo(p) === "Primer Paso", "← vuelve a la anterior");
-    // Ponerla en tu repisa desde la ficha (reemplaza a «Destacar»)
+    // Ponerla en tu repisa desde la ficha (reemplaza a «Destacar»). En automático ya está en la repisa: sacarla la deja elegida por ti
+    ok((await p.locator('#insCerca [data-action="repisa-medalla"]').innerText()).includes("En tu repisa"), "con la repisa en automático, la ficha dice que ya está en tu repisa");
+    await p.click('#insCerca [data-action="repisa-medalla"]'); await p.waitForTimeout(400);
+    ok(await p.evaluate(() => !repisaIds(STATE).includes("primer-paso") && repisaElegida(STATE)) && (await p.locator("#insCercaFicha").innerText()).includes("Poner en tu repisa"), "sacarla la quita (y la repisa pasa a ser elegida por ti)");
     await p.click('#insCerca [data-action="repisa-medalla"]'); await p.waitForTimeout(400);
     ok(await p.evaluate(() => repisaIds(STATE)[0] === "primer-paso" && repisaElegida(STATE)) && (await p.locator("#insCercaFicha").innerText()).includes("En tu repisa"), "«Poner en tu repisa» funciona desde la ficha y ella se actualiza");
     await p.keyboard.press("Escape"); await p.waitForTimeout(400);

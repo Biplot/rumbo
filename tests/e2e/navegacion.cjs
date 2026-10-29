@@ -41,7 +41,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.locator("#streakPill").isHidden() && await p.locator("#helpBtn").isHidden() && await p.locator("#puertaCasa").isVisible() && await p.locator("#puertaVitrina").isVisible(),
     "en el celular, arriba van las puertas a Tu casa y Tu vitrina (la racha y la ayuda se mueven)");
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
-  await p.click("#view .ruta-dia__racha"); await p.waitForTimeout(200);
+  await p.click("#view .ruta-dia__racha, #view .recibo__racha"); await p.waitForTimeout(200);
   const info = await p.locator("#modal").innerText();
   ok(info.includes("cerrad") && info.includes("hábitos") && info.includes("monedas"), "la racha, al pie de tu día, explica cada racha y las monedas");
   await p.evaluate(() => closeModal());

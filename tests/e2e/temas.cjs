@@ -36,7 +36,7 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 3) Los temas de a dos siguen al teléfono: Ruta en Auto (gratis); Bosque se compra una vez, con los dos modos
   const usar = id => p.evaluate(id => { const x = document.createElement("button"); x.dataset.action = "set-theme"; x.dataset.theme = id; document.getElementById("view").appendChild(x); x.click(); }, id);
-  await p.click('.fam-card[data-familia="ruta"] [data-theme="ruta-auto"]'); await p.waitForTimeout(200);
+  await p.click('.fam-card[data-familia="ruta"] .fam-card__modos [data-theme="ruta-auto"]'); await p.waitForTimeout(200);
   const rutaDia = await p.evaluate(() => document.documentElement.dataset.theme);
   await p.emulateMedia({ colorScheme: "dark" }); await p.waitForTimeout(150);
   const rutaNoche = await p.evaluate(() => document.documentElement.dataset.theme);
@@ -44,7 +44,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(rutaDia === "ruta" && rutaNoche === "ruta-noche" && await p.evaluate(() => STATE.settings.theme === "ruta-auto"), `en Apariencia, Ruta en Auto: de día Ruta y, con el teléfono oscuro, Ruta noche (${rutaDia} → ${rutaNoche})`);
   const icoRuta = await p.evaluate(() => { const i = document.querySelector('.fam-card[data-familia="ruta"] .fam-card__mini'); return i && i.style.background; });
   ok(/255, 255, 255\) 50%.*11, 11, 12\) 50%/.test(icoRuta), "su miniatura es mitad Ruta y mitad Ruta noche: " + icoRuta);
-  await p.click('.fam-card[data-familia="ruta"] [data-theme="ruta-noche"]'); await p.waitForTimeout(200);
+  await p.click('.fam-card[data-familia="ruta"] .fam-card__modos [data-theme="ruta-noche"]'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => STATE.settings.theme === "ruta-noche" && document.documentElement.dataset.theme === "ruta-noche"), "y en Noche queda siempre oscuro");
   ok(!(await p.evaluate(() => themeOwned("bosque-auto") || themeOwned("bosque-claro"))), "Bosque todavía no es tuyo");
   await p.evaluate(() => { ledgerRegistrar(STATE, "saldo-bosque", 1200, 0, "t"); saveState(); openThemePreview("bosque"); });
@@ -52,13 +52,13 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.locator('#modal [data-action="tema-buy"][data-theme="bosque"]').count() === 1 && /900/.test(await p.locator('#modal [data-action="tema-buy"]').innerText()) && /De día/.test(await p.locator("#modalBody").innerText()),
     "su vista previa muestra el día y la noche, y se desbloquea una vez por 900 ⭐");
   p.on("dialog", d => d.accept());
-  const antes = await p.evaluate(() => STATE.gamif.puntos);
+  const antesB = await p.evaluate(() => STATE.gamif.puntos);
   await p.click('#modal [data-action="tema-buy"][data-theme="bosque"]'); await p.waitForTimeout(300);
   const bDia = await p.evaluate(() => [STATE.settings.theme, document.documentElement.dataset.theme, themeOwned("bosque-claro"), themeOwned("bosque-oscuro")].join(" "));
   await p.emulateMedia({ colorScheme: "dark" }); await p.waitForTimeout(150);
   const bNoche = await p.evaluate(() => document.documentElement.dataset.theme);
   await p.emulateMedia({ colorScheme: "light" });
-  ok(bDia === "bosque-auto bosque-claro true true" && bNoche === "bosque-oscuro" && await p.evaluate(a => STATE.gamif.puntos === a - 900, antes),
+  ok(bDia === "bosque-auto bosque-claro true true" && bNoche === "bosque-oscuro" && await p.evaluate(a => STATE.gamif.puntos === a - 900, antesB),
     `una compra trae los dos Bosque y queda en automático: de día Bosque Claro y de noche Bosque Oscuro (${bDia} · ${bNoche})`);
   // Quien tenía uno de los dos (de antes) ya tiene la familia
   ok(await p.evaluate(() => { const o = STATE.gamif.owned; STATE.gamif.owned = ["tema-bosque-oscuro"]; const r = themeOwned("bosque-claro") && themeOwned("bosque-auto"); STATE.gamif.owned = o; return r; }), "quien tenía solo Bosque Oscuro tiene también Bosque Claro y el automático");

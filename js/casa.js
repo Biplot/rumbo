@@ -248,7 +248,7 @@ function renderCuarto() {
     <div class="recibo__meds-l">${ids.length ? ids.map(chip).join("") : `<span class="text-sm muted">Vacía por ahora: tu primera medalla llega al cerrar tu primer día.</span>`}</div>
     <div class="hoja__k">Tu cuarto · ${cosas.length + 1} de ${total}</div>
     <p class="text-sm muted">${prox ? `Próximo: ${prox.ico} ${prox.n} al llegar a ${RANGOS[prox.rango].nombre} (faltan ${faltaXp.toLocaleString("es-CL")} XP).` : "¡Completo! 👑 Tiene todo lo que da el rango."}</p>
-    ${compras.length ? `<div class="hoja__k">De la Tienda</div><div class="fila-chips">${compras.map(it => `<span class="chip">${it.icon} ${escapeHtml(it.nombre)}</span>`).join("")}</div>` : `<p class="text-sm muted">En la Tienda hay sillón, lámpara, pecera, telescopio, un gato y más para su cuarto.</p>`}
+    ${compras.length ? `<div class="hoja__k">Lo que le compraste</div><div class="fila-chips">${compras.map(it => `<span class="chip">${it.icon} ${escapeHtml(it.nombre)}</span>`).join("")}</div>` : `<p class="text-sm muted">Con 🛍️ Decorar le compras sillón, lámpara, pecera, telescopio, un gato y más para su cuarto.</p>`}
     <p class="text-xs muted hoja__pista">Tu elefante va de un rincón a otro: mira por la ventana, admira sus medallas y, con lo que le compres, riega, baila o juega con el gato. Tócalo y reacciona. Arrastra para mirar el cuarto y pellizca para acercarte.</p>`;
   if (CIELO_ESTADO.sin3d) return lugarPlanoHtml({ titulo: "Tu casa", sub: `${escapeHtml(cur.nombre)} · ${cosas.length + 1} de ${total}`, dibujo: elefanteSVG({ anim: false }), cab, cuerpo });
   return lugarHtml({

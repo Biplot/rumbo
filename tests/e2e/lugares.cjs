@@ -49,6 +49,7 @@ module.exports = async ({ b, ok, errs }) => {
     ok((await vista(p)).zoom < 0.9, "la rueda (o pellizcar) acerca el cielo");
     // Una medalla de la hoja se abre de cerca, encima; al cerrarla seguimos en el cielo
     await p.click('[data-action="hoja-alternar"]'); await p.waitForTimeout(700);
+    await p.evaluate(() => { guardarRepisa(STATE, []); saveState(); });   // repisa elegida y vacía: la medalla todavía no está
     await p.click('#lugarHoja .med-chip[data-id="buho"]'); await p.waitForTimeout(600);
     ok(await p.locator("#insCerca").isVisible() && (await p.locator("#insCercaT").innerText()) === "Búho", "una medalla de la hoja se abre de cerca, encima del cielo");
     ok(await p.locator('#insCerca [data-action="badge-destacar"]').count() === 0 && (await p.locator('#insCerca [data-action="repisa-medalla"]').innerText()).includes("Poner en tu repisa"), "en vez de «Destacar», la medalla se pone en tu repisa");

@@ -26,7 +26,7 @@ module.exports = async ({ b, ok, errs }) => {
     await p.waitForTimeout(600);
     ok(await p.locator("#lugarLienzo .cielo__canvas").count() === 1, "Tu casa muestra el cuarto del elefante en 3D");
     ok(await p.evaluate(() => { const e = CIELO_ESTADO.motor.cuarto().elefante; return e && e.tipo === "clasico" && e.etapa === 1; }), "tu elefante vive en 3D sobre la alfombra (el Clásico, en su etapa Joven)");
-    const pie = await p.locator("#lugarHoja").innerText();
+    const pie = await p.locator("#lugarHoja").textContent();
     ok(pie.includes("4 de 7") && pie.includes("Próximo: 🐷") && pie.includes("Maestro"), "dice cuánto tiene el cuarto y qué llega con el próximo rango");
     ok((await p.locator("#lugarHoja .hoja__t").innerText()).includes("Joven"), "la ficha de tu elefante sigue igual (etapa Joven)");
     await shot(p, "casa-3d");
@@ -60,7 +60,7 @@ module.exports = async ({ b, ok, errs }) => {
     ok(await p.evaluate(() => CIELO_ESTADO.motor.cuarto().reaccion && CURRENT === "cuarto"), "tocar al elefante lo hace reaccionar");
     await p.waitForTimeout(1500);
     await p.evaluate(() => { ledgerRegistrar(STATE, "xp-test-2", 0, 1600, "test"); saveState(); rerender(); }); await p.waitForTimeout(500);
-    ok((await p.locator("#lugarHoja").innerText()).includes("5 de 7") && await p.evaluate(() => casaCosas(STATE).includes("alcancia")), "al llegar a Maestro el cuarto gana la mesita con alcancía");
+    ok((await p.locator("#lugarHoja").textContent()).includes("5 de 7") && await p.evaluate(() => casaCosas(STATE).includes("alcancia")), "al llegar a Maestro el cuarto gana la mesita con alcancía");
     await ctx.close(); await b3.close();
   }
 

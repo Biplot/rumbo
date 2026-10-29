@@ -42,7 +42,7 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 4) Elegir Norte en Noche (en Apariencia): queda guardado y se ve oscuro aunque el teléfono esté en claro
   await p.goto(URL + "#apariencia"); await p.waitForTimeout(300);
-  await p.click('.fam-card[data-familia="norte"] [data-theme="norte-noche"]'); await p.waitForTimeout(200);
+  await p.click('.fam-card[data-familia="norte"] .fam-card__modos [data-theme="norte-noche"]'); await p.waitForTimeout(200);
   await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(400);
   ok(await p.evaluate(() => STATE.settings.theme === "norte-noche" && STATE.settings.temaElegido === "norte-noche" && document.documentElement.dataset.theme === "norte-noche"),
     "quien elige Norte noche lo conserva al recargar, aunque el teléfono esté en claro");

@@ -1794,7 +1794,7 @@ function renderCierreResumen(r) {
       <div class="ruta-dia__fecha">${fecha}</div>
       <div class="recibo__ok">${iconoLinea("hecho", 16)}Día cerrado</div>
       <h2 class="ruta-dia__t">Llegaste, ${escapeHtml(STATE.profile.name)}.</h2></div>${eleHero()}</div>
-    <div class="recibo__racha"><b class="recibo__n" data-n="${racha}">${racha}</b><span>${racha === 1 ? "día cerrado<br>seguido" : "días cerrados<br>seguidos"}</span></div>
+    <div class="recibo__racha" data-action="info-racha" role="button" tabindex="0" title="Qué es la racha"><b class="recibo__n" data-n="${racha}">${racha}</b><span>${racha === 1 ? "día cerrado<br>seguido" : "días cerrados<br>seguidos"}</span></div>
     <ol class="ruta">${paradas}</ol>
     <dl class="recibo__filas">${filas}</dl>
     ${notas}

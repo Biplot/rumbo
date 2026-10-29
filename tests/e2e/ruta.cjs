@@ -8,7 +8,7 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 1) Ruta (de día) se elige en Apariencia y queda guardado: una recarga no lo cambia
   await p.goto(URL + "#apariencia"); await p.waitForTimeout(300);
-  await p.click('.fam-card[data-familia="ruta"] [data-theme="ruta"]'); await p.waitForTimeout(200);
+  await p.click('.fam-card[data-familia="ruta"] .fam-card__modos [data-theme="ruta"]'); await p.waitForTimeout(200);
   await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(400);
   ok(await p.evaluate(() => STATE.settings.theme === "ruta" && STATE.settings.temaElegido === "ruta" && document.documentElement.dataset.theme === "ruta"), "quien elige Ruta (Día) en Apariencia lo conserva al recargar");
   const barra = await p.evaluate(() => [getComputedStyle(document.querySelector(".topbar")).backgroundColor, getComputedStyle(document.querySelector(".app")).backgroundColor]);

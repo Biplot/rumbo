@@ -22,7 +22,8 @@ module.exports = async ({ b, ok, errs }) => {
     await p.goto(URL + "#cuarto");
     await p.waitForFunction(() => CURRENT === "cuarto" && document.querySelector("#lugarLienzo .cielo__canvas"), null, { timeout: 15000 }).catch(() => {});
     await p.waitForTimeout(600);
-    const decorar = async () => { await p.click('#lugarHoja [data-action="cuarto-decorar"], #modal [data-action="cuarto-decorar"]'); await p.waitForTimeout(350); };
+    // Decorar: desde la hoja de tu casa o, con una ficha abierta, desde su ‹ Decorar
+    const decorar = async () => { await p.click(await p.evaluate(() => document.getElementById("modalOverlay").hidden) ? '#lugarHoja [data-action="cuarto-decorar"]' : '#modal [data-action="cuarto-decorar"]'); await p.waitForTimeout(350); };
     await decorar();
     ok((await p.locator("#modalTitle").innerText()) === "Decorar tu cuarto" && await p.locator("#modal .ficha[data-cua]").count() === 11, "🛍️ Decorar abre, en tu casa, las 8 cosas y las 3 paredes");
     ok(await p.locator('#modal .ficha[data-cua="par-noche"] .ficha__ico--pared').count() === 1, "las paredes se muestran con su color a rayas");

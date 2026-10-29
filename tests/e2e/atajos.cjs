@@ -23,7 +23,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => document.documentElement.dataset.theme) === "norte", "y vuelve a Norte en modo claro");
   await p.goto(URL + "#apariencia"); await p.waitForTimeout(300);
   const ficha = await p.locator('.fam-card[data-familia="norte"]').innerText();
-  ok(/Norte/.test(ficha) && /En uso/.test(ficha) && await p.locator('.fam-card[data-familia="norte"] [data-theme="auto"].is-active').count() === 1, "en Apariencia, Norte aparece en uso, en Auto: " + ficha.replace(/\s+/g, " "));
+  ok(/Norte/.test(ficha) && /En uso/.test(ficha) && await p.locator('.fam-card[data-familia="norte"] .fam-card__modos [data-theme="auto"].is-active').count() === 1, "en Apariencia, Norte aparece en uso, en Auto: " + ficha.replace(/\s+/g, " "));
   await p.click('.fam-card[data-familia="norte"] .fam-card__prev'); await p.waitForTimeout(250);
   const prev = await p.locator("#modalBody").innerText();
   ok(/De día/.test(prev) && /De noche/.test(prev) && /Automático/.test(prev) && /Sigue el modo claro u oscuro/.test(prev), "su vista previa muestra Norte de día y de noche, y el modo Automático");

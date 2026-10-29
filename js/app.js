@@ -153,7 +153,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 30;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 31;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -358,6 +358,10 @@ const NOVEDADES = {
   30: [
     ["🎨", "Menos temas, mejores", "Grafito y Medianoche dejan la Tienda: se parecían a Ruta noche y a Norte noche, que son gratis. Si los compraste, te devolvimos tus estrellas, y si los usabas ahora tienes su gemelo gratis."],
     ["🕘", "La hora se lee en todos los temas", "En el celular, Bosque Claro, Cuaderno y Sakura llevan la barra de arriba en su tinta oscura, para que la hora del iPhone no desaparezca."],
+  ],
+  31: [
+    ["🌗", "Ruta y Bosque, también automáticos", "Como Norte, ahora siguen el modo de tu teléfono: Ruta automático es gratis y Bosque automático se activa cuando tienes Bosque Claro y Bosque Oscuro. Están en Recompensas → Tienda → Temas."],
+    ["🔄", "Rumbo se actualiza solo", "Cuando sale una versión nueva, la app se recarga al abrirla. Si la estás usando, te avisa para que actualices cuando quieras."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1242,8 +1246,10 @@ function onClick(e) {
       if (!confirm(`¿Desbloquear el tema "${th.nombre}" por ${th.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - th.costo} ⭐.`)) break;
       const res = ledgerComprar(STATE, "tema-" + d.theme, th.costo);
       if (!res.ok && !res.yaTenia) { toast("Te faltan " + (res.falta || th.costo) + " ⭐", true); break; }
-      STATE.settings.theme = d.theme; STATE.settings.temaElegido = d.theme; saveState(); applyTheme(d.theme); updateTopbar(); closeModal(); rerender();
-      toast("🛍️ Tema " + th.nombre + " desbloqueado y aplicado");
+      // Desde la vista previa de un automático: si con esta compra ya tienes los dos, se aplica el automático
+      const aplicar = d.luego && themeOwned(d.luego) ? d.luego : d.theme;
+      STATE.settings.theme = aplicar; STATE.settings.temaElegido = aplicar; saveState(); applyTheme(aplicar); updateTopbar(); closeModal(); rerender();
+      toast("🛍️ Tema " + th.nombre + " desbloqueado" + (aplicar !== d.theme ? " · ahora usas " + THEMES.find(t => t.id === aplicar).nombre : " y aplicado"));
       break;
     }
 
@@ -1350,14 +1356,16 @@ function onClick(e) {
   }
 }
 
-const BASE_THEMES = ["auto", "norte", "norte-noche", "ruta", "ruta-noche", "alto-contraste"];   // gratis (alto contraste: accesibilidad)
+const BASE_THEMES = ["auto", "norte", "norte-noche", "ruta-auto", "ruta", "ruta-noche", "alto-contraste"];   // gratis (alto contraste: accesibilidad)
 const DEFAULT_THEME = "auto";   // v91: Norte de día y Norte noche de noche, según el modo del teléfono
-/* "auto" no es un tema en sí: según el teléfono (modo claro u oscuro) se ve Norte o Norte noche */
+/* Los automáticos no son un tema en sí: según el teléfono (modo claro u oscuro) se ve el primero o el segundo
+   de su par. "auto" (el predeterminado) es Norte / Norte noche; v93 suma Ruta y Bosque. */
 const OSCURO = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-function resolverTema(t) { return t === "auto" ? (OSCURO && OSCURO.matches ? "norte-noche" : "norte") : t; }
+function parDeTema(t) { const th = THEMES.find(x => x.id === t); return th && th.par; }
+function resolverTema(t) { const par = parDeTema(t); return par ? par[OSCURO && OSCURO.matches ? 1 : 0] : t; }
 // Si el teléfono pasa a modo oscuro (o vuelve a claro) con la app abierta, Rumbo lo sigue al tiro
 if (OSCURO) {
-  const alCambiar = () => { if (!STATE || STATE.settings.theme === "auto") applyTheme(STATE ? STATE.settings.theme : DEFAULT_THEME); };
+  const alCambiar = () => { const t = STATE ? STATE.settings.theme : DEFAULT_THEME; if (parDeTema(t)) applyTheme(t); };
   OSCURO.addEventListener ? OSCURO.addEventListener("change", alCambiar) : OSCURO.addListener && OSCURO.addListener(alCambiar);
 }
 /* Fuentes de los temas Bosque: se cargan solo cuando se aplica uno de ellos */
@@ -1389,6 +1397,8 @@ function loadFundosFonts() {
   document.head.appendChild(l);
 }
 function themeOwned(id) {
+  const par = parDeTema(id);   // un automático es tuyo cuando tienes los dos temas de su par
+  if (par) return par.every(themeOwned);
   return BASE_THEMES.includes(id) || (STATE.gamif.owned || []).includes("tema-" + id);
 }
 /* Cuenta dueña: desbloquea todos los temas automáticamente al entrar.
@@ -1430,17 +1440,21 @@ const FONT_MULISH = "'Mulish',sans-serif";
 /* Orden = orden en la Tienda */
 const THEMES = [
   /* --- Bases gratis: Automático (predeterminado), Norte y su versión de noche, y Ruta --- */
-  { id: "auto", nombre: "Automático", base: "Base", auto: true, concepto: "Norte de día y Norte noche de noche: sigue el modo claro u oscuro de tu teléfono. El tema predeterminado.", costo: 0,
+  { id: "auto", nombre: "Automático", base: "Base", auto: true, par: ["norte", "norte-noche"], concepto: "Norte de día y Norte noche de noche: sigue el modo claro u oscuro de tu teléfono. El tema predeterminado.", costo: 0,
     bg: "#F5F6FA", card: "#FFFFFF", accent: "#3949C9", cta: "#F4AE3D", onCta: "#161A2E", text: "#161A2E", font: FONT_FIG, fontDisplay: FONT_BRI, radius: "16px", barra: "#161A2E" },
   { id: "norte", nombre: "Norte", base: "Base", concepto: "El tema de Rumbo: una aguja ámbar para lo que sigue, sobre tinta índigo y con la luz de la mañana. Siempre claro, aunque tu teléfono esté en modo oscuro.", costo: 0,
     bg: "#F5F6FA", card: "#FFFFFF", accent: "#3949C9", cta: "#F4AE3D", onCta: "#161A2E", text: "#161A2E", font: FONT_FIG, fontDisplay: FONT_BRI, radius: "16px", barra: "#161A2E" },
   { id: "norte-noche", nombre: "Norte noche", base: "Base", concepto: "Norte en oscuro: el mismo cielo índigo de tu vitrina y la misma aguja ámbar. Descansa la vista en la noche.", costo: 0,
     bg: "#0C0F1E", card: "#141932", accent: "#8D9BFF", cta: "#FFBE55", onCta: "#0C0F1E", text: "#EEF0F8", font: FONT_FIG, fontDisplay: FONT_BRI, radius: "16px", barra: "#0C0F1E" },
+  { id: "ruta-auto", nombre: "Ruta automático", base: "Base", auto: true, par: ["ruta", "ruta-noche"], concepto: "Ruta de día y Ruta noche de noche: sigue el modo claro u oscuro de tu teléfono.", costo: 0,
+    bg: "#FFFFFF", card: "#F3F3F3", accent: "#0B0B0C", cta: "#0B0B0C", onCta: "#FFFFFF", text: "#0B0B0C", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
   { id: "ruta", nombre: "Ruta", base: "Base", concepto: "Como una app de viajes: blanco, negro y un solo acento coral. Letras grandes y una acción clara a la vez. Siempre claro, aunque tu teléfono esté en modo oscuro.", costo: 0,
     bg: "#FFFFFF", card: "#F3F3F3", accent: "#0B0B0C", cta: "#0B0B0C", onCta: "#FFFFFF", text: "#0B0B0C", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
   { id: "ruta-noche", nombre: "Ruta noche", base: "Base", concepto: "El diseño Ruta en oscuro: negro profundo, texto blanco y el mismo acento coral. Descansa la vista en la noche.", costo: 0,
     bg: "#0B0B0C", card: "#1F1F21", accent: "#FFFFFF", cta: "#FFFFFF", onCta: "#0B0B0C", text: "#F5F5F5", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
   /* --- Tienda --- */
+  { id: "bosque-auto", nombre: "Bosque automático", base: "Tienda", auto: true, par: ["bosque-claro", "bosque-oscuro"], concepto: "Bosque Claro de día y Bosque Oscuro de noche: sigue el modo claro u oscuro de tu teléfono. Se activa cuando tienes los dos.", costo: 0,
+    bg: "#F7F5F0", card: "#FFFFFF", accent: "#C8A165", cta: "#16301F", onCta: "#F7F5F0", text: "#0A140E", font: FONT_MULISH, fontDisplay: FONT_CORMORANT, radius: "12px", barra: "#16301F" },
   { id: "bosque-claro", nombre: "Bosque Claro", base: "Tienda", concepto: "Marfil, verde bosque y detalles dorados. Títulos con serifa clásica.", costo: 550,
     bg: "#F7F5F0", card: "#FFFFFF", accent: "#C8A165", cta: "#16301F", onCta: "#F7F5F0", text: "#0A140E", font: FONT_MULISH, fontDisplay: FONT_CORMORANT, radius: "12px", barra: "#16301F" },
   { id: "bosque-oscuro", nombre: "Bosque Oscuro", base: "Tienda", concepto: "Verde profundo con acento dorado. Sobrio, cálido y con carácter.", costo: 650,
@@ -1484,13 +1498,17 @@ function openThemePreview(themeId) {
       </div>
     </div>`;
   const mock = t0.auto
-    ? ["norte", "norte-noche"].map((id, i) => `<div class="text-xs muted" style="margin:${i ? "12px" : "0"} 0 6px">${i ? "De noche (modo oscuro)" : "De día (modo claro)"}</div>${maqueta(THEMES.find(x => x.id === id))}`).join("")
+    ? t0.par.map((id, i) => `<div class="text-xs muted" style="margin:${i ? "12px" : "0"} 0 6px">${i ? "De noche (modo oscuro)" : "De día (modo claro)"}</div>${maqueta(THEMES.find(x => x.id === id))}`).join("")
     : maqueta(t0);
+  const faltan = t0.par ? t0.par.filter(id => !themeOwned(id)).map(id => THEMES.find(x => x.id === id)) : [];
   const cta = active
     ? `<button class="btn btn--soft btn-block" data-action="close-modal">Ya es tu tema actual</button>`
     : owned
       ? `<button class="btn btn--cian btn-block" data-action="set-theme" data-theme="${t0.id}">Aplicar este tema</button>`
-      : botonCompra(t0.costo, `data-action="tema-buy" data-theme="${t0.id}"`, "Desbloquear");
+      : faltan.length
+        ? `<p class="text-sm muted" style="margin-bottom:10px">Desbloquea ${faltan.map(x => escapeHtml(x.nombre)).join(" y ")} para usarlo.</p>`
+          + faltan.map((x, i) => `<div${i ? ' class="mt-8"' : ""}>${botonCompra(x.costo, `data-action="tema-buy" data-theme="${x.id}" data-luego="${t0.id}"`, "Desbloquear " + escapeHtml(x.nombre))}</div>`).join("")
+        : botonCompra(t0.costo, `data-action="tema-buy" data-theme="${t0.id}"`, "Desbloquear");
   openModal("Vista previa · " + t0.nombre, `
     <p class="text-sm muted" style="margin-bottom:14px">${escapeHtml(t0.concepto)}</p>
     ${mock}

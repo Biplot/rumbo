@@ -14,7 +14,7 @@ module.exports = async ({ b, ok, errs }) => {
   // 1) La Tienda ya no trae Grafito ni Medianoche
   await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
   const fichas = await p.evaluate(() => [...document.querySelectorAll('.ficha[data-theme]')].map(x => x.dataset.theme));
-  ok(fichas.length === 13 && !fichas.includes("grafito") && !fichas.includes("medianoche"), "la Tienda trae 13 temas, sin Grafito ni Medianoche: " + fichas.join(", "));
+  ok(fichas.length === 15 && !fichas.includes("grafito") && !fichas.includes("medianoche"), "la Tienda trae 15 temas, sin Grafito ni Medianoche: " + fichas.join(", "));
 
   // 2) En el celular, la hora (blanca) se lee sobre la barra de arriba de todos los temas, y el título también
   const barras = await p.evaluate(() => THEMES.filter(t => !t.auto).map(t => {
@@ -29,7 +29,36 @@ module.exports = async ({ b, ok, errs }) => {
   ok(tinta["bosque-claro"] === "rgb(22, 48, 31) #16301F" && tinta.cuaderno === "rgb(36, 57, 95) #24395F" && tinta.sakura === "rgb(58, 34, 48) #3A2230",
     "Bosque Claro, Cuaderno y Sakura llevan su tinta oscura arriba (y el color del navegador la sigue): " + JSON.stringify(tinta));
 
-  // 3) Quien usaba Grafito y lo compró: al cargar pasa a Ruta noche y recupera sus estrellas
+  // 3) Los temas de a dos también siguen al teléfono: Ruta automático (gratis) y Bosque automático (con los dos)
+  const usar = id => p.evaluate(id => { const x = document.createElement("button"); x.dataset.action = "set-theme"; x.dataset.theme = id; document.getElementById("view").appendChild(x); x.click(); }, id);
+  await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => themeOwned("ruta-auto")), "Ruta automático es gratis");
+  await usar("ruta-auto"); await p.waitForTimeout(150);
+  const rutaDia = await p.evaluate(() => document.documentElement.dataset.theme);
+  await p.emulateMedia({ colorScheme: "dark" }); await p.waitForTimeout(150);
+  const rutaNoche = await p.evaluate(() => document.documentElement.dataset.theme);
+  await p.emulateMedia({ colorScheme: "light" }); await p.waitForTimeout(150);
+  ok(rutaDia === "ruta" && rutaNoche === "ruta-noche", `Ruta automático: de día Ruta y, con el teléfono oscuro, Ruta noche (${rutaDia} → ${rutaNoche})`);
+  const icoRuta = await p.evaluate(() => { rerender(); const i = document.querySelector('.ficha[data-theme="ruta-auto"] .ficha__ico'); return i && i.style.background; });
+  ok(/255, 255, 255\) 50%.*11, 11, 12\) 50%/.test(icoRuta), "su ficha es mitad Ruta y mitad Ruta noche: " + icoRuta);
+  const bosque = await p.evaluate(() => { rerender(); const f = document.querySelector('.ficha[data-theme="bosque-auto"]'); return f && [f.className, f.innerText.replace(/\s+/g, " ")]; });
+  ok(!(await p.evaluate(() => themeOwned("bosque-auto"))) && /is-bloqueado/.test(bosque[0]) && /Con los dos/.test(bosque[1]), "Bosque automático queda bloqueado hasta tener los dos Bosque: " + bosque[1]);
+  await p.evaluate(() => { ledgerRegistrar(STATE, "saldo-bosque", 1200, 0, "t"); saveState(); openThemePreview("bosque-auto"); });
+  await p.waitForTimeout(300);
+  ok(await p.locator('#modal [data-action="tema-buy"][data-luego="bosque-auto"]').count() === 2 && /Desbloquea Bosque Claro y Bosque Oscuro/.test(await p.locator("#modalBody").innerText()),
+    "su vista previa ofrece desbloquear Bosque Claro y Bosque Oscuro");
+  p.on("dialog", d => d.accept());
+  await p.click('#modal [data-action="tema-buy"][data-theme="bosque-claro"]'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => STATE.settings.theme === "bosque-claro" && !themeOwned("bosque-auto")), "con uno solo, se aplica ese Bosque");
+  await p.evaluate(() => openThemePreview("bosque-auto")); await p.waitForTimeout(300);
+  await p.click('#modal [data-action="tema-buy"][data-theme="bosque-oscuro"]'); await p.waitForTimeout(300);
+  const bDia = await p.evaluate(() => [STATE.settings.theme, document.documentElement.dataset.theme, themeOwned("bosque-auto")].join(" "));
+  await p.emulateMedia({ colorScheme: "dark" }); await p.waitForTimeout(150);
+  const bNoche = await p.evaluate(() => document.documentElement.dataset.theme);
+  await p.emulateMedia({ colorScheme: "light" });
+  ok(bDia === "bosque-auto bosque-claro true" && bNoche === "bosque-oscuro", `al completar el par se aplica Bosque automático: de día Bosque Claro y de noche Bosque Oscuro (${bDia} · ${bNoche})`);
+
+  // 4) Quien usaba Grafito y lo compró: al cargar pasa a Ruta noche y recupera sus estrellas
   await p.evaluate(() => { ledgerRegistrar(STATE, "saldo-temas", 400, 0, "t"); ledgerComprar(STATE, "tema-grafito", 400); STATE.settings.theme = "grafito"; STATE.settings.temaElegido = "grafito"; saveState(); });
   const antes = await p.evaluate(() => STATE.gamif.puntos);
   await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(500);
@@ -37,7 +66,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(tras.tema === "ruta-noche" && tras.dom === "ruta-noche" && tras.puntos === antes + 400 && !tras.tuyo, `Grafito pasa a Ruta noche y devuelve sus 400 ⭐ (${antes} → ${tras.puntos})`);
   await ctx.close();
 
-  // 4) En el computador, los claros de la Tienda mantienen su barra clara
+  // 5) En el computador, los claros de la Tienda mantienen su barra clara
   const c2 = await nuevoContexto(b, { w: 1360, h: 860, fecha: "2026-10-29T10:00:00" });
   const p2 = await c2.newPage(); p2.on("pageerror", e => errs.push(e.message));
   await registrar(p2, "temas-esc@test.cl");

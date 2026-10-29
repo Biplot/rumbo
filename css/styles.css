@@ -1879,6 +1879,37 @@ html[data-theme^="ruta"] .modal__head h3 { font-size: 20px; font-weight: 800; le
     border: 0; border-radius: 16px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 12px; font-weight: 600;
     overflow-wrap: anywhere; text-align: center; transition: transform .12s, background .15s; }
 }
+/* Inicio: tu casa y tu vitrina, dos botones que llevan directo a la pantalla completa */
+.mundo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0 0 22px; }
+.mundo__b { display: flex; flex-direction: column; padding: 0; border: 1px solid var(--line); border-radius: 20px; overflow: hidden;
+  background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+.mundo__b:hover { box-shadow: 0 6px 18px rgba(20,24,40,.10); }
+.mundo__b:active { transform: scale(.97); }
+.mundo__b:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+.mundo__dib { position: relative; display: block; height: 118px; overflow: hidden; }
+.mundo__ir { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(255,255,255,.78); color: #2A2A2E; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.mundo__b--casa .mundo__dib { background: repeating-linear-gradient(90deg, #E2E8EB 0 12px, #D9E0E4 12px 24px) top / 100% 62% no-repeat,
+  repeating-linear-gradient(180deg, #E6C39A 0 14px, #DDB78B 14px 15px) bottom / 100% 38% no-repeat; }
+.mundo__vent { position: absolute; left: 14px; top: 14px; width: 34px; height: 30px; border-radius: 3px; background: linear-gradient(180deg, #7DB9E8, #CFE8F7 75%, #9CCB7E 76%);
+  box-shadow: 0 0 0 3px #F7F5F0, 0 2px 6px rgba(0,0,0,.12); }
+.mundo__alf { position: absolute; left: 50%; bottom: 8px; width: 104px; height: 30px; margin-left: -52px; border-radius: 50%;
+  background: radial-gradient(closest-side, #E4532F 0 34%, #F4EDE3 35% 50%, #E4532F 51% 100%); }
+.mundo__ele { position: absolute; left: 50%; bottom: 16px; width: 82px; margin-left: -38px; }
+.mundo__ele .ele-svg { display: block; width: 100%; height: auto; }
+.mundo__b--vitrina .mundo__dib { background:
+  radial-gradient(1.2px 1.2px at 12% 22%, #fff 60%, transparent), radial-gradient(1px 1px at 30% 70%, #fff 60%, transparent),
+  radial-gradient(1.4px 1.4px at 48% 16%, #fff 60%, transparent), radial-gradient(1px 1px at 66% 80%, #fff 60%, transparent),
+  radial-gradient(1.2px 1.2px at 84% 34%, #fff 60%, transparent), radial-gradient(1px 1px at 92% 66%, #fff 60%, transparent),
+  radial-gradient(1px 1px at 22% 48%, rgba(255,255,255,.7) 60%, transparent), radial-gradient(1px 1px at 74% 52%, rgba(255,255,255,.7) 60%, transparent),
+  radial-gradient(120% 90% at 50% 110%, #34407A 0%, transparent 60%), linear-gradient(180deg, #070A18, #151D40); }
+.mundo__meds { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.mundo__meds .med-chip__m { width: 40px; height: 40px; font-size: 20px; box-shadow: 0 0 0 2px rgba(255,255,255,.18), 0 0 22px rgba(255,210,120,.45); }
+.mundo__vacia { font-size: 34px; filter: drop-shadow(0 0 10px rgba(255,220,140,.6)); }
+.mundo__tx { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px 12px; min-width: 0; }
+.mundo__tx b { font-family: var(--font-display); font-size: 16px; font-weight: 700; }
+.mundo__tx small { font-size: 12.5px; line-height: 1.3; color: var(--text-muted); }
+@media (min-width: 761px) { .mundo__dib { height: 150px; } .mundo__ele { width: 118px; margin-left: -55px; bottom: 18px; } .mundo__alf { width: 160px; height: 40px; margin-left: -80px; } .mundo__vent { width: 46px; height: 40px; } }
 /* El precio en el botón: lo que ganas al confirmar, a la derecha (como el valor del viaje) */
 .btn--precio { justify-content: space-between; min-height: 54px; padding-left: 20px; padding-right: 18px; font-size: 16px; }
 .btn__precio { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
@@ -2158,6 +2189,7 @@ body.en-lugar { overflow: hidden; }
 .hoja__cab { flex: 0 0 auto; display: grid; gap: 6px; padding-bottom: 8px; }
 .hoja__t { font-family: var(--font-display); font-size: 17px; font-weight: 700; line-height: 1.25; }
 .hoja__s { font-size: 13px; color: var(--text-muted); }
+.hoja__ahora { font-size: 13px; font-weight: 600; color: var(--text); margin: 2px 0 1px; }
 .hoja__bts { display: flex; gap: 6px; margin: 4px calc(-1 * max(18px, env(safe-area-inset-left, 0px))) 0; padding: 0 max(18px, env(safe-area-inset-left, 0px)) 2px; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
 .hoja__bts::-webkit-scrollbar { display: none; }
 .hb { flex: 0 0 auto; }

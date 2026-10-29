@@ -784,7 +784,7 @@ function crearMotorCielo(T, D) {
     const [la, ga] = lienzo(512);
     [[256, "#C9472C"], [236, "#E4532F"], [206, "#F4EDE3"], [190, "#E4532F"], [120, "#D24A2D"], [104, "#F4EDE3"], [92, "#E4532F"]].forEach(c => { ga.fillStyle = c[1]; ga.beginPath(); ga.arc(256, 256, c[0], 0, 6.283); ga.fill(); });
     const alf = new T.Mesh(new T.CircleGeometry(1.75, 64), mat(0xFFFFFF, { map: tex(la), roughness: 1 })); alf.rotation.x = -Math.PI / 2; alf.position.set(ALFOMBRA.x, 0.012, ALFOMBRA.z); alf.receiveShadow = true; e.add(alf);
-    const sombraE = new T.Mesh(new T.PlaneGeometry(2.6, 1.5), new T.MeshBasicMaterial({ map: texSombra(), transparent: true, opacity: 0.35, depthWrite: false })); sombraE.rotation.x = -Math.PI / 2; sombraE.position.set(ALFOMBRA.x, 0.02, ALFOMBRA.z); e.add(sombraE);
+    const sombraE = new T.Mesh(new T.PlaneGeometry(2.6, 1.5), new T.MeshBasicMaterial({ map: texSombra(), transparent: true, opacity: 0.35, depthWrite: false })); sombraE.rotation.x = -Math.PI / 2; sombraE.position.set(ALFOMBRA.x, 0.02, ALFOMBRA.z); e.add(sombraE); casa.sombra = sombraE;
     // Tu elefante en 3D (elefante-3d.js): se arma en actualizarCasa con su tipo, etapa, ropa y ánimo
     casa.eleRaiz = new T.Group(); casa.eleRaiz.position.set(ALFOMBRA.x - 0.1, 0.02, ALFOMBRA.z); casa.eleRaiz.rotation.y = 0.35; casa.eleRaiz.scale.setScalar(0.95); e.add(casa.eleRaiz);
     // La ventana (cambia con la hora) con sus cortinas
@@ -1089,6 +1089,7 @@ function crearMotorCielo(T, D) {
     casa.ele = crearElefante3D(T, Object.assign({}, spec, { calmo: CALMO }));
     casa.ele.g.traverse(o => { if (o.isMesh) o.castShadow = !LENTO; });
     casa.eleRaiz.add(casa.ele.g);
+    if (rut && rut.pose) casa.ele.postura(rut.pose, true);   // si le cambiaste la ropa, sigue en lo que estaba
   }
   let segCasa = -1;
   function ponerHora(forzar) {
@@ -1123,9 +1124,15 @@ function crearMotorCielo(T, D) {
       camF.lookAt(x, y, z); camF.updateProjectionMatrix(); c = camF;
     } else { const v = { ...VC }, e = { ...ENC }; Object.assign(VC, { yaw: CASA_V.yaw, zoom: 1 }); Object.assign(ENC, { arriba: 0, abajo: 0, der: 0 }); camaraCasa(); Object.assign(VC, v); Object.assign(ENC, e); }   // el cuarto entero, de frente
     ponerHora(true);
+    // en la foto, tu elefante posa parado en su alfombra (después vuelve a lo que estaba haciendo)
+    const antes = rut ? { x: rut.x, z: rut.z, rot: rut.rot } : null;
+    if (rut) { Object.assign(rut, { x: ALFOMBRA.x - 0.1, z: ALFOMBRA.z, rot: 0.35 }); rutPoner(); }
+    if (casa.ele) casa.ele.postura({}, true);
     r.toneMappingExposure = LUZ_FRANJA[casa.franja].exp; r.render(casa.escena, c);
     let url = null; try { url = canvas.toDataURL("image/jpeg", 0.88); } catch (e) { url = null; }
     r.setPixelRatio(pr); ancho = a0; alto = h0; if (a0 && h0) r.setSize(a0, h0, false);
+    if (antes) { Object.assign(rut, antes); rutPoner(); }
+    if (casa.ele && rut && rut.pose) casa.ele.postura(rut.pose, true);
     actualizarCasa();
     return url;
   }
@@ -1137,7 +1144,106 @@ function crearMotorCielo(T, D) {
     return RAY.intersectObject(casa.ele.g, true).some(h => h.object.isMesh);
   }
   const REACCIONES = ["salta", "saluda", "corazones"]; let nReac = 0;
-  function tocarEle() { if (!casa.ele || casa.ele.ocupado()) return; casa.ele.reaccion(REACCIONES[nReac++ % REACCIONES.length]); if (D.tocoEle) D.tocoEle(); pedir(); }
+  function tocarEle() { if (!casa.ele || casa.ele.ocupado()) return; casa.ele.reaccion(REACCIONES[nReac++ % REACCIONES.length]); if (rut) rut.toque = true; if (D.tocoEle) D.tocoEle(); pedir(); }
+
+  /* ============================================================
+     La rutina de tu elefante: va de un rincón a otro y hace algo en cada uno.
+     casa.js dice qué hace ahora (lo mismo que cuenta tu casa en Inicio) y qué puede hacer según
+     lo que hay en el cuarto y la hora. Gira hacia donde va, camina, se acomoda y lo hace un rato;
+     entre una cosa y otra te mira. Si lo tocas, deja lo que hacía y reacciona.
+     En calma (sin animaciones) lo encuentras quieto en su rincón, haciendo lo de ahora.
+     en: dónde se para · mira: hacia dónde («tu»: hacia ti) · pose: su postura (elefante-3d.js)
+     ============================================================ */
+  const RUT = {
+    siesta: { en: [0.45, 0.6], mira: 0.35, pose: { echado: 1, dormir: 1 }, dura: [12, 18] },
+    ventana: { en: [-0.55, 1.05], mira: Math.PI, pose: { alza: 0.55 }, dura: [6, 9], mirar: 0.5 },
+    repisa: { en: [0.95, -1.45], mira: Math.PI / 2, pose: { alza: 0.75 }, dura: [6, 9], mirar: 0.55 },
+    libros: { en: [-1.7, -1.35], mira: 1.91, pose: { alza: 0.35 }, dura: [6, 8], mirar: 0.45 },
+    planta: { en: [1.3, -1.7], mira: 0.64, pose: { regar: 1, alza: 0.15 }, dura: [5, 7] },
+    peces: { en: [0.85, 0.58], mira: -0.13, pose: { alza: 0.05 }, dura: [6, 9], mirar: 0.5, rapido: true },
+    gato: { en: [0.95, 1.5], mira: -1.31, pose: { olfa: 0.6 }, dura: [5, 7], corazones: 1.6 },
+    baile: { en: [0.9, 0.9], mira: "tu", pose: { baile: 1 }, dura: [6, 9] },
+    pasea: { en: "suelto", pose: { olfa: 1, andar: 0.2 }, dura: [3.5, 5], mirar: 0.3 },
+    sentado: { en: [0.45, 0.6], mira: "tu", pose: { sentado: 1 }, dura: [6, 9], tu: true },
+    cola: { en: "aqui", pose: { andar: 0.8 }, dura: [2.6, 2.6], gira: 5 },
+  };
+  const ANG = a => Math.atan2(Math.sin(a), Math.cos(a));   // entre -π y π
+  const azar = r => r[0] + Math.random() * (r[1] - r[0]);
+  let rut = null;
+  /* Hacia dónde tiene que mirar para verte (la cámara), y cuánto gira la cabeza para eso */
+  function anguloTu(x, z) { camaraCasa(); return Math.atan2(-(camC.position.z - z), camC.position.x - x); }
+  function giroTu() { return limitar(ANG(anguloTu(rut.x, rut.z) - rut.rot) / 0.62, -1, 1); }
+  function rutLugar(id) {
+    const R = RUT[id], quieto = CALMO && (R.en === "suelto" || R.en === "aqui");
+    const [x, z] = quieto ? RUT.siesta.en : R.en === "suelto" ? [-1.2 + Math.random() * 2.4, -1.2 + Math.random() * 2.5] : R.en === "aqui" ? [rut.x, rut.z] : R.en;
+    const mira = quieto ? 0.35 : R.mira === "tu" ? anguloTu(x, z) + 0.35 : R.en === "suelto" ? Math.random() * 6.283 : R.en === "aqui" ? rut.rot : R.mira;
+    return { x, z, mira };
+  }
+  function rutPoner() {
+    if (!casa || !rut) return;
+    casa.eleRaiz.position.set(rut.x, 0.02, rut.z); casa.eleRaiz.rotation.y = rut.rot;
+    casa.sombra.position.set(rut.x + 0.1 * Math.cos(rut.rot), 0.02, rut.z - 0.1 * Math.sin(rut.rot)); casa.sombra.rotation.z = rut.rot;
+  }
+  function posar(p, ya) { rut.pose = p; if (casa.ele) casa.ele.postura(p, ya); }
+  /* Empieza a hacer algo: camina hasta su rincón (o ya está ahí: aca; en calma no camina, salvo en las pruebas) */
+  function empezar(id, aca, caminar) {
+    if (!RUT[id]) id = "sentado";
+    rut.act = id; rut.t = 0; rut.hizo = false; rut.dest = rutLugar(id);
+    if (aca || (CALMO && !caminar)) {
+      Object.assign(rut, { x: rut.dest.x, z: rut.dest.z, rot: rut.dest.mira, fase: "hace", dura: azar(RUT[id].dura) });
+      posar(CALMO && id === "cola" ? RUT.sentado.pose : { ...RUT[id].pose, ...(RUT[id].tu ? { giro: giroTu(), alza: 0.2 } : {}) }, true);
+      rutPoner();
+    } else rut.fase = Math.hypot(rut.dest.x - rut.x, rut.dest.z - rut.z) > 0.08 ? "gira" : "acomoda";
+    if (D.haciendo) D.haciendo(id);
+  }
+  /* Lo que sigue: al azar entre lo que puede hacer (no lo mismo dos veces) */
+  function siguiente() {
+    const l = (D.actividades ? D.actividades() : [["sentado", 1], ["pasea", 1]]).filter(([id]) => RUT[id] && id !== rut.act);
+    let x = Math.random() * l.reduce((m, a) => m + a[1], 0);
+    for (const [id, w] of l) { x -= w; if (x < 0) return id; }
+    return l.length ? l[l.length - 1][0] : "sentado";
+  }
+  /* Al montar el cuarto: si pasó un rato (o cambió lo que hace ahora), lo encuentras en eso, en su rincón */
+  function rutinaAlEntrar() {
+    if (!casa) return;
+    const ahora = D.ahora ? D.ahora() : "sentado";
+    if (!rut) rut = { x: ALFOMBRA.x - 0.1, z: ALFOMBRA.z, rot: 0.35, act: null, fase: "hace", t: 0, dura: 0, pose: {}, visto: 0 };
+    if (rut.ahora !== ahora || Date.now() - rut.visto > 120000 || CALMO) { rut.ahora = ahora; rut.toque = false; empezar(ahora, true); }
+    else if (D.haciendo) D.haciendo(rut.act);   // sigue en lo suyo: la hoja nueva dice qué
+    rut.visto = Date.now();
+  }
+  function avanzarRutina(dt) {
+    if (!casa || !casa.ele || !rut) return;
+    const E = casa.ele, R = RUT[rut.act]; rut.visto = Date.now();
+    if (rut.toque) {   // lo tocaste: se para, te mira y reacciona; después elige otra cosa
+      if (E.ocupado()) { posar({ giro: giroTu(), alza: 0.25 }); return; }
+      rut.toque = false; if (rut.fase === "hace") { rut.fase = "espera"; rut.t = 0; rut.dura = azar([1, 2]); }
+    }
+    rut.t += dt;
+    if (rut.fase === "gira" || rut.fase === "acomoda") {
+      const obj = rut.fase === "gira" ? Math.atan2(-(rut.dest.z - rut.z), rut.dest.x - rut.x) : rut.dest.mira, d = ANG(obj - rut.rot);
+      rut.rot += Math.sign(d) * Math.min(Math.abs(d), dt * 2.4);
+      posar({ andar: 0.55 });
+      if (Math.abs(d) < 0.03) { if (rut.fase === "gira") rut.fase = "camina"; else { rut.fase = "hace"; rut.dura = azar(R.dura); } rut.t = 0; }
+    } else if (rut.fase === "camina") {
+      const dx = rut.dest.x - rut.x, dz = rut.dest.z - rut.z, dist = Math.hypot(dx, dz);
+      if (dist < 0.04) { rut.fase = "acomoda"; rut.t = 0; }
+      else { const k = Math.min(dist, 0.6 * dt) / dist; rut.x += dx * k; rut.z += dz * k; rut.rot += ANG(Math.atan2(-dz, dx) - rut.rot) * Math.min(1, dt * 6); }
+      posar({ andar: 1 });
+    } else if (rut.fase === "hace") {
+      const p = { ...R.pose };
+      if (R.mirar) p.giro = Math.sin(rut.t * (R.rapido ? 1.5 : 0.7)) * R.mirar;
+      if (R.tu) { p.giro = giroTu(); p.alza = 0.2; }
+      if (R.gira) rut.rot += dt * R.gira;
+      if (R.corazones && !rut.hizo && rut.t > R.corazones) { rut.hizo = true; E.reaccion("corazones"); }
+      posar(p);
+      if (rut.t > rut.dura) { rut.fase = "espera"; rut.t = 0; rut.dura = azar([1.5, 3]); }
+    } else {   // espera: te mira un momento y elige lo que sigue
+      posar({ giro: giroTu(), alza: 0.2 });
+      if (rut.t > rut.dura) empezar(siguiente(), false, true);
+    }
+    rutPoner();
+  }
   /* ¿Qué lugar de la repisa hay bajo el dedo? */
   function lugarEn(x, y) {
     let mejor = null, dmin = TACTIL ? 36 : 28;
@@ -1449,6 +1555,7 @@ function crearMotorCielo(T, D) {
     } else if (modo === "casa" && casa) {
       const kv = Math.min(1, dt * 7); VC.yaw += (VCo.yaw - VC.yaw) * kv; VC.zoom += (VCo.zoom - VC.zoom) * kv;
       camaraCasa(); ponerHora(false);
+      if (!CALMO) avanzarRutina(dt);
       if (casa.ele) casa.ele.vivo(reloj);
       // las medallas de la repisa se mecen apenas, para que el metal brille; la planta respira
       casa.lugares.forEach(L => { L.g.rotation.y = 0.55 + (CALMO ? 0 : Math.sin(reloj * 0.6 + L.fase) * 0.22); });
@@ -1572,7 +1679,7 @@ function crearMotorCielo(T, D) {
       if (lugar === "casa") {
         const libre = !!(op && op.libre); armarCasa();
         if (casa.libre !== libre) { casa.libre = libre; Object.assign(VC, { yaw: CASA_V.yaw, zoom: 1 }); Object.assign(VCo, { yaw: CASA_V.yaw, zoom: 1 }); }
-        modo = "casa"; canvas.style.touchAction = libre ? "none" : "pan-y"; actualizarCasa(); colgar(c); arrancar(); return;
+        modo = "casa"; canvas.style.touchAction = libre ? "none" : "pan-y"; actualizarCasa(); rutinaAlEntrar(); colgar(c); arrancar(); return;
       }
       if (cielo.libre !== lib) { cielo.libre = lib; cielo.uObj.yaw = cielo.uObj.pitch = 0; ZOOM.cielo = ZOOMo.cielo = 1; }
       modo = "cielo"; canvas.style.touchAction = lib ? "none" : "pan-y"; colgar(c); actualizar(); arrancar();
@@ -1592,6 +1699,15 @@ function crearMotorCielo(T, D) {
     dondeElefante() { if (modo !== "casa" || !casa || !casa.ele) return null; camaraCasa(); const v = new T.Vector3(); casa.ele.g.getWorldPosition(v); v.y += 0.9; return enPantallaC(v); },
     /* Dónde está un hito del camino en el lienzo (para las pruebas) */
     dondeHito(id) { if (modo !== "camino" || !camino) return null; const H = camino.hitos.find(x => x.id === id); if (!H) return null; camaraCamino(); return enPantallaK(H.pos); },
+    /* Qué está haciendo tu elefante y dónde (para las pruebas) */
+    rutina() { return rut && casa && casa.ele ? { act: rut.act, fase: rut.fase, x: rut.x, z: rut.z, rot: rut.rot, pose: casa.ele.pose() } : null; },
+    /* Adelanta su rutina unos segundos, empezando (si se pide) por una actividad (para las pruebas) */
+    rutinaPaso(seg, id) {
+      if (!casa || !casa.ele) return null; if (!rut) rutinaAlEntrar();
+      if (id) empezar(id, false, true);
+      for (let i = 0, n = Math.round((seg || 0) * 30); i < n; i++) { reloj += 1 / 30; avanzarRutina(1 / 30); casa.ele.vivo(reloj); }
+      pedir(); return this.rutina();
+    },
     /* Dónde está un lugar de la repisa en el lienzo (para las pruebas) */
     dondeRepisa(i) { if (modo !== "casa" || !casa || !casa.lugares[i]) return null; camaraCasa(); return enPantallaC(casa.lugares[i].pos); },
     /* Qué cosas se ven en el cuarto y de qué color está la pared (para las pruebas) */

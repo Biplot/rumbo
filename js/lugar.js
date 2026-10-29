@@ -1,11 +1,12 @@
 /* ============================================================
-   RUMBO · Lugares a pantalla completa (por ahora, tu cuarto)
+   RUMBO · Lugares a pantalla completa: tu casa, tu vitrina y tu camino
    El lugar llena la pantalla de borde a borde. Arriba flota una barra (‹, título y ⭐) y
    abajo una hoja que se arrastra: asomada, a media altura o completa (en pantallas anchas
    es un panel al costado). Al subir la hoja, el 3D se encuadra en lo que queda libre.
    Se entra desde la tarjeta del lugar (crece desde ahí); ‹ o Escape vuelven a donde estabas.
    Sin WebGL no hay pantalla completa: el lugar sigue en su tarjeta (cielo.js vuelve a su base).
-   Lugares: tu cuarto (casa.js), tu cielo (cielo.js) y tu camino del año (camino.js).
+   Lugares: tu casa (casa.js), tu vitrina de medallas (cielo.js) y tu camino del año (camino.js).
+   En Inicio, tu casa y tu vitrina son dos botones que llevan directo a la pantalla completa.
    ============================================================ */
 const LUGAR = { volver: null, desde: null, hoja: "asomada" };
 const LUGAR_BASE = { cuarto: "recompensas", cielo: "insignias", camino: "tendencias" };   // donde vive su tarjeta
@@ -120,7 +121,34 @@ function lugarTrasRender() {
     if (hoja && hoja.animate) hoja.animate([{ transform: "translateY(100%)" }, { transform: getComputedStyle(hoja).transform }], { duration: 460, delay: 120, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" });
   } else if (el.animate && !reduceMotion()) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200 });
 }
-/* Desde la tarjeta de cada lugar (o tocando su 3D): casa → tu cuarto, cielo → tu cielo, camino → tu camino */
+/* Desde un botón (Inicio, ⤢ en la tarjeta): crece desde ese botón; sin 3D, va a la tarjeta del lugar */
+function lugarAbrir(ruta, el) {
+  if (!LUGAR_BASE[ruta]) return;
+  const desde = (el && el.closest && el.closest(".mundo__b, .ele-hero")) || document.getElementById({ cuarto: "casa", cielo: "cielo", camino: "camino" }[ruta]);
+  if (!lugarEntrar(ruta, desde)) go(LUGAR_BASE[ruta]);
+}
+
+/* -------- En Inicio: tu casa y tu vitrina, a un toque de la pantalla completa --------
+   Tu casa cuenta lo que hace tu elefante ahora (lo mismo que encuentras al entrar);
+   tu vitrina, cuántas medallas tienes y las últimas que ganaste */
+function mundoHtml() {
+  if (!STATE || typeof eleActividadAhora !== "function" || typeof cieloOrden !== "function") return "";
+  const a = eleActividadAhora(STATE), hace = a.txt.charAt(0).toUpperCase() + a.txt.slice(1);
+  const orden = cieloOrden(), g = STATE.gamif.badges || [], n = orden.filter(id => g.includes(id)).length;
+  const ult = g.slice().reverse().filter(id => orden.includes(id)).slice(0, 3).map(findBadge).filter(Boolean);
+  const ir = `<span class="mundo__ir" aria-hidden="true">${iconoLinea("expandir", 14)}</span>`;
+  return `<section class="mundo" aria-label="Tu casa y tu vitrina">
+    <button type="button" class="mundo__b mundo__b--casa" data-action="lugar-entrar" data-ruta="cuarto" aria-label="${escapeAttr(`Tu casa: tu elefante ${a.txt}. Abrir a pantalla completa`)}">
+      <span class="mundo__dib" aria-hidden="true"><i class="mundo__vent"></i><i class="mundo__alf"></i><span class="mundo__ele">${typeof elefanteSVG === "function" ? elefanteSVG({ anim: false }) : "🐘"}</span>${ir}</span>
+      <span class="mundo__tx"><b>Tu casa</b><small>${a.ico} ${escapeHtml(hace)}</small></span>
+    </button>
+    <button type="button" class="mundo__b mundo__b--vitrina" data-action="lugar-entrar" data-ruta="cielo" aria-label="${escapeAttr(`Tu vitrina: ${n} de ${orden.length} medallas. Abrir a pantalla completa`)}">
+      <span class="mundo__dib" aria-hidden="true"><span class="mundo__meds">${ult.length ? ult.map(b => medChip(b, "")).join("") : `<span class="mundo__vacia">✨</span>`}</span>${ir}</span>
+      <span class="mundo__tx"><b>Tu vitrina</b><small>${n === 1 ? "1 medalla" : `${n} medallas`} de ${orden.length}</small></span>
+    </button>
+  </section>`;
+}
+/* Desde la tarjeta de cada lugar (o tocando su 3D): casa → tu casa, cielo → tu vitrina, camino → tu camino */
 function lugarDesdeTarjeta(l) {
   const ruta = { casa: "cuarto", cielo: "cielo", camino: "camino" }[l];
   if (ruta) lugarEntrar(ruta, document.getElementById(l));

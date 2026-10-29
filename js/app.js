@@ -28,8 +28,8 @@ const ROUTES = [
   { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tu elefante y tu progreso." },
   { id: "tienda", pie: true, label: "Recompensas", icon: "🛒", render: renderTienda, subtitle: "Útiles, funciones y cosméticos para tus ⭐." },
   { id: "insignias", pie: true, label: "Recompensas", icon: "🏅", render: renderInsignias, subtitle: "Tus logros, con bronce, plata, oro y secretas." },
-  { id: "cuarto", pie: true, lugar: true, label: "Tu cuarto", icon: "🏠", render: renderCuarto, subtitle: "Tu elefante en su cuarto, a pantalla completa." },
-  { id: "cielo", pie: true, lugar: true, label: "Tu cielo", icon: "✨", render: renderCielo, subtitle: "Tus medallas en el cielo, a pantalla completa." },
+  { id: "cuarto", pie: true, lugar: true, label: "Tu casa", icon: "🏠", render: renderCuarto, subtitle: "Tu elefante en su casa, a pantalla completa." },
+  { id: "cielo", pie: true, lugar: true, label: "Tu vitrina", icon: "✨", render: renderCielo, subtitle: "Tus medallas en el cielo, a pantalla completa." },
   { id: "camino", pie: true, lugar: true, label: "Tu camino", icon: "🛤️", render: renderCamino, subtitle: "Tu año en un sendero, a pantalla completa." },
   { id: "cuenta", pie: true, label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
   { id: "notif", pie: true, label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
@@ -154,7 +154,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 26;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 27;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -342,6 +342,10 @@ const NOVEDADES = {
   26: [
     ["✨", "Tu cielo a pantalla completa", "Toca el cielo en Insignias y llena la pantalla. Gíralo, pellizca para acercarte y elige una constelación en la hoja para ir hasta ella."],
     ["🏝️", "Tu camino a pantalla completa", "Toca la isla en Tendencias: el año se recorre de borde a borde, cambias de año en la barra y la hoja trae tus trimestres y medallas."],
+  ],
+  27: [
+    ["🏠", "Tu casa y tu vitrina, en Inicio", "Dos botones bajo tu día: Tu casa te lleva directo a tu elefante y Tu vitrina a tus medallas, a pantalla completa. Tocar a tu elefante del día también te lleva a su casa."],
+    ["🐘", "Tu elefante vive su día", "Camina por su casa y hace de todo: mira por la ventana, admira sus medallas, duerme la siesta y, con lo que le compres, riega la planta, baila o le hace cariño al gato."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1237,7 +1241,8 @@ function onClick(e) {
     case "ins-ver": abrirInsignia(d.id); break;
     case "cuarto-ver": cuartoVer(); break;
     case "cuarto-entrar": cuartoEntrar(); break;
-    case "lugar-entrar": lugarDesdeTarjeta({ cielo: "cielo", camino: "camino", cuarto: "casa" }[d.ruta]); break;
+    case "lugar-entrar": lugarAbrir(d.ruta, el); break;
+    case "ele-casa": tocarElefante(el); if (!CIELO_ESTADO.sin3d) setTimeout(() => { if (CURRENT === "inicio") lugarAbrir("cuarto", el); }, sinMovimiento() ? 0 : 420); break;
     case "cielo-mirar": if (CIELO_ESTADO.motor) CIELO_ESTADO.motor.mirarFamilia(d.id); break;
     case "lugar-volver": lugarVolver(); break;
     case "hoja-alternar": hojaAlternar(); break;
@@ -1556,11 +1561,11 @@ function heroCoral(title, sub, btnLabel, action, data = {}, segundo = null) {
         <button class="btn btn--primary" data-action="${action}"${extra}>${btnLabel}</button></div>
     </div></div>`;
 }
-/* Tu elefante, chico, junto al saludo (se puede tocar) */
+/* Tu elefante, chico, junto al saludo: al tocarlo reacciona y te lleva a su casa */
 function eleHero() {
   if (typeof elefanteSVG !== "function") return "";
   const papel = TIPOS_ELEFANTE[tipoElefante()].papel ? " papel" : "";
-  return `<div class="ele-hero ele-toca${papel}" data-action="ele-toca" role="button" tabindex="0" title="Tócalo" aria-label="Tu elefante: ${escapeAttr(nombreElefante())}">${elefanteSVG()}</div>`;
+  return `<div class="ele-hero ele-toca${papel}" data-action="ele-casa" role="button" tabindex="0" title="Ir a su casa" aria-label="Tu elefante: ${escapeAttr(nombreElefante())}. Ir a su casa">${elefanteSVG()}</div>`;
 }
 /* Tu día como un recorrido (diseño Ruta): abres, das tu primer bocado y llegas al cierre.
    Como en una app de viajes: arriba el destino (tu misión), abajo las paradas con su hora
@@ -1839,6 +1844,7 @@ function renderInicio() {
   ${renderMesBanner()}
   ${renderSemanaBanner()}
   <div data-tour="dia">${renderDayHero()}</div>
+  ${mundoHtml()}
   ${renderAtajos()}
   ${renderMisionCard()}
   ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}

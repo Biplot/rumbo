@@ -18,6 +18,48 @@ const CASA_COSAS = [
   { rango: 6, id: "copa", ico: "🏆", n: "la copa dorada y una guirnalda de luces" },
 ];
 const REPISA_MAX = 5;
+
+/* -------- Lo que hace tu elefante en su cuarto --------
+   Va de un rincón a otro y hace algo en cada uno (cielo-3d.js lo hace caminar). Lo que puede hacer
+   depende de lo que hay en el cuarto y de la hora (de noche, o con sueño, duerme más). Lo que hace
+   «ahora» cambia cada 20 minutos: lo cuenta tu casa en Inicio y, al entrar, lo encuentras en eso.
+   peso: [de día, al atardecer, de noche] */
+const ELE_ACTIVIDADES = [
+  { id: "siesta", ico: "💤", txt: "duerme la siesta en su alfombra", peso: [1, 2, 8] },
+  { id: "ventana", ico: "🪟", txt: "mira por la ventana", peso: [3, 3, 2] },
+  { id: "repisa", ico: "🏅", txt: "admira sus medallas en la repisa", medallas: true, peso: [2, 2, 1] },
+  { id: "libros", ico: "📚", txt: "busca un libro en su biblioteca", cosa: "biblioteca", peso: [2, 2, 2] },
+  { id: "planta", ico: "🪴", txt: "riega su planta", cosa: "planta", peso: [3, 2, 0] },
+  { id: "peces", ico: "🐠", txt: "mira nadar a los peces", cosa: "pecera", peso: [2, 2, 2] },
+  { id: "gato", ico: "🐈", txt: "le hace cariño al gato", cosa: "gato", peso: [2, 2, 2] },
+  { id: "baile", ico: "🎶", txt: "baila con el tocadiscos", cosa: "tocadiscos", peso: [2, 3, 1] },
+  { id: "pasea", ico: "👣", txt: "pasea olfateando el cuarto", peso: [3, 2, 1] },
+  { id: "sentado", ico: "🐘", txt: "se sentó a esperarte", peso: [2, 2, 1] },
+  { id: "cola", ico: "🌀", txt: "persigue su cola", peso: [1, 1, 0] },
+];
+function franjaCasa(h) { return h >= 20 || h < 6 ? 2 : h >= 18 || h < 8 ? 1 : 0; }   // como la luz del cuarto
+/* Lo que puede hacer ahora, con cuántas ganas (peso) */
+function eleActividades(s, ahora) {
+  const f = franjaCasa((ahora || new Date()).getHours()), cosas = new Set(casaCosas(s).concat(cuartoPuestas(s)));
+  const meds = repisaIds(s).length > 0, sueno = animoElefante(s) === "sueno";
+  return ELE_ACTIVIDADES.filter(a => (!a.cosa || cosas.has(a.cosa)) && (!a.medallas || meds))
+    .map(a => ({ ...a, w: a.peso[f] * (a.id === "siesta" && sueno ? 4 : 1) })).filter(a => a.w > 0);
+}
+/* Lo que hace ahora mismo: lo mismo durante 20 minutos (en Inicio y al entrar a tu casa) */
+function eleActividadAhora(s, ahora) {
+  ahora = ahora || new Date();
+  const l = eleActividades(s, ahora), tot = l.reduce((m, a) => m + a.w, 0);
+  if (!tot) return ELE_ACTIVIDADES.find(a => a.id === "sentado");
+  let x = ((Math.imul(Math.floor(ahora.getTime() / 12e5), 2654435761) >>> 0) % 10007) / 10007 * tot;
+  for (const a of l) { x -= a.w; if (x < 0) return a; }
+  return l[l.length - 1];
+}
+function eleActividad(id) { return ELE_ACTIVIDADES.find(a => a.id === id) || ELE_ACTIVIDADES.find(a => a.id === "sentado"); }
+/* El motor avisa cuando cambia de actividad: la hoja de tu casa dice lo que hace */
+function eleHaciendo(id) {
+  const el = document.getElementById("cuaAhora"); if (!el) return;
+  const a = eleActividad(id); el.textContent = `${a.ico} Ahora ${a.txt}`;
+}
 function casaRango(s) { return rankFor((s.gamif && s.gamif.xp) || 0).idx; }
 function casaCosas(s) { const r = casaRango(s); return CASA_COSAS.filter(c => c.rango <= r).map(c => c.id); }
 function casaProxima(s) { const r = casaRango(s); return CASA_COSAS.find(c => c.rango > r) || null; }
@@ -172,7 +214,7 @@ function cuartoDecorar() {
 }
 
 function casaAria(cur, cosas, total, compras, nombres) {
-  return `El cuarto de tu elefante (${cur.nombre}), con tu elefante ${nombreElefante()} sobre la alfombra: ${cosas.length + 1} de ${total} cosas.${compras.length ? " De la Tienda: " + compras.map(it => it.nombre.toLowerCase()).join(", ") + "." : ""}${nombres ? " En la repisa: " + nombres + "." : ""}`;
+  return `El cuarto de tu elefante (${cur.nombre}), donde tu elefante ${nombreElefante()} ${eleActividadAhora(STATE).txt}: ${cosas.length + 1} de ${total} cosas.${compras.length ? " De la Tienda: " + compras.map(it => it.nombre.toLowerCase()).join(", ") + "." : ""}${nombres ? " En la repisa: " + nombres + "." : ""}`;
 }
 
 /* -------- La tarjeta de Progreso: el cuarto, tu elefante y lo que viene -------- */
@@ -188,7 +230,7 @@ function casaCardHtml() {
   return `<div class="card ele-card casa-card${CIELO_ESTADO.sin3d ? " is-sin3d" : ""}" data-tour="elefante">
     <section class="casa" id="casa" data-gesto aria-label="El cuarto de tu elefante">
       <div class="casa__lienzo" id="casaLienzo" role="img" aria-label="${escapeAttr(casaAria(cur, cosas, total, compras, nombres))}"></div>
-      <button type="button" class="casa__abrir lugar-abrir" data-action="cuarto-entrar" aria-label="Ver tu cuarto a pantalla completa">${iconoLinea("expandir", 18)}</button>
+      <button type="button" class="casa__abrir lugar-abrir" data-action="cuarto-entrar" aria-label="Ver tu casa a pantalla completa">${iconoLinea("expandir", 18)}</button>
       <div class="cielo__etq" id="casaEtq" hidden></div>
       <div class="casa__carga" aria-hidden="true">Arreglando el cuarto…</div>
     </section>
@@ -210,7 +252,9 @@ function renderCuarto() {
   const { sig } = etapaElefante(s.gamif.xp || 0), faltaXp = prox ? RANGOS[prox.rango].min - (s.gamif.xp || 0) : 0;
   const nombres = ids.map(id => findBadge(id).nombre).join(", ");
   const chip = id => { const b = findBadge(id); return `<button class="med-chip" data-action="ins-ver" data-id="${id}">${medChip(b, escapeHtml(b.nombre))}</button>`; };
+  const ahora = eleActividadAhora(s);
   const cab = `<div class="hoja__t">🐘 Tu elefante · ${eleEstado().tipo ? nombreElefante() : "¡elígelo!"}</div>
+    <div class="hoja__ahora" id="cuaAhora" aria-live="polite">${ahora.ico} Ahora ${ahora.txt}</div>
     <div class="hoja__s">${eleTexto()}</div>
     <div class="hoja__bts">${eleEstado().tipo ? "" : `<button class="btn btn--primary" data-action="ele-elegir">Elegir mi elefante</button>`}
       <button class="hb" data-action="elefante-open" data-v="ropa">👕 Vestir</button><button class="hb" data-action="elefante-open" data-v="tipo">🐘 Tipos</button>
@@ -221,9 +265,9 @@ function renderCuarto() {
     <div class="hoja__k">Tu cuarto · ${cosas.length + 1} de ${total}</div>
     <p class="text-sm muted">${prox ? `Próximo: ${prox.ico} ${prox.n} al llegar a ${RANGOS[prox.rango].nombre} (faltan ${faltaXp.toLocaleString("es-CL")} XP).` : "¡Completo! 👑 Tiene todo lo que da el rango."}</p>
     ${compras.length ? `<div class="hoja__k">De la Tienda</div><div class="fila-chips">${compras.map(it => `<span class="chip">${it.icon} ${escapeHtml(it.nombre)}</span>`).join("")}</div>` : `<p class="text-sm muted">En la Tienda hay sillón, lámpara, pecera, telescopio, un gato y más para su cuarto.</p>`}
-    <p class="text-xs muted hoja__pista">Toca a tu elefante: salta, saluda o le salen corazones. Arrastra para mirar el cuarto y pellizca para acercarte.</p>`;
+    <p class="text-xs muted hoja__pista">Tu elefante va de un rincón a otro: mira por la ventana, admira sus medallas y, con lo que le compres, riega, baila o juega con el gato. Tócalo y reacciona. Arrastra para mirar el cuarto y pellizca para acercarte.</p>`;
   return lugarHtml({
-    lienzo: "lugarLienzo", titulo: "Tu cuarto", sub: `${escapeHtml(cur.nombre)} · ${cosas.length + 1} de ${total}${compras.length ? ` · ${compras.length} de la Tienda` : ""}`,
+    lienzo: "lugarLienzo", titulo: "Tu casa", sub: `${escapeHtml(cur.nombre)} · ${cosas.length + 1} de ${total}${compras.length ? ` · ${compras.length} de la Tienda` : ""}`,
     chip: `⭐ ${(s.gamif.puntos || 0).toLocaleString("es-CL")}`, aria: casaAria(cur, cosas, total, compras, nombres),
     hojaAria: "Tu elefante y tu cuarto", carga: "Arreglando el cuarto…", extra: `<div class="cielo__etq" id="casaEtq" hidden></div>`, cab, cuerpo,
   });

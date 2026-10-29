@@ -4,7 +4,9 @@
    cabeza grande, ojos con brillo, mejillas rosadas, patitas cortas y trompa enroscada.
    Trae sus 6 tipos, sus 4 etapas (cría → sabio), su ánimo (feliz, normal, con sueño),
    sus reacciones al tocarlo (salta, saluda, corazones) y sus 15 prendas en sus 6 espacios.
-   crearElefante3D(T, { tipo, etapa, animo, ropa, calmo }) → { g, vivo(t), reaccion(r), ocupado(), dispose() }
+   También sus posturas, para que viva en su cuarto: camina, se echa, duerme, se sienta, mira,
+   huele el piso, riega con la trompa y baila (cielo-3d.js decide qué hace y adónde va).
+   crearElefante3D(T, { tipo, etapa, animo, ropa, calmo }) → { g, vivo(t), reaccion(r), ocupado(), postura(o, ya), pose(), dispose() }
    Lo usa cielo-3d.js en el cuarto; sin WebGL queda el dibujo de siempre.
    ============================================================ */
 function crearElefante3D(T, op) {
@@ -182,14 +184,19 @@ function crearElefante3D(T, op) {
   if (i >= 2 && tipo !== "geometrico" && tipo !== "tinta") [5, 8].forEach(k => { const a = new T.Mesh(guardar(new T.TorusGeometry(1, 0.035, 6, 24)), S); cab.add(a); anillos.push({ a, k }); });
   const punta = new T.Vector3();
   let alzar = 0;   // 0: en reposo · 1: saludando
+  const tr = { olfa: 0, regar: 0, baile: 0 };   // la trompa también huele el piso, riega y baila
   function ponerTrompa(t) {
     let x = R * 0.86, y = -R * 0.3;
-    const sway = CALMO ? 0 : Math.sin(t * 1.1) * 0.05;
+    const sway = CALMO ? 0 : Math.sin(t * 1.1) * 0.05, mv = CALMO ? 0 : 1;
+    const W = alzar + tr.olfa + tr.regar + tr.baile, quedan = 1 - Math.min(1, W), div = Math.max(1, W);
     for (let k = 0; k < nT; k++) {
       const u = k / (nT - 1);
       const reposo = -1.25 + 2.5 * Math.pow(u, 2.4) + sway * u;
-      const saludo = -0.35 + 2.3 * u + Math.sin(t * 9) * 0.25 * u;
-      const ang = reposo + (saludo - reposo) * alzar;
+      const saludo = -0.35 + 2.3 * u + Math.sin(t * 9) * 0.25 * u * mv;
+      const olfa = -1.55 + 0.55 * u + Math.sin(t * 6 + u * 5) * 0.16 * u * mv;
+      const riego = -0.3 + 1.05 * u + Math.sin(t * 3) * 0.05 * mv;
+      const baile = -0.6 + 2.0 * u + Math.sin(t * 5.2 + u * 2) * 0.4 * u * mv;
+      const ang = reposo * quedan + (saludo * alzar + olfa * tr.olfa + riego * tr.regar + baile * tr.baile) / div;
       const r = (rT - (rT - 0.075) * u);
       trompa[k].position.set(x, y, 0); trompa[k].scale.set(r, r, r);
       if (k === nT - 1) punta.set(x, y, 0);
@@ -295,24 +302,54 @@ function crearElefante3D(T, op) {
   const sprites = [];
   function texto(t, color) { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"); x.fillStyle = color; x.font = "800 46px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(t, 32, 34); const tx = guardar(new T.CanvasTexture(c)); tx.encoding = T.sRGBEncoding; return tx; }
   function simbolo(t, color, n) { const tx = texto(t, color); const l = []; for (let k = 0; k < n; k++) { const sp = new T.Sprite(guardar(new T.SpriteMaterial({ map: tx, transparent: true, depthWrite: false, opacity: 0 }))); sp.scale.setScalar(0.24 + k * 0.04); g.add(sp); l.push(sp); } return l; }
-  const zzz = animo === "sueno" ? simbolo("z", "#5C7FA8", 3) : [];
+  const zzz = simbolo("z", "#5C7FA8", 3);   // con sueño, o cuando duerme la siesta
   const corazones = simbolo("♥", "#F06A86", 4);
+  const notas = simbolo("♪", "#E4532F", 3), gotas = simbolo("●", "#3A9BE0", 5);
+  gotas.forEach(sp => { sp.scale.setScalar(0.16); sp.material.toneMapped = false; });
 
   /* ============================================================
      Vida: respira, parpadea, mueve las orejas, la cola y la trompa; reacciona al tocarlo
      ============================================================ */
   let reac = null, base = null;
   const tope = (cab.position.y + R * ETAPA.cab + 0.1);
+  /* Posturas: lo que se pide (obj) y por dónde va (act); vivo() se acerca suave (en calma, de una).
+     andar · echado · dormir (ojos cerrados y zzz) · sentado · olfa · regar · baile, de 0 a 1;
+     giro (la cabeza a los lados, de -1 a 1) y alza (mira hacia arriba, de -1 a 1) */
+  const POSE0 = { andar: 0, echado: 0, dormir: 0, sentado: 0, olfa: 0, regar: 0, baile: 0, giro: 0, alza: 0 };
+  const obj = { ...POSE0 }, act = { ...POSE0 };
+  let fase = 0, tAnt = null;
+  const P_TMP = new T.Vector3();
   function vivo(t) {
-    const quieto = CALMO;
-    const resp = quieto ? 0 : Math.sin(t * (animo === "sueno" ? 1.2 : 2)) * (animo === "sueno" ? 0.025 : 0.015);
+    const quieto = CALMO, dt = tAnt === null ? 0 : Math.max(0, Math.min(0.1, t - tAnt)); tAnt = t;
+    const kS = quieto ? 1 : 1 - Math.exp(-dt * 4.5), kA = quieto ? 1 : 1 - Math.exp(-dt * 9);
+    for (const n in POSE0) act[n] += (obj[n] - act[n]) * (n === "andar" || n === "giro" ? kA : kS);
+    const a = act.andar, e = act.echado, d = act.dormir, s = act.sentado, b = act.baile;
+    if (!quieto) fase += dt * Math.PI * 2 * 1.9;
+    const lento = animo === "sueno" || d > 0.5;
+    const resp = quieto ? 0 : Math.sin(t * (lento ? 1.2 : 2)) * (lento ? 0.025 : 0.015);
     cuerpo.scale.set(1, 1 + resp, 1 + resp * 0.5);
-    cab.rotation.z = cabBase + (quieto ? 0 : Math.sin(t * 1.3) * 0.03);
-    const aleteo = quieto ? 0 : Math.pow(Math.max(0, Math.sin(t * 0.9)), 12);
+    // sentado: el cuerpo se inclina hacia atrás desde la cadera; echado: baja hasta el piso
+    const th = 0.42 * s, hx = -0.44, hy = 0.45, cs = Math.cos(th), sn = Math.sin(th);
+    const bote = quieto ? 0 : 0.035 * a * Math.abs(Math.sin(fase)) + 0.06 * b * Math.abs(Math.sin(t * 5.2));
+    cuerpo.position.set(hx - (hx * cs - hy * sn), hy - (hx * sn + hy * cs) - 0.3 * e + bote, 0);
+    cuerpo.rotation.set(quieto ? 0 : 0.035 * a * Math.sin(fase) + 0.13 * b * Math.sin(t * 2.6), 0, th);
+    // las patas: al caminar van en diagonal (adelante derecha con atrás izquierda); echado, se recogen
+    pies.forEach((p, k) => {
+      const P0 = PATAS[k], del = k < 2, w = fase + (k === 0 || k === 3 ? 0 : Math.PI);
+      const paso = quieto ? 0 : a * Math.sin(w) * 0.1;
+      const alto = quieto ? 0 : a * Math.max(0, Math.cos(w)) * 0.07 + b * Math.max(0, Math.sin(t * 5.2 + (k % 2) * Math.PI)) * 0.06;
+      p.position.set(P0[0] + paso + (del ? 0.14 : -0.04) * e, alto, P0[1] * (1 + 0.22 * e));
+      p.scale.y = Math.max(0.2, 1 - 0.68 * e - (del ? 0 : 0.35 * s));
+      p.rotation.z = del ? 0 : -th;
+    });
+    cab.rotation.z = cabBase + (quieto ? 0 : Math.sin(t * 1.3) * 0.03 + 0.04 * a * Math.sin(fase * 2)) + 0.38 * act.alza - 0.12 * e - 0.3 * act.olfa + 0.1 * act.regar - th * 0.75;
+    cab.rotation.y = 0.62 * Math.max(-1, Math.min(1, act.giro)) + (quieto ? 0 : 0.18 * b * Math.sin(t * 2.6));
+    const aleteo = quieto ? 0 : Math.max(Math.pow(Math.max(0, Math.sin(t * 0.9)), 12), 0.35 * a * (0.5 + 0.5 * Math.sin(fase * 2)), 0.6 * b * (0.5 + 0.5 * Math.sin(t * 5.2)));
     orejas.forEach(o => { o.piv.rotation.y = -o.s * (abre + 0.5 * aleteo); });
-    const parp = !quieto && animo === "normal" && (t % 4.3) < 0.13 ? 0.15 : 1;
+    const parp = Math.min(!quieto && animo === "normal" && (t % 4.3) < 0.13 ? 0.15 : 1, 1 - 0.9 * d);
     ojos.forEach(o => { if (o.userData.sy === undefined) o.userData.sy = o.scale.y; o.scale.y = o.userData.sy * parp; });
-    cola.rotation.x = quieto ? 0 : Math.sin(t * 2.4) * 0.35;
+    cola.rotation.x = quieto ? 0 : Math.sin(t * (2.4 + 3 * a + 4 * b)) * (0.35 + 0.2 * b) * (1 - 0.7 * d);
+    tr.olfa = act.olfa; tr.regar = act.regar; tr.baile = b * 0.7;
     // reacciones
     let salto = 0; alzar = 0;
     corazones.forEach(sp => { sp.material.opacity = 0; });
@@ -327,13 +364,26 @@ function crearElefante3D(T, op) {
     g.position.y = (base === null ? (base = g.position.y) : base) + salto;
     ponerTrompa(t);
     enTrompa.position.copy(punta);
-    zzz.forEach((sp, k) => { const f = quieto ? (k ? -1 : 0.4) : (t * 0.28 + k / 3) % 1; sp.material.opacity = f < 0 ? 0 : quieto ? 0.85 : Math.sin(f * Math.PI) * 0.9; sp.position.set(cab.position.x + 0.2 + Math.sin(f * 5 + k) * 0.08, tope + f * 0.7, 0.15); });
+    // los símbolos salen de la cabeza, donde esté (echado queda más abajo)
+    const yC = tope + cuerpo.position.y, sueno = Math.max(animo === "sueno" ? 1 : 0, d);
+    zzz.forEach((sp, k) => { const f = quieto ? (k ? -1 : 0.4) : (t * 0.28 + k / 3) % 1; sp.material.opacity = f < 0 || sueno < 0.05 ? 0 : (quieto ? 0.85 : Math.sin(f * Math.PI) * 0.9) * sueno; sp.position.set(cab.position.x + 0.2 + Math.sin(f * 5 + k) * 0.08, yC + f * 0.7, 0.15); });
+    notas.forEach((sp, k) => { const f = quieto ? 0.4 : (t * 0.45 + k / 3) % 1; sp.material.opacity = b > 0.3 ? (quieto ? (k ? 0 : 0.85) : Math.sin(f * Math.PI) * 0.9) * b : 0; sp.position.set(-0.2 + Math.sin(f * 6 + k * 2) * 0.35, yC + 0.1 + f * 0.8, Math.cos(k * 2.1) * 0.35); });
+    // al regar, las gotas salen de la punta de la trompa y caen hacia adelante
+    if (act.regar > 0.4) { cab.updateMatrix(); cuerpo.updateMatrix(); P_TMP.copy(punta).applyMatrix4(cab.matrix).applyMatrix4(cuerpo.matrix); }
+    gotas.forEach((sp, k) => {
+      const f = quieto ? 0.3 + k * 0.12 : (t * 1.5 + k / 5) % 1;
+      sp.material.opacity = act.regar > 0.4 ? (quieto ? 0.9 : Math.sin(Math.min(1, f * 1.2) * Math.PI) * 0.95) * act.regar : 0;
+      if (act.regar > 0.4) sp.position.set(P_TMP.x + 0.1 + f * 0.85, P_TMP.y + 0.12 * f - 1.1 * f * f, P_TMP.z + Math.sin(k * 2.7) * 0.06);
+    });
   }
   vivo(0);
   return {
     g, vivo, tope,
     reaccion(r) { reac = { r, t0: null, dura: r === "saluda" ? 1.3 : r === "corazones" ? 1.5 : 0.75 }; },
     ocupado() { return !!reac; },
+    /* Lo que está haciendo: lo que no se nombra vuelve a 0 (ya: sin transición, p. ej. para una foto) */
+    postura(o, ya) { for (const n in POSE0) { obj[n] = o && typeof o[n] === "number" ? o[n] : 0; if (ya) act[n] = obj[n]; } if (ya) { const t0 = tAnt === null ? 0 : tAnt; tAnt = null; vivo(t0); } },
+    pose() { return { ...act, alto: cuerpo.position.y, pies: pies.map(p => [p.position.x, p.position.y]), ojos: ojos.length ? ojos[0].scale.y / ojos[0].userData.sy : 1, zzz: zzz[0].material.opacity, gotas: gotas.reduce((m, sp) => Math.max(m, sp.material.opacity), 0), notas: notas.reduce((m, sp) => Math.max(m, sp.material.opacity), 0) }; },
     dispose() { usados.forEach(x => { if (x && x.dispose) x.dispose(); }); usados.clear(); },
   };
 }

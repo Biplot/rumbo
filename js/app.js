@@ -151,7 +151,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 22;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 23;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -323,6 +323,10 @@ const NOVEDADES = {
   22: [
     ["🏠", "La casa de tu elefante", "En Recompensas → Progreso tu elefante tiene su cuarto. Se llena con tu rango: una planta, un reloj, la biblioteca con los libros que terminaste… y la ventana sigue la hora del día."],
     ["🏅", "Tu repisa", "En su repisa tu elefante luce tus mejores medallas, o las que tú elijas en 🏅 Repisa. Tócalas para verlas de cerca."],
+  ],
+  23: [
+    ["🛤️", "El camino de tu año", "En Tendencias, tu año es un sendero de enero a diciembre: cada medalla que ganaste es un hito en el día en que pasó. Tócalo para verla de cerca y comparte tu camino."],
+    ["🧭", "Medallas en tus cierres", "Al cerrar un trimestre o el año ves las medallas que ganaste en ese tiempo."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1216,6 +1220,7 @@ function onClick(e) {
     case "cos-equip": equipItem(d.id); break;
     case "ins-ver": abrirInsignia(d.id); break;
     case "repisa-elegir": REPISA_SEL = null; openRepisa(); break;
+    case "camino-compartir": compartirCamino(+d.y); break;
     case "repisa-toggle": repisaToggle(d.id); break;
     case "repisa-guardar": repisaGuardar(false); break;
     case "repisa-auto": repisaGuardar(true); break;

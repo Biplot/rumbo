@@ -341,6 +341,7 @@ function renderTendencias() {
 
   <div class="section-title">Tu evolución</div>
   ${selectorAnio()}
+  ${typeof caminoCardHtml === "function" ? caminoCardHtml(y) : ""}
   ${comparacionAnios(S, y)}
   ${y < anioActual() ? `<div class="card" style="margin-bottom:18px">${resumenAnioHtml(resumenAnio(S, y), true)}</div>` : ""}
   ${informeAnioDisponible(y) ? `<div class="row" style="margin-bottom:18px;justify-content:flex-end"><button class="btn ${funcion("informe-anio") ? "btn--cian" : "btn--soft"}" data-action="informe-anio" data-y="${y}">🗂️ Informe de ${y}${funcion("informe-anio") ? "" : " · 400 ⭐"}</button></div>` : ""}

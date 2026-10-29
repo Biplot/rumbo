@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="ruta">
+<html lang="es" data-theme="norte">
 <head>
   <meta charset="UTF-8" />
 <script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};va("beforeSend",function(e){var u=new URL(e.url);u.search="";u.hash="";e.url=u.toString();return e});</script>
@@ -8,7 +8,7 @@
   <title>Rumbo · Un bocado a la vez</title>
   <meta name="description" content="Tu centro de control personal: finanzas, hábitos, metas, lecturas y bienestar en una sola app." />
   <!-- PWA / iPhone (agregar a pantalla de inicio) -->
-  <meta name="theme-color" content="#0B0B0C" />
+  <meta name="theme-color" content="#161A2E" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -20,27 +20,27 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Las fuentes no frenan el primer dibujo: se ve la letra del sistema y luego la de Rumbo -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" /></noscript>
-  <link rel="stylesheet" href="css/styles.css?v=90" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" /></noscript>
+  <link rel="stylesheet" href="css/styles.css?v=91" />
   <style>
     /* Pantalla de carga: se dibuja al tiro (antes que el código) y se va al aparecer la app o el acceso */
     .splash { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 26px; background: #0B0B0C; transition: opacity .25s ease; }
+      gap: 26px; background: #161A2E; transition: opacity .25s ease; }
     .splash.is-fuera { opacity: 0; pointer-events: none; }
     .splash svg { width: 76px; height: 76px; }
     .splash__barra { width: 112px; height: 3px; border-radius: 3px; background: rgba(255,255,255,.14); overflow: hidden; }
-    .splash__barra i { display: block; width: 40%; height: 100%; border-radius: inherit; background: #FFFFFF; animation: splashBarra 1.1s ease-in-out infinite; }
+    .splash__barra i { display: block; width: 40%; height: 100%; border-radius: inherit; background: #F4AE3D; animation: splashBarra 1.1s ease-in-out infinite; }
     @keyframes splashBarra { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
     .splash__lento { position: absolute; left: 24px; right: 24px; bottom: calc(56px + env(safe-area-inset-bottom, 0px)); margin: 0; text-align: center;
-      font: 500 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: #A9A9AE; opacity: 0; animation: splashLento .3s ease 8s forwards; }
+      font: 500 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: #A7ADCA; opacity: 0; animation: splashLento .3s ease 8s forwards; }
     @keyframes splashLento { to { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { .splash__barra i { animation: none; width: 100%; opacity: .5; } }
   </style>
 </head>
 <body>
   <div class="splash" id="splash" role="status" aria-label="Cargando Rumbo">
-    <svg viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="bocadoS"><rect width="100" height="100" fill="#fff"/><circle cx="72" cy="31" r="13" fill="#000"/><circle cx="59" cy="21" r="8.5" fill="#000"/><circle cx="82" cy="45" r="8.5" fill="#000"/></mask></defs><rect width="100" height="100" rx="23" fill="#FFFFFF"/><circle cx="48" cy="54" r="32" fill="#0B0B0C" mask="url(#bocadoS)"/><path d="M32 72 L54 50" stroke="#FFFFFF" stroke-width="7.5" stroke-linecap="round"/><path d="M41 48 H55 V62" fill="none" stroke="#FFFFFF" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="73" cy="30" r="5.5" fill="#E8563A"/></svg>
+    <svg viewBox="0 0 100 100" aria-hidden="true"><defs><mask id="bocadoS"><rect width="100" height="100" fill="#fff"/><circle cx="72" cy="31" r="13" fill="#000"/><circle cx="59" cy="21" r="8.5" fill="#000"/><circle cx="82" cy="45" r="8.5" fill="#000"/></mask></defs><rect width="100" height="100" rx="23" fill="#161A2E"/><circle cx="48" cy="54" r="32" fill="#F4AE3D" mask="url(#bocadoS)"/><path d="M32 72 L54 50" stroke="#161A2E" stroke-width="7.5" stroke-linecap="round"/><path d="M41 48 H55 V62" fill="none" stroke="#161A2E" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="73" cy="30" r="5.5" fill="#8D9BFF"/></svg>
     <div class="splash__barra" aria-hidden="true"><i></i></div>
     <p class="splash__lento">Trayendo tus datos… si tarda, revisa tu conexión.</p>
   </div>
@@ -48,7 +48,7 @@
   <div id="authScreen" class="auth" hidden>
     <div class="auth__card">
       <div class="auth__brand">
-        <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><defs><mask id="bocadoA"><rect width="100" height="100" fill="#fff"/><circle cx="72" cy="31" r="13" fill="#000"/><circle cx="59" cy="21" r="8.5" fill="#000"/><circle cx="82" cy="45" r="8.5" fill="#000"/></mask></defs><rect x="2" y="2" width="96" height="96" rx="23" fill="#0E2A47" stroke="#17C3B2" stroke-width="3.5"/><circle cx="48" cy="54" r="32" fill="#17C3B2" mask="url(#bocadoA)"/><path d="M32 72 L54 50" stroke="#0E2A47" stroke-width="7.5" stroke-linecap="round"/><path d="M41 48 H55 V62" fill="none" stroke="#0E2A47" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="73" cy="30" r="5.5" fill="#FF6B4A"/></svg>
+        <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><defs><mask id="bocadoA"><rect width="100" height="100" fill="#fff"/><circle cx="72" cy="31" r="13" fill="#000"/><circle cx="59" cy="21" r="8.5" fill="#000"/><circle cx="82" cy="45" r="8.5" fill="#000"/></mask></defs><rect x="2" y="2" width="96" height="96" rx="23" fill="#161A2E" stroke="#161A2E" stroke-width="3.5"/><circle cx="48" cy="54" r="32" fill="#F4AE3D" mask="url(#bocadoA)"/><path d="M32 72 L54 50" stroke="#161A2E" stroke-width="7.5" stroke-linecap="round"/><path d="M41 48 H55 V62" fill="none" stroke="#161A2E" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="73" cy="30" r="5.5" fill="#8D9BFF"/></svg>
         <span class="brand-name">Rumbo</span>
       </div>
       <p class="auth__tagline">Un bocado a la vez.</p>
@@ -90,7 +90,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar__brand">
         <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><defs><mask id="bocadoB"><rect width="100" height="100" fill="#fff"/><circle cx="72" cy="31" r="13" fill="#000"/><circle cx="59" cy="21" r="8.5" fill="#000"/><circle cx="82" cy="45" r="8.5" fill="#000"/></mask></defs><rect x="2" y="2" width="96" height="96" rx="23" fill="#0E2A47" stroke="#17C3B2" stroke-width="3.5"/><circle cx="48" cy="54" r="32" fill="#17C3B2" mask="url(#bocadoB)"/><path d="M32 72 L54 50" stroke="#0E2A47" stroke-width="7.5" stroke-linecap="round"/><path d="M41 48 H55 V62" fill="none" stroke="#0E2A47" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="73" cy="30" r="5.5" fill="#FF6B4A"/></svg>
+          <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><defs><mask id="bocadoB"><rect width="100" height="100" fill="#fff"/><circle cx="72" cy="31" r="13" fill="#000"/><circle cx="59" cy="21" r="8.5" fill="#000"/><circle cx="82" cy="45" r="8.5" fill="#000"/></mask></defs><rect x="2" y="2" width="96" height="96" rx="23" fill="#161A2E" stroke="#161A2E" stroke-width="3.5"/><circle cx="48" cy="54" r="32" fill="#F4AE3D" mask="url(#bocadoB)"/><path d="M32 72 L54 50" stroke="#161A2E" stroke-width="7.5" stroke-linecap="round"/><path d="M41 48 H55 V62" fill="none" stroke="#161A2E" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="73" cy="30" r="5.5" fill="#8D9BFF"/></svg>
         </div>
         <div class="brand-text">
           <span class="brand-name" id="brandName">Rumbo</span>
@@ -167,43 +167,43 @@
 
   <!-- supabase-js 2.117.2 guardada en el repositorio: una versión nueva del CDN ya no puede romper el inicio de sesión -->
   <script src="js/vendor/supabase-2.117.2.js"></script>
-  <script src="js/store.js?v=90"></script>
-  <script src="js/state.js?v=90"></script>
-  <script src="js/anios.js?v=90"></script>
-  <script src="js/agenda.js?v=90"></script>
-  <script src="js/tareas-motor.js?v=90"></script>
-  <script src="js/habitos-motor.js?v=90"></script>
-  <script src="js/modules.js?v=90"></script>
-  <script src="js/modules2.js?v=90"></script>
-  <script src="js/salud.js?v=90"></script>
-  <script src="js/notas.js?v=90"></script>
-  <script src="js/tienda.js?v=90"></script>
-  <script src="js/ritual-mes.js?v=90"></script>
-  <script src="js/ritual-semana.js?v=90"></script>
-  <script src="js/ritual-trimestre.js?v=90"></script>
-  <script src="js/informe-mes.js?v=90"></script>
-  <script src="js/tutorial.js?v=90"></script>
-  <script src="js/gcal.js?v=90"></script>
-  <script src="js/ritual-express.js?v=90"></script>
-  <script src="js/tendencias.js?v=90"></script>
-  <script src="js/recompensas.js?v=90"></script>
+  <script src="js/store.js?v=91"></script>
+  <script src="js/state.js?v=91"></script>
+  <script src="js/anios.js?v=91"></script>
+  <script src="js/agenda.js?v=91"></script>
+  <script src="js/tareas-motor.js?v=91"></script>
+  <script src="js/habitos-motor.js?v=91"></script>
+  <script src="js/modules.js?v=91"></script>
+  <script src="js/modules2.js?v=91"></script>
+  <script src="js/salud.js?v=91"></script>
+  <script src="js/notas.js?v=91"></script>
+  <script src="js/tienda.js?v=91"></script>
+  <script src="js/ritual-mes.js?v=91"></script>
+  <script src="js/ritual-semana.js?v=91"></script>
+  <script src="js/ritual-trimestre.js?v=91"></script>
+  <script src="js/informe-mes.js?v=91"></script>
+  <script src="js/tutorial.js?v=91"></script>
+  <script src="js/gcal.js?v=91"></script>
+  <script src="js/ritual-express.js?v=91"></script>
+  <script src="js/tendencias.js?v=91"></script>
+  <script src="js/recompensas.js?v=91"></script>
   <!-- Tienda: útiles, funciones, cosméticos y logros (después de recompensas.js) -->
-  <script src="js/consumibles.js?v=90"></script>
-  <script src="js/funciones.js?v=90"></script>
-  <script src="js/cosmeticos.js?v=90"></script>
-  <script src="js/logros.js?v=90"></script>
-  <script src="js/cielo.js?v=90"></script>
-  <script src="js/lugar.js?v=90"></script>
-  <script src="js/casa.js?v=90"></script>
-  <script src="js/elefante.js?v=90"></script>
-  <script src="js/consultorio.js?v=90"></script>
-  <script src="js/avatares.js?v=90"></script>
-  <script src="js/vida.js?v=90"></script>
-  <script src="js/notifs.js?v=90"></script>
-  <script src="js/iconos.js?v=90"></script>
-  <script src="js/navegacion.js?v=90"></script>
-  <script src="js/detalles.js?v=90"></script>
-  <script src="js/app.js?v=90"></script>
+  <script src="js/consumibles.js?v=91"></script>
+  <script src="js/funciones.js?v=91"></script>
+  <script src="js/cosmeticos.js?v=91"></script>
+  <script src="js/logros.js?v=91"></script>
+  <script src="js/cielo.js?v=91"></script>
+  <script src="js/lugar.js?v=91"></script>
+  <script src="js/casa.js?v=91"></script>
+  <script src="js/elefante.js?v=91"></script>
+  <script src="js/consultorio.js?v=91"></script>
+  <script src="js/avatares.js?v=91"></script>
+  <script src="js/vida.js?v=91"></script>
+  <script src="js/notifs.js?v=91"></script>
+  <script src="js/iconos.js?v=91"></script>
+  <script src="js/navegacion.js?v=91"></script>
+  <script src="js/detalles.js?v=91"></script>
+  <script src="js/app.js?v=91"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));

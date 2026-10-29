@@ -153,7 +153,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 28;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 29;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -349,6 +349,11 @@ const NOVEDADES = {
     ["📊", "Gráficos con sus datos", "En Tendencias, cada barra y cada punto muestran su valor."],
     ["✨", "Tu vitrina, con aire", "Las constelaciones y la repisa de tu casa están ordenadas: ninguna medalla tapa a otra."],
     ["🐘", "Tu elefante, despierto", "Si no cierras tu día anda con sueño, pero solo duerme cuando toma su siesta."],
+  ],
+  29: [
+    ["🧭", "Norte, el tema de Rumbo", "Una aguja ámbar marca lo que sigue (abrir o cerrar tu día, tu racha, tus monedas) sobre tinta índigo. De día es la luz de la mañana; de noche, el mismo cielo de tu vitrina."],
+    ["🌗", "Automático, ahora con Norte", "Rumbo sigue el modo de tu teléfono: Norte de día y Norte noche de noche. ¿Lo quieres fijo? Elige Norte o Norte noche en Recompensas → Tienda → Temas. Ruta y Ruta noche siguen ahí."],
+    ["🎨", "Adiós a Navy y Claro", "Si usabas Navy ahora tienes Norte noche, y si usabas Claro, Norte: el mismo modo que tenías."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1341,11 +1346,11 @@ function onClick(e) {
   }
 }
 
-const BASE_THEMES = ["auto", "ruta", "ruta-noche", "navy", "claro", "alto-contraste"];   // gratis (alto contraste: accesibilidad)
-const DEFAULT_THEME = "auto";   // v80: Ruta de día y Ruta noche de noche, según el modo del teléfono
-/* "auto" no es un tema en sí: según el teléfono (modo claro u oscuro) se ve Ruta o Ruta noche */
+const BASE_THEMES = ["auto", "norte", "norte-noche", "ruta", "ruta-noche", "alto-contraste"];   // gratis (alto contraste: accesibilidad)
+const DEFAULT_THEME = "auto";   // v91: Norte de día y Norte noche de noche, según el modo del teléfono
+/* "auto" no es un tema en sí: según el teléfono (modo claro u oscuro) se ve Norte o Norte noche */
 const OSCURO = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-function resolverTema(t) { return t === "auto" ? (OSCURO && OSCURO.matches ? "ruta-noche" : "ruta") : t; }
+function resolverTema(t) { return t === "auto" ? (OSCURO && OSCURO.matches ? "norte-noche" : "norte") : t; }
 // Si el teléfono pasa a modo oscuro (o vuelve a claro) con la app abierta, Rumbo lo sigue al tiro
 if (OSCURO) {
   const alCambiar = () => { if (!STATE || STATE.settings.theme === "auto") applyTheme(STATE ? STATE.settings.theme : DEFAULT_THEME); };
@@ -1414,39 +1419,41 @@ function grantOwnerPerks() {
 
 const FONT_SG = "'Space Grotesk',sans-serif";
 const FONT_IT = "'Inter Tight',sans-serif";
+const FONT_FIG = "'Figtree',sans-serif";
+const FONT_BRI = "'Bricolage Grotesque',sans-serif";
 const FONT_CORMORANT = "'Cormorant Garamond',Georgia,serif";
 const FONT_MULISH = "'Mulish',sans-serif";
 /* Orden = orden en la Tienda */
 const THEMES = [
-  /* --- Bases gratis: Automático (predeterminado desde v80), Ruta y su versión de noche --- */
-  { id: "auto", nombre: "Automático", base: "Base", auto: true, concepto: "Ruta de día y Ruta noche de noche: sigue el modo claro u oscuro de tu teléfono. El tema predeterminado.", costo: 0,
-    bg: "#FFFFFF", card: "#F3F3F3", accent: "#0B0B0C", cta: "#0B0B0C", onCta: "#FFFFFF", text: "#0B0B0C", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
-  { id: "ruta", nombre: "Ruta", base: "Base", concepto: "El diseño de Rumbo: blanco, negro y un solo acento coral. Letras grandes y una acción clara a la vez. Siempre claro, aunque tu teléfono esté en modo oscuro.", costo: 0,
+  /* --- Bases gratis: Automático (predeterminado), Norte y su versión de noche, y Ruta --- */
+  { id: "auto", nombre: "Automático", base: "Base", auto: true, concepto: "Norte de día y Norte noche de noche: sigue el modo claro u oscuro de tu teléfono. El tema predeterminado.", costo: 0,
+    bg: "#F5F6FA", card: "#FFFFFF", accent: "#3949C9", cta: "#F4AE3D", onCta: "#161A2E", text: "#161A2E", font: FONT_FIG, fontDisplay: FONT_BRI, radius: "16px", barra: "#161A2E" },
+  { id: "norte", nombre: "Norte", base: "Base", concepto: "El tema de Rumbo: una aguja ámbar para lo que sigue, sobre tinta índigo y con la luz de la mañana. Siempre claro, aunque tu teléfono esté en modo oscuro.", costo: 0,
+    bg: "#F5F6FA", card: "#FFFFFF", accent: "#3949C9", cta: "#F4AE3D", onCta: "#161A2E", text: "#161A2E", font: FONT_FIG, fontDisplay: FONT_BRI, radius: "16px", barra: "#161A2E" },
+  { id: "norte-noche", nombre: "Norte noche", base: "Base", concepto: "Norte en oscuro: el mismo cielo índigo de tu vitrina y la misma aguja ámbar. Descansa la vista en la noche.", costo: 0,
+    bg: "#0C0F1E", card: "#141932", accent: "#8D9BFF", cta: "#FFBE55", onCta: "#0C0F1E", text: "#EEF0F8", font: FONT_FIG, fontDisplay: FONT_BRI, radius: "16px", barra: "#0C0F1E" },
+  { id: "ruta", nombre: "Ruta", base: "Base", concepto: "Como una app de viajes: blanco, negro y un solo acento coral. Letras grandes y una acción clara a la vez. Siempre claro, aunque tu teléfono esté en modo oscuro.", costo: 0,
     bg: "#FFFFFF", card: "#F3F3F3", accent: "#0B0B0C", cta: "#0B0B0C", onCta: "#FFFFFF", text: "#0B0B0C", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
   { id: "ruta-noche", nombre: "Ruta noche", base: "Base", concepto: "El diseño Ruta en oscuro: negro profundo, texto blanco y el mismo acento coral. Descansa la vista en la noche.", costo: 0,
     bg: "#0B0B0C", card: "#1F1F21", accent: "#FFFFFF", cta: "#FFFFFF", onCta: "#0B0B0C", text: "#F5F5F5", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
-  { id: "navy", nombre: "Navy sobrio", base: "Base", concepto: "Los colores de BiPlot en oscuro: azul profundo, acento cian y un solo botón coral.", costo: 0,
-    bg: "#0A1E33", card: "#0F2740", accent: "#17C3B2", cta: "#FF6B4A", onCta: "#0E2A47", text: "#EDF1F5", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
-  { id: "claro", nombre: "Claro", base: "Base", concepto: "Los colores de BiPlot en claro: mucho aire, grises con un toque azul y el mismo acento cian.", costo: 0,
-    bg: "#F2F4F7", card: "#FFFFFF", accent: "#13A294", cta: "#FF6B4A", onCta: "#0E2A47", text: "#0E2A47", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px", barra: "#0E2A47" },
   /* --- Tienda --- */
-  { id: "grafito", nombre: "Grafito", base: "Navy sobrio", concepto: "Modo oscuro neutro en grafito. Elegante y de bajo perfil.", costo: 400,
+  { id: "grafito", nombre: "Grafito", base: "Tienda", concepto: "Modo oscuro neutro en grafito. Elegante y de bajo perfil.", costo: 400,
     bg: "#111418", card: "#1A1E24", accent: "#39B9AE", cta: "#E8563A", onCta: "#FFFFFF", text: "#E9ECEF", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
-  { id: "medianoche", nombre: "Medianoche", base: "Navy sobrio", concepto: "Oscuro con acento índigo. Sobrio pero con personalidad.", costo: 500,
+  { id: "medianoche", nombre: "Medianoche", base: "Tienda", concepto: "Oscuro con acento índigo. Sobrio pero con personalidad.", costo: 500,
     bg: "#131A2C", card: "#1C2540", accent: "#8B93E8", cta: "#E8563A", onCta: "#FFFFFF", text: "#E7EAF4", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
-  { id: "bosque-claro", nombre: "Bosque Claro", base: "Claro", concepto: "Marfil, verde bosque y detalles dorados. Títulos con serifa clásica.", costo: 550,
+  { id: "bosque-claro", nombre: "Bosque Claro", base: "Tienda", concepto: "Marfil, verde bosque y detalles dorados. Títulos con serifa clásica.", costo: 550,
     bg: "#F7F5F0", card: "#FFFFFF", accent: "#C8A165", cta: "#16301F", onCta: "#F7F5F0", text: "#0A140E", font: FONT_MULISH, fontDisplay: FONT_CORMORANT, radius: "12px" },
-  { id: "bosque-oscuro", nombre: "Bosque Oscuro", base: "Navy sobrio", concepto: "Verde profundo con acento dorado. Sobrio, cálido y con carácter.", costo: 650,
+  { id: "bosque-oscuro", nombre: "Bosque Oscuro", base: "Tienda", concepto: "Verde profundo con acento dorado. Sobrio, cálido y con carácter.", costo: 650,
     bg: "#0A140E", card: "#0F1F16", accent: "#C8A165", cta: "#C8A165", onCta: "#0A140E", text: "#F7F5F0", font: FONT_MULISH, fontDisplay: FONT_CORMORANT, radius: "12px" },
-  { id: "atardecer", nombre: "Atardecer", base: "Navy sobrio", concepto: "Violeta profundo con acento durazno. Cálido para cerrar el día.", costo: 800,
+  { id: "atardecer", nombre: "Atardecer", base: "Tienda", concepto: "Violeta profundo con acento durazno. Cálido para cerrar el día.", costo: 800,
     bg: "#1D1530", card: "#28203F", accent: "#FF9E7A", cta: "#E8618A", onCta: "#1E0F18", text: "#F7EEF6", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
-  { id: "oceano", nombre: "Océano", base: "Navy sobrio", concepto: "Azul petróleo y turquesa. Fresco y tranquilo.", costo: 800,
+  { id: "oceano", nombre: "Océano", base: "Tienda", concepto: "Azul petróleo y turquesa. Fresco y tranquilo.", costo: 800,
     bg: "#06222A", card: "#0B2F38", accent: "#39D0E0", cta: "#FFB84D", onCta: "#2A1A00", text: "#E6F4F5", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
-  { id: "cuaderno", nombre: "Cuaderno", base: "Claro", concepto: "Papel crema, tinta azul y títulos con serifa. Como un bullet journal.", costo: 900,
+  { id: "cuaderno", nombre: "Cuaderno", base: "Tienda", concepto: "Papel crema, tinta azul y títulos con serifa. Como un bullet journal.", costo: 900,
     bg: "#F4EFE3", card: "#FFFDF7", accent: "#2F4B7C", cta: "#B23A2E", onCta: "#FFFFFF", text: "#1F2A3D", font: "'Karla',sans-serif", fontDisplay: "'Fraunces',Georgia,serif", radius: "12px" },
-  { id: "terminal", nombre: "Terminal", base: "Navy sobrio", concepto: "Negro y verde fósforo con letra monoespaciada. Para los más técnicos.", costo: 1000,
+  { id: "terminal", nombre: "Terminal", base: "Tienda", concepto: "Negro y verde fósforo con letra monoespaciada. Para los más técnicos.", costo: 1000,
     bg: "#0A0F0B", card: "#0F1711", accent: "#39FF88", cta: "#FFB000", onCta: "#1A1100", text: "#D8FFE4", font: "'IBM Plex Mono',monospace", fontDisplay: "'IBM Plex Mono',monospace", radius: "6px" },
-  { id: "sakura", nombre: "Sakura", base: "Claro", concepto: "Rosado suave y verde hoja. Claro y liviano.", costo: 900,
+  { id: "sakura", nombre: "Sakura", base: "Tienda", concepto: "Rosado suave y verde hoja. Claro y liviano.", costo: 900,
     bg: "#FFF6F7", card: "#FFFFFF", accent: "#E26D8A", cta: "#4F7A39", onCta: "#FFFFFF", text: "#3A2230", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
   { id: "alto-contraste", nombre: "Alto contraste", base: "Accesibilidad", concepto: "Negro, blanco y amarillo, pensado para leer mejor. Gratis.", costo: 0,
     bg: "#000000", card: "#0B0B0B", accent: "#FFD400", cta: "#FFFFFF", onCta: "#000000", text: "#FFFFFF", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
@@ -1477,7 +1484,7 @@ function openThemePreview(themeId) {
       </div>
     </div>`;
   const mock = t0.auto
-    ? ["ruta", "ruta-noche"].map((id, i) => `<div class="text-xs muted" style="margin:${i ? "12px" : "0"} 0 6px">${i ? "De noche (modo oscuro)" : "De día (modo claro)"}</div>${maqueta(THEMES.find(x => x.id === id))}`).join("")
+    ? ["norte", "norte-noche"].map((id, i) => `<div class="text-xs muted" style="margin:${i ? "12px" : "0"} 0 6px">${i ? "De noche (modo oscuro)" : "De día (modo claro)"}</div>${maqueta(THEMES.find(x => x.id === id))}`).join("")
     : maqueta(t0);
   const cta = active
     ? `<button class="btn btn--soft btn-block" data-action="close-modal">Ya es tu tema actual</button>`

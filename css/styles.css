@@ -1,62 +1,64 @@
 /* ============================================================
    RUMBO · Sistema de diseño
-   Temas (html[data-theme="…"]), en el orden de la Tienda:
-     navy (predeterminado, gratis) · claro (:root, gratis) ·
-     grafito · medianoche · bosque-claro · bosque-oscuro
+   Temas (html[data-theme="…"]):
+     norte (:root, predeterminado de día) · norte-noche (predeterminado de noche)
+     ruta · ruta-noche · y los de la Tienda (grafito, medianoche, bosque…)
+   "auto" (el predeterminado) se resuelve en JS: Norte de día, Norte noche de noche.
    Variables clave:
-     --cian      acento (barras, chips, bordes, fondos de acento)
+     --cian      acento (barras, chips, bordes, fondos de acento). En Norte: índigo
      --cian-ink  acento usado como TEXTO (cumple AA sobre las superficies)
      --on-cian   texto sobre fondo --cian
-     --coral     CTA / botones principales   · --on-coral texto sobre ellos
+     --coral-btn CTA / botón principal (uno por pantalla) · --on-coral texto sobre él. En Norte: ámbar
+     --coral     ese acento usado como texto, borde o marca
      --font-display (títulos) · --font-body (texto)
-   Tipografía por defecto: Space Grotesk. Bosque: Cormorant Garamond + Mulish.
+   Tipografía de Norte: Bricolage Grotesque (títulos) + Figtree (texto).
    ============================================================ */
 
+/* Norte día = :root. Norte es el tema propio de Rumbo: una aguja ámbar (lo que sigue) sobre
+   tinta índigo. De día es la luz de la mañana; de noche (norte-noche), el cielo de tu vitrina. */
 :root {
-  /* Marca (calmada: mismos matices BiPlot, menos neón) */
-  --azul: #0E2A47;
-  --cian: #13A294;        /* cian BiPlot un poco más hondo: 3,2:1 sobre blanco (relleno) y 4,6:1 con texto azul encima */
-  --cian-ink: #0B776D;    /* cian-texto del manual de marca: 5,4:1 sobre blanco */
-  --on-cian: #0E2A47;
-  --on-coral: #0E2A47;    /* el texto del botón coral va en Azul Profundo (manual de marca): 5,2:1 */
-  --coral: #C2432A;       /* coral usado como texto o borde: 5,1:1 sobre blanco */
-  --coral-btn: #FF6B4A;   /* Coral Acción del manual: solo el botón principal, uno por pantalla */
+  --azul: #161A2E;
+  --cian: #3949C9;        /* índigo: lo hecho, barras y lo elegido · 7,1:1 sobre blanco */
+  --cian-ink: #3949C9;
+  --on-cian: #FFFFFF;
+  --coral: #9A5800;       /* ámbar como texto (rachas, monedas, avisos): 5,6:1 sobre blanco */
+  --coral-btn: #F4AE3D;   /* la aguja ámbar: el botón de lo que sigue, uno por pantalla */
+  --on-coral: #161A2E;    /* texto sobre el ámbar: 9,0:1 */
   --grafito: #1C1C1E;
   --niebla: #F5F6F4;
 
-  /* Base por defecto = tema "Claro" (B): claro, sereno, profesional */
-  --bg: #F2F4F7;
+  --bg: #F5F6FA;
   --bg-grad: none;
   --surface: #FFFFFF;
-  --surface-2: #EDF1F5;
-  --surface-3: #E2E8EF;
-  --line: #E3E8EE;
-  --line-strong: #CBD4DF;
+  --surface-2: #EEF0F6;
+  --surface-3: #E6E9F2;
+  --line: #E1E4EE;
+  --line-strong: #CBD0DF;
 
   /* Texto */
-  --text: #0E2A47;
-  --text-soft: #3A4F67;
-  --text-muted: #55677D;
+  --text: #161A2E;
+  --text-soft: #3E4461;
+  --text-muted: #5A6183;
 
   /* Acentos suaves */
-  --cian-soft: rgba(19, 162, 148, 0.12);
-  --coral-soft: rgba(194, 67, 42, 0.10);
+  --cian-soft: rgba(57, 73, 201, 0.10);
+  --coral-soft: rgba(244, 174, 61, 0.18);
 
   /* Radios y sombra (planas, discretas) */
   --r-sm: 10px;
   --r: 14px;
   --r-lg: 20px;
-  --shadow: 0 1px 2px rgba(14, 42, 71, 0.05), 0 12px 28px -20px rgba(14, 42, 71, 0.35);
-  --shadow-sm: 0 1px 2px rgba(14, 42, 71, 0.05);
+  --shadow: 0 1px 2px rgba(22, 26, 46, 0.05), 0 12px 28px -20px rgba(22, 26, 46, 0.32);
+  --shadow-sm: 0 1px 2px rgba(22, 26, 46, 0.05);
 
   --sidebar-w: 250px;
   --sidebar-bg: #FFFFFF;
-  --topbar-bg: #F2F4F7;
+  --topbar-bg: #F5F6FA;
   /* Fondo de base de la página (html), del color de las barras. En el iPhone, iOS tiñe con este
      color el difuminado que pone bajo la hora; el fondo del contenido (--bg) va en .app. */
   --lienzo: var(--topbar-bg);
-  --font-body: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque", "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font: var(--font-body);
 }
 
@@ -799,36 +801,17 @@ textarea.input { resize: vertical; min-height: 84px; }
 
 /* ============================================================
    TEMAS · mismo esquema, cambia color/neutro/acento
-   Claro = :root. Navy es el predeterminado para usuarios nuevos.
+   Norte día = :root (arriba). Norte noche y el diseño Norte: más abajo.
    ============================================================ */
-
-/* BASE · Navy sobrio (oscuro refinado) · predeterminado */
-html[data-theme="navy"] {
-  --bg:#0A1E33; --bg-grad:none; --surface:#0F2740; --surface-2:#14304D; --surface-3:#1B3B5D;
-  --line:rgba(237,241,245,.09); --line-strong:rgba(237,241,245,.20);
-  --text:#EDF1F5; --text-soft:#B7C5D6; --text-muted:#93A6BC;
-  --cian:#17C3B2; --cian-ink:#2CCDBC; --on-cian:#0A1E33; --coral:#FF7F62; --coral-btn:#FF6B4A; --on-coral:#0E2A47;
-  --cian-soft:rgba(23,195,178,.16); --coral-soft:rgba(255,127,98,.16);
-  --sidebar-bg:#0A1E33; --topbar-bg:#0A1E33;
-  --shadow:0 1px 2px rgba(0,0,0,.28), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
-}
-/* BASE · Claro: las barras (arriba, abajo y el menú del computador) van en Azul Profundo.
-   Adentro de ellas rigen los colores del Navy, así todo lo que tienen (botones, contadores,
-   menú de la cuenta) se ajusta solo. Con la barra de estado del iPhone en blanco, la hora se lee. */
-html[data-theme="claro"] .topbar, html[data-theme="claro"] .bottombar, html[data-theme="claro"] .sidebar {
-  --surface:#0E2A47; --surface-2:#16385C; --surface-3:#1D4268;
-  --sidebar-bg:#0E2A47; --topbar-bg:#0E2A47;
-  --line:rgba(237,241,245,.12); --line-strong:rgba(237,241,245,.22);
-  --text:#EDF1F5; --text-soft:#C3D0DE; --text-muted:#A9BACD;
-  --cian:#17C3B2; --cian-ink:#2CCDBC; --on-cian:#0A1E33; --coral:#FF7F62;
-  --cian-soft:rgba(23,195,178,.18); --coral-soft:rgba(255,127,98,.18);
-  color: var(--text);
-}
-html[data-theme="claro"] .topbar, html[data-theme="claro"] .bottombar { border-color: transparent; }
-html[data-theme="claro"] { --lienzo: #0E2A47; }
 /* Pantallas completas con su propio fondo (ingreso, modo enfoque): el lienzo toma ese fondo */
 html:has(#authScreen:not([hidden])), html:has(#enfoque:not([hidden])) { --lienzo: var(--bg); }
 
+/* Los temas de la Tienda que no traen letra propia siguen con Space Grotesk */
+html[data-theme="grafito"], html[data-theme="medianoche"], html[data-theme="atardecer"], html[data-theme="oceano"],
+html[data-theme="sakura"], html[data-theme="alto-contraste"] {
+  --font-body: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
 /* TIENDA · Grafito (oscuro neutro) */
 html[data-theme="grafito"] {
   --bg:#111418; --bg-grad:none; --surface:#1A1E24; --surface-2:#20252C; --surface-3:#272D35;
@@ -1654,7 +1637,7 @@ button.dmap__c { cursor: pointer; color: #0E2A47; }
    DISEÑO RUTA (v78) · tu día como un recorrido
    Inspirado en las apps de movilidad: blanco, negro y un solo
    acento coral; letras grandes (Inter Tight) y una acción clara.
-   Ruta = predeterminado (claro, con la barra de arriba negra para
+   Ruta (gratis, se elige en la Tienda): claro, con la barra de arriba negra para
    que la hora del iPhone se lea). Ruta noche = su versión oscura.
    La tarjeta del día en Inicio (.ruta-dia) usa las variables del
    tema, así que se ve bien con cualquiera.
@@ -2219,3 +2202,86 @@ body.en-lugar { overflow: hidden; }
 /* En la hoja del cielo: las que faltan, apagadas */
 .med-chip.is-por { opacity: .72; }
 .med-chip__m--por { background: var(--surface-3); color: var(--text-muted); font-size: 11px; }
+
+/* ============================================================
+   DISEÑO NORTE (v91) · el tema propio de Rumbo
+   Una aguja ámbar (lo que sigue: abrir o cerrar tu día, tu racha,
+   tus monedas) sobre tinta índigo (lo hecho, barras y lo elegido).
+   Norte = de día (:root, la luz de la mañana); Norte noche = el
+   mismo cielo índigo de tu vitrina. Títulos en Bricolage Grotesque
+   y texto en Figtree. Contrastes de texto AA (≥ 4,5:1).
+   ============================================================ */
+html[data-theme="norte-noche"] {
+  --azul: #0C0F1E;
+  --bg: #0C0F1E; --bg-grad: none; --surface: #141932; --surface-2: #1C2242; --surface-3: #252C52;
+  --line: #262C4A; --line-strong: #39416A;
+  --text: #EEF0F8; --text-soft: #C3C8DE; --text-muted: #9AA1C0;
+  --cian: #8D9BFF; --cian-ink: #9AA6FF; --on-cian: #0C0F1E; --cian-soft: rgba(141, 155, 255, .14);
+  --coral: #FFC970; --coral-btn: #FFBE55; --on-coral: #0C0F1E; --coral-soft: rgba(255, 190, 85, .14);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 16px 34px -22px rgba(0, 0, 0, .75); --shadow-sm: 0 1px 2px rgba(0, 0, 0, .3);
+  --sidebar-bg: #0C0F1E; --topbar-bg: #0C0F1E;
+}
+html[data-theme^="norte"] { --r-sm: 12px; --r: 16px; --r-lg: 22px; }
+/* En el celular (y en la app instalada) la hora del iPhone va en blanco: la barra de arriba de Norte día
+   va en tinta índigo, la misma noche de Norte noche. Adentro rigen los colores de noche. */
+@media (max-width: 760px), (display-mode: standalone) {
+  html[data-theme="norte"] { --topbar-bg: #161A2E; }
+  html[data-theme="norte"] .topbar {
+    --surface: #161A2E; --surface-2: #252A47; --surface-3: #2F3557;
+    --line: rgba(255, 255, 255, .10); --line-strong: rgba(255, 255, 255, .20);
+    --text: #F5F6FA; --text-soft: #CDD1E3; --text-muted: #A7ADCA;
+    --cian: #8D9BFF; --cian-ink: #A9B3FF; --on-cian: #0C0F1E; --cian-soft: rgba(141, 155, 255, .16);
+    --coral: #FFC970; --coral-soft: rgba(255, 190, 85, .16);
+    color: var(--text); border-bottom-color: transparent;
+  }
+}
+html[data-theme="norte-noche"] .topbar { border-bottom-color: transparent; }
+
+/* Títulos: Bricolage firme y apretado */
+html[data-theme^="norte"] h1, html[data-theme^="norte"] .big-num, html[data-theme^="norte"] .stat__value,
+html[data-theme^="norte"] .hero-focus__title, html[data-theme^="norte"] .brand-name { font-weight: 800; letter-spacing: -0.03em; }
+html[data-theme^="norte"] h2, html[data-theme^="norte"] h3, html[data-theme^="norte"] .card__title,
+html[data-theme^="norte"] .section-title { font-weight: 700; letter-spacing: -0.02em; }
+html[data-theme^="norte"] .modal__head h3, html[data-theme^="norte"] .sheet__head h2 { font-weight: 800; letter-spacing: -0.025em; }
+html[data-theme^="norte"] .stat__value, html[data-theme^="norte"] .big-num { font-variant-numeric: tabular-nums; }
+
+/* Tarjetas: limpias, sin la franja de color al costado */
+html[data-theme^="norte"] .hero-focus { border-left: 1px solid var(--line); }
+
+/* Botones y chips */
+html[data-theme^="norte"] .btn { border-radius: 14px; font-weight: 700; }
+html[data-theme^="norte"] .btn--soft { background: var(--surface-2); border-color: transparent; }
+html[data-theme^="norte"] .btn--soft:hover { background: var(--surface-3); }
+html[data-theme^="norte"] .chip { font-weight: 600; }
+html[data-theme^="norte"] .topbar__meta button.pill { border-color: transparent; font-weight: 700; }
+
+/* La tarjeta del día: lo hecho en índigo, lo que sigue en ámbar, lo pendiente en hueco */
+html[data-theme^="norte"] .ruta__p::before { background: var(--cian); }
+html[data-theme^="norte"] .ruta__p.is-pend::before, html[data-theme^="norte"] .ruta__p.is-actual::before { background: var(--line-strong); }
+html[data-theme^="norte"] .ruta__p.is-hecho + .ruta__p:not(.is-hecho)::before { background: linear-gradient(var(--cian) 50%, var(--line-strong) 50%); }
+html[data-theme^="norte"] .ruta__p.is-hecho + .ruta__p:not(.is-hecho):last-child::before { background: var(--cian); }
+html[data-theme^="norte"] .ruta__m--abre, html[data-theme^="norte"] .ruta__m--bocado,
+html[data-theme^="norte"] .ruta__m--cierre { background: var(--cian); border: 0; }
+html[data-theme^="norte"] .ruta__p.is-pend .ruta__m { background: var(--surface); border: 2px solid var(--line-strong); }
+html[data-theme^="norte"] .ruta__p.is-actual .ruta__m { background: var(--coral-btn); border: 0; box-shadow: 0 0 0 4px var(--coral-soft); }
+html[data-theme^="norte"] .ruta-eta__barra i { background: var(--cian); }
+
+/* Barras de navegación: el botón del día es la aguja (ámbar) para abrir y para cerrar */
+html[data-theme^="norte"] .nav__item.is-active { box-shadow: inset 3px 0 0 var(--cian); }
+html[data-theme^="norte"] .nav-dia.is-cerrar { background: var(--coral-btn); color: var(--on-coral); border-color: transparent; }
+@media (max-width: 760px) {
+  html[data-theme^="norte"] .bottombar__item { color: var(--text-muted); }
+  html[data-theme^="norte"] .bottombar__item.is-active { color: var(--text); }
+  html[data-theme^="norte"] .bb-dia.is-abrir .bb-dia__c, html[data-theme^="norte"] .bb-dia.is-cerrar .bb-dia__c {
+    background: var(--coral-btn); color: var(--on-coral); border: 0; box-shadow: 0 6px 16px -6px rgba(244, 174, 61, .75); }
+  /* En el celular, las ventanas suben desde abajo */
+  html[data-theme^="norte"] .modal-overlay { place-items: end center; padding: 0; }
+  html[data-theme^="norte"] .modal { max-width: 100%; border-radius: 24px 24px 0 0; max-height: 92vh;
+    border-bottom: 0; animation: sheetIn .22s ease; padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+html[data-theme^="norte"] .modal-overlay { background: rgba(12, 15, 30, .5); backdrop-filter: none; }
+html[data-theme^="norte"] .modal { border-color: var(--line); border-radius: 24px; }
+html[data-theme^="norte"] .sheet-overlay { background: rgba(12, 15, 30, .5); }
+
+/* El logo (el bocado ámbar sobre tinta índigo) ya viene en los colores de Norte; de noche, su fondo se separa un poco del fondo */
+html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-noche"] .auth__brand svg > rect { fill: #1C2242; stroke: #1C2242; }

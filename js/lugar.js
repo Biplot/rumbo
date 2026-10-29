@@ -4,22 +4,24 @@
    abajo una hoja que se arrastra: asomada, a media altura o completa (en pantallas anchas
    es un panel al costado). Al subir la hoja, el 3D se encuadra en lo que queda libre.
    Se entra desde la tarjeta del lugar (crece desde ahí); ‹ o Escape vuelven a donde estabas.
-   Sin WebGL no hay pantalla completa: el lugar sigue en su tarjeta (cielo.js vuelve atrás).
+   Sin WebGL no hay pantalla completa: el lugar sigue en su tarjeta (cielo.js vuelve a su base).
+   Lugares: tu cuarto (casa.js), tu cielo (cielo.js) y tu camino del año (camino.js).
    ============================================================ */
 const LUGAR = { volver: null, desde: null, hoja: "asomada" };
+const LUGAR_BASE = { cuarto: "recompensas", cielo: "insignias", camino: "tendencias" };   // donde vive su tarjeta
 const HOJA_ESTADOS = ["asomada", "media", "completa"];
 function lugarAncho() { return window.matchMedia && matchMedia("(min-width: 900px)").matches; }
 
-/* { lienzo, titulo, sub, chip, aria, carga, cab, cuerpo } */
+/* { lienzo, titulo, sub, chip (texto) o chipHtml, oscuro, fondo, aria, carga, extra, cab, cuerpo } */
 function lugarHtml(o) {
-  return `<div class="lugar" id="lugar" data-gesto>
+  return `<div class="lugar${o.oscuro ? " lugar--osc" : ""}" id="lugar" data-gesto${o.fondo ? ` style="background:${o.fondo}"` : ""}>
     <div class="lugar__lienzo" id="${o.lienzo}" role="img" aria-label="${escapeAttr(o.aria || o.titulo)}"></div>
     ${o.extra || ""}
     <div class="lugar__carga" aria-hidden="true">${o.carga || "Cargando…"}</div>
     <header class="lugar__hud">
       <button type="button" class="lugar__vol vidrio" data-action="lugar-volver" aria-label="Volver">${typeof iconoLinea === "function" ? iconoLinea("atras", 20) : "‹"}</button>
       <div class="lugar__t vidrio"><b>${o.titulo}</b>${o.sub ? `<small>${o.sub}</small>` : ""}</div>
-      ${o.chip ? `<span class="lugar__c vidrio">${o.chip}</span>` : ""}
+      ${o.chipHtml || (o.chip ? `<span class="lugar__c vidrio">${o.chip}</span>` : "")}
     </header>
     <section class="hoja" id="lugarHoja" data-estado="${LUGAR.hoja}" aria-label="${escapeAttr(o.hojaAria || o.titulo)}">
       <button type="button" class="hoja__asa" data-action="hoja-alternar" aria-label="Subir o bajar la hoja"><i></i></button>
@@ -97,7 +99,8 @@ function lugarEntrar(ruta, desdeEl) {
   return true;
 }
 function lugarVolver() {
-  const el = document.getElementById("lugar"), ir = () => go(LUGAR.volver && ROUTE_MAP[LUGAR.volver] && !ROUTE_MAP[LUGAR.volver].lugar ? LUGAR.volver : "recompensas");
+  const base = LUGAR_BASE[CURRENT] || "recompensas", el = document.getElementById("lugar");
+  const ir = () => go(LUGAR.volver && ROUTE_MAP[LUGAR.volver] && !ROUTE_MAP[LUGAR.volver].lugar ? LUGAR.volver : base);
   if (!el || reduceMotion() || !el.animate) return ir();
   el.animate([{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(.97)" }], { duration: 170, easing: "ease-in" }).onfinish = ir;
 }
@@ -115,7 +118,12 @@ function lugarTrasRender() {
     if (hoja && hoja.animate) hoja.animate([{ transform: "translateY(100%)" }, { transform: getComputedStyle(hoja).transform }], { duration: 460, delay: 120, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" });
   } else if (el.animate && !reduceMotion()) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200 });
 }
-/* El motor ya colgó el lienzo: el encuadre se fija sin animar (si no, el cuarto llegaría corriéndose) */
+/* Desde la tarjeta de cada lugar (o tocando su 3D): casa → tu cuarto, cielo → tu cielo, camino → tu camino */
+function lugarDesdeTarjeta(l) {
+  const ruta = { casa: "cuarto", cielo: "cielo", camino: "camino" }[l];
+  if (ruta) lugarEntrar(ruta, document.getElementById(l));
+}
+/* El motor ya colgó el lienzo: el encuadre se fija sin animar (si no, el lugar llegaría corriéndose) */
 function lugarMontado() { lugarEncuadre(true); }
 window.addEventListener("resize", () => { if (document.getElementById("lugar")) hojaPoner(LUGAR.hoja, true); });
 document.addEventListener("keydown", ev => {

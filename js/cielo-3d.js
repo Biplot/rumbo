@@ -66,6 +66,14 @@ function crearMotorCielo(T, D) {
   };
   Animador.prototype.vacio = function () { return this.l.length === 0; };
   const A = new Animador();
+  /* A pantalla completa (lugar.js), la barra de arriba y la hoja (o el panel al costado) tapan parte del lienzo:
+     cada cámara se encuadra en lo que queda libre (setViewOffset). zoom: lo que acercaste con pellizco o rueda */
+  const ENC = { arriba: 0, abajo: 0, der: 0 }, ENCo = { arriba: 0, abajo: 0, der: 0 };
+  const ZOOM = { cielo: 1, camino: 1 }, ZOOMo = { cielo: 1, camino: 1 }, ZOOM_LIM = { cielo: [0.62, 1.12], camino: [0.55, 1.15] };
+  function areaLibre() { return [Math.max(160, ancho - ENC.der), Math.max(120, alto - ENC.arriba - ENC.abajo)]; }
+  function corrimiento(c, w, h) { if (ENC.arriba || ENC.abajo || ENC.der) c.setViewOffset(w, h, 0, -ENC.arriba, ancho, alto); else c.clearViewOffset(); }
+  function vistaMoviendo() { return ["arriba", "abajo", "der"].some(k => Math.abs(ENC[k] - ENCo[k]) > 0.5) || Math.abs(ZOOM.cielo - ZOOMo.cielo) > 1e-3 || Math.abs(ZOOM.camino - ZOOMo.camino) > 1e-3; }
+  function acercarVista(dt) { const k = Math.min(1, dt * 7); ["arriba", "abajo", "der"].forEach(q => { ENC[q] += (ENCo[q] - ENC[q]) * k; }); ZOOM.cielo += (ZOOMo.cielo - ZOOM.cielo) * k; ZOOM.camino += (ZOOMo.camino - ZOOM.camino) * k; }
 
   function mat(c, o) {
     const p = Object.assign({ color: c, roughness: 0.85, metalness: 0 }, o || {});
@@ -483,10 +491,10 @@ function crearMotorCielo(T, D) {
   function ponerCamara(t) {
     const vaiven = CALMO || arrastre ? 0 : Math.sin(t * 0.21) * VISTA.vaiven;
     // En vertical (celular) el lente se abre poco: el cielo se recorre arrastrando y no sobra suelo abajo
-    const asp = ancho / alto, rel = VISTA.aspecto / asp, yaw = VISTA.yaw + cielo.u.yaw + vaiven, pitch = VISTA.pitch + cielo.u.pitch + (asp < 1 ? 0.02 : 0);
-    cam.aspect = asp; cam.fov = VISTA.fov * limitar(Math.pow(rel, 0.6), 1, 1.12);
+    const [w, h] = areaLibre(), asp = w / h, rel = VISTA.aspecto / asp, yaw = VISTA.yaw + cielo.u.yaw + vaiven, pitch = VISTA.pitch + cielo.u.pitch + (asp < 1 ? 0.02 : 0);
+    cam.aspect = asp; cam.fov = VISTA.fov * limitar(Math.pow(rel, 0.6), 1, 1.12) * ZOOM.cielo;
     cam.position.copy(POS); const d = dirMirar(yaw, pitch); cam.lookAt(POS.x + d.x, POS.y + d.y, POS.z + d.z);
-    cam.updateProjectionMatrix();
+    corrimiento(cam, w, h); cam.updateProjectionMatrix();
   }
   const PV = new T.Vector3();
   function enPantalla(v) { PV.copy(v).project(cam); return PV.z < 1 && PV.z > -1 ? [(PV.x + 1) / 2 * ancho, (1 - PV.y) / 2 * alto] : null; }
@@ -1089,16 +1097,15 @@ function crearMotorCielo(T, D) {
     const mi = d.getMinutes() + s0 / 60; r0.userData.m.rotation.z = -mi / 60 * 6.283; r0.userData.h.rotation.z = -((d.getHours() % 12) + mi / 60) / 12 * 6.283;
   }
   /* En pantalla completa (libre) el cuarto se gira un poco y se acerca; arriba y abajo es lo que tapan la barra y la hoja */
-  const VC = { yaw: CASA_V.yaw, zoom: 1, arriba: 0, abajo: 0, der: 0 }, VCo = { yaw: CASA_V.yaw, zoom: 1, arriba: 0, abajo: 0, der: 0 }, VC_LIM = { yaw: [CASA_V.yaw - 0.55, CASA_V.yaw + 0.55], zoom: [0.62, 1.12] };
-  function vistaCasaMoviendo() { return Math.abs(VC.yaw - VCo.yaw) > 1e-3 || Math.abs(VC.zoom - VCo.zoom) > 1e-3 || Math.abs(VC.arriba - VCo.arriba) > 0.5 || Math.abs(VC.abajo - VCo.abajo) > 0.5 || Math.abs(VC.der - VCo.der) > 0.5; }
+  const VC = { yaw: CASA_V.yaw, zoom: 1 }, VCo = { yaw: CASA_V.yaw, zoom: 1 }, VC_LIM = { yaw: [CASA_V.yaw - 0.55, CASA_V.yaw + 0.55], zoom: [0.62, 1.12] };
+  function vistaCasaMoviendo() { return Math.abs(VC.yaw - VCo.yaw) > 1e-3 || Math.abs(VC.zoom - VCo.zoom) > 1e-3; }
   function camaraCasa() {
     // en la tarjeta el cuarto entra entero; a pantalla completa y en vertical se acerca más (se recortan un poco los bordes; se mira arrastrando)
-    const w = Math.max(160, ancho - VC.der), h = Math.max(120, alto - VC.arriba - VC.abajo), asp = w / h, rel = CASA_V.aspecto / asp;
+    const [w, h] = areaLibre(), asp = w / h, rel = CASA_V.aspecto / asp;
     const d = CASA_V.dist * Math.max(1, Math.pow(rel, casa && casa.libre ? 0.6 : 0.92)) * VC.zoom, t = CASA_V.target;
     camC.aspect = asp; camC.position.set(t.x + d * Math.sin(VC.yaw) * Math.cos(CASA_V.pitch), t.y + d * Math.sin(CASA_V.pitch), t.z + d * Math.cos(VC.yaw) * Math.cos(CASA_V.pitch));
     camC.lookAt(t);
-    if (VC.arriba || VC.abajo || VC.der) camC.setViewOffset(w, h, 0, -VC.arriba, ancho, alto); else camC.clearViewOffset();
-    camC.updateProjectionMatrix(); camC.updateMatrixWorld();
+    corrimiento(camC, w, h); camC.updateProjectionMatrix(); camC.updateMatrixWorld();
   }
   const PC = new T.Vector3();
   function enPantallaC(v) { PC.copy(v).project(camC); return PC.z < 1 && PC.z > -1 ? [(PC.x + 1) / 2 * ancho, (1 - PC.y) / 2 * alto] : null; }
@@ -1114,7 +1121,7 @@ function crearMotorCielo(T, D) {
       const [x, y, z, rad] = o.userData.foco, asp = w / hh, d = rad / Math.tan(15 * Math.PI / 180) / Math.min(1, asp) * 1.15, pit = 0.42;
       camF.aspect = asp; camF.position.set(x + d * Math.sin(CASA_V.yaw) * Math.cos(pit), y + d * Math.sin(pit), z + d * Math.cos(CASA_V.yaw) * Math.cos(pit));
       camF.lookAt(x, y, z); camF.updateProjectionMatrix(); c = camF;
-    } else { const v = { ...VC }; Object.assign(VC, { yaw: CASA_V.yaw, zoom: 1, arriba: 0, abajo: 0, der: 0 }); camaraCasa(); Object.assign(VC, v); }   // el cuarto entero, de frente
+    } else { const v = { ...VC }, e = { ...ENC }; Object.assign(VC, { yaw: CASA_V.yaw, zoom: 1 }); Object.assign(ENC, { arriba: 0, abajo: 0, der: 0 }); camaraCasa(); Object.assign(VC, v); Object.assign(ENC, e); }   // el cuarto entero, de frente
     ponerHora(true);
     r.toneMappingExposure = LUZ_FRANJA[casa.franja].exp; r.render(casa.escena, c);
     let url = null; try { url = canvas.toDataURL("image/jpeg", 0.88); } catch (e) { url = null; }
@@ -1327,11 +1334,13 @@ function crearMotorCielo(T, D) {
     });
   }
   function camaraCamino() {
-    const asp = ancho / alto, rel = CAMINO_V.aspecto / asp, d = CAMINO_V.dist * Math.max(1, rel), t = CAMINO_V.target;   // en vertical se aleja hasta que la isla quepa a lo ancho
+    const [w, h] = areaLibre(), asp = w / h, rel = CAMINO_V.aspecto / asp, t = CAMINO_V.target;
+    // en vertical se aleja hasta que la isla quepa a lo ancho (a pantalla completa, un poco menos: se recorre arrastrando)
+    const d = CAMINO_V.dist * Math.max(1, Math.pow(rel, camino.libre ? 0.66 : 1)) * ZOOM.camino;
     const yaw = CAMINO_V.yaw + camino.u.yaw, pitch = CAMINO_V.pitch + camino.u.pitch;
     camK.aspect = asp; camK.fov = 34;
     camK.position.set(t.x + d * Math.sin(yaw) * Math.cos(pitch), t.y + d * Math.sin(pitch), t.z + d * Math.cos(yaw) * Math.cos(pitch));
-    camK.lookAt(t); camK.updateProjectionMatrix(); camK.updateMatrixWorld();
+    camK.lookAt(t); corrimiento(camK, w, h); camK.updateProjectionMatrix(); camK.updateMatrixWorld();
   }
   const PK = new T.Vector3();
   function enPantallaK(v) { PK.copy(v).project(camK); return PK.z < 1 && PK.z > -1 ? [(PK.x + 1) / 2 * ancho, (1 - PK.y) / 2 * alto] : null; }
@@ -1355,12 +1364,12 @@ function crearMotorCielo(T, D) {
   /* Una foto del camino para compartir (sin moverlo de su lugar en la pantalla) */
   function fotoCamino(w, hh) {
     armarCamino(); ponerCamino(D.camino());
-    const pr = r.getPixelRatio(), a0 = ancho, h0 = alto, u0 = { ...camino.u };
-    camino.u.yaw = camino.u.pitch = 0;
+    const pr = r.getPixelRatio(), a0 = ancho, h0 = alto, u0 = { ...camino.u }, e0 = { ...ENC }, z0 = ZOOM.camino;
+    camino.u.yaw = camino.u.pitch = 0; Object.assign(ENC, { arriba: 0, abajo: 0, der: 0 }); ZOOM.camino = 1;   // la foto, siempre de frente y entera
     r.setPixelRatio(1); r.setSize(w, hh, false); ancho = w; alto = hh; camaraCamino();
     r.toneMappingExposure = 0.92; r.render(camino.escena, camK);
     let url = null; try { url = canvas.toDataURL("image/jpeg", 0.9); } catch (e) { url = null; }
-    Object.assign(camino.u, u0); r.setPixelRatio(pr); ancho = a0; alto = h0; r.setSize(a0, h0, false); pedir();
+    Object.assign(camino.u, u0); Object.assign(ENC, e0); ZOOM.camino = z0; r.setPixelRatio(pr); ancho = a0; alto = h0; r.setSize(a0, h0, false); pedir();
     return url;
   }
 
@@ -1402,11 +1411,11 @@ function crearMotorCielo(T, D) {
     if (LENTO && ultimo && now - ultimo < 66) { raf = requestAnimationFrame(cuadro); return; }   // por software: unos 15 cuadros por segundo
     if ((modo === "casa" || modo === "camino") && ultimo && now - ultimo < 32) { raf = requestAnimationFrame(cuadro); return; }   // se mueven poco: 30 cuadros bastan
     const dt = Math.min(LENTO ? 0.1 : 0.05, ultimo ? (now - ultimo) / 1000 : 0.016); ultimo = now;
-    const ocupado = !A.vacio() || arrastre || (modo === "casa" && casa && ((casa.ele && casa.ele.ocupado()) || vistaCasaMoviendo())) || (modo === "cielo" && etqNueva) || (modo === "cerca" && hero && !hero.A.vacio()) || Math.abs(giro.vel) > 1e-4 || (modo === "cerca" && Math.abs(giro.obj - giro.rot) > 1e-3);
+    const ocupado = !A.vacio() || arrastre || vistaMoviendo() || (modo === "casa" && casa && ((casa.ele && casa.ele.ocupado()) || vistaCasaMoviendo())) || (modo === "cielo" && etqNueva) || (modo === "cerca" && hero && !hero.A.vacio()) || Math.abs(giro.vel) > 1e-4 || (modo === "cerca" && Math.abs(giro.obj - giro.rot) > 1e-3);
     if (!visible && modo !== "cerca") return;   // quedó fuera de la vista: vuelve al reaparecer
     if (CALMO && !ocupado && !sucio) return;   // sin movimiento: se dibuja solo cuando algo cambia (pedir)
     raf = requestAnimationFrame(cuadro);
-    sucio = false; reloj += dt; A.tick(dt);
+    sucio = false; reloj += dt; A.tick(dt); acercarVista(dt);
     if (modo === "cielo") {
       const k = Math.min(1, dt * 8); cielo.u.yaw += (cielo.uObj.yaw - cielo.u.yaw) * k; cielo.u.pitch += (cielo.uObj.pitch - cielo.u.pitch) * k;
       ponerCamara(reloj);
@@ -1438,7 +1447,7 @@ function crearMotorCielo(T, D) {
       if (hero.vista && hero.vista.k > 0) mirarFigura(hero.vista);
       r.toneMappingExposure = 1; r.render(est.escena, camI);
     } else if (modo === "casa" && casa) {
-      const kv = Math.min(1, dt * 7); VC.yaw += (VCo.yaw - VC.yaw) * kv; VC.zoom += (VCo.zoom - VC.zoom) * kv; VC.arriba += (VCo.arriba - VC.arriba) * kv; VC.abajo += (VCo.abajo - VC.abajo) * kv; VC.der += (VCo.der - VC.der) * kv;
+      const kv = Math.min(1, dt * 7); VC.yaw += (VCo.yaw - VC.yaw) * kv; VC.zoom += (VCo.zoom - VC.zoom) * kv;
       camaraCasa(); ponerHora(false);
       if (casa.ele) casa.ele.vivo(reloj);
       // las medallas de la repisa se mecen apenas, para que el metal brille; la planta respira
@@ -1462,9 +1471,18 @@ function crearMotorCielo(T, D) {
   }
 
   /* -------- Dedo y mouse -------- */
-  const dedos = new Map();   // para pellizcar (dos dedos) en el cuarto a pantalla completa
+  /* ¿El lugar está a pantalla completa? (ahí se gira más, se acerca y se pellizca) */
+  function libre() { return (modo === "casa" && casa && casa.libre) || (modo === "cielo" && cielo.libre) || (modo === "camino" && camino && camino.libre); }
+  function zoomObj() { return modo === "casa" ? VCo.zoom : modo === "cielo" || modo === "camino" ? ZOOMo[modo] : 1; }
+  function ponerZoom(z) {
+    if (modo === "casa") VCo.zoom = limitar(z, VC_LIM.zoom[0], VC_LIM.zoom[1]);
+    else if (modo === "cielo" || modo === "camino") ZOOMo[modo] = limitar(z, ZOOM_LIM[modo][0], ZOOM_LIM[modo][1]);
+    pedir();
+  }
+  const dedos = new Map();   // para pellizcar (dos dedos) a pantalla completa
+  let pellizco = null;
   canvas.addEventListener("pointerdown", ev => {
-    if (modo === "casa" && casa && casa.libre) { dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); if (dedos.size === 2) { const [a, b] = [...dedos.values()]; casa.pellizco = { d: Math.hypot(a.x - b.x, a.y - b.y), z: VCo.zoom }; } }
+    if (libre()) { dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); if (dedos.size === 2) { const [a, b] = [...dedos.values()]; pellizco = { d: Math.hypot(a.x - b.x, a.y - b.y), z: zoomObj() }; } }
     if (!modo || (ev.pointerType === "mouse" && ev.button !== 0)) return;
     arrastre = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, movido: false, tipo: ev.pointerType };
     if (modo === "cerca" || ev.pointerType !== "touch") { try { canvas.setPointerCapture(ev.pointerId); } catch (e) {} }
@@ -1473,15 +1491,15 @@ function crearMotorCielo(T, D) {
   canvas.addEventListener("pointermove", ev => {
     const b = canvas.getBoundingClientRect(), x = ev.clientX - b.left, y = ev.clientY - b.top;
     // pellizcar: cada dedo actualiza su posición (el arrastre sigue solo a uno) y la distancia entre ambos acerca o aleja
-    if (modo === "casa" && dedos.has(ev.pointerId)) {
+    if (dedos.has(ev.pointerId)) {
       dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
-      if (casa && casa.libre && casa.pellizco && dedos.size === 2) {
+      if (pellizco && dedos.size === 2 && libre()) {
         const [a, c] = [...dedos.values()], d = Math.hypot(a.x - c.x, a.y - c.y);
-        VCo.zoom = limitar(casa.pellizco.z * casa.pellizco.d / Math.max(20, d), VC_LIM.zoom[0], VC_LIM.zoom[1]); if (arrastre) arrastre.movido = true; pedir(); return;
+        ponerZoom(pellizco.z * pellizco.d / Math.max(20, d)); if (arrastre) arrastre.movido = true; return;
       }
     }
     if (!arrastre || arrastre.id !== ev.pointerId) {
-      if (ev.pointerType === "mouse") { if (modo === "cielo") hover(nodoEn(x, y)); else if (modo === "casa" && casa) { const L = lugarEn(x, y); hoverCasa(L); if (!L) canvas.style.cursor = eleEn(x, y) ? "pointer" : casa.libre ? "grab" : D.entrar ? "zoom-in" : ""; } else if (modo === "camino" && camino) hoverCamino(hitoEn(x, y)); }
+      if (ev.pointerType === "mouse") { if (modo === "cielo") { const E = nodoEn(x, y); hover(E); if (!E) canvas.style.cursor = cielo.libre ? "grab" : D.entrar ? "zoom-in" : ""; } else if (modo === "casa" && casa) { const L = lugarEn(x, y); hoverCasa(L); if (!L) canvas.style.cursor = eleEn(x, y) ? "pointer" : casa.libre ? "grab" : D.entrar ? "zoom-in" : ""; } else if (modo === "camino" && camino) { const H = hitoEn(x, y); hoverCamino(H); if (!H) canvas.style.cursor = camino.libre ? "grab" : D.entrar ? "zoom-in" : ""; } }
       return;
     }
     if (modo === "casa") {
@@ -1496,11 +1514,11 @@ function crearMotorCielo(T, D) {
     if (modo === "camino") {
       const L = CAMINO_V.lim;
       camino.uObj.yaw = limitar(camino.uObj.yaw - dx * 0.005, L.yaw[0], L.yaw[1]);
-      if (arrastre.tipo !== "touch") camino.uObj.pitch = limitar(camino.uObj.pitch + dy * 0.004, L.pitch[0], L.pitch[1]);
+      if (arrastre.tipo !== "touch" || camino.libre) camino.uObj.pitch = limitar(camino.uObj.pitch + dy * 0.004, L.pitch[0], L.pitch[1]);
     } else if (modo === "cielo") {
       const k = (cam.fov * Math.PI / 180) / alto;
       cielo.uObj.yaw = limitar(cielo.uObj.yaw + dx * k, VISTA.lim.yaw[0], VISTA.lim.yaw[1]);
-      if (arrastre.tipo !== "touch") cielo.uObj.pitch = limitar(cielo.uObj.pitch + dy * k, VISTA.lim.pitch[0], VISTA.lim.pitch[1]);
+      if (arrastre.tipo !== "touch" || cielo.libre) cielo.uObj.pitch = limitar(cielo.uObj.pitch + dy * k, VISTA.lim.pitch[0], VISTA.lim.pitch[1]);
     } else {
       giro.rot += dx * 0.01; giro.obj = giro.rot; giro.vel = dx * 0.01; giro.quieto = 0;
       giro.pitch = limitar(giro.pitch + dy * 0.004, -0.15, 0.7);
@@ -1508,7 +1526,7 @@ function crearMotorCielo(T, D) {
     pedir();
   });
   const soltarDedo = (ev, cancelado) => {
-    dedos.delete(ev.pointerId); if (dedos.size < 2 && casa) casa.pellizco = null;
+    dedos.delete(ev.pointerId); if (dedos.size < 2) pellizco = null;
     if (!arrastre || arrastre.id !== ev.pointerId) return;
     const a = arrastre; arrastre = null;
     if (cancelado || a.movido) return;
@@ -1517,39 +1535,59 @@ function crearMotorCielo(T, D) {
       const L = lugarEn(x, y);
       if (L) { hoverCasa(null); if (L.id) D.tocar(L.id); else D.vacio(); }
       else if (eleEn(x, y)) tocarEle();
-      else if (!casa.libre && D.entrar) D.entrar();   // en la tarjeta: tocar el cuarto lo abre a pantalla completa
+      else if (!casa.libre && D.entrar) D.entrar("casa");   // en la tarjeta: tocar el cuarto lo abre a pantalla completa
       return;
     }
-    if (modo === "camino" && camino) { const H = hitoEn(x, y); if (H) { hoverCamino(null); D.tocar(H.id); } return; }
+    if (modo === "camino" && camino) { const H = hitoEn(x, y); if (H) { hoverCamino(null); D.tocar(H.id); } else if (!camino.libre && D.entrar) D.entrar("camino"); return; }
     if (modo !== "cielo") return;
     const E = nodoEn(x, y);
-    if (E) { hover(null); D.tocar(E.id); }
+    if (E) { hover(null); D.tocar(E.id); } else if (!cielo.libre && D.entrar) D.entrar("cielo");
   };
   canvas.addEventListener("pointerup", ev => soltarDedo(ev, false));
   canvas.addEventListener("pointercancel", ev => soltarDedo(ev, true));
   canvas.addEventListener("pointerleave", ev => { if (ev.pointerType === "mouse" && !arrastre) { hover(null); if (casa) hoverCasa(null); if (camino) hoverCamino(null); } });
   canvas.addEventListener("wheel", ev => {
-    if (modo === "casa" && casa && casa.libre) { ev.preventDefault(); VCo.zoom = limitar(VCo.zoom * (1 + ev.deltaY * 0.0012), VC_LIM.zoom[0], VC_LIM.zoom[1]); pedir(); return; }
+    if (libre()) { ev.preventDefault(); ponerZoom(zoomObj() * (1 + ev.deltaY * 0.0012)); return; }
     if (modo !== "cerca") return; ev.preventDefault(); giro.zoom = limitar(giro.zoom * (1 + ev.deltaY * 0.0012), 0.6, 1.5); pedir();
   }, { passive: false });
-  canvas.addEventListener("dblclick", () => { if (modo === "casa" && casa && casa.libre) { VCo.yaw = CASA_V.yaw; VCo.zoom = 1; pedir(); } });
+  canvas.addEventListener("dblclick", () => {
+    if (!libre()) return;
+    if (modo === "casa") { VCo.yaw = CASA_V.yaw; VCo.zoom = 1; }
+    else if (modo === "cielo") { cielo.uObj.yaw = cielo.uObj.pitch = 0; ZOOMo.cielo = 1; }
+    else if (modo === "camino") { camino.uObj.yaw = camino.uObj.pitch = 0; ZOOMo.camino = 1; }
+    pedir();
+  });
   canvas.addEventListener("webglcontextlost", ev => { ev.preventDefault(); detener(); modo = null; D.perdido(); });
 
   /* -------- Lo que usa cielo.js -------- */
   return {
     montar(c, lugar, op) {
-      if (lugar === "camino") { modo = "camino"; canvas.style.touchAction = "pan-y"; armarCamino(); ponerCamino(D.camino()); colgar(c); arrancar(); return; }
+      const lib = !!(op && op.libre);
+      if (!lib) { Object.assign(ENC, { arriba: 0, abajo: 0, der: 0 }); Object.assign(ENCo, ENC); }
+      if (lugar === "camino") {
+        armarCamino();
+        if (camino.libre !== lib) { camino.libre = lib; camino.uObj.yaw = camino.uObj.pitch = 0; ZOOM.camino = ZOOMo.camino = 1; }
+        modo = "camino"; canvas.style.touchAction = lib ? "none" : "pan-y"; ponerCamino(D.camino()); colgar(c); arrancar(); return;
+      }
       if (lugar === "casa") {
         const libre = !!(op && op.libre); armarCasa();
-        if (casa.libre !== libre) { casa.libre = libre; Object.assign(VC, { yaw: CASA_V.yaw, zoom: 1 }); Object.assign(VCo, { yaw: CASA_V.yaw, zoom: 1 }); if (!libre) VC.arriba = VC.abajo = VC.der = VCo.arriba = VCo.abajo = VCo.der = 0; }
+        if (casa.libre !== libre) { casa.libre = libre; Object.assign(VC, { yaw: CASA_V.yaw, zoom: 1 }); Object.assign(VCo, { yaw: CASA_V.yaw, zoom: 1 }); }
         modo = "casa"; canvas.style.touchAction = libre ? "none" : "pan-y"; actualizarCasa(); colgar(c); arrancar(); return;
       }
-      modo = "cielo"; canvas.style.touchAction = "pan-y"; colgar(c); actualizar(); arrancar();
+      if (cielo.libre !== lib) { cielo.libre = lib; cielo.uObj.yaw = cielo.uObj.pitch = 0; ZOOM.cielo = ZOOMo.cielo = 1; }
+      modo = "cielo"; canvas.style.touchAction = lib ? "none" : "pan-y"; colgar(c); actualizar(); arrancar();
     },
     foto: fotoCamino,
     fotoCuarto,
     /* Lo que tapan la barra de arriba y la hoja de abajo (px): el cuarto se encuadra en lo que queda; ya: sin animar */
-    encuadre(e, ya) { VCo.arriba = Math.max(0, e.arriba || 0); VCo.abajo = Math.max(0, e.abajo || 0); VCo.der = Math.max(0, e.der || 0); if (ya) Object.assign(VC, { arriba: VCo.arriba, abajo: VCo.abajo, der: VCo.der }); pedir(); },
+    encuadre(e, ya) { ENCo.arriba = Math.max(0, e.arriba || 0); ENCo.abajo = Math.max(0, e.abajo || 0); ENCo.der = Math.max(0, e.der || 0); if (ya) Object.assign(ENC, ENCo); pedir(); },
+    /* Gira el cielo hacia una constelación (desde la hoja, a pantalla completa) */
+    mirarFamilia(id) {
+      const F = FIG[id]; if (!F || modo !== "cielo") return;
+      cielo.uObj.yaw = limitar(F.yc - VISTA.yaw, VISTA.lim.yaw[0], VISTA.lim.yaw[1]); cielo.uObj.pitch = limitar(F.pc - VISTA.pitch - 0.05, VISTA.lim.pitch[0], VISTA.lim.pitch[1]); pedir();
+    },
+    /* Cómo está la vista del lugar montado (para las pruebas) */
+    vista() { return { modo, libre: libre(), enc: { ...ENC }, zoom: modo === "casa" ? VC.zoom : ZOOM[modo] || 1, u: modo === "cielo" ? { ...cielo.uObj } : modo === "camino" && camino ? { ...camino.uObj } : null }; },
     /* Dónde está tu elefante en el lienzo (para las pruebas) */
     dondeElefante() { if (modo !== "casa" || !casa || !casa.ele) return null; camaraCasa(); const v = new T.Vector3(); casa.ele.g.getWorldPosition(v); v.y += 0.9; return enPantallaC(v); },
     /* Dónde está un hito del camino en el lienzo (para las pruebas) */
@@ -1557,7 +1595,7 @@ function crearMotorCielo(T, D) {
     /* Dónde está un lugar de la repisa en el lienzo (para las pruebas) */
     dondeRepisa(i) { if (modo !== "casa" || !casa || !casa.lugares[i]) return null; camaraCasa(); return enPantallaC(casa.lugares[i].pos); },
     /* Qué cosas se ven en el cuarto y de qué color está la pared (para las pruebas) */
-    cuarto() { return casa ? { cosas: Object.keys(casa.cosas).filter(k => casa.cosas[k].visible), pared: casa.muro.clave, lampara: casa.luz.lampara.intensity, elefante: casa.claves.ele ? JSON.parse(casa.claves.ele) : null, reaccion: !!(casa.ele && casa.ele.ocupado()), libre: !!casa.libre, vista: { ...VC } } : null; },
+    cuarto() { return casa ? { cosas: Object.keys(casa.cosas).filter(k => casa.cosas[k].visible), pared: casa.muro.clave, lampara: casa.luz.lampara.intensity, elefante: casa.claves.ele ? JSON.parse(casa.claves.ele) : null, reaccion: !!(casa.ele && casa.ele.ocupado()), libre: !!casa.libre, vista: { ...VC, ...ENC } } : null; },
     soltar() {
       modo = null; hover(null); if (casa) hoverCasa(null); if (camino) hoverCamino(null); detener();
       // lo que quedaba por animar (una estrella fugaz a medio camino) se termina de golpe

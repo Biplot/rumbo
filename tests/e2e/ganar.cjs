@@ -48,7 +48,7 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('#insCerca [data-c="siguiente"]'); await p.waitForTimeout(600);
     ok(await titulo(p) === "Devorador de Libros" && await p.locator('#insCerca [data-c="listo"]').count() === 1, "Siguiente medalla pasa a la otra y termina en Listo");
     await p.click('#insCerca [data-c="alcielo"]'); await p.waitForTimeout(800);
-    ok(await p.evaluate(() => location.hash) === "#insignias" && await p.locator("#insCerca").isHidden(), "Ver en tu cielo lleva a Insignias");
+    ok(await p.evaluate(() => location.hash) === "#cielo" && await p.locator("#insCerca").isHidden(), "Ver en tu cielo abre tu cielo a pantalla completa");
     await p.waitForTimeout(3500);
     ok(await p.evaluate(() => JSON.parse(localStorage.getItem("rumbo-cielo-visto")).includes("devorador")), "allá llegan como estrella fugaz y quedan vistas");
     await ctx.close(); await b3.close();

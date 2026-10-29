@@ -2175,5 +2175,18 @@ body.en-lugar { overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) { .hoja { transition: none; } }
 /* La tarjeta del cuarto en Progreso: tocarla (o este botón) la abre a pantalla completa */
-.casa__abrir { position: absolute; z-index: 2; top: 10px; right: 10px; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; padding: 0; cursor: pointer;
+.casa__abrir, .lugar-abrir { position: absolute; z-index: 2; top: 10px; right: 10px; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; padding: 0; cursor: pointer;
   background: rgba(255, 255, 255, .82); color: #0B0B0C; border: 1px solid rgba(0, 0, 0, .06); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.is-sin3d .lugar-abrir { display: none; }
+/* Tu cielo: vidrio oscuro sobre la noche */
+.lugar--osc .vidrio { background: rgba(18, 20, 32, .58); color: #FFFFFF; border-color: rgba(255, 255, 255, .14); }
+.lugar--osc .lugar__carga { color: #A3A7B7; }
+/* Tu camino: el año en la barra */
+.lugar__anio { display: flex; align-items: center; gap: 2px; padding: 3px 4px; }
+.lugar__anio b { padding: 0 2px; }
+.lugar__anio button { width: 34px; height: 34px; border: 0; border-radius: 50%; background: none; color: inherit; font: inherit; font-size: 19px; font-weight: 700; cursor: pointer; }
+.lugar__anio button:disabled { opacity: .3; cursor: default; }
+.lugar__anio button:focus-visible { outline: 2px solid var(--coral); outline-offset: 1px; }
+/* En la hoja del cielo: las que faltan, apagadas */
+.med-chip.is-por { opacity: .72; }
+.med-chip__m--por { background: var(--surface-3); color: var(--text-muted); font-size: 11px; }

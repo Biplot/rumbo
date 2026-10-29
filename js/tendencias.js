@@ -4,7 +4,7 @@
 
 function svgLine(values, opts = {}) {
   const { color = "var(--cian)", goal = null, fmt = (v) => v, labels = MESES_CORTO } = opts;
-  const W = 680, H = 210, padL = 46, padR = 18, padT = 24, padB = 28;
+  const W = 680, H = 210, padL = 14, padR = 14, padT = 24, padB = 28;   // sin números en el eje: cada dato lleva su etiqueta
   const idx = values.map((v, i) => [i, v]).filter(p => p[1] != null);
   if (!idx.length) return `<div class="empty" style="height:160px;display:grid;place-items:center">Sin datos aún.</div>`;
 
@@ -19,17 +19,16 @@ function svgLine(values, opts = {}) {
   let grid = "";
   for (let g = 0; g <= 3; g++) {
     const yy = padT + (g / 3) * (H - padT - padB);
-    const val = hi - (g / 3) * (hi - lo);
-    grid += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W - padR}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>
-      <text x="${padL - 8}" y="${(yy + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--text-muted)">${fmt(Math.round(val * 10) / 10)}</text>`;
+    grid += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W - padR}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`;
   }
   const goalLine = goal != null ? `<line x1="${padL}" y1="${Y(goal).toFixed(1)}" x2="${W - padR}" y2="${Y(goal).toFixed(1)}" stroke="var(--coral)" stroke-width="1.5" stroke-dasharray="5 4"/>
     <text x="${W - padR}" y="${(Y(goal) - 5).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--coral)">meta ${fmt(goal)}</text>` : "";
   const path = idx.map((p, k) => `${k ? "L" : "M"}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(" ");
   const dots = idx.map(p => `<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="3.2" fill="${color}"/>`).join("");
   // Etiqueta de datos sobre cada punto (o debajo, si el punto está muy arriba)
-  const etq = idx.map(p => { const y = Y(p[1]), arriba = y - padT > 12;
-    return `<text x="${X(p[0]).toFixed(1)}" y="${(arriba ? y - 8 : y + 16).toFixed(1)}" text-anchor="middle" class="graf-dato">${fmt(redondo(p[1]))}</text>`; }).join("");
+  const etq = idx.map(p => { const x = X(p[0]), y = Y(p[1]), arriba = y - padT > 12;
+    const ancla = x < padL + 24 ? "start" : x > W - padR - 24 ? "end" : "middle";   // en los bordes, hacia adentro (no se corta)
+    return `<text x="${(ancla === "start" ? x - 4 : ancla === "end" ? x + 4 : x).toFixed(1)}" y="${(arriba ? y - 8 : y + 16).toFixed(1)}" text-anchor="${ancla}" class="graf-dato">${fmt(redondo(p[1]))}</text>`; }).join("");
   const xl = values.map((v, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="var(--text-muted)">${labels[i] ?? ""}</text>`).join("");
 
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${grid}${goalLine}
@@ -40,7 +39,7 @@ function redondo(v) { return Number.isInteger(v) ? v : Math.round(v * 10) / 10; 
 
 function svgBar(values, opts = {}) {
   const { color = "var(--cian)", fmt = (v) => v, labels = MESES_CORTO, max = null } = opts;
-  const W = 680, H = 210, padL = 46, padR = 18, padT = 24, padB = 28;
+  const W = 680, H = 210, padL = 14, padR = 14, padT = 24, padB = 28;   // sin números en el eje: cada dato lleva su etiqueta
   const present = values.filter(v => v != null);
   if (!present.length) return `<div class="empty" style="height:160px;display:grid;place-items:center">Sin datos aún.</div>`;
   let hi = max != null ? max : Math.max(...present, 0); if (hi <= 0) hi = 1;
@@ -53,9 +52,7 @@ function svgBar(values, opts = {}) {
   let grid = "";
   for (let g = 0; g <= 3; g++) {
     const yy = padT + (g / 3) * (H - padT - padB);
-    const val = hi - (g / 3) * hi;
-    grid += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W - padR}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>
-      <text x="${padL - 8}" y="${(yy + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--text-muted)">${fmt(Math.round(val))}</text>`;
+    grid += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W - padR}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/>`;
   }
   const bars = values.map((v, i) => {
     if (v == null) return "";

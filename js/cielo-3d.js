@@ -527,7 +527,14 @@ function crearMotorCielo(T, D) {
       el.dataset.id = E.id; el.dataset.titulo = titulo || "";
     }
     const p = enPantalla(E.pos); if (!p) { el.hidden = true; return; }
-    el.hidden = false; el.style.left = p[0] + "px"; el.style.top = p[1] + "px";
+    ponerEtq(el, p[0], p[1]);
+  }
+  /* La etiqueta va sobre la medalla; si arriba no cabe (o la taparía la barra), va debajo. Nunca se sale por los lados */
+  function ponerEtq(el, x, y) {
+    el.hidden = false;
+    const w = el.offsetWidth, h = el.offsetHeight;
+    el.classList.toggle("is-abajo", y - h - 24 < (ENC.arriba || 0));
+    el.style.left = limitar(x, w / 2 + 6, Math.max(w / 2 + 6, ancho - (ENC.der || 0) - w / 2 - 6)) + "px"; el.style.top = y + "px";
   }
 
   /* ============================================================
@@ -1263,7 +1270,7 @@ function crearMotorCielo(T, D) {
     el.innerHTML = "<b></b><span></span>";
     el.querySelector("b").textContent = I ? I.b.nombre : "Lugar libre";
     el.querySelector("span").textContent = I ? (I.fecha ? "Ganada el " + I.fecha : "Ganada") : "Toca para elegir una medalla";
-    el.style.left = p[0] + "px"; el.style.top = (p[1] - 14) + "px"; el.hidden = false;
+    ponerEtq(el, p[0], p[1] - 14);
   }
 
   /* Al subir la medalla, la cámara pasa de mirarla a ella a mirar su constelación entera */

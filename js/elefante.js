@@ -432,16 +432,21 @@ function nombreElefante() {
 }
 function renderElefanteCard() { return `<div class="card ele-card" data-tour="elefante">${eleFichaHtml()}</div>`; }
 /* Tu elefante: dibujo chico, etapa y botones (en Progreso va dentro de su cuarto, casa.js) */
+/* Lo que dice la ficha: cuánto le falta para crecer, si tiene sueño o si ya es sabio */
+function eleTexto() {
+  const xp = STATE.gamif.xp || 0, { etapa, sig } = etapaElefante(xp), animo = animoElefante(), T = TIPOS_ELEFANTE[tipoElefante()];
+  if (!eleEstado().tipo) return "Elige entre el Clásico y el Asiático. Crece contigo y cambia al pasar de cría a sabio.";
+  if (animo === "sueno") return "Tiene sueño: cierra tu día para despertarlo. Nunca pierde lo que creció.";
+  return sig ? `${T.rasgos[etapa.i + 1] ? "Próxima etapa, " + sig.n + ": " + T.rasgos[etapa.i + 1].charAt(0).toLowerCase() + T.rasgos[etapa.i + 1].slice(1) + "." : ""} Llega a los ${sig.min.toLocaleString("es-CL")} XP.` : "Llegó a su última etapa. ¡Sabio como tú!";
+}
+function eleProgreso() { const xp = STATE.gamif.xp || 0, { etapa, sig } = etapaElefante(xp); return sig ? Math.min(100, Math.round(((xp - etapa.min) / (sig.min - etapa.min)) * 100)) : 100; }
 function eleFichaHtml() {
-  const xp = STATE.gamif.xp || 0, { etapa, sig } = etapaElefante(xp), animo = animoElefante();
-  const prog = sig ? Math.min(100, Math.round(((xp - etapa.min) / (sig.min - etapa.min)) * 100)) : 100;
+  const xp = STATE.gamif.xp || 0, { sig } = etapaElefante(xp), prog = eleProgreso();
   const sinElegir = !eleEstado().tipo, T = TIPOS_ELEFANTE[tipoElefante()];
   return `<div class="row" style="gap:16px;align-items:center">
     <div class="ele-mini ele-toca ${T.papel ? "papel" : ""}" data-action="ele-toca" title="Tócalo">${elefanteSVG()}</div>
     <div style="flex:1;min-width:0"><div class="card__title" style="font-size:15px">🐘 Tu elefante · ${sinElegir ? "¡elígelo!" : nombreElefante()}</div>
-      <div class="text-xs muted mt-8">${sinElegir ? "Elige entre el Clásico y el Asiático. Crece contigo y cambia al pasar de cría a sabio."
-        : animo === "sueno" ? "Tiene sueño: cierra tu día para despertarlo. Nunca pierde lo que creció."
-        : sig ? `${T.rasgos[etapa.i + 1] ? "Próxima etapa, " + sig.n + ": " + T.rasgos[etapa.i + 1].charAt(0).toLowerCase() + T.rasgos[etapa.i + 1].slice(1) + "." : ""} Llega a los ${sig.min.toLocaleString("es-CL")} XP.` : "Llegó a su última etapa. ¡Sabio como tú!"}</div>
+      <div class="text-xs muted mt-8">${eleTexto()}</div>
       ${sig && !sinElegir ? `<div class="bar mt-8"><div class="bar__fill" style="width:${prog}%"></div></div>` : ""}
       <div class="row mt-8" style="gap:8px;flex-wrap:wrap">${sinElegir ? `<button class="btn btn--primary" data-action="ele-elegir" style="padding:6px 12px">Elegir mi elefante</button>` : ""}
         <button class="btn-ghost" data-action="elefante-open" data-v="ropa" style="padding:4px 10px">👕 Vestir</button>

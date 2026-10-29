@@ -7,6 +7,8 @@
 /* Íconos de línea (24×24, trazo = currentColor) */
 const ICONOS_LINEA = {
   inicio: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  atras: '<path d="M15 5l-7 7 7 7"/>',
+  expandir: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
   semana: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   habitos: '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
   mas: '<rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/>',

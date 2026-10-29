@@ -962,6 +962,7 @@ function saveEvento() {
    afterRender hook
    ============================================================ */
 function afterRender(route) {
+  if (typeof lugarTrasRender === "function" && ROUTE_MAP[route] && ROUTE_MAP[route].lugar) lugarTrasRender();   // un lugar a pantalla completa (lugar.js)
   if (typeof cieloTrasRender === "function") cieloTrasRender(route);   // el cielo de Insignias (cielo.js)
   // Chips que se desplazan de lado (Salud): mostrar el elegido
   const chipOn = document.querySelector("#view .chips-f .chip-f.is-on");

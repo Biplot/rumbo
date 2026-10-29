@@ -777,6 +777,8 @@ function crearMotorCielo(T, D) {
     [[256, "#C9472C"], [236, "#E4532F"], [206, "#F4EDE3"], [190, "#E4532F"], [120, "#D24A2D"], [104, "#F4EDE3"], [92, "#E4532F"]].forEach(c => { ga.fillStyle = c[1]; ga.beginPath(); ga.arc(256, 256, c[0], 0, 6.283); ga.fill(); });
     const alf = new T.Mesh(new T.CircleGeometry(1.75, 64), mat(0xFFFFFF, { map: tex(la), roughness: 1 })); alf.rotation.x = -Math.PI / 2; alf.position.set(ALFOMBRA.x, 0.012, ALFOMBRA.z); alf.receiveShadow = true; e.add(alf);
     const sombraE = new T.Mesh(new T.PlaneGeometry(2.6, 1.5), new T.MeshBasicMaterial({ map: texSombra(), transparent: true, opacity: 0.35, depthWrite: false })); sombraE.rotation.x = -Math.PI / 2; sombraE.position.set(ALFOMBRA.x, 0.02, ALFOMBRA.z); e.add(sombraE);
+    // Tu elefante en 3D (elefante-3d.js): se arma en actualizarCasa con su tipo, etapa, ropa y ánimo
+    casa.eleRaiz = new T.Group(); casa.eleRaiz.position.set(ALFOMBRA.x - 0.1, 0.02, ALFOMBRA.z); casa.eleRaiz.rotation.y = 0.35; casa.eleRaiz.scale.setScalar(0.95); e.add(casa.eleRaiz);
     // La ventana (cambia con la hora) con sus cortinas
     const madera = mat(0xB98656, { roughness: 0.7 }), madOsc = mat(0x8C603A, { roughness: 0.75 }), marcoV = mat(0xF7F5F0, { roughness: 0.6 });
     casa.ventana = new T.Mesh(new T.PlaneGeometry(1.7, 1.5), new T.MeshBasicMaterial({ map: texVentana("dia"), toneMapped: false })); casa.ventana.rotation.y = Math.PI / 2; casa.ventana.position.set(-3.49, 2.45, 1.3); e.add(casa.ventana);
@@ -1065,8 +1067,20 @@ function crearMotorCielo(T, D) {
       casa.calendario.material.map = texCalendario(h, new Set(cerr)); casa.calendario.material.needsUpdate = true;
     }
     ponerRepisa(D.repisa());
+    ponerElefante();
     ponerHora(true);
     pedir();
+  }
+  /* Tu elefante: se vuelve a armar solo cuando cambia su tipo, su etapa, su ropa o su ánimo */
+  function ponerElefante() {
+    const spec = D.elefante && typeof crearElefante3D === "function" ? D.elefante() : null, clave = JSON.stringify(spec);
+    if (casa.claves.ele === clave) return;
+    casa.claves.ele = clave;
+    if (casa.ele) { casa.eleRaiz.remove(casa.ele.g); casa.ele.dispose(); casa.ele = null; }
+    if (!spec) return;
+    casa.ele = crearElefante3D(T, Object.assign({}, spec, { calmo: CALMO }));
+    casa.ele.g.traverse(o => { if (o.isMesh) o.castShadow = !LENTO; });
+    casa.eleRaiz.add(casa.ele.g);
   }
   let segCasa = -1;
   function ponerHora(forzar) {
@@ -1074,42 +1088,49 @@ function crearMotorCielo(T, D) {
     const d = new Date(), s0 = d.getSeconds(); if (!forzar && s0 === segCasa) return; segCasa = s0;
     const mi = d.getMinutes() + s0 / 60; r0.userData.m.rotation.z = -mi / 60 * 6.283; r0.userData.h.rotation.z = -((d.getHours() % 12) + mi / 60) / 12 * 6.283;
   }
+  /* En pantalla completa (libre) el cuarto se gira un poco y se acerca; arriba y abajo es lo que tapan la barra y la hoja */
+  const VC = { yaw: CASA_V.yaw, zoom: 1, arriba: 0, abajo: 0, der: 0 }, VCo = { yaw: CASA_V.yaw, zoom: 1, arriba: 0, abajo: 0, der: 0 }, VC_LIM = { yaw: [CASA_V.yaw - 0.55, CASA_V.yaw + 0.55], zoom: [0.62, 1.12] };
+  function vistaCasaMoviendo() { return Math.abs(VC.yaw - VCo.yaw) > 1e-3 || Math.abs(VC.zoom - VCo.zoom) > 1e-3 || Math.abs(VC.arriba - VCo.arriba) > 0.5 || Math.abs(VC.abajo - VCo.abajo) > 0.5 || Math.abs(VC.der - VCo.der) > 0.5; }
   function camaraCasa() {
-    const asp = ancho / alto, rel = CASA_V.aspecto / asp, d = CASA_V.dist * Math.max(1, Math.pow(rel, 0.92)), t = CASA_V.target;
-    camC.aspect = asp; camC.position.set(t.x + d * Math.sin(CASA_V.yaw) * Math.cos(CASA_V.pitch), t.y + d * Math.sin(CASA_V.pitch), t.z + d * Math.cos(CASA_V.yaw) * Math.cos(CASA_V.pitch));
-    camC.lookAt(t); camC.updateProjectionMatrix(); camC.updateMatrixWorld();
+    // en la tarjeta el cuarto entra entero; a pantalla completa y en vertical se acerca más (se recortan un poco los bordes; se mira arrastrando)
+    const w = Math.max(160, ancho - VC.der), h = Math.max(120, alto - VC.arriba - VC.abajo), asp = w / h, rel = CASA_V.aspecto / asp;
+    const d = CASA_V.dist * Math.max(1, Math.pow(rel, casa && casa.libre ? 0.6 : 0.92)) * VC.zoom, t = CASA_V.target;
+    camC.aspect = asp; camC.position.set(t.x + d * Math.sin(VC.yaw) * Math.cos(CASA_V.pitch), t.y + d * Math.sin(CASA_V.pitch), t.z + d * Math.cos(VC.yaw) * Math.cos(CASA_V.pitch));
+    camC.lookAt(t);
+    if (VC.arriba || VC.abajo || VC.der) camC.setViewOffset(w, h, 0, -VC.arriba, ancho, alto); else camC.clearViewOffset();
+    camC.updateProjectionMatrix(); camC.updateMatrixWorld();
   }
   const PC = new T.Vector3();
   function enPantallaC(v) { PC.copy(v).project(camC); return PC.z < 1 && PC.z > -1 ? [(PC.x + 1) / 2 * ancho, (1 - PC.y) / 2 * alto] : null; }
   /* Una foto para la ficha de la Tienda: esa cosa en su rincón (aunque aún no sea tuya) o el cuarto
-     pintado de ese color (con dónde va tu elefante, en fracciones de la foto). Después todo vuelve a como está */
+     pintado de ese color, con tu elefante en su alfombra. Después todo vuelve a como está */
   const camF = new T.PerspectiveCamera(30, 1, 0.1, 100);
   function fotoCuarto(op, w, hh) {
     armarCasa(); actualizarCasa(op);
     const pr = r.getPixelRatio(), a0 = ancho, h0 = alto, o = op.cosa && casa.cosas[op.cosa];
     r.setPixelRatio(1); r.setSize(w, hh, false); ancho = w; alto = hh;
-    let c = camC, ancla = null;
+    let c = camC;
     if (o) {
       const [x, y, z, rad] = o.userData.foco, asp = w / hh, d = rad / Math.tan(15 * Math.PI / 180) / Math.min(1, asp) * 1.15, pit = 0.42;
       camF.aspect = asp; camF.position.set(x + d * Math.sin(CASA_V.yaw) * Math.cos(pit), y + d * Math.sin(pit), z + d * Math.cos(CASA_V.yaw) * Math.cos(pit));
       camF.lookAt(x, y, z); camF.updateProjectionMatrix(); c = camF;
-    } else { const a = anclaCasa(); if (a) ancla = { x: a.x / w, y: a.y / hh, ancho: a.ancho / w, noche: a.noche }; }   // el cuarto entero: con tu elefante encima
+    } else { const v = { ...VC }; Object.assign(VC, { yaw: CASA_V.yaw, zoom: 1, arriba: 0, abajo: 0, der: 0 }); camaraCasa(); Object.assign(VC, v); }   // el cuarto entero, de frente
     ponerHora(true);
     r.toneMappingExposure = LUZ_FRANJA[casa.franja].exp; r.render(casa.escena, c);
     let url = null; try { url = canvas.toDataURL("image/jpeg", 0.88); } catch (e) { url = null; }
     r.setPixelRatio(pr); ancho = a0; alto = h0; if (a0 && h0) r.setSize(a0, h0, false);
     actualizarCasa();
-    return url ? { url, ancla } : null;
+    return url;
   }
-  /* Dónde va tu elefante: sobre la alfombra, del ancho que le toca a esa distancia */
-  function anclaCasa() {
-    camaraCasa();
-    const lado = new T.Vector3(Math.cos(CASA_V.yaw), 0, -Math.sin(CASA_V.yaw)).multiplyScalar(1.3);
-    const p = enPantallaC(ALFOMBRA), a = enPantallaC(ALFOMBRA.clone().add(lado)), b = enPantallaC(ALFOMBRA.clone().sub(lado));
-    if (!p || !a || !b) return null;
-    return { x: p[0], y: p[1] + 0.06 * Math.hypot(a[0] - b[0], a[1] - b[1]), ancho: Math.hypot(a[0] - b[0], a[1] - b[1]) * 1.45, noche: casa.franja === "noche" };
+  /* ¿Está tu elefante bajo el dedo? */
+  const RAY = new T.Raycaster(), NDC = new T.Vector2();
+  function eleEn(x, y) {
+    if (!casa || !casa.ele) return false;
+    camaraCasa(); NDC.set(x / ancho * 2 - 1, -(y / alto) * 2 + 1); RAY.setFromCamera(NDC, camC);
+    return RAY.intersectObject(casa.ele.g, true).some(h => h.object.isMesh);
   }
-  function anclarElefante() { D.ancla(anclaCasa()); }
+  const REACCIONES = ["salta", "saluda", "corazones"]; let nReac = 0;
+  function tocarEle() { if (!casa.ele || casa.ele.ocupado()) return; casa.ele.reaccion(REACCIONES[nReac++ % REACCIONES.length]); if (D.tocoEle) D.tocoEle(); pedir(); }
   /* ¿Qué lugar de la repisa hay bajo el dedo? */
   function lugarEn(x, y) {
     let mejor = null, dmin = TACTIL ? 36 : 28;
@@ -1370,7 +1391,6 @@ function crearMotorCielo(T, D) {
     if (!caja) return;
     const b = caja.getBoundingClientRect(), w = Math.max(1, Math.round(b.width)), h = Math.max(1, Math.round(b.height));
     if (w !== ancho || h !== alto || canvas.width < 2) { ancho = w; alto = h; r.setSize(w, h, false); }
-    if (modo === "casa" && casa) anclarElefante();
     pedir();
   }
   function arrancar() { if (!raf && modo) { ultimo = 0; raf = requestAnimationFrame(cuadro); } }
@@ -1382,7 +1402,7 @@ function crearMotorCielo(T, D) {
     if (LENTO && ultimo && now - ultimo < 66) { raf = requestAnimationFrame(cuadro); return; }   // por software: unos 15 cuadros por segundo
     if ((modo === "casa" || modo === "camino") && ultimo && now - ultimo < 32) { raf = requestAnimationFrame(cuadro); return; }   // se mueven poco: 30 cuadros bastan
     const dt = Math.min(LENTO ? 0.1 : 0.05, ultimo ? (now - ultimo) / 1000 : 0.016); ultimo = now;
-    const ocupado = !A.vacio() || arrastre || (modo === "cielo" && etqNueva) || (modo === "cerca" && hero && !hero.A.vacio()) || Math.abs(giro.vel) > 1e-4 || (modo === "cerca" && Math.abs(giro.obj - giro.rot) > 1e-3);
+    const ocupado = !A.vacio() || arrastre || (modo === "casa" && casa && ((casa.ele && casa.ele.ocupado()) || vistaCasaMoviendo())) || (modo === "cielo" && etqNueva) || (modo === "cerca" && hero && !hero.A.vacio()) || Math.abs(giro.vel) > 1e-4 || (modo === "cerca" && Math.abs(giro.obj - giro.rot) > 1e-3);
     if (!visible && modo !== "cerca") return;   // quedó fuera de la vista: vuelve al reaparecer
     if (CALMO && !ocupado && !sucio) return;   // sin movimiento: se dibuja solo cuando algo cambia (pedir)
     raf = requestAnimationFrame(cuadro);
@@ -1418,7 +1438,9 @@ function crearMotorCielo(T, D) {
       if (hero.vista && hero.vista.k > 0) mirarFigura(hero.vista);
       r.toneMappingExposure = 1; r.render(est.escena, camI);
     } else if (modo === "casa" && casa) {
+      const kv = Math.min(1, dt * 7); VC.yaw += (VCo.yaw - VC.yaw) * kv; VC.zoom += (VCo.zoom - VC.zoom) * kv; VC.arriba += (VCo.arriba - VC.arriba) * kv; VC.abajo += (VCo.abajo - VC.abajo) * kv; VC.der += (VCo.der - VC.der) * kv;
       camaraCasa(); ponerHora(false);
+      if (casa.ele) casa.ele.vivo(reloj);
       // las medallas de la repisa se mecen apenas, para que el metal brille; la planta respira
       casa.lugares.forEach(L => { L.g.rotation.y = 0.55 + (CALMO ? 0 : Math.sin(reloj * 0.6 + L.fase) * 0.22); });
       const p = casa.cosas.planta; if (p.visible) p.userData.hojas.rotation.y = CALMO ? 0 : Math.sin(reloj * 0.4) * 0.05;
@@ -1440,7 +1462,9 @@ function crearMotorCielo(T, D) {
   }
 
   /* -------- Dedo y mouse -------- */
+  const dedos = new Map();   // para pellizcar (dos dedos) en el cuarto a pantalla completa
   canvas.addEventListener("pointerdown", ev => {
+    if (modo === "casa" && casa && casa.libre) { dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); if (dedos.size === 2) { const [a, b] = [...dedos.values()]; casa.pellizco = { d: Math.hypot(a.x - b.x, a.y - b.y), z: VCo.zoom }; } }
     if (!modo || (ev.pointerType === "mouse" && ev.button !== 0)) return;
     arrastre = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, x0: ev.clientX, y0: ev.clientY, movido: false, tipo: ev.pointerType };
     if (modo === "cerca" || ev.pointerType !== "touch") { try { canvas.setPointerCapture(ev.pointerId); } catch (e) {} }
@@ -1448,11 +1472,24 @@ function crearMotorCielo(T, D) {
   });
   canvas.addEventListener("pointermove", ev => {
     const b = canvas.getBoundingClientRect(), x = ev.clientX - b.left, y = ev.clientY - b.top;
+    // pellizcar: cada dedo actualiza su posición (el arrastre sigue solo a uno) y la distancia entre ambos acerca o aleja
+    if (modo === "casa" && dedos.has(ev.pointerId)) {
+      dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (casa && casa.libre && casa.pellizco && dedos.size === 2) {
+        const [a, c] = [...dedos.values()], d = Math.hypot(a.x - c.x, a.y - c.y);
+        VCo.zoom = limitar(casa.pellizco.z * casa.pellizco.d / Math.max(20, d), VC_LIM.zoom[0], VC_LIM.zoom[1]); if (arrastre) arrastre.movido = true; pedir(); return;
+      }
+    }
     if (!arrastre || arrastre.id !== ev.pointerId) {
-      if (ev.pointerType === "mouse") { if (modo === "cielo") hover(nodoEn(x, y)); else if (modo === "casa" && casa) hoverCasa(lugarEn(x, y)); else if (modo === "camino" && camino) hoverCamino(hitoEn(x, y)); }
+      if (ev.pointerType === "mouse") { if (modo === "cielo") hover(nodoEn(x, y)); else if (modo === "casa" && casa) { const L = lugarEn(x, y); hoverCasa(L); if (!L) canvas.style.cursor = eleEn(x, y) ? "pointer" : casa.libre ? "grab" : D.entrar ? "zoom-in" : ""; } else if (modo === "camino" && camino) hoverCamino(hitoEn(x, y)); }
       return;
     }
-    if (modo === "casa") { if (Math.hypot(ev.clientX - arrastre.x0, ev.clientY - arrastre.y0) > 6) arrastre.movido = true; return; }
+    if (modo === "casa") {
+      const dx = ev.clientX - arrastre.x; arrastre.x = ev.clientX; arrastre.y = ev.clientY;
+      if (Math.hypot(ev.clientX - arrastre.x0, ev.clientY - arrastre.y0) > 6) arrastre.movido = true;
+      if (casa && casa.libre && arrastre.movido) { VCo.yaw = limitar(VCo.yaw - dx * 0.006, VC_LIM.yaw[0], VC_LIM.yaw[1]); hoverCasa(null); pedir(); }
+      return;
+    }
     const dx = ev.clientX - arrastre.x, dy = ev.clientY - arrastre.y; arrastre.x = ev.clientX; arrastre.y = ev.clientY;
     if (!arrastre.movido && Math.hypot(ev.clientX - arrastre.x0, ev.clientY - arrastre.y0) > 6) { arrastre.movido = true; hover(null); if (camino) hoverCamino(null); }
     if (!arrastre.movido) return;
@@ -1471,11 +1508,18 @@ function crearMotorCielo(T, D) {
     pedir();
   });
   const soltarDedo = (ev, cancelado) => {
+    dedos.delete(ev.pointerId); if (dedos.size < 2 && casa) casa.pellizco = null;
     if (!arrastre || arrastre.id !== ev.pointerId) return;
     const a = arrastre; arrastre = null;
     if (cancelado || a.movido) return;
     const b = canvas.getBoundingClientRect(), x = ev.clientX - b.left, y = ev.clientY - b.top;
-    if (modo === "casa" && casa) { const L = lugarEn(x, y); if (L) { hoverCasa(null); if (L.id) D.tocar(L.id); else D.vacio(); } return; }
+    if (modo === "casa" && casa) {
+      const L = lugarEn(x, y);
+      if (L) { hoverCasa(null); if (L.id) D.tocar(L.id); else D.vacio(); }
+      else if (eleEn(x, y)) tocarEle();
+      else if (!casa.libre && D.entrar) D.entrar();   // en la tarjeta: tocar el cuarto lo abre a pantalla completa
+      return;
+    }
     if (modo === "camino" && camino) { const H = hitoEn(x, y); if (H) { hoverCamino(null); D.tocar(H.id); } return; }
     if (modo !== "cielo") return;
     const E = nodoEn(x, y);
@@ -1484,24 +1528,36 @@ function crearMotorCielo(T, D) {
   canvas.addEventListener("pointerup", ev => soltarDedo(ev, false));
   canvas.addEventListener("pointercancel", ev => soltarDedo(ev, true));
   canvas.addEventListener("pointerleave", ev => { if (ev.pointerType === "mouse" && !arrastre) { hover(null); if (casa) hoverCasa(null); if (camino) hoverCamino(null); } });
-  canvas.addEventListener("wheel", ev => { if (modo !== "cerca") return; ev.preventDefault(); giro.zoom = limitar(giro.zoom * (1 + ev.deltaY * 0.0012), 0.6, 1.5); pedir(); }, { passive: false });
+  canvas.addEventListener("wheel", ev => {
+    if (modo === "casa" && casa && casa.libre) { ev.preventDefault(); VCo.zoom = limitar(VCo.zoom * (1 + ev.deltaY * 0.0012), VC_LIM.zoom[0], VC_LIM.zoom[1]); pedir(); return; }
+    if (modo !== "cerca") return; ev.preventDefault(); giro.zoom = limitar(giro.zoom * (1 + ev.deltaY * 0.0012), 0.6, 1.5); pedir();
+  }, { passive: false });
+  canvas.addEventListener("dblclick", () => { if (modo === "casa" && casa && casa.libre) { VCo.yaw = CASA_V.yaw; VCo.zoom = 1; pedir(); } });
   canvas.addEventListener("webglcontextlost", ev => { ev.preventDefault(); detener(); modo = null; D.perdido(); });
 
   /* -------- Lo que usa cielo.js -------- */
   return {
-    montar(c, lugar) {
+    montar(c, lugar, op) {
       if (lugar === "camino") { modo = "camino"; canvas.style.touchAction = "pan-y"; armarCamino(); ponerCamino(D.camino()); colgar(c); arrancar(); return; }
-      if (lugar === "casa") { modo = "casa"; canvas.style.touchAction = "pan-y"; armarCasa(); actualizarCasa(); colgar(c); anclarElefante(); arrancar(); return; }
+      if (lugar === "casa") {
+        const libre = !!(op && op.libre); armarCasa();
+        if (casa.libre !== libre) { casa.libre = libre; Object.assign(VC, { yaw: CASA_V.yaw, zoom: 1 }); Object.assign(VCo, { yaw: CASA_V.yaw, zoom: 1 }); if (!libre) VC.arriba = VC.abajo = VC.der = VCo.arriba = VCo.abajo = VCo.der = 0; }
+        modo = "casa"; canvas.style.touchAction = libre ? "none" : "pan-y"; actualizarCasa(); colgar(c); arrancar(); return;
+      }
       modo = "cielo"; canvas.style.touchAction = "pan-y"; colgar(c); actualizar(); arrancar();
     },
     foto: fotoCamino,
     fotoCuarto,
+    /* Lo que tapan la barra de arriba y la hoja de abajo (px): el cuarto se encuadra en lo que queda; ya: sin animar */
+    encuadre(e, ya) { VCo.arriba = Math.max(0, e.arriba || 0); VCo.abajo = Math.max(0, e.abajo || 0); VCo.der = Math.max(0, e.der || 0); if (ya) Object.assign(VC, { arriba: VCo.arriba, abajo: VCo.abajo, der: VCo.der }); pedir(); },
+    /* Dónde está tu elefante en el lienzo (para las pruebas) */
+    dondeElefante() { if (modo !== "casa" || !casa || !casa.ele) return null; camaraCasa(); const v = new T.Vector3(); casa.ele.g.getWorldPosition(v); v.y += 0.9; return enPantallaC(v); },
     /* Dónde está un hito del camino en el lienzo (para las pruebas) */
     dondeHito(id) { if (modo !== "camino" || !camino) return null; const H = camino.hitos.find(x => x.id === id); if (!H) return null; camaraCamino(); return enPantallaK(H.pos); },
     /* Dónde está un lugar de la repisa en el lienzo (para las pruebas) */
     dondeRepisa(i) { if (modo !== "casa" || !casa || !casa.lugares[i]) return null; camaraCasa(); return enPantallaC(casa.lugares[i].pos); },
     /* Qué cosas se ven en el cuarto y de qué color está la pared (para las pruebas) */
-    cuarto() { return casa ? { cosas: Object.keys(casa.cosas).filter(k => casa.cosas[k].visible), pared: casa.muro.clave, lampara: casa.luz.lampara.intensity } : null; },
+    cuarto() { return casa ? { cosas: Object.keys(casa.cosas).filter(k => casa.cosas[k].visible), pared: casa.muro.clave, lampara: casa.luz.lampara.intensity, elefante: casa.claves.ele ? JSON.parse(casa.claves.ele) : null, reaccion: !!(casa.ele && casa.ele.ocupado()), libre: !!casa.libre, vista: { ...VC } } : null; },
     soltar() {
       modo = null; hover(null); if (casa) hoverCasa(null); if (camino) hoverCamino(null); detener();
       // lo que quedaba por animar (una estrella fugaz a medio camino) se termina de golpe

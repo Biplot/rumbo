@@ -1623,9 +1623,6 @@ button.dmap__c { cursor: pointer; color: #0E2A47; }
 .cua-vista__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .35s ease; }
 .cua-vista.is-foto .cua-vista__img { opacity: 1; }
 .cua-vista.is-foto .cua-vista__ico { visibility: hidden; }
-.cua-vista__ele { position: absolute; transform: translate(-50%, -93%); pointer-events: none; }
-.cua-vista__ele .ele-svg { overflow: visible; width: 100%; height: auto; }
-.cua-vista__ele.is-noche .ele-svg { filter: brightness(.8) saturate(.9); }
 .cua-vista__pie { position: absolute; left: 8px; bottom: 8px; padding: 3px 9px; border-radius: 999px; background: rgba(11, 11, 12, .62); color: #FFFFFF;
   font-size: 11px; font-weight: 600; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
 @media (prefers-reduced-motion: reduce) { .cua-vista__img { transition: none; } }
@@ -2098,10 +2095,6 @@ html .ins-cerca .btn--linea:hover { background: rgba(255, 224, 138, .1); }
 .casa { position: relative; height: clamp(260px, 56vw, 420px); margin-bottom: 14px; border-radius: var(--r); overflow: hidden; isolation: isolate; background: #DCE4EA; }
 .casa__lienzo { position: absolute; inset: 0; }
 /* Mientras llega el 3D queda al centro, abajo; el motor lo pone sobre la alfombra (left, top y ancho) */
-.casa__ele { position: absolute; z-index: 1; left: 50%; top: 90%; width: min(40%, 220px); transform: translate(-50%, -93%); cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.casa__ele .ele-svg { overflow: visible; }
-.casa__ele.is-noche .ele-svg { filter: brightness(.8) saturate(.9); }
-.casa__ele:focus-visible { outline: 2px solid var(--cian); outline-offset: 4px; border-radius: 12px; }
 .casa__carga { position: absolute; inset: 0 0 auto; display: none; justify-content: center; padding-top: 14px; font-size: 13px; color: #5A6B7D; }
 .casa-card.is-cargando .casa__carga { display: flex; }
 .casa-card:not(.is-sin3d) .ele-mini { display: none; }   /* con 3D, tu elefante vive en su cuarto */
@@ -2131,3 +2124,56 @@ html .ins-cerca .btn--linea:hover { background: rgba(255, 224, 138, .1); }
 .med-chip__f { font-weight: 500; color: var(--text-muted); font-size: 12px; margin-left: 2px; }
 .camino__pie { display: flex; justify-content: flex-end; margin-top: 12px; }
 .cierre-meds { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* ============================================================
+   Lugares a pantalla completa (lugar.js): por ahora, tu cuarto
+   ============================================================ */
+body.en-lugar { overflow: hidden; }
+.en-lugar .bottombar, .en-lugar .topbar { display: none; }
+.en-lugar .view-entra { animation: none; }   /* una vista que se mueve rompería la posición fija del lugar */
+.lugar { position: fixed; inset: 0; z-index: 70; overflow: hidden; background: #DCE4EA; touch-action: none; -webkit-tap-highlight-color: transparent; }
+.lugar__lienzo { position: absolute; inset: 0; }
+.lugar__carga { position: absolute; inset: 0; display: none; place-items: center; font-size: 14px; color: #5A6B7D; }
+.lugar.is-cargando .lugar__carga { display: grid; }
+.lugar__hud { position: absolute; z-index: 3; top: calc(env(safe-area-inset-top, 0px) + 12px); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  display: flex; align-items: center; gap: 8px; pointer-events: none; }
+.lugar__hud > * { pointer-events: auto; }
+.vidrio { background: rgba(255, 255, 255, .76); color: #0B0B0C; border: 1px solid rgba(255, 255, 255, .65); box-shadow: 0 6px 18px -10px rgba(0, 0, 0, .35);
+  backdrop-filter: blur(12px) saturate(1.3); -webkit-backdrop-filter: blur(12px) saturate(1.3); }
+.lugar__vol { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; font: inherit; font-size: 22px; padding: 0; }
+.lugar__vol:focus-visible, .hoja__asa:focus-visible, .casa__abrir:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+.lugar__t { min-width: 0; padding: 7px 14px; border-radius: 20px; }
+.lugar__t b { display: block; font-size: 15px; line-height: 1.2; }
+.lugar__t small { display: block; font-size: 12px; line-height: 1.3; opacity: .72; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lugar__c { margin-left: auto; padding: 10px 12px; border-radius: 18px; font-size: 13px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lugar .cielo__etq { z-index: 2; }
+/* La hoja: se ve lo que dice --vis; el resto queda bajo el borde de la pantalla */
+.hoja { position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; height: 90vh; height: 90dvh; display: flex; flex-direction: column;
+  transform: translateY(calc(100% - var(--vis, 190px))); transition: transform .34s cubic-bezier(.2, .8, .2, 1);
+  background: var(--surface); color: var(--text); border-radius: 22px 22px 0 0; box-shadow: 0 -14px 40px -18px rgba(0, 0, 0, .5);
+  padding: 0 max(18px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(18px, env(safe-area-inset-left, 0px)); touch-action: none; }
+.hoja.sin-anim { transition: none; }
+.hoja__asa { flex: 0 0 auto; display: block; width: 100%; height: 26px; padding: 0; border: 0; background: none; cursor: grab; }
+.hoja__asa i { display: block; width: 40px; height: 5px; border-radius: 3px; background: var(--line-strong); margin: 10px auto 0; }
+.hoja__cab { flex: 0 0 auto; display: grid; gap: 6px; padding-bottom: 8px; }
+.hoja__t { font-family: var(--font-display); font-size: 17px; font-weight: 700; line-height: 1.25; }
+.hoja__s { font-size: 13px; color: var(--text-muted); }
+.hoja__bts { display: flex; gap: 6px; margin: 4px calc(-1 * max(18px, env(safe-area-inset-left, 0px))) 0; padding: 0 max(18px, env(safe-area-inset-left, 0px)) 2px; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
+.hoja__bts::-webkit-scrollbar { display: none; }
+.hb { flex: 0 0 auto; }
+@media (min-width: 900px) { .hoja__bts { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding-inline: 0; } }
+.hb { font: inherit; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); cursor: pointer; }
+.hb:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+.hoja__cuerpo { flex: 1; min-height: 0; overflow-y: auto; display: grid; align-content: start; gap: 10px; padding: 10px 0 24px; border-top: 1px solid var(--line); touch-action: pan-y; overscroll-behavior: contain; }
+.hoja__k { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin-top: 6px; }
+.hoja__pista { margin-top: 4px; }
+.fila-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (min-width: 900px) {   /* en pantallas anchas, la hoja es un panel al costado */
+  .hoja { top: 84px; right: 20px; bottom: 20px; left: auto; width: 380px; height: auto; transform: none; border-radius: 20px; padding: 6px 20px 0; box-shadow: 0 24px 60px -28px rgba(0, 0, 0, .5); }
+  .hoja__asa { display: none; }
+  .hoja__cab { padding-top: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .hoja { transition: none; } }
+/* La tarjeta del cuarto en Progreso: tocarla (o este botón) la abre a pantalla completa */
+.casa__abrir { position: absolute; z-index: 2; top: 10px; right: 10px; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; padding: 0; cursor: pointer;
+  background: rgba(255, 255, 255, .82); color: #0B0B0C; border: 1px solid rgba(0, 0, 0, .06); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }

@@ -141,6 +141,7 @@ function cieloScripts() {
   if (!CIELO_ESTADO.scripts) {
     CIELO_ESTADO.scripts = (window.THREE ? Promise.resolve() : cieloScript("js/vendor/three-0.128.0.min.js"))
       .then(() => (typeof crearMotorCielo === "function" ? null : cieloScript("js/cielo-3d.js" + CIELO_V)))
+      .then(() => (typeof crearElefante3D === "function" ? null : cieloScript("js/elefante-3d.js" + CIELO_V)))
       .catch(e => { CIELO_ESTADO.scripts = null; throw e; });
   }
   return CIELO_ESTADO.scripts;
@@ -161,7 +162,11 @@ function cieloMotor() {
           pared: () => (typeof cuartoPared === "function" ? cuartoPared(STATE) : null),
           libros: () => (typeof lg_libros === "function" ? lg_libros(STATE) : 0), vacio: () => { if (typeof openRepisa === "function") { REPISA_SEL = null; openRepisa(); } },
           camino: () => (typeof caminoDatos === "function" ? caminoDatos() : { y: new Date().getFullYear(), medallas: [], hoy: 0 }),
-          ancla: casaAnclaEle, cerrados: () => Object.keys(STATE.ritual.dias || {}).filter(k => STATE.ritual.dias[k] && STATE.ritual.dias[k].cerrado),
+          // Tu elefante en 3D (elefante-3d.js): el mismo del dibujo, con su tipo, etapa, ropa y ánimo
+          elefante: () => (typeof tipoElefante === "function" ? { tipo: tipoElefante(), etapa: etapaElefante(STATE.gamif.xp || 0).idx, ropa: ropaPuesta(), animo: animoElefante() } : null),
+          tocoEle: () => { if (typeof vibrar === "function") vibrar(12); },
+          entrar: () => { if (typeof cuartoEntrar === "function") cuartoEntrar(); },
+          cerrados: () => Object.keys(STATE.ritual.dias || {}).filter(k => STATE.ritual.dias[k] && STATE.ritual.dias[k].cerrado),
         });
         return CIELO_ESTADO.motor;
       })
@@ -178,20 +183,15 @@ function cieloSin3d() {
   const sec = document.getElementById("cielo"); if (sec) sec.classList.add("is-sin3d");
   document.querySelectorAll(".casa-card, .camino-card").forEach(c => c.classList.add("is-sin3d"));
   if (CERCA.id) pintarCerca();
-}
-/* Tu elefante (el dibujo de siempre) se para sobre la alfombra del cuarto: el motor dice dónde */
-function casaAnclaEle(a) {
-  const el = document.getElementById("casaEle"); if (!el) return;
-  if (!a) { el.classList.remove("is-puesto"); return; }
-  el.style.left = a.x + "px"; el.style.top = a.y + "px"; el.style.width = a.ancho + "px";
-  el.classList.add("is-puesto"); el.classList.toggle("is-noche", !!a.noche);
+  if (typeof CURRENT !== "undefined" && CURRENT === "cuarto") go("recompensas");   // sin 3D, tu cuarto vive en su tarjeta
 }
 
-
-/* Dónde vive el 3D en cada pantalla: el cielo en Insignias y el cuarto del elefante en Progreso */
+/* Dónde vive el 3D en cada pantalla: el cielo en Insignias y el cuarto del elefante en Progreso
+   (en su tarjeta) y en Tu cuarto (a pantalla completa, libre: se gira y se acerca) */
 const CIELO_LUGARES = {
   insignias: { lugar: "cielo", lienzo: "cieloLienzo", marco: ".cielo" },
   recompensas: { lugar: "casa", lienzo: "casaLienzo", marco: ".casa-card" },
+  cuarto: { lugar: "casa", lienzo: "lugarLienzo", marco: ".lugar", libre: true },
   tendencias: { lugar: "camino", lienzo: "caminoLienzo", marco: ".camino-card" },
 };
 /* Tras cada render se monta (o se vuelve a colgar) el 3D de la pantalla; fuera de ellas, se pausa.
@@ -206,15 +206,17 @@ function montarLugar(route) {
   if (!L) { if (CIELO_ESTADO.motor) CIELO_ESTADO.motor.soltar(); return; }
   const caja = document.getElementById(L.lienzo); if (!caja) return;
   if (CIELO_ESTADO.sin3d) return;
-  if (CIELO_ESTADO.motor) { CIELO_ESTADO.motor.montar(caja, L.lugar); return; }
+  const listo = m => { m.montar(caja.isConnected ? caja : document.getElementById(L.lienzo), L.lugar, { libre: !!L.libre }); if (L.libre && typeof lugarMontado === "function") lugarMontado(); };
+  if (CIELO_ESTADO.motor) { listo(CIELO_ESTADO.motor); return; }
   caja.closest(L.marco).classList.add("is-cargando");
   cieloMotor().then(m => {
     const c2 = document.getElementById(L.lienzo);
     if (c2) c2.closest(L.marco).classList.remove("is-cargando");
-    if (c2 && CURRENT === route && !CERCA.id) m.montar(c2, L.lugar);
+    if (c2 && CURRENT === route && !CERCA.id) listo(m);
   }).catch(() => {
     const sec = document.querySelector(L.marco); if (sec) sec.classList.remove("is-cargando");
     if (!CIELO_ESTADO.sin3d && sec) sec.classList.add("is-sin3d");
+    if (L.libre && CURRENT === route) go("recompensas");   // sin 3D no hay pantalla completa: vuelve a la tarjeta
   });
 }
 

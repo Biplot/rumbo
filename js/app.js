@@ -28,6 +28,7 @@ const ROUTES = [
   { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tu elefante y tu progreso." },
   { id: "tienda", pie: true, label: "Recompensas", icon: "🛒", render: renderTienda, subtitle: "Útiles, funciones y cosméticos para tus ⭐." },
   { id: "insignias", pie: true, label: "Recompensas", icon: "🏅", render: renderInsignias, subtitle: "Tus logros, con bronce, plata, oro y secretas." },
+  { id: "cuarto", pie: true, lugar: true, label: "Tu cuarto", icon: "🏠", render: renderCuarto, subtitle: "Tu elefante en su cuarto, a pantalla completa." },
   { id: "cuenta", pie: true, label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
   { id: "notif", pie: true, label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
   { id: "tutoriales", pie: true, label: "Ayuda", icon: "🎓", render: renderTutoriales, subtitle: "Recorridos guiados para aprender Rumbo a tu ritmo." },
@@ -151,7 +152,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 24;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 25;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -331,6 +332,10 @@ const NOVEDADES = {
   24: [
     ["🛋️", "Decora el cuarto de tu elefante", "En la Tienda, la sección Cuarto trae un sillón, una lámpara, una pecera, un telescopio, un tocadiscos, un gato y más. Cada ficha te muestra cómo queda en su cuarto antes de comprarla."],
     ["🎨", "Paredes de colores", "Pinta el cuarto de salvia, durazno o azul noche. Lo que compras se puede guardar y volver a poner cuando quieras."],
+  ],
+  25: [
+    ["🐘", "Tu elefante, en 3D", "Ahora vive en su cuarto en 3D, con su tipo, su etapa y la ropa que le pusiste. Tócalo: salta, saluda o le salen corazones."],
+    ["⤢", "Tu cuarto a pantalla completa", "Toca el cuarto en Progreso y se abre de borde a borde. Arrastra para mirarlo, pellizca para acercarte y sube la hoja para ver su ficha y su repisa."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -530,6 +535,7 @@ function onRoute() {
   if (!CURRENT_USER) return;
   const hash = location.hash.replace("#", "") || "inicio";
   CURRENT = ROUTE_MAP[hash] ? hash : "inicio";
+  document.body.classList.toggle("en-lugar", !!ROUTE_MAP[CURRENT].lugar);   // a pantalla completa: sin barras (lugar.js)
   cerrarMas(); cerrarMenuCuenta();
   updateTopbar();
   rerender();
@@ -1224,6 +1230,9 @@ function onClick(e) {
     case "cos-equip": equipItem(d.id); break;
     case "ins-ver": abrirInsignia(d.id); break;
     case "cuarto-ver": cuartoVer(); break;
+    case "cuarto-entrar": cuartoEntrar(); break;
+    case "lugar-volver": lugarVolver(); break;
+    case "hoja-alternar": hojaAlternar(); break;
     case "cuarto-decorar": cuartoDecorar(); break;
     case "repisa-elegir": REPISA_SEL = null; openRepisa(); break;
     case "camino-compartir": compartirCamino(+d.y); break;

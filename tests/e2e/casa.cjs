@@ -1,4 +1,4 @@
-/* Pruebas en navegador · La casa del elefante: el cuarto en Progreso, tu elefante sobre la alfombra,
+/* Pruebas en navegador · La casa del elefante: el cuarto en Progreso, tu elefante en 3D sobre la alfombra,
    la repisa (tocar una medalla la abre de cerca; elegir cuáles) y la versión sin WebGL */
 const { chromium, URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 const GANADAS = ["primer-paso", "semana-fuego", "inquebrantable", "explorador", "estratega", "anio-rumbo", "elefante-domado", "elefante-domado-p", "buho"];
@@ -23,7 +23,7 @@ module.exports = async ({ b, ok, errs }) => {
     await p.waitForFunction(() => CIELO_ESTADO.motor && document.querySelector("#casaLienzo .cielo__canvas"), null, { timeout: 15000 }).catch(() => {});
     await p.waitForTimeout(600);
     ok(await p.locator("#casaLienzo .cielo__canvas").count() === 1, "Progreso muestra el cuarto del elefante en 3D");
-    ok(await p.locator("#casaEle.is-puesto").isVisible() && await p.locator(".casa-card .ele-mini").isHidden(), "tu elefante (el de siempre) queda parado sobre la alfombra");
+    ok(await p.evaluate(() => { const e = CIELO_ESTADO.motor.cuarto().elefante; return e && e.tipo === "clasico" && e.etapa === 1; }) && await p.locator(".casa-card .ele-mini").isHidden(), "tu elefante vive en 3D sobre la alfombra (el Clásico, en su etapa Joven)");
     const pie = await p.locator(".casa__pie").innerText();
     ok(pie.includes("4 de 7") && pie.includes("Próximo: 🐷") && pie.includes("Maestro"), "dice cuánto tiene el cuarto y qué llega con el próximo rango");
     ok((await p.locator(".ele-card").innerText()).includes("Joven"), "la ficha de tu elefante sigue igual (etapa Joven)");
@@ -51,8 +51,12 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('#modal [data-action="repisa-auto"]'); await p.waitForTimeout(400);
     ok(await p.evaluate(() => repisaIds(STATE)[0] === "anio-rumbo" && STATE.gamif.equipped.repisa.auto), "«Que elija sola» vuelve a las mejores");
 
-    // Tocar al elefante reacciona; subir de rango trae la alcancía
-    await p.click("#casaEle"); await p.waitForTimeout(300);
+    // Tocar al elefante reacciona (no abre la pantalla completa); subir de rango trae la alcancía
+    const ele = await p.evaluate(() => { const q = CIELO_ESTADO.motor.dondeElefante(), r = document.getElementById("casaLienzo").getBoundingClientRect(); return q && { x: r.left + q[0], y: r.top + q[1] }; });
+    if (ele) await p.mouse.click(ele.x, ele.y);
+    await p.waitForTimeout(150);
+    ok(await p.evaluate(() => CIELO_ESTADO.motor.cuarto().reaccion && CURRENT === "recompensas"), "tocar al elefante lo hace reaccionar");
+    await p.waitForTimeout(1500);
     await p.evaluate(() => { ledgerRegistrar(STATE, "xp-test-2", 0, 1600, "test"); saveState(); rerender(); }); await p.waitForTimeout(500);
     ok((await p.locator(".casa__pie").innerText()).includes("5 de 7") && await p.evaluate(() => casaCosas(STATE).includes("alcancia")), "al llegar a Maestro el cuarto gana la mesita con alcancía");
     await ctx.close(); await b3.close();

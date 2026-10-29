@@ -31,16 +31,16 @@ module.exports = async ({ b, ok, errs }) => {
     await p.waitForSelector("#cuaVista.is-foto", { timeout: 20000 }).catch(() => {});
     ok(await p.evaluate(() => isOwned("cua-lampara") && STATE.gamif.puntos === 2700) && (await p.locator("#modal .cua-card").innerText()).includes("En el cuarto — guardar"), "comprarla descuenta 300 ⭐ y queda puesta en el cuarto");
     ok((await p.locator('.ficha[data-cua="cua-lampara"] .ficha__p').innerText()) === "En el cuarto", "su ficha dice «En el cuarto»");
-    // Ver el cuarto: de noche la lámpara alumbra
+    // Ver el cuarto: a pantalla completa; de noche la lámpara alumbra
     await p.click('#modal [data-action="cuarto-ver"]');
-    await p.waitForFunction(() => CURRENT === "recompensas" && document.querySelector("#casaLienzo .cielo__canvas"), null, { timeout: 15000 }).catch(() => {});
+    await p.waitForFunction(() => CURRENT === "cuarto" && document.querySelector("#lugarLienzo .cielo__canvas"), null, { timeout: 15000 }).catch(() => {});
     await p.waitForTimeout(600);
     const c1 = await enCuarto(p);
-    ok(c1 && c1.cosas.includes("lampara") && c1.lampara > 1, "🏠 Ver el cuarto lleva a Progreso: la lámpara está y de noche alumbra");
-    ok((await p.locator("#casaLienzo").getAttribute("aria-label")).includes("De la Tienda: lámpara de pie."), "el cuarto lo cuenta (para lectores de pantalla)");
+    ok(c1 && c1.cosas.includes("lampara") && c1.lampara > 1, "🏠 Ver el cuarto lo abre a pantalla completa: la lámpara está y de noche alumbra");
+    ok((await p.locator("#lugarLienzo").getAttribute("aria-label")).includes("De la Tienda: lámpara de pie."), "el cuarto lo cuenta (para lectores de pantalla)");
     await shot(p, "cuarto-lampara-noche");
-    // 🛍️ Decorar vuelve a la sección del cuarto en la Tienda
-    await p.click('.casa-card [data-action="cuarto-decorar"]'); await p.waitForTimeout(500);
+    // 🛍️ Decorar (en la hoja) vuelve a la sección del cuarto en la Tienda
+    await p.click('#lugarHoja [data-action="cuarto-decorar"]'); await p.waitForTimeout(500);
     ok(await p.evaluate(() => CURRENT === "tienda") && await p.locator("#tienda-cuarto").isVisible(), "🛍️ Decorar lleva a la Tienda, a la sección Cuarto");
     // Guardarla y volver a ponerla
     await p.click('.ficha[data-cua="cua-lampara"]'); await p.waitForTimeout(300);
@@ -53,7 +53,7 @@ module.exports = async ({ b, ok, errs }) => {
     // La pared: la foto es del cuarto entero, con tu elefante; comprarla pinta el cuarto
     await p.click('.ficha[data-cua="par-noche"]');
     await p.waitForSelector("#cuaVista.is-foto", { timeout: 20000 }).catch(() => {});
-    ok(await p.locator("#cuaVista .cua-vista__ele .ele-svg").count() === 1, "la foto de una pared es el cuarto entero, con tu elefante en la alfombra");
+    ok(await p.locator("#cuaVista.is-foto .cua-vista__img").count() === 1 && await p.evaluate(() => !!CIELO_ESTADO.motor.cuarto().elefante), "la foto de una pared es el cuarto entero, con tu elefante 3D en la alfombra");
     await p.click('#modal [data-action="cos-buy"]'); await p.waitForTimeout(400);
     ok(await p.evaluate(() => STATE.gamif.equipped.cuarto.pared === "par-noche" && cuartoPared(STATE)[0] === "#3A4766"), "comprar la pared la pinta de una vez");
     await p.evaluate(() => closeModal());

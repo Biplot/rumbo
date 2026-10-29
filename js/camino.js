@@ -47,12 +47,35 @@ function caminoCardHtml(y) {
       <div class="cielo__etq" id="caminoEtq" hidden></div>
       ${l.length ? "" : `<div class="camino__vacio">${vacio}</div>`}
       <div class="camino__carga" aria-hidden="true">Trazando el camino…</div>
+      <button type="button" class="lugar-abrir" data-action="lugar-entrar" data-ruta="camino" aria-label="Ver tu camino a pantalla completa">${typeof iconoLinea === "function" ? iconoLinea("expandir", 18) : "⤢"}</button>
     </section>
     <div class="camino__tris" aria-label="Medallas por trimestre">${porTri.map((n, q) => `<span><b>T${q + 1}</b> ${n}</span>`).join("")}</div>
     ${l.length ? `<details class="camino__det"${CIELO_ESTADO.sin3d ? " open" : ""}><summary>Ver la lista</summary><div class="recibo__meds-l">${chipsMedallas(l)}</div></details>
     <div class="camino__pie"><button class="btn btn--soft" data-action="camino-compartir" data-y="${y}">${typeof iconoLinea === "function" ? iconoLinea("compartir", 18) : ""}Compartir mi camino</button></div>`
     : `<p class="text-sm muted camino__vacio-txt">${vacio}</p>`}
   </div>`;
+}
+
+/* -------- Tu camino a pantalla completa (ruta #camino, lugar.js): el año en la barra, los trimestres y la lista en la hoja -------- */
+function renderCamino() {
+  if (CIELO_ESTADO.sin3d) { setTimeout(() => go("tendencias"), 0); return renderTendencias(); }
+  const y = anioVista(), l = medallasDelAnio(STATE, y), actual = y === anioActual(), futuro = y > anioActual();
+  const porTri = [0, 1, 2, 3].map(q => l.filter(m => Math.floor(new Date(m.ts).getMonth() / 3) === q).length);
+  const anios = aniosConDatos(), min = anios[0], max = Math.max(anios[anios.length - 1], anioActual() + 1);
+  const vacio = futuro ? `${y} aún no empieza: su camino está por hacerse.` : `Aún no hay medallas en tu camino de ${y}. Cada una que ganes queda aquí, en su día.`;
+  const anio = `<span class="lugar__c vidrio lugar__anio" role="group" aria-label="Año">
+    <button type="button" data-action="anio-nav" data-dir="-1" aria-label="Año anterior" ${y <= min ? "disabled" : ""}>‹</button><b>${y}</b>
+    <button type="button" data-action="anio-nav" data-dir="1" aria-label="Año siguiente" ${y >= max ? "disabled" : ""}>›</button></span>`;
+  const cab = `<div class="hoja__t">🛤️ ${l.length ? `${cieloTactil() ? "Toca" : "Haz clic en"} un hito para ver su medalla` : vacio}</div>
+    <div class="camino__tris" aria-label="Medallas por trimestre">${porTri.map((n, q) => `<span><b>T${q + 1}</b> ${n}</span>`).join("")}</div>
+    <div class="hoja__bts">${l.length ? `<button class="hb" data-action="camino-compartir" data-y="${y}">Compartir mi camino</button>` : ""}${actual ? "" : `<button class="hb" data-action="anio-nav" data-dir="0">Ir a ${anioActual()}</button>`}</div>`;
+  const cuerpo = l.length ? `<div class="hoja__k">Tus medallas de ${y} · ${l.length}</div><div class="recibo__meds-l">${chipsMedallas(l)}</div>
+    <p class="text-xs muted hoja__pista">Arrastra para recorrer la isla y ${cieloTactil() ? "pellizca" : "usa la rueda"} para acercarte.</p>` : `<p class="text-sm muted">${vacio}</p>`;
+  return lugarHtml({
+    lienzo: "lugarLienzo", titulo: `Tu camino de ${y}`, sub: `${l.length === 1 ? "1 medalla" : `${l.length} medallas`}${actual ? " hasta hoy" : ""}`, chipHtml: anio, fondo: "#9FD3EA",
+    aria: `El sendero de ${y}, de enero a diciembre, con ${l.length} medallas en el día en que las ganaste. La lista está en la hoja de abajo.`,
+    hojaAria: "Tu año, trimestre a trimestre", carga: "Trazando el camino…", extra: `<div class="cielo__etq" id="caminoEtq" hidden></div>`, cab, cuerpo,
+  });
 }
 
 /* -------- En los cierres: las medallas del trimestre o del año -------- */

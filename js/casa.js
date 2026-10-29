@@ -188,7 +188,7 @@ function casaCardHtml() {
   return `<div class="card ele-card casa-card${CIELO_ESTADO.sin3d ? " is-sin3d" : ""}" data-tour="elefante">
     <section class="casa" id="casa" data-gesto aria-label="El cuarto de tu elefante">
       <div class="casa__lienzo" id="casaLienzo" role="img" aria-label="${escapeAttr(casaAria(cur, cosas, total, compras, nombres))}"></div>
-      <button type="button" class="casa__abrir" data-action="cuarto-entrar" aria-label="Ver tu cuarto a pantalla completa">${iconoLinea("expandir", 18)}</button>
+      <button type="button" class="casa__abrir lugar-abrir" data-action="cuarto-entrar" aria-label="Ver tu cuarto a pantalla completa">${iconoLinea("expandir", 18)}</button>
       <div class="cielo__etq" id="casaEtq" hidden></div>
       <div class="casa__carga" aria-hidden="true">Arreglando el cuarto…</div>
     </section>

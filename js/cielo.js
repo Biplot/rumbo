@@ -122,8 +122,33 @@ function cieloHtml(g) {
       <div class="cielo__s">${n} de ${orden.length} medallas · ${c === 1 ? "1 constelación completa" : `${c} constelaciones completas`}</div></div>
     <div class="cielo__etq" id="cieloEtq" hidden></div>
     <div class="cielo__pista">${cieloTactil() ? "Toca una medalla para verla de cerca" : "Haz clic en una medalla para verla de cerca · arrastra para mirar"}</div>
+    <button type="button" class="lugar-abrir" data-action="lugar-entrar" data-ruta="cielo" aria-label="Ver tu cielo a pantalla completa">${typeof iconoLinea === "function" ? iconoLinea("expandir", 18) : "⤢"}</button>
     <div class="cielo__carga" aria-hidden="true">Encendiendo el cielo…</div>
   </section>`;
+}
+
+/* -------- Tu cielo a pantalla completa (ruta #cielo, lugar.js): todas tus medallas por familia en la hoja -------- */
+function renderCielo() {
+  if (CIELO_ESTADO.sin3d) { setTimeout(() => go("insignias"), 0); return renderInsignias(); }
+  const g = STATE.gamif, orden = cieloOrden(), n = orden.filter(id => g.badges.includes(id)).length, c = cieloCompletas(), tactil = cieloTactil();
+  const chip = id => {
+    const b = findBadge(id), tiene = g.badges.includes(id), oculta = b.secreta && !tiene;
+    return `<button class="med-chip${tiene ? "" : " is-por"}" data-action="ins-ver" data-id="${id}">${tiene ? medChip(b, escapeHtml(b.nombre))
+      : `<span class="med-chip__m med-chip__m--por" aria-hidden="true">${oculta ? "?" : "🔒"}</span>${oculta ? "Secreta" : escapeHtml(b.nombre)}`}</button>`;
+  };
+  const familias = CIELO_FAMILIAS.map(f => {
+    const e = cieloEncendidas(f), tot = f.ids.length;
+    return `<div class="hoja__k">${f.n}${f.fig ? " · " + f.fig : ""} · ${e} de ${tot}${f.fig && e === tot ? " ✓" : ""}</div><div class="recibo__meds-l">${f.ids.filter(findBadge).map(chip).join("")}</div>`;
+  }).join("");
+  const cab = `<div class="hoja__t">✨ ${tactil ? "Toca" : "Haz clic en"} una medalla para verla de cerca</div>
+    <div class="hoja__s">Arrastra para mirar el cielo y ${tactil ? "pellizca" : "usa la rueda"} para acercarte. Toca una constelación para ir a ella.</div>
+    <div class="hoja__bts">${CIELO_FAMILIAS.filter(f => f.fig).map(f => `<button class="hb" data-action="cielo-mirar" data-id="${f.id}">${f.n} ${cieloEncendidas(f)}/${f.ids.length}</button>`).join("")}</div>`;
+  const cuerpo = `${familias}<button class="btn-ghost btn-block mt-8" data-route="insignias">Ver la lista con el progreso de cada una</button>`;
+  return lugarHtml({
+    lienzo: "lugarLienzo", titulo: "Tu cielo", sub: `${n} de ${orden.length} medallas · ${c === 1 ? "1 constelación completa" : `${c} constelaciones completas`}`,
+    oscuro: true, fondo: "#05060C", aria: `Tu cielo: ${n} de ${orden.length} medallas encendidas. En la hoja de abajo están todas, por familia.`,
+    hojaAria: "Tus medallas por familia", carga: "Encendiendo el cielo…", extra: `<div class="cielo__etq" id="cieloEtq" hidden></div>`, cab, cuerpo,
+  });
 }
 
 /* -------- Carga diferida del 3D -------- */
@@ -165,7 +190,7 @@ function cieloMotor() {
           // Tu elefante en 3D (elefante-3d.js): el mismo del dibujo, con su tipo, etapa, ropa y ánimo
           elefante: () => (typeof tipoElefante === "function" ? { tipo: tipoElefante(), etapa: etapaElefante(STATE.gamif.xp || 0).idx, ropa: ropaPuesta(), animo: animoElefante() } : null),
           tocoEle: () => { if (typeof vibrar === "function") vibrar(12); },
-          entrar: () => { if (typeof cuartoEntrar === "function") cuartoEntrar(); },
+          entrar: l => { if (typeof lugarDesdeTarjeta === "function") lugarDesdeTarjeta(l); },
           cerrados: () => Object.keys(STATE.ritual.dias || {}).filter(k => STATE.ritual.dias[k] && STATE.ritual.dias[k].cerrado),
         });
         return CIELO_ESTADO.motor;
@@ -183,7 +208,8 @@ function cieloSin3d() {
   const sec = document.getElementById("cielo"); if (sec) sec.classList.add("is-sin3d");
   document.querySelectorAll(".casa-card, .camino-card").forEach(c => c.classList.add("is-sin3d"));
   if (CERCA.id) pintarCerca();
-  if (typeof CURRENT !== "undefined" && CURRENT === "cuarto") go("recompensas");   // sin 3D, tu cuarto vive en su tarjeta
+  const L = typeof CURRENT !== "undefined" && CIELO_LUGARES[CURRENT];
+  if (L && L.libre) go(L.base);   // sin 3D, el lugar vive en su tarjeta
 }
 
 /* Dónde vive el 3D en cada pantalla: el cielo en Insignias y el cuarto del elefante en Progreso
@@ -191,7 +217,9 @@ function cieloSin3d() {
 const CIELO_LUGARES = {
   insignias: { lugar: "cielo", lienzo: "cieloLienzo", marco: ".cielo" },
   recompensas: { lugar: "casa", lienzo: "casaLienzo", marco: ".casa-card" },
-  cuarto: { lugar: "casa", lienzo: "lugarLienzo", marco: ".lugar", libre: true },
+  cuarto: { lugar: "casa", lienzo: "lugarLienzo", marco: ".lugar", libre: true, base: "recompensas" },
+  cielo: { lugar: "cielo", lienzo: "lugarLienzo", marco: ".lugar", libre: true, base: "insignias" },
+  camino: { lugar: "camino", lienzo: "lugarLienzo", marco: ".lugar", libre: true, base: "tendencias" },
   tendencias: { lugar: "camino", lienzo: "caminoLienzo", marco: ".camino-card" },
 };
 /* Tras cada render se monta (o se vuelve a colgar) el 3D de la pantalla; fuera de ellas, se pausa.
@@ -216,7 +244,7 @@ function montarLugar(route) {
   }).catch(() => {
     const sec = document.querySelector(L.marco); if (sec) sec.classList.remove("is-cargando");
     if (!CIELO_ESTADO.sin3d && sec) sec.classList.add("is-sin3d");
-    if (L.libre && CURRENT === route) go("recompensas");   // sin 3D no hay pantalla completa: vuelve a la tarjeta
+    if (L.libre && CURRENT === route) go(L.base);   // sin 3D no hay pantalla completa: vuelve a la tarjeta
   });
 }
 
@@ -251,7 +279,7 @@ function cercaEl() {
     else if (c === "nivel") cambiarInsignia(b.dataset.id);
     else if (c === "voltear" && CIELO_ESTADO.motor) CIELO_ESTADO.motor.voltear();
     else if (c === "siguiente") siguienteGanada();
-    else if (c === "alcielo") { cerrarInsignia(true, true); go("insignias"); }
+    else if (c === "alcielo") { cerrarInsignia(true, true); if (!(typeof lugarEntrar === "function" && lugarEntrar("cielo"))) go("insignias"); }
   });
   document.addEventListener("keydown", e => {
     if (!CERCA.id) return;

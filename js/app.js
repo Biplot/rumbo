@@ -29,6 +29,8 @@ const ROUTES = [
   { id: "tienda", pie: true, label: "Recompensas", icon: "🛒", render: renderTienda, subtitle: "Útiles, funciones y cosméticos para tus ⭐." },
   { id: "insignias", pie: true, label: "Recompensas", icon: "🏅", render: renderInsignias, subtitle: "Tus logros, con bronce, plata, oro y secretas." },
   { id: "cuarto", pie: true, lugar: true, label: "Tu cuarto", icon: "🏠", render: renderCuarto, subtitle: "Tu elefante en su cuarto, a pantalla completa." },
+  { id: "cielo", pie: true, lugar: true, label: "Tu cielo", icon: "✨", render: renderCielo, subtitle: "Tus medallas en el cielo, a pantalla completa." },
+  { id: "camino", pie: true, lugar: true, label: "Tu camino", icon: "🛤️", render: renderCamino, subtitle: "Tu año en un sendero, a pantalla completa." },
   { id: "cuenta", pie: true, label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
   { id: "notif", pie: true, label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
   { id: "tutoriales", pie: true, label: "Ayuda", icon: "🎓", render: renderTutoriales, subtitle: "Recorridos guiados para aprender Rumbo a tu ritmo." },
@@ -152,7 +154,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 25;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 26;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -336,6 +338,10 @@ const NOVEDADES = {
   25: [
     ["🐘", "Tu elefante, en 3D", "Ahora vive en su cuarto en 3D, con su tipo, su etapa y la ropa que le pusiste. Tócalo: salta, saluda o le salen corazones."],
     ["⤢", "Tu cuarto a pantalla completa", "Toca el cuarto en Progreso y se abre de borde a borde. Arrastra para mirarlo, pellizca para acercarte y sube la hoja para ver su ficha y su repisa."],
+  ],
+  26: [
+    ["✨", "Tu cielo a pantalla completa", "Toca el cielo en Insignias y llena la pantalla. Gíralo, pellizca para acercarte y elige una constelación en la hoja para ir hasta ella."],
+    ["🏝️", "Tu camino a pantalla completa", "Toca la isla en Tendencias: el año se recorre de borde a borde, cambias de año en la barra y la hoja trae tus trimestres y medallas."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1231,6 +1237,8 @@ function onClick(e) {
     case "ins-ver": abrirInsignia(d.id); break;
     case "cuarto-ver": cuartoVer(); break;
     case "cuarto-entrar": cuartoEntrar(); break;
+    case "lugar-entrar": lugarDesdeTarjeta({ cielo: "cielo", camino: "camino", cuarto: "casa" }[d.ruta]); break;
+    case "cielo-mirar": if (CIELO_ESTADO.motor) CIELO_ESTADO.motor.mirarFamilia(d.id); break;
     case "lugar-volver": lugarVolver(); break;
     case "hoja-alternar": hojaAlternar(); break;
     case "cuarto-decorar": cuartoDecorar(); break;

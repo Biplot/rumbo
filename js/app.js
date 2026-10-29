@@ -153,7 +153,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 29;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 30;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -354,6 +354,10 @@ const NOVEDADES = {
     ["🧭", "Norte, el tema de Rumbo", "Una aguja ámbar marca lo que sigue (abrir o cerrar tu día, tu racha, tus monedas) sobre tinta índigo. De día es la luz de la mañana; de noche, el mismo cielo de tu vitrina."],
     ["🌗", "Automático, ahora con Norte", "Rumbo sigue el modo de tu teléfono: Norte de día y Norte noche de noche. ¿Lo quieres fijo? Elige Norte o Norte noche en Recompensas → Tienda → Temas. Ruta y Ruta noche siguen ahí."],
     ["🎨", "Adiós a Navy y Claro", "Si usabas Navy ahora tienes Norte noche, y si usabas Claro, Norte: el mismo modo que tenías."],
+  ],
+  30: [
+    ["🎨", "Menos temas, mejores", "Grafito y Medianoche dejan la Tienda: se parecían a Ruta noche y a Norte noche, que son gratis. Si los compraste, te devolvimos tus estrellas, y si los usabas ahora tienes su gemelo gratis."],
+    ["🕘", "La hora se lee en todos los temas", "En el celular, Bosque Claro, Cuaderno y Sakura llevan la barra de arriba en su tinta oscura, para que la hora del iPhone no desaparezca."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1437,12 +1441,8 @@ const THEMES = [
   { id: "ruta-noche", nombre: "Ruta noche", base: "Base", concepto: "El diseño Ruta en oscuro: negro profundo, texto blanco y el mismo acento coral. Descansa la vista en la noche.", costo: 0,
     bg: "#0B0B0C", card: "#1F1F21", accent: "#FFFFFF", cta: "#FFFFFF", onCta: "#0B0B0C", text: "#F5F5F5", font: FONT_IT, fontDisplay: FONT_IT, radius: "14px", barra: "#0B0B0C" },
   /* --- Tienda --- */
-  { id: "grafito", nombre: "Grafito", base: "Tienda", concepto: "Modo oscuro neutro en grafito. Elegante y de bajo perfil.", costo: 400,
-    bg: "#111418", card: "#1A1E24", accent: "#39B9AE", cta: "#E8563A", onCta: "#FFFFFF", text: "#E9ECEF", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
-  { id: "medianoche", nombre: "Medianoche", base: "Tienda", concepto: "Oscuro con acento índigo. Sobrio pero con personalidad.", costo: 500,
-    bg: "#131A2C", card: "#1C2540", accent: "#8B93E8", cta: "#E8563A", onCta: "#FFFFFF", text: "#E7EAF4", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
   { id: "bosque-claro", nombre: "Bosque Claro", base: "Tienda", concepto: "Marfil, verde bosque y detalles dorados. Títulos con serifa clásica.", costo: 550,
-    bg: "#F7F5F0", card: "#FFFFFF", accent: "#C8A165", cta: "#16301F", onCta: "#F7F5F0", text: "#0A140E", font: FONT_MULISH, fontDisplay: FONT_CORMORANT, radius: "12px" },
+    bg: "#F7F5F0", card: "#FFFFFF", accent: "#C8A165", cta: "#16301F", onCta: "#F7F5F0", text: "#0A140E", font: FONT_MULISH, fontDisplay: FONT_CORMORANT, radius: "12px", barra: "#16301F" },
   { id: "bosque-oscuro", nombre: "Bosque Oscuro", base: "Tienda", concepto: "Verde profundo con acento dorado. Sobrio, cálido y con carácter.", costo: 650,
     bg: "#0A140E", card: "#0F1F16", accent: "#C8A165", cta: "#C8A165", onCta: "#0A140E", text: "#F7F5F0", font: FONT_MULISH, fontDisplay: FONT_CORMORANT, radius: "12px" },
   { id: "atardecer", nombre: "Atardecer", base: "Tienda", concepto: "Violeta profundo con acento durazno. Cálido para cerrar el día.", costo: 800,
@@ -1450,11 +1450,11 @@ const THEMES = [
   { id: "oceano", nombre: "Océano", base: "Tienda", concepto: "Azul petróleo y turquesa. Fresco y tranquilo.", costo: 800,
     bg: "#06222A", card: "#0B2F38", accent: "#39D0E0", cta: "#FFB84D", onCta: "#2A1A00", text: "#E6F4F5", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
   { id: "cuaderno", nombre: "Cuaderno", base: "Tienda", concepto: "Papel crema, tinta azul y títulos con serifa. Como un bullet journal.", costo: 900,
-    bg: "#F4EFE3", card: "#FFFDF7", accent: "#2F4B7C", cta: "#B23A2E", onCta: "#FFFFFF", text: "#1F2A3D", font: "'Karla',sans-serif", fontDisplay: "'Fraunces',Georgia,serif", radius: "12px" },
+    bg: "#F4EFE3", card: "#FFFDF7", accent: "#2F4B7C", cta: "#B23A2E", onCta: "#FFFFFF", text: "#1F2A3D", font: "'Karla',sans-serif", fontDisplay: "'Fraunces',Georgia,serif", radius: "12px", barra: "#24395F" },
   { id: "terminal", nombre: "Terminal", base: "Tienda", concepto: "Negro y verde fósforo con letra monoespaciada. Para los más técnicos.", costo: 1000,
     bg: "#0A0F0B", card: "#0F1711", accent: "#39FF88", cta: "#FFB000", onCta: "#1A1100", text: "#D8FFE4", font: "'IBM Plex Mono',monospace", fontDisplay: "'IBM Plex Mono',monospace", radius: "6px" },
   { id: "sakura", nombre: "Sakura", base: "Tienda", concepto: "Rosado suave y verde hoja. Claro y liviano.", costo: 900,
-    bg: "#FFF6F7", card: "#FFFFFF", accent: "#E26D8A", cta: "#4F7A39", onCta: "#FFFFFF", text: "#3A2230", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
+    bg: "#FFF6F7", card: "#FFFFFF", accent: "#E26D8A", cta: "#4F7A39", onCta: "#FFFFFF", text: "#3A2230", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px", barra: "#3A2230" },
   { id: "alto-contraste", nombre: "Alto contraste", base: "Accesibilidad", concepto: "Negro, blanco y amarillo, pensado para leer mejor. Gratis.", costo: 0,
     bg: "#000000", card: "#0B0B0B", accent: "#FFD400", cta: "#FFFFFF", onCta: "#000000", text: "#FFFFFF", font: FONT_SG, fontDisplay: FONT_SG, radius: "12px" },
 ];

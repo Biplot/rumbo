@@ -48,13 +48,13 @@ console.log("Fusión de monedas (ledger)");
 test("(a) comprar en A y abrir B con estado viejo (v43): saldo menor, artículo una vez", () => {
   const base = migrate(estadoViejo(1000, 1000));
   const A = clone(base);
-  assert.equal(ledgerComprar(A, "tema-grafito", 400).ok, true);
+  assert.equal(ledgerComprar(A, "tema-oceano", 400).ok, true);
   const nube = clone(A);
   const B = estadoViejo(1000, 1000); // PC con estado local viejo, anterior al ledger
   const r = cargar(nube, B);
   assert.equal(r.gamif.puntos, 600);
-  assert.equal(r.gamif.owned.filter(x => x === "tema-grafito").length, 1);
-  assert.equal(r.gamif.ledger.filter(m => m.id === "compra:tema-grafito").length, 1);
+  assert.equal(r.gamif.owned.filter(x => x === "tema-oceano").length, 1);
+  assert.equal(r.gamif.ledger.filter(m => m.id === "compra:tema-oceano").length, 1);
 });
 
 test("(a') comprar en A y abrir B con ledger viejo: saldo menor, artículo una vez", () => {
@@ -118,25 +118,25 @@ test("(d) marcar / desmarcar / volver a marcar un hábito en equipos distintos: 
 test("(e) comprar lo mismo en A y B sin conexión: se cobra una vez", () => {
   const base = migrate(estadoViejo(1000, 1000));
   const A = clone(base), B = clone(base);
-  ledgerComprar(A, "tema-medianoche", 500, 1000);
-  ledgerComprar(B, "tema-medianoche", 500, 2000);
+  ledgerComprar(A, "tema-atardecer", 500, 1000);
+  ledgerComprar(B, "tema-atardecer", 500, 2000);
   const r = cargar(A, B);
   assert.equal(r.gamif.puntos, 500);
-  assert.equal(r.gamif.owned.filter(x => x === "tema-medianoche").length, 1);
+  assert.equal(r.gamif.owned.filter(x => x === "tema-atardecer").length, 1);
 });
 
 test("migración idempotente: insignias y compras previas no se pagan ni cobran de nuevo", () => {
-  const v = estadoViejo(800, 1500, { badges: ["primer-paso"], owned: ["tema-grafito"] });
+  const v = estadoViejo(800, 1500, { badges: ["primer-paso"], owned: ["tema-oceano"] });
   const m1 = migrate(clone(v));
   const m2 = migrate(clone(m1));
   for (const r of [m1, m2]) {
     assert.equal(r.gamif.puntos, 800);
     assert.equal(r.gamif.xp, 1500);
-    assert.ok(r.gamif.owned.includes("tema-grafito"));
+    assert.ok(r.gamif.owned.includes("tema-oceano"));
   }
   assert.equal(m2.gamif.ledger.length, m1.gamif.ledger.length);
   assert.equal(ledgerRegistrar(m2, "insignia:primer-paso", 20, 20), false);
-  assert.equal(ledgerComprar(m2, "tema-grafito", 400).ok, false);
+  assert.equal(ledgerComprar(m2, "tema-oceano", 400).ok, false);
   assert.equal(m2.gamif.puntos, 800);
 });
 

@@ -153,7 +153,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 31;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 32;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -362,6 +362,9 @@ const NOVEDADES = {
   31: [
     ["🌗", "Ruta y Bosque, también automáticos", "Como Norte, ahora siguen el modo de tu teléfono: Ruta automático es gratis y Bosque automático se activa cuando tienes Bosque Claro y Bosque Oscuro. Están en Recompensas → Tienda → Temas."],
     ["🔄", "Rumbo se actualiza solo", "Cuando sale una versión nueva, la app se recarga al abrirla. Si la estás usando, te avisa para que actualices cuando quieras."],
+  ],
+  32: [
+    ["📲", "Arriba, sin difuminado", "En el iPhone, la hora ahora va en una barra sólida del color de tu tema, sin el difuminado de iOS 26. Si ya tenías Rumbo en tu pantalla de inicio, bórralo y agrégalo de nuevo desde Safari para estrenarla."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1114,6 +1117,7 @@ function onClick(e) {
 
     /* Ciclo del día */
     case "day-open": openRitualModal(); break;
+    case "aviso-reinstalar-ok": try { localStorage.setItem("rumbo-aviso-reinstalar", "1"); } catch (e) {} rerender(); break;
     case "mision-barra": openRitualModal({ foco: "r-mision" }); break;
     case "mision-reciente": openRitualModal({ mision: d.txt, foco: "r-sapo" }); break;
     case "day-close": openCierreModal(d.date); break;
@@ -1377,6 +1381,12 @@ function applyTheme(t) {
   // El color del navegador (Android) y de la barra de estado sigue a la barra de arriba del tema
   const meta = document.querySelector('meta[name="theme-color"]'), th = THEMES.find(x => x.id === id);
   if (meta && th) meta.setAttribute("content", th.barra || th.bg);
+  // Para la próxima vez que se abra: el tema de día y de noche, y su color de barra, antes de que cargue el código
+  try {
+    const base = THEMES.find(x => x.id === t) ? t : DEFAULT_THEME, par = parDeTema(base) || [id, id];
+    const barra = x => { const y = THEMES.find(z => z.id === x) || {}; return y.barra || y.bg; };
+    localStorage.setItem("rumbo-tema-inicio", JSON.stringify({ t: par, c: par.map(barra) }));
+  } catch (e) {}
 }
 /* Fuentes por tema: se piden solo al usar el tema (o su vista previa) */
 const THEME_FONTS = {
@@ -1794,6 +1804,24 @@ function segPick(btn, hiddenId) {
 /* ============================================================
    INICIO (dashboard)
    ============================================================ */
+/* La app instalada antes de v94 lleva la barra de estado translúcida (iOS la guarda al instalar): ahí el iPhone
+   difumina el borde de arriba. Se nota porque la página empieza bajo la hora (safe-area de arriba > 0). */
+function instalacionAntigua() {
+  if (navigator.standalone !== true) return false;
+  const d = document.createElement("div");
+  d.style.cssText = "position:fixed;top:0;left:0;width:1px;height:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none";
+  document.body.appendChild(d); const h = d.offsetHeight; d.remove();
+  return h > 0;
+}
+function avisoReinstalarHtml() {
+  try { if (localStorage.getItem("rumbo-aviso-reinstalar")) return ""; } catch (e) { return ""; }
+  if (!instalacionAntigua()) return "";
+  return `<div class="card aviso-reinstalar" style="margin-bottom:20px">
+    <div class="card__title">📲 Quita el difuminado de arriba</div>
+    <p class="text-sm soft" style="margin:6px 0 12px">Tu iPhone guardó la barra de arriba de cuando agregaste Rumbo a tu pantalla de inicio. Para estrenar la nueva, sin difuminado: borra el ícono de Rumbo, abre <b>${escapeHtml(location.host)}</b> en Safari y toca Compartir → Agregar a pantalla de inicio. Tus datos están en tu cuenta: solo tendrás que volver a entrar.</p>
+    <button class="btn btn--soft" data-action="aviso-reinstalar-ok">Entendido</button></div>`;
+}
+
 function renderInicio() {
   const s = STATE;
   ensureCurrentWeek();
@@ -1866,6 +1894,7 @@ function renderInicio() {
   </div>`;
 
   return `
+  ${avisoReinstalarHtml()}
   ${renderPendingYesterday()}
   ${renderTrimestreBanner()}
   ${renderMesBanner()}

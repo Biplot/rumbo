@@ -58,7 +58,33 @@ module.exports = async ({ b, ok, errs }) => {
   await p.emulateMedia({ colorScheme: "light" });
   ok(bDia === "bosque-auto bosque-claro true" && bNoche === "bosque-oscuro", `al completar el par se aplica Bosque automático: de día Bosque Claro y de noche Bosque Oscuro (${bDia} · ${bNoche})`);
 
-  // 4) Quien usaba Grafito y lo compró: al cargar pasa a Ruta noche y recupera sus estrellas
+  // 4) Sin barra de estado translúcida (iOS 26.1+ difumina el borde de arriba con ella); la de estado toma theme-color
+  const html = await p.evaluate(async () => (await fetch("./")).text());
+  ok(!/apple-mobile-web-app-status-bar-style"\s+content/.test(html) && /name="theme-color"/.test(html), "el HTML ya no pide la barra de estado translúcida y conserva theme-color");
+  const alto = await p.evaluate(() => [getComputedStyle(document.documentElement).getPropertyValue("--alto-app").trim(), innerHeight + "px", getComputedStyle(document.querySelector(".app")).minHeight]);
+  ok(alto[0] === alto[1] && alto[2] === alto[1], "la app mide el alto real de la pantalla, no 100vh: " + alto.join(" · "));
+  await usar("bosque-auto"); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => localStorage.getItem("rumbo-tema-inicio")) === '{"t":["bosque-claro","bosque-oscuro"],"c":["#16301F","#0A140E"]}', "el tema y su color de barra (de día y de noche) quedan guardados para la próxima apertura");
+  await usar("alto-contraste"); await p.waitForTimeout(100);
+  {
+    // Abrir de nuevo sin que corra el código de la app: el tema y el color de la barra ya vienen desde el inicio
+    const q = await ctx.newPage();
+    await q.route("**/js/app.js*", r => r.abort());
+    await q.goto(URL); await q.waitForTimeout(300);
+    const pre = await q.evaluate(() => [document.documentElement.dataset.theme, document.querySelector('meta[name="theme-color"]').content]);
+    ok(pre.join(" ") === "alto-contraste #000000", "al abrir, el tema y el color de la barra de estado se ponen antes de cargar el código: " + pre.join(" · "));
+    await q.close();
+  }
+  // Aviso para quien instaló la app antes del cambio (iOS guarda la forma de la barra al instalar)
+  await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
+  ok(await p.locator("#view .aviso-reinstalar").count() === 0, "fuera de la app instalada de antes no hay aviso de reinstalar");
+  await p.evaluate(() => { window.instalacionAntigua = () => true; rerender(); });
+  await p.waitForTimeout(150);
+  ok(/borra el ícono de Rumbo/.test(await p.locator("#view .aviso-reinstalar").innerText()), "en la app instalada de antes, Inicio explica cómo quitar el difuminado");
+  await p.click('#view [data-action="aviso-reinstalar-ok"]'); await p.waitForTimeout(150);
+  ok(await p.locator("#view .aviso-reinstalar").count() === 0 && await p.evaluate(() => localStorage.getItem("rumbo-aviso-reinstalar")) === "1", "con «Entendido» el aviso se va y no vuelve");
+
+  // 5) Quien usaba Grafito y lo compró: al cargar pasa a Ruta noche y recupera sus estrellas
   await p.evaluate(() => { ledgerRegistrar(STATE, "saldo-temas", 400, 0, "t"); ledgerComprar(STATE, "tema-grafito", 400); STATE.settings.theme = "grafito"; STATE.settings.temaElegido = "grafito"; saveState(); });
   const antes = await p.evaluate(() => STATE.gamif.puntos);
   await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(500);
@@ -66,7 +92,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(tras.tema === "ruta-noche" && tras.dom === "ruta-noche" && tras.puntos === antes + 400 && !tras.tuyo, `Grafito pasa a Ruta noche y devuelve sus 400 ⭐ (${antes} → ${tras.puntos})`);
   await ctx.close();
 
-  // 5) En el computador, los claros de la Tienda mantienen su barra clara
+  // 6) En el computador, los claros de la Tienda mantienen su barra clara
   const c2 = await nuevoContexto(b, { w: 1360, h: 860, fecha: "2026-10-29T10:00:00" });
   const p2 = await c2.newPage(); p2.on("pageerror", e => errs.push(e.message));
   await registrar(p2, "temas-esc@test.cl");

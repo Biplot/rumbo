@@ -1,8 +1,8 @@
-/* Pruebas en navegador · Tu casa y tu vitrina desde Inicio, y la vida de tu elefante en su casa:
-   los dos botones abren la pantalla completa al tiro (y el elefante del día lleva a su casa); al entrar,
-   tu elefante hace lo que contaba Inicio; camina a su rincón y hace cosas (duerme, mira por la ventana,
-   le hace cariño al gato); hace solo lo que permite su cuarto; tocarlo lo interrumpe.
-   Sin WebGL, los botones llevan a Progreso y a Insignias */
+/* Pruebas en navegador · Tu casa y tu vitrina desde las puertas de la barra de arriba, y la vida de tu elefante:
+   Inicio ya no tiene tarjetas de Tu casa ni de Tu vitrina; la cara de tu elefante y la estrella abren la
+   pantalla completa al tiro (y el elefante del día lleva a su casa); al entrar, tu elefante hace lo que cuenta
+   su puerta; camina a su rincón y hace cosas (duerme, mira por la ventana, le hace cariño al gato); hace solo
+   lo que permite su cuarto; tocarlo lo interrumpe. Sin WebGL, las puertas abren cada lugar como página */
 const { chromium, URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 async function preparar(p, email) {
   await registrar(p, email);
@@ -31,14 +31,21 @@ module.exports = async ({ b, ok, errs }) => {
     await preparar(p, "casa-vida@test.cl");
     await p.goto(URL + "#inicio"); await p.waitForTimeout(500);
     const ahora = await p.evaluate(() => { const a = eleActividadAhora(STATE); return { id: a.id, txt: a.txt }; });
-    ok(await p.locator("#view .mundo__b").count() === 2 && (await p.locator(".mundo__b--casa small").innerText()).toLowerCase().includes(ahora.txt), "Inicio tiene Tu casa y Tu vitrina; tu casa cuenta lo que hace tu elefante ahora");
-    ok((await p.locator(".mundo__b--vitrina small").innerText()) === "2 medallas de 56" && await p.locator(".mundo__b--vitrina .med-chip__m").count() === 2, "tu vitrina cuenta tus medallas y muestra las últimas");
+    ok(await p.locator("#view .mundo__b, #view .mundo").count() === 0, "Inicio ya no tiene las tarjetas de Tu casa y Tu vitrina");
+    ok((await p.locator("#puertaCasa").getAttribute("aria-label")).includes(ahora.txt) && await p.locator("#puertaZ").isHidden() === (ahora.id !== "siesta"),
+      "la cara de tu elefante (arriba) cuenta lo que hace ahora, con una «z» solo si duerme la siesta");
+    ok((await p.locator("#puertaN").innerText()) === "2" && (await p.locator("#puertaVitrina").getAttribute("aria-label")).startsWith("Tu vitrina: 2 de 56 medallas"), "la estrella cuenta tus medallas");
+    // Una medalla que el cielo todavía no te mostró: la estrella lleva un punto
+    await p.evaluate(() => { cieloGuardarVisto(["primer-paso"]); });
+    ok(await p.locator("#puertaNuevo").isVisible() && (await p.locator("#puertaVitrina").getAttribute("aria-label")).includes("1 nueva"), "si hay una medalla que no viste en el cielo, la estrella lleva un punto");
+    await p.evaluate(() => { cieloGuardarVisto(STATE.gamif.badges.slice()); });
+    ok(await p.locator("#puertaNuevo").isHidden(), "y se apaga cuando ya la viste");
     await shot(p, "casa-vida-inicio");
 
-    // Tu casa: un toque y a pantalla completa; tu elefante está en lo que decía Inicio
-    await p.click(".mundo__b--casa"); await en(p, "cuarto", true); await p.waitForTimeout(600);
-    ok(await p.evaluate(() => document.body.classList.contains("en-lugar")) && (await p.locator(".lugar__t b").innerText()) === "Tu casa", "un toque en Tu casa la abre a pantalla completa");
-    ok((await rut(p)).act === ahora.id && (await p.locator("#cuaAhora").innerText()).includes(ahora.txt), "y tu elefante está haciendo lo que decía Inicio (la hoja lo cuenta)");
+    // Tu casa: un toque y a pantalla completa; tu elefante está en lo que decía su puerta
+    await p.click("#puertaCasa"); await en(p, "cuarto", true); await p.waitForTimeout(600);
+    ok(await p.evaluate(() => document.body.classList.contains("en-lugar")) && (await p.locator(".lugar__t b").innerText()) === "Tu casa", "un toque en la cara de tu elefante abre Tu casa a pantalla completa");
+    ok((await rut(p)).act === ahora.id && (await p.locator("#cuaAhora").innerText()).includes(ahora.txt), "y tu elefante está haciendo lo que decía su puerta (la hoja lo cuenta)");
     // Las medallas de la repisa no se tapan entre sí
     const rep = await p.evaluate(() => CIELO_ESTADO.motor.cajasRepisa());
     ok(rep.length === 2 && rep.every((a, i) => rep.every((b, j) => j <= i || Math.min(a.x1, b.x1) <= Math.max(a.x0, b.x0) || Math.min(a.y1, b.y1) <= Math.max(a.y0, b.y0))), "en la repisa, cada medalla en su lugar, sin tapar a la de al lado");
@@ -66,8 +73,8 @@ module.exports = async ({ b, ok, errs }) => {
     await p.keyboard.press("Escape"); await en(p, "inicio");
     ok(await p.evaluate(() => CURRENT === "inicio" && !document.body.classList.contains("en-lugar")), "Escape vuelve a Inicio");
     // Tu vitrina: un toque y a pantalla completa
-    await p.click(".mundo__b--vitrina"); await en(p, "cielo", true); await p.waitForTimeout(500);
-    ok((await p.locator(".lugar__t b").innerText()) === "Tu vitrina" && (await p.locator(".lugar__t small").innerText()).startsWith("2 de 56 medallas"), "un toque en Tu vitrina abre tus medallas a pantalla completa");
+    await p.click("#puertaVitrina"); await en(p, "cielo", true); await p.waitForTimeout(500);
+    ok((await p.locator(".lugar__t b").innerText()) === "Tu vitrina" && (await p.locator(".lugar__t small").innerText()).startsWith("2 de 56 medallas"), "un toque en la estrella abre tus medallas a pantalla completa");
     await p.keyboard.press("Escape"); await en(p, "inicio");
     // El elefante de tu día también lleva a su casa
     await p.click(".ele-hero"); await en(p, "cuarto", true);
@@ -76,7 +83,7 @@ module.exports = async ({ b, ok, errs }) => {
   }
   await b3.close();
 
-  // Sin WebGL: los botones llevan a la tarjeta de cada lugar
+  // Sin WebGL: las puertas abren cada lugar como página (y el elefante del día, su casa)
   {
     const ctx = await nuevoContexto(b, { fecha: "2026-10-28T15:00:00", w: 390, h: 844 });
     await ctx.addInitScript(() => {
@@ -86,11 +93,13 @@ module.exports = async ({ b, ok, errs }) => {
     const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
     await preparar(p, "casa-vida-plano@test.cl");
     await p.goto(URL + "#inicio"); await p.waitForTimeout(400);
-    await p.click(".mundo__b--casa"); await en(p, "recompensas");
-    ok(await p.evaluate(() => CURRENT === "recompensas") && await p.locator(".casa-card.is-sin3d").count() === 1, "sin WebGL, Tu casa lleva a Progreso, con tu elefante de siempre");
+    await p.click("#puertaCasa"); await en(p, "cuarto"); await p.waitForTimeout(2500);
+    ok(await p.evaluate(() => CURRENT === "cuarto" && !document.body.classList.contains("en-lugar")) && await p.locator(".lugar-plano .ele-svg").isVisible(), "sin WebGL, la cara de tu elefante abre Tu casa como página, con tu elefante dibujado");
+    await p.click("#puertaVitrina"); await en(p, "cielo"); await p.waitForTimeout(800);
+    ok(await p.evaluate(() => CURRENT === "cielo") && await p.locator(".lugar-plano .med-chip").count() === 56, "y la estrella abre Tu vitrina como lista");
     await p.goto(URL + "#inicio"); await p.waitForTimeout(400);
-    await p.click(".mundo__b--vitrina"); await en(p, "insignias");
-    ok(await p.evaluate(() => CURRENT === "insignias"), "y Tu vitrina, a Insignias");
+    await p.click(".ele-hero"); await en(p, "cuarto"); await p.waitForTimeout(800);
+    ok(await p.evaluate(() => CURRENT === "cuarto"), "el elefante de tu día también lleva a su casa, sin 3D");
     await ctx.close();
   }
 };

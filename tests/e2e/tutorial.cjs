@@ -40,8 +40,10 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.locator("#tour").count() === 0 && await p.evaluate(() => STATE.settings.tutorial.vistos.semana > 0), "Esc la cierra y queda vista");
   await p.goto(URL + "#habitos"); await p.waitForTimeout(100); await p.goto(URL + "#semana"); await p.waitForTimeout(1100);
   ok(await p.locator("#tour").count() === 0, "no se repite sola");
-  await p.click("#helpBtn"); await p.waitForTimeout(300);
-  ok((await p.locator(".tour-pop__t").innerText()) === "Muévete entre semanas", "el botón ? la repite");
+  ok(await p.locator("#helpBtn").isHidden(), "en el celular no hay «?» arriba (van las puertas a Tu casa y Tu vitrina)");
+  await p.click("#bbMas"); await p.waitForTimeout(300);
+  await p.click('.mas-fila[data-action="tour-pantalla"]'); await p.waitForTimeout(400);
+  ok((await p.locator(".tour-pop__t").innerText()) === "Muévete entre semanas" && await p.evaluate(() => document.getElementById("masOverlay").hidden), "Más › Ayuda de esta pantalla la repite");
   await p.click('[data-action="tour-salir"]'); await p.waitForTimeout(150);
   // Un paso cuyo elemento no existe se salta (no se queda pegado)
   const saltos = await p.evaluate(async () => {

@@ -112,24 +112,10 @@ function cieloInfo(id, s = STATE) {
 function cieloEncendidas(fam, s = STATE) { const g = (s.gamif && s.gamif.badges) || []; return fam.ids.filter(id => g.includes(id)).length; }
 function cieloCompletas(s = STATE) { return CIELO_FAMILIAS.filter(f => f.fig && cieloEncendidas(f, s) === f.ids.length).length; }
 
-/* -------- El cielo en la pantalla de Insignias -------- */
 function cieloTactil() { return typeof window !== "undefined" && !!(window.matchMedia && matchMedia("(pointer: coarse)").matches); }
-function cieloHtml(g) {
-  const orden = cieloOrden(), n = orden.filter(id => g.badges.includes(id)).length, c = cieloCompletas();
-  return `<section class="cielo${CIELO_ESTADO.sin3d ? " is-sin3d" : ""}" id="cielo" data-gesto aria-label="Tu vitrina de medallas">
-    <div class="cielo__lienzo" id="cieloLienzo" role="img" aria-label="Tu vitrina: ${n} de ${orden.length} medallas encendidas en el cielo. Abajo está la lista para verlas una por una."></div>
-    <div class="cielo__cab"><div class="cielo__t">Tu vitrina</div>
-      <div class="cielo__s">${n} de ${orden.length} medallas · ${c === 1 ? "1 constelación completa" : `${c} constelaciones completas`}</div></div>
-    <div class="cielo__etq" id="cieloEtq" hidden></div>
-    <div class="cielo__pista">${cieloTactil() ? "Toca una medalla para verla de cerca" : "Haz clic en una medalla para verla de cerca · arrastra para mirar"}</div>
-    <button type="button" class="lugar-abrir" data-action="lugar-entrar" data-ruta="cielo" aria-label="Ver tu vitrina a pantalla completa">${typeof iconoLinea === "function" ? iconoLinea("expandir", 18) : "⤢"}</button>
-    <div class="cielo__carga" aria-hidden="true">Encendiendo el cielo…</div>
-  </section>`;
-}
 
 /* -------- Tu vitrina a pantalla completa (ruta #cielo, lugar.js): tus medallas en el cielo y, en la hoja, todas por familia -------- */
 function renderCielo() {
-  if (CIELO_ESTADO.sin3d) { setTimeout(() => go("insignias"), 0); return renderInsignias(); }
   const g = STATE.gamif, orden = cieloOrden(), n = orden.filter(id => g.badges.includes(id)).length, c = cieloCompletas(), tactil = cieloTactil();
   const chip = id => {
     const b = findBadge(id), tiene = g.badges.includes(id), oculta = b.secreta && !tiene;
@@ -143,7 +129,13 @@ function renderCielo() {
   const cab = `<div class="hoja__t">✨ ${tactil ? "Toca" : "Haz clic en"} una medalla para verla de cerca</div>
     <div class="hoja__s">Arrastra para mirar el cielo y ${tactil ? "pellizca" : "usa la rueda"} para acercarte. Toca una constelación para ir a ella.</div>
     <div class="hoja__bts">${CIELO_FAMILIAS.filter(f => f.fig).map(f => `<button class="hb" data-action="cielo-mirar" data-id="${f.id}">${f.n} ${cieloEncendidas(f)}/${f.ids.length}</button>`).join("")}</div>`;
-  const cuerpo = `${familias}<button class="btn-ghost btn-block mt-8" data-route="insignias">Ver la lista con el progreso de cada una</button>`;
+  const cuerpo = familias;
+  if (CIELO_ESTADO.sin3d) {
+    // Sin 3D: la misma lista, como página; las medallas que ves aquí ya cuentan como vistas
+    cieloGuardarVisto(g.badges.slice());
+    return lugarPlanoHtml({ titulo: "Tu vitrina", sub: `${n} de ${orden.length} medallas · ${c === 1 ? "1 constelación completa" : `${c} constelaciones completas`}`,
+      cab: `<div class="hoja__t">✨ Toca una medalla para verla de cerca</div><div class="hoja__s">Tus medallas por constelación, con las que te faltan.</div>`, cuerpo });
+  }
   return lugarHtml({
     lienzo: "lugarLienzo", titulo: "Tu vitrina", sub: `${n} de ${orden.length} medallas · ${c === 1 ? "1 constelación completa" : `${c} constelaciones completas`}`,
     oscuro: true, fondo: "#05060C", aria: `Tu vitrina: ${n} de ${orden.length} medallas encendidas en el cielo. En la hoja de abajo están todas, por familia.`,
@@ -208,20 +200,16 @@ function cieloMotor() {
 }
 function cieloSin3d() {
   if (window.THREE) CIELO_ESTADO.sin3d = true;
-  const sec = document.getElementById("cielo"); if (sec) sec.classList.add("is-sin3d");
-  document.querySelectorAll(".casa-card").forEach(c => c.classList.add("is-sin3d"));
   if (CERCA.id) pintarCerca();
   const L = typeof CURRENT !== "undefined" && CIELO_LUGARES[CURRENT];
-  if (L && L.libre) go(L.base);   // sin 3D, el lugar vive en su tarjeta
+  if (L && CIELO_ESTADO.sin3d) { document.body.classList.remove("en-lugar"); rerender(); }   // sin 3D, el lugar es una página
 }
 
-/* Dónde vive el 3D en cada pantalla: el cielo en Insignias y en Tu vitrina, y el cuarto del elefante
-   en Progreso (en su tarjeta) y en Tu casa (a pantalla completa, libre: se gira y se acerca) */
+/* Dónde vive el 3D: el cuarto de tu elefante en Tu casa y el cielo en Tu vitrina, los dos a pantalla
+   completa (libre: se giran y se acercan) */
 const CIELO_LUGARES = {
-  insignias: { lugar: "cielo", lienzo: "cieloLienzo", marco: ".cielo" },
-  recompensas: { lugar: "casa", lienzo: "casaLienzo", marco: ".casa-card" },
-  cuarto: { lugar: "casa", lienzo: "lugarLienzo", marco: ".lugar", libre: true, base: "recompensas" },
-  cielo: { lugar: "cielo", lienzo: "lugarLienzo", marco: ".lugar", libre: true, base: "insignias" },
+  cuarto: { lugar: "casa", lienzo: "lugarLienzo", marco: ".lugar", libre: true },
+  cielo: { lugar: "cielo", lienzo: "lugarLienzo", marco: ".lugar", libre: true },
 };
 /* Tras cada render se monta (o se vuelve a colgar) el 3D de la pantalla; fuera de ellas, se pausa.
    Una ficha abierta manda: sigue abierta mientras no cambies de pantalla */
@@ -244,15 +232,14 @@ function montarLugar(route) {
     if (c2 && CURRENT === route && !CERCA.id) listo(m);
   }).catch(() => {
     const sec = document.querySelector(L.marco); if (sec) sec.classList.remove("is-cargando");
-    if (!CIELO_ESTADO.sin3d && sec) sec.classList.add("is-sin3d");
-    if (L.libre && CURRENT === route) go(L.base);   // sin 3D no hay pantalla completa: vuelve a la tarjeta
+    if (CURRENT === route && CIELO_ESTADO.sin3d) { document.body.classList.remove("en-lugar"); rerender(); }   // sin 3D, el lugar es una página
   });
 }
 
 /* Medallas que el cielo ya mostró en este equipo: las nuevas llegan como estrella fugaz */
 const CIELO_CLAVE_VISTO = "rumbo-cielo-visto";
 function cieloVisto() { try { const v = JSON.parse(localStorage.getItem(CIELO_CLAVE_VISTO) || "null"); return Array.isArray(v) ? v : null; } catch (e) { return null; } }
-function cieloGuardarVisto(ids) { try { localStorage.setItem(CIELO_CLAVE_VISTO, JSON.stringify(ids)); } catch (e) {} }
+function cieloGuardarVisto(ids) { try { localStorage.setItem(CIELO_CLAVE_VISTO, JSON.stringify(ids)); } catch (e) {} if (typeof pintarPuertas === "function") pintarPuertas(); }
 
 /* -------- De cerca: la medalla grande y su ficha (modo "ver") o el momento de ganarla ("ganar") -------- */
 const CERCA = { id: null, modo: "ver", cola: [], i: 0, ruta: null, volver: null, hist: false };
@@ -280,7 +267,7 @@ function cercaEl() {
     else if (c === "nivel") cambiarInsignia(b.dataset.id);
     else if (c === "voltear" && CIELO_ESTADO.motor) CIELO_ESTADO.motor.voltear();
     else if (c === "siguiente") siguienteGanada();
-    else if (c === "alcielo") { cerrarInsignia(true, true); if (!(typeof lugarEntrar === "function" && lugarEntrar("cielo"))) go("insignias"); }
+    else if (c === "alcielo") { cerrarInsignia(true, true); if (!(typeof lugarEntrar === "function" && lugarEntrar("cielo"))) go("cielo"); }
   });
   document.addEventListener("keydown", e => {
     if (!CERCA.id) return;
@@ -314,14 +301,14 @@ function fichaCercaHtml(I) {
       }).join("")}</div>` : "";
   const constel = fam && fam.fig
     ? `<div class="ins-cerca__const">Estrella de <b>${fam.fig}</b> · ${cieloEncendidas(fam)} de ${fam.ids.length} encendidas</div>` : "";
-  const destacada = g.equipped && g.equipped.insignia === I.id;
+  const enRepisa = typeof repisaIds === "function" && repisaIds(STATE).includes(I.id);
   return `<div class="ins-cerca__fam">${I.fam === "secretas" ? "Secreta" : escapeHtml(fam ? fam.n : "Insignia")} · ${M.n}</div>
     <h2 class="ins-cerca__t" id="insCercaT">${escapeHtml(nombre)}</h2>
     <p class="ins-cerca__desc">${escapeHtml(desc)}</p>
     ${estado}${niveles}${constel}
     <div class="ins-cerca__acc">
       ${CIELO_ESTADO.motor && !CIELO_ESTADO.sin3d ? `<button class="btn btn--soft" data-c="voltear">↻ Dar vuelta</button>` : ""}
-      ${I.gano ? `<button class="btn btn--linea" data-action="badge-destacar" data-id="${I.id}">${destacada ? "★ Destacada" : "Destacar"}</button>` : ""}
+      ${I.gano && typeof repisaMedalla === "function" ? `<button class="btn btn--linea" data-action="repisa-medalla" data-id="${I.id}" aria-pressed="${enRepisa}">${enRepisa ? "✓ En tu repisa" : "🏅 Poner en tu repisa"}</button>` : ""}
     </div>`;
 }
 /* La ficha del momento de ganar: qué ganaste y qué se encendió en tu cielo */

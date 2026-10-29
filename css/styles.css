@@ -1887,37 +1887,6 @@ html[data-theme^="ruta"] .modal__head h3 { font-size: 20px; font-weight: 800; le
     border: 0; border-radius: 16px; background: var(--surface-2); color: var(--text); font: inherit; font-size: 12px; font-weight: 600;
     overflow-wrap: anywhere; text-align: center; transition: transform .12s, background .15s; }
 }
-/* Inicio: tu casa y tu vitrina, dos botones que llevan directo a la pantalla completa */
-.mundo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0 0 22px; }
-.mundo__b { display: flex; flex-direction: column; padding: 0; border: 1px solid var(--line); border-radius: 20px; overflow: hidden;
-  background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
-.mundo__b:hover { box-shadow: 0 6px 18px rgba(20,24,40,.10); }
-.mundo__b:active { transform: scale(.97); }
-.mundo__b:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
-.mundo__dib { position: relative; display: block; height: 118px; overflow: hidden; }
-.mundo__ir { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
-  background: rgba(255,255,255,.78); color: #2A2A2E; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-.mundo__b--casa .mundo__dib { background: repeating-linear-gradient(90deg, #E2E8EB 0 12px, #D9E0E4 12px 24px) top / 100% 62% no-repeat,
-  repeating-linear-gradient(180deg, #E6C39A 0 14px, #DDB78B 14px 15px) bottom / 100% 38% no-repeat; }
-.mundo__vent { position: absolute; left: 14px; top: 14px; width: 34px; height: 30px; border-radius: 3px; background: linear-gradient(180deg, #7DB9E8, #CFE8F7 75%, #9CCB7E 76%);
-  box-shadow: 0 0 0 3px #F7F5F0, 0 2px 6px rgba(0,0,0,.12); }
-.mundo__alf { position: absolute; left: 50%; bottom: 8px; width: 104px; height: 30px; margin-left: -52px; border-radius: 50%;
-  background: radial-gradient(closest-side, #E4532F 0 34%, #F4EDE3 35% 50%, #E4532F 51% 100%); }
-.mundo__ele { position: absolute; left: 50%; bottom: 16px; width: 82px; margin-left: -38px; }
-.mundo__ele .ele-svg { display: block; width: 100%; height: auto; }
-.mundo__b--vitrina .mundo__dib { background:
-  radial-gradient(1.2px 1.2px at 12% 22%, #fff 60%, transparent), radial-gradient(1px 1px at 30% 70%, #fff 60%, transparent),
-  radial-gradient(1.4px 1.4px at 48% 16%, #fff 60%, transparent), radial-gradient(1px 1px at 66% 80%, #fff 60%, transparent),
-  radial-gradient(1.2px 1.2px at 84% 34%, #fff 60%, transparent), radial-gradient(1px 1px at 92% 66%, #fff 60%, transparent),
-  radial-gradient(1px 1px at 22% 48%, rgba(255,255,255,.7) 60%, transparent), radial-gradient(1px 1px at 74% 52%, rgba(255,255,255,.7) 60%, transparent),
-  radial-gradient(120% 90% at 50% 110%, #34407A 0%, transparent 60%), linear-gradient(180deg, #070A18, #151D40); }
-.mundo__meds { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; }
-.mundo__meds .med-chip__m { width: 40px; height: 40px; font-size: 20px; box-shadow: 0 0 0 2px rgba(255,255,255,.18), 0 0 22px rgba(255,210,120,.45); }
-.mundo__vacia { font-size: 34px; filter: drop-shadow(0 0 10px rgba(255,220,140,.6)); }
-.mundo__tx { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px 12px; min-width: 0; }
-.mundo__tx b { font-family: var(--font-display); font-size: 16px; font-weight: 700; }
-.mundo__tx small { font-size: 12.5px; line-height: 1.3; color: var(--text-muted); }
-@media (min-width: 761px) { .mundo__dib { height: 150px; } .mundo__ele { width: 118px; margin-left: -55px; bottom: 18px; } .mundo__alf { width: 160px; height: 40px; margin-left: -80px; } .mundo__vent { width: 46px; height: 40px; } }
 /* El precio en el botón: lo que ganas al confirmar, a la derecha (como el valor del viaje) */
 .btn--precio { justify-content: space-between; min-height: 54px; padding-left: 20px; padding-right: 18px; font-size: 16px; }
 .btn__precio { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
@@ -2295,3 +2264,121 @@ html[data-theme^="norte"] .sheet-overlay { background: rgba(12, 15, 30, .5); }
 
 /* El logo (el bocado ámbar sobre tinta índigo) ya viene en los colores de Norte; de noche, su fondo se separa un poco del fondo */
 html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-noche"] .auth__brand svg > rect { fill: #1C2242; stroke: #1C2242; }
+
+/* ============================================================
+   PUERTAS (v95) · Tu casa y Tu vitrina desde la barra de arriba
+   La cara de tu elefante y una estrella con tus medallas, en todas
+   las pantallas. Se notan solo cuando hay algo: una «z» si tu
+   elefante duerme la siesta, un punto ámbar si ganaste una medalla.
+   ============================================================ */
+.puerta { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 38px; min-width: 38px;
+  padding: 0; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: 700 14px var(--font-body);
+  cursor: pointer; transition: transform .12s, box-shadow .15s; font-variant-numeric: tabular-nums; }
+.puerta:hover { box-shadow: 0 0 0 2px var(--cian-soft); }
+.puerta:active { transform: scale(.94); }
+.puerta:focus-visible { outline: 2px solid var(--coral-btn, var(--coral)); outline-offset: 2px; }
+.puerta__cara { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; display: block; background: var(--surface-3); }
+.puerta__cara .ele-svg { display: block; width: 100%; height: 100%; }
+.puerta__z { position: absolute; top: -7px; right: -2px; font: italic 800 13px var(--font-display); color: var(--coral); pointer-events: none; }
+.puerta--vitrina { padding: 0 12px 0 10px; color: var(--text); }
+.puerta--vitrina svg { color: var(--coral); }
+.puerta__nuevo { position: absolute; top: -2px; right: -2px; width: 11px; height: 11px; border-radius: 50%; background: var(--coral-btn, var(--coral));
+  box-shadow: 0 0 0 2px var(--topbar-bg); pointer-events: none; }
+.puerta__z[hidden], .puerta__nuevo[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .puerta__nuevo { animation: puertaLatido 2.4s ease-in-out infinite; }
+  .puerta__z { animation: puertaZ 3s ease-in-out infinite; }
+}
+@keyframes puertaLatido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+@keyframes puertaZ { 0%, 100% { transform: translate(0, 0); opacity: 1; } 50% { transform: translate(2px, -3px); opacity: .6; } }
+/* La racha, al pie de la tarjeta del día, solo en el celular (en el computador está en la barra de arriba) */
+.ruta-dia__racha { display: none; cursor: pointer; border: 0; font: inherit; font-size: 12px; font-weight: 600; color: var(--text); }
+.ruta-dia__racha .ico-linea { color: var(--coral); }
+.ruta-dia__pie.solo-movil { display: none; }
+@media (max-width: 760px) {
+  .topbar__meta { gap: 6px; }
+  .puerta { height: 40px; min-width: 40px; font-size: 13px; }
+  .puerta__cara { width: 40px; height: 40px; }
+  .puerta--vitrina { padding: 0 10px 0 8px; }
+  #helpBtn, #streakPill { display: none !important; }   /* la ayuda está en Más › Ayuda y la racha en tu día */
+  .ruta-dia__racha { display: inline-flex; align-items: center; gap: 5px; }
+  .ruta-dia__pie.solo-movil { display: flex; }
+}
+/* Sin WebGL: tu casa y tu vitrina como una página con lo de su hoja */
+.lugar-plano { display: grid; gap: 14px; }
+.lugar-plano__cab { display: flex; align-items: center; gap: 16px; }
+.lugar-plano__dib { width: 120px; flex-shrink: 0; }
+.lugar-plano__dib .ele-svg { width: 100%; height: auto; display: block; }
+.lugar-plano__t { font-size: 26px; }
+
+/* ============================================================
+   RECOMPENSAS Y TIENDA (v95) · tu rango arriba, la Tienda abajo
+   La Tienda vende (Para tu día · Para tu estilo); lo que ya tienes
+   se elige en Cuenta › Apariencia y lo de tu elefante, en Tu casa.
+   ============================================================ */
+.rango-card { display: grid; gap: 0; }
+.rango-card__cab { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.rango-card__ico { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--cian-soft); font-size: 28px; line-height: 1; }
+.rango-card__eti { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+.rango-card__n { font-family: var(--font-display); font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+.rango-card__saldo { display: grid; justify-items: end; line-height: 1.2; }
+.rango-card__saldo b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.rango-card__saldo small { font-size: 12px; color: var(--text-muted); }
+.rango-card__pie { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.rango-card .rank-ladder { gap: 6px; flex-wrap: nowrap; }
+.rank-punto { width: 10px; height: 10px; border-radius: 50%; background: var(--surface-3); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.rank-punto.logrado { background: var(--cian); box-shadow: none; }
+.rank-punto.actual { background: var(--coral-btn, var(--coral)); box-shadow: 0 0 0 3px var(--coral-soft); }
+.tienda { margin-top: 28px; }
+.tienda__cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.tienda__t { margin: 0; font-size: 20px; }
+.tienda-seg { min-width: min(100%, 320px); }
+.tienda-seg button { flex: 1; }
+.ficha__modos { font-size: 11.5px; color: var(--text-muted); font-weight: 600; margin-top: -3px; }
+.tienda-links { display: grid; gap: 10px; margin-top: 24px; }
+.tienda-link { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; border-radius: var(--r); border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.tienda-link:hover { border-color: var(--cian); }
+.tienda-link > .ico-linea:first-child { color: var(--cian-ink); flex-shrink: 0; }
+.tienda-link > .ico-linea:last-child { color: var(--text-muted); flex-shrink: 0; }
+.tienda-link span { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.tienda-link b { font-size: 15px; }
+.tienda-link small { font-size: 13px; color: var(--text-muted); }
+.ficha-volver { margin: -4px 0 8px; padding: 4px 10px; }
+/* El modo de un tema de día y noche, en su vista previa */
+.tema-modos { display: grid; gap: 8px; }
+.tema-modo { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 12px 14px; border-radius: var(--r);
+  border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.tema-modo b { font-size: 15px; }
+.tema-modo small { grid-column: 1; font-size: 12.5px; color: var(--text-muted); }
+.tema-modo span { grid-row: 1 / span 2; grid-column: 2; color: var(--cian-ink); font-weight: 800; }
+.tema-modo.is-on { border-color: var(--cian); box-shadow: inset 0 0 0 1px var(--cian); }
+/* Apariencia: tus temas, con su modo a un toque */
+.fam-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.fam-card { display: grid; gap: 10px; padding: 10px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); min-width: 0; }
+.fam-card.is-activa { border-color: var(--cian); box-shadow: inset 0 0 0 1px var(--cian); }
+.fam-card__prev { padding: 0; border: 0; background: none; cursor: pointer; display: block; border-radius: 12px; }
+.fam-card__mini { display: flex; align-items: flex-end; gap: 6px; height: 72px; padding: 0 0 12px 14px; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line-strong); }
+.fam-card__mini i { width: 22px; height: 10px; border-radius: 5px; }
+.fam-card__tx { display: grid; line-height: 1.25; padding: 0 4px; }
+.fam-card__tx b { font-family: var(--font-display); font-size: 16px; }
+.fam-card__tx small { font-size: 12.5px; color: var(--text-muted); }
+.fam-card.is-activa .fam-card__tx small { color: var(--cian-ink); font-weight: 700; }
+.fam-card__modos { display: grid; grid-template-columns: repeat(3, 1fr); }
+.fam-card__modos button { padding: 7px 4px; font-size: 13px; }
+.fam-card__usar { width: 100%; min-height: 38px; }
+/* La entrada a Apariencia en Cuenta */
+.cuenta-apariencia { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; cursor: pointer; font: inherit; color: var(--text); }
+.cuenta-apariencia:hover { border-color: var(--cian); }
+.cuenta-apariencia__ico { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--cian-soft); color: var(--cian-ink); flex-shrink: 0; }
+.cuenta-apariencia__tx { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cuenta-apariencia__tx b { font-family: var(--font-display); font-size: 17px; }
+.cuenta-apariencia__tx small { font-size: 13px; color: var(--text-muted); }
+.cuenta-apariencia > .ico-linea:last-child { color: var(--text-muted); }
+@media (max-width: 520px) {
+  .rango-card__cab { grid-template-columns: auto minmax(0, 1fr); }
+  .rango-card__saldo { grid-column: 1 / -1; justify-items: start; grid-auto-flow: column; gap: 6px; align-items: baseline; justify-content: start; }
+  .tienda-seg { width: 100%; }
+}
+.tienda-mas { margin-top: 10px; padding: 6px 12px; }
+.tienda-link > .ico-linea:last-child, .cuenta-apariencia > .ico-linea:last-child { transform: rotate(-90deg); }

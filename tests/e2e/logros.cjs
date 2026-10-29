@@ -13,18 +13,19 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('[data-action="cierre-save"]'); await p.waitForTimeout(600);
   ok(await p.evaluate(() => STATE.gamif.badges.includes("buho") && STATE.ritual.dias["2026-09-28"].cerradoTs > 0), "cerrar a las 23:57 gana la insignia secreta Búho");
 
-  // Recompensas: series con niveles y secretas ocultas
-  await p.goto(URL + "#recompensas"); await p.waitForTimeout(400);
-  ok((await p.locator(".ele-card").first().innerText()).includes("Joven"), "el elefante está en etapa Joven con 900 XP");
-  await p.click('.tabs [data-route="insignias"]'); await p.waitForTimeout(400);
-  ok(await p.evaluate(() => location.hash) === "#insignias", "la pestaña Insignias abre sus logros");
-  const txt = await p.locator("body").innerText();
-  ok(txt.includes("Búho") && txt.includes("???"), "la secreta ganada se ve y las demás aparecen como ???");
-  ok(await p.locator(".badge-niveles").count() === 7, "las 7 series muestran bronce, plata y oro");
-  await shot(p, "recompensas-logros", { fullPage: true });
+  // Tu casa y Tu vitrina: tu elefante, y las series con niveles y las secretas ocultas
+  await p.goto(URL + "#cuarto"); await p.waitForTimeout(2500);
+  ok((await p.locator(".hoja__t").first().innerText()).includes("Joven"), "en Tu casa, el elefante está en etapa Joven con 900 XP");
+  await p.goto(URL + "#cielo"); await p.waitForTimeout(2500);
+  const txt = await p.locator(".lugar-plano, #lugarHoja").first().innerText();
+  ok(txt.includes("Búho") && txt.includes("Secreta"), "en Tu vitrina, la secreta ganada se ve y las demás aparecen como Secreta");
+  ok(await p.evaluate(() => SERIES.length === 7 && SERIES.every(se => [0, 1, 2].every(k => document.querySelector(`.med-chip[data-id="${idNivel(se, k)}"]`)))), "las 7 series muestran bronce, plata y oro");
+  await shot(p, "vitrina-logros", { fullPage: true });
 
-  // Título que pide insignia
-  await p.goto(URL + "#tienda"); await p.waitForTimeout(400);
+  // Título que pide insignia (en la Tienda › Para tu estilo › Tu perfil)
+  await p.goto(URL + "#recompensas"); await p.waitForTimeout(400);
+  await p.click('[data-action="tienda-sec"][data-v="estilo"]'); await p.waitForTimeout(200);
+  while (await p.locator('[data-action="tienda-mas"]').count()) { await p.locator('[data-action="tienda-mas"]').first().click(); await p.waitForTimeout(150); }
   ok(await p.locator('.ficha.is-bloqueado[data-est="tit-estratega"]').count() === 1, "sin la insignia Estratega no se puede comprar su título");
   await p.evaluate(() => { STATE.gamif.badges.push("estratega"); saveState(); rerender(); }); await p.waitForTimeout(200);
   await p.click('.ficha[data-est="tit-estratega"]'); await p.waitForTimeout(200);

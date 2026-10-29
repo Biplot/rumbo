@@ -1,6 +1,7 @@
-/* Pruebas en navegador · Tu cuarto a pantalla completa: se entra tocando la tarjeta de Progreso,
-   llena la pantalla sin barras, la hoja sube y el cuarto se encuadra encima, tu elefante en 3D
-   lleva su ropa y reacciona, ‹ o Escape vuelven; en escritorio la hoja es un panel; sin WebGL no hay */
+/* Pruebas en navegador · Tu cuarto a pantalla completa: se entra por la puerta de la barra de arriba (la cara de
+   tu elefante), llena la pantalla sin barras, la hoja sube y el cuarto se encuadra encima, tu elefante en 3D
+   lleva su ropa y reacciona, Decorar abre su catálogo ahí mismo, ‹ o Escape vuelven; en escritorio la hoja es
+   un panel; sin WebGL, tu casa es una página con su hoja */
 const { chromium, URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 async function preparar(p, email) {
   await registrar(p, email);
@@ -19,15 +20,13 @@ module.exports = async ({ b, ok, errs }) => {
     const ctx = await nuevoContexto(b3, { fecha: "2026-10-28T19:10:00", w: 390, h: 844 });
     const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
     await preparar(p, "lugar@test.cl");
-    await p.goto(URL + "#recompensas");
-    await p.waitForFunction(() => CIELO_ESTADO.motor && document.querySelector("#casaLienzo .cielo__canvas"), null, { timeout: 20000 }).catch(() => {});
-    await p.waitForTimeout(600);
-    ok(await p.locator(".casa-card .casa__abrir").isVisible() && (await cuarto(p)).libre === false, "en Progreso el cuarto es una tarjeta, con su botón para abrirlo");
-    // Tocar el cuarto (no al elefante ni una medalla) lo abre a pantalla completa
-    const r = await p.locator("#casaLienzo").boundingBox();
-    await p.mouse.click(r.x + 14, r.y + 14); await p.waitForTimeout(1200);
+    await p.goto(URL + "#habitos"); await p.waitForTimeout(400);
+    ok(await p.locator("#puertaCasa").isVisible() && await p.locator("#puertaCara .ele-svg").count() === 1, "la cara de tu elefante está en la barra de arriba, también fuera de Inicio");
+    await p.click("#puertaCasa");
+    await p.waitForFunction(() => CURRENT === "cuarto" && CIELO_ESTADO.motor && document.querySelector("#lugarLienzo .cielo__canvas"), null, { timeout: 20000 }).catch(() => {});
+    await p.waitForTimeout(1200);
     const lugar = await p.locator("#lugar").boundingBox();
-    ok(await p.evaluate(() => CURRENT === "cuarto" && document.body.classList.contains("en-lugar")) && lugar && lugar.width === 390 && lugar.height === 844, "tocar la tarjeta abre tu cuarto de borde a borde");
+    ok(await p.evaluate(() => CURRENT === "cuarto" && document.body.classList.contains("en-lugar")) && lugar && lugar.width === 390 && lugar.height === 844, "la puerta abre tu cuarto de borde a borde");
     ok(await p.locator("#bottombar").isHidden() && await p.locator(".topbar").isHidden(), "sin la barra de arriba ni la de abajo");
     const c0 = await cuarto(p);
     ok(c0.libre && c0.vista.arriba > 40 && c0.vista.abajo > 100, "el cuarto se encuadra entre la barra flotante y la hoja");
@@ -55,17 +54,16 @@ module.exports = async ({ b, ok, errs }) => {
     await p.evaluate(() => quitarEspacio("cabeza")); await p.evaluate(() => closeModal()); await p.waitForTimeout(700);
     const c2 = await cuarto(p);
     ok(c2.elefante && !c2.elefante.ropa.cabeza && await p.evaluate(() => CURRENT === "cuarto") && await p.locator("#lugarHoja").getAttribute("data-estado") === "media", "al sacarle el gorro, el elefante 3D cambia y la hoja sigue a media altura");
-    // Escape vuelve a Progreso, con sus barras
+    // Decorar: el catálogo del cuarto se abre ahí mismo; una ficha muestra cómo queda y vuelve con ‹ Decorar
+    await p.click('#lugarHoja [data-action="cuarto-decorar"]'); await p.waitForTimeout(400);
+    ok(await p.evaluate(() => CURRENT === "cuarto") && (await p.locator("#modalTitle").innerText()) === "Decorar tu cuarto" && await p.locator("#modal .ficha[data-cua]").count() === 11,
+      "🛍️ Decorar abre el catálogo del cuarto (11 cosas) sin salir de tu casa");
+    await p.click('#modal .ficha[data-cua="cua-gato"]'); await p.waitForTimeout(300);
+    ok(await p.locator('#modal [data-action="cuarto-decorar"]').isVisible() && await p.locator('#modal .cua-vista').count() === 1, "la ficha del gato muestra cómo queda, con ‹ Decorar para volver");
+    await p.evaluate(() => closeModal()); await p.waitForTimeout(300);
+    // Escape vuelve a donde estabas (Hábitos), con sus barras
     await p.keyboard.press("Escape"); await p.waitForTimeout(800);
-    ok(await p.evaluate(() => CURRENT === "recompensas" && !document.body.classList.contains("en-lugar")) && await p.locator("#bottombar").isVisible(), "Escape vuelve a Progreso, con su barra de abajo");
-    ok((await cuarto(p)).libre === false, "y el cuarto vuelve a su tarjeta");
-    // Desde la Tienda, 🏠 Ver el cuarto entra y ‹ vuelve a la Tienda
-    await p.goto(URL + "#tienda"); await p.waitForTimeout(500);
-    await p.click('.ficha[data-cua="cua-gato"]'); await p.waitForTimeout(300);
-    await p.click('#modal [data-action="cuarto-ver"]'); await p.waitForTimeout(1200);
-    ok(await p.evaluate(() => CURRENT === "cuarto"), "🏠 Ver el cuarto (en la Tienda) lo abre a pantalla completa");
-    await p.click('[data-action="lugar-volver"]'); await p.waitForTimeout(700);
-    ok(await p.evaluate(() => CURRENT === "tienda"), "‹ vuelve a la Tienda, que es de donde venías");
+    ok(await p.evaluate(() => CURRENT === "habitos" && !document.body.classList.contains("en-lugar")) && await p.locator("#bottombar").isVisible(), "Escape vuelve a donde estabas, con su barra de abajo");
     await ctx.close();
   }
   // 2) En el computador: la hoja es un panel al costado y el cuarto se encuadra a su izquierda
@@ -82,7 +80,7 @@ module.exports = async ({ b, ok, errs }) => {
     await ctx.close();
   }
   await b3.close();
-  // 3) Sin WebGL no hay pantalla completa: #cuarto vuelve a la tarjeta de Progreso
+  // 3) Sin WebGL: tu casa es una página con tu elefante dibujado y lo de su hoja
   {
     const ctx = await nuevoContexto(b, { fecha: "2026-10-28T15:00:00", w: 390, h: 844 });
     await ctx.addInitScript(() => {
@@ -92,7 +90,9 @@ module.exports = async ({ b, ok, errs }) => {
     const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
     await preparar(p, "lugar-plano@test.cl");
     await p.goto(URL + "#cuarto"); await p.waitForTimeout(2500);
-    ok(await p.evaluate(() => CURRENT === "recompensas" && !document.body.classList.contains("en-lugar")) && await p.locator(".casa-card.is-sin3d .ele-mini").isVisible(), "sin WebGL, #cuarto vuelve a Progreso con tu elefante de siempre");
+    ok(await p.evaluate(() => CURRENT === "cuarto" && !document.body.classList.contains("en-lugar")) && await p.locator(".lugar-plano .ele-svg").isVisible()
+      && await p.locator('.lugar-plano [data-action="elefante-open"][data-v="ropa"]').isVisible() && await p.locator("#bottombar").isVisible(),
+      "sin WebGL, #cuarto es una página con tu elefante, sus botones y la barra de abajo");
     await ctx.close();
   }
 };

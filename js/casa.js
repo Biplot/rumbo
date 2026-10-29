@@ -156,6 +156,17 @@ function repisaToggle(id) {
   else REPISA_SEL.push(id);
   openRepisa();
 }
+/* Desde la medalla de cerca: «Poner en tu repisa» o sacarla (la repisa pasa a ser elegida por ti) */
+function repisaMedalla(id) {
+  if (!(STATE.gamif.badges || []).includes(id)) return;
+  const ids = repisaIds(STATE).slice(), i = ids.indexOf(id);
+  if (i >= 0) ids.splice(i, 1);
+  else if (ids.length >= REPISA_MAX) return toast(`Tu repisa tiene ${REPISA_MAX} lugares: saca una desde Tu casa › Repisa`, true);
+  else ids.unshift(id);
+  guardarRepisa(STATE, ids); saveState();
+  if (typeof CERCA !== "undefined" && CERCA.id && typeof pintarCerca === "function") pintarCerca();
+  toast(i >= 0 ? "La sacaste de tu repisa" : "Está en tu repisa 🏅");
+}
 function repisaGuardar(auto) {
   guardarRepisa(STATE, auto ? null : REPISA_SEL || []);
   REPISA_SEL = null;
@@ -199,54 +210,27 @@ async function cuartoVista(id) {
     img.src = url; el.insertBefore(img, el.firstChild);
   } catch (e) {}
 }
-/* Ver el cuarto: a pantalla completa (sin 3D, en su tarjeta de Progreso) */
+/* Ver el cuarto: a pantalla completa (sin 3D, como página) */
 function cuartoVer() {
   closeModal();
-  if (lugarEntrar("cuarto")) return;
-  const ir = () => { const c = document.querySelector(".casa-card"); if (c) c.scrollIntoView({ behavior: sinMovimiento() ? "auto" : "smooth", block: "center" }); };
-  if (CURRENT === "recompensas") ir(); else { go("recompensas"); setTimeout(ir, 120); }
+  if (!lugarEntrar("cuarto")) go("cuarto");
 }
-/* Desde la tarjeta de Progreso: el cuarto crece hasta llenar la pantalla */
-function cuartoEntrar() { lugarEntrar("cuarto", document.getElementById("casa")); }
+/* Decorar: el catálogo del cuarto (muebles y paredes) se abre aquí mismo, en tu casa. Cada ficha muestra
+   cómo queda en su cuarto y se compra, se pone o se guarda desde ahí. */
 function cuartoDecorar() {
-  go("tienda");
-  setTimeout(() => { const s = document.getElementById("tienda-cuarto"); if (s) s.scrollIntoView({ behavior: "auto", block: "start" }); }, 120);
+  const items = tiendaTodos().filter(i => i.cat === "cuarto");
+  TIENDA_FICHA = null;
+  openModal("Decorar tu cuarto", `<p class="text-sm muted">Muebles y paredes para el cuarto de tu elefante. Lo que compras se puede guardar y volver a poner cuando quieras. Tienes <b>${(STATE.gamif.puntos || 0).toLocaleString("es-CL")} ⭐</b>.</p>
+    <div class="fichas mt-16">${items.map(fichaHtml).join("")}</div>`);
+  document.getElementById("modal").classList.add("modal--hoja");
 }
 
 function casaAria(cur, cosas, total, compras, nombres) {
   return `El cuarto de tu elefante (${cur.nombre}), donde tu elefante ${nombreElefante()} ${eleActividadAhora(STATE).txt}: ${cosas.length + 1} de ${total} cosas.${compras.length ? " De la Tienda: " + compras.map(it => it.nombre.toLowerCase()).join(", ") + "." : ""}${nombres ? " En la repisa: " + nombres + "." : ""}`;
 }
 
-/* -------- La tarjeta de Progreso: el cuarto, tu elefante y lo que viene -------- */
-function casaCardHtml() {
-  const s = STATE, { cur } = rankFor(s.gamif.xp || 0), cosas = casaCosas(s), prox = casaProxima(s), ids = repisaIds(s);
-  const total = CASA_COSAS.length + 1;
-  const nombres = ids.map(id => findBadge(id).nombre).join(", ");
-  const compras = CUARTO_TIENDA.filter(it => it.cosa && cuartoPuestas(s).includes(it.cosa));
-  const faltaXp = prox ? RANGOS[prox.rango].min - (s.gamif.xp || 0) : 0;
-  const repisa = ids.length
-    ? ids.map(id => { const b = findBadge(id); return `<button class="med-chip" data-action="ins-ver" data-id="${id}">${medChip(b, escapeHtml(b.nombre))}</button>`; }).join("")
-    : `<span class="text-sm muted">Vacía por ahora: tu primera medalla llega al cerrar tu primer día.</span>`;
-  return `<div class="card ele-card casa-card${CIELO_ESTADO.sin3d ? " is-sin3d" : ""}" data-tour="elefante">
-    <section class="casa" id="casa" data-gesto aria-label="El cuarto de tu elefante">
-      <div class="casa__lienzo" id="casaLienzo" role="img" aria-label="${escapeAttr(casaAria(cur, cosas, total, compras, nombres))}"></div>
-      <button type="button" class="casa__abrir lugar-abrir" data-action="cuarto-entrar" aria-label="Ver tu casa a pantalla completa">${iconoLinea("expandir", 18)}</button>
-      <div class="cielo__etq" id="casaEtq" hidden></div>
-      <div class="casa__carga" aria-hidden="true">Arreglando el cuarto…</div>
-    </section>
-    ${eleFichaHtml()}
-    <div class="casa__repisa"><span class="recibo__k">Tu repisa</span><div class="recibo__meds-l">${repisa}</div></div>
-    <div class="casa__pie">
-      <span class="text-xs muted">Tu cuarto · ${cosas.length + 1} de ${total}${prox ? ` · Próximo: ${prox.ico} ${prox.n} al llegar a ${RANGOS[prox.rango].nombre} (faltan ${faltaXp.toLocaleString("es-CL")} XP)` : " · ¡Completo! 👑"}</span>
-      <span class="casa__btns"><button class="btn-ghost" data-action="cuarto-decorar" style="padding:4px 10px">🛍️ Decorar</button>
-        <button class="btn-ghost" data-action="repisa-elegir" style="padding:4px 10px">🏅 Repisa</button></span>
-    </div>
-  </div>`;
-}
-
 /* -------- Tu cuarto a pantalla completa (ruta #cuarto) -------- */
 function renderCuarto() {
-  if (CIELO_ESTADO.sin3d) { setTimeout(() => go("recompensas"), 0); return casaCardHtml(); }
   const s = STATE, { cur } = rankFor(s.gamif.xp || 0), cosas = casaCosas(s), prox = casaProxima(s), ids = repisaIds(s);
   const total = CASA_COSAS.length + 1, compras = CUARTO_TIENDA.filter(it => it.cosa && cuartoPuestas(s).includes(it.cosa));
   const { sig } = etapaElefante(s.gamif.xp || 0), faltaXp = prox ? RANGOS[prox.rango].min - (s.gamif.xp || 0) : 0;
@@ -266,6 +250,7 @@ function renderCuarto() {
     <p class="text-sm muted">${prox ? `Próximo: ${prox.ico} ${prox.n} al llegar a ${RANGOS[prox.rango].nombre} (faltan ${faltaXp.toLocaleString("es-CL")} XP).` : "¡Completo! 👑 Tiene todo lo que da el rango."}</p>
     ${compras.length ? `<div class="hoja__k">De la Tienda</div><div class="fila-chips">${compras.map(it => `<span class="chip">${it.icon} ${escapeHtml(it.nombre)}</span>`).join("")}</div>` : `<p class="text-sm muted">En la Tienda hay sillón, lámpara, pecera, telescopio, un gato y más para su cuarto.</p>`}
     <p class="text-xs muted hoja__pista">Tu elefante va de un rincón a otro: mira por la ventana, admira sus medallas y, con lo que le compres, riega, baila o juega con el gato. Tócalo y reacciona. Arrastra para mirar el cuarto y pellizca para acercarte.</p>`;
+  if (CIELO_ESTADO.sin3d) return lugarPlanoHtml({ titulo: "Tu casa", sub: `${escapeHtml(cur.nombre)} · ${cosas.length + 1} de ${total}`, dibujo: elefanteSVG({ anim: false }), cab, cuerpo });
   return lugarHtml({
     lienzo: "lugarLienzo", titulo: "Tu casa", sub: `${escapeHtml(cur.nombre)} · ${cosas.length + 1} de ${total}${compras.length ? ` · ${compras.length} de la Tienda` : ""}`,
     chip: `⭐ ${(s.gamif.puntos || 0).toLocaleString("es-CL")}`, aria: casaAria(cur, cosas, total, compras, nombres),

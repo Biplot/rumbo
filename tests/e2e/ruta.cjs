@@ -1,4 +1,4 @@
-/* Pruebas en navegador · Diseño Ruta (v78): un tema gratis que se elige en la Tienda, y el día como recorrido */
+/* Pruebas en navegador · Diseño Ruta (v78): un tema gratis que se elige en Apariencia, y el día como recorrido */
 const { URL, nuevoContexto, registrar } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { w: 390, h: 844, fecha: "2026-10-27T08:30:00" });
@@ -6,12 +6,11 @@ module.exports = async ({ b, ok, errs }) => {
   await registrar(p, "ruta@test.cl");
   await p.evaluate(() => { STATE.settings.introVersion = INTRO_VERSION; saveState(); });
 
-  // 1) Ruta se elige en la Tienda y queda guardado: una recarga no lo cambia
-  await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
-  await p.evaluate(() => { const b = document.createElement("button"); b.dataset.action = "set-theme"; b.dataset.theme = "ruta"; document.getElementById("view").appendChild(b); b.click(); });
-  await p.waitForTimeout(200);
+  // 1) Ruta (de día) se elige en Apariencia y queda guardado: una recarga no lo cambia
+  await p.goto(URL + "#apariencia"); await p.waitForTimeout(300);
+  await p.click('.fam-card[data-familia="ruta"] [data-theme="ruta"]'); await p.waitForTimeout(200);
   await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(400);
-  ok(await p.evaluate(() => STATE.settings.theme === "ruta" && STATE.settings.temaElegido === "ruta" && document.documentElement.dataset.theme === "ruta"), "quien elige Ruta en la Tienda lo conserva al recargar");
+  ok(await p.evaluate(() => STATE.settings.theme === "ruta" && STATE.settings.temaElegido === "ruta" && document.documentElement.dataset.theme === "ruta"), "quien elige Ruta (Día) en Apariencia lo conserva al recargar");
   const barra = await p.evaluate(() => [getComputedStyle(document.querySelector(".topbar")).backgroundColor, getComputedStyle(document.querySelector(".app")).backgroundColor]);
   ok(barra[0] === "rgb(11, 11, 12)" && barra[1] === "rgb(255, 255, 255)", `Ruta: barra de arriba negra y contenido blanco (${barra.join(" · ")})`);
   ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content === "#0B0B0C"), "el color del navegador sigue a la barra");

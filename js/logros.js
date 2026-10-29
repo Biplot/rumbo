@@ -153,39 +153,6 @@ function registrarCompartido() {
   saveState();
 }
 
-/* Tarjetas de insignias para Recompensas: las series muestran su nivel y la meta siguiente.
-   Tocar una tarjeta abre su medalla de cerca (cielo.js) */
-function insigniasHtml(g) {
-  const tiene = id => g.badges.includes(id);
-  const ver = (id, nombre) => typeof abrirInsignia === "function" ? ` data-action="ins-ver" data-id="${id}" role="button" tabindex="0" aria-label="Ver de cerca: ${nombre}"` : "";
-  const destacar = (id) => `<button class="btn-ghost btn-block mt-8" data-action="badge-destacar" data-id="${id}">${g.equipped.insignia === id ? "★ Destacada" : "Destacar"}</button>`;
-  const simple = b => {
-    const earned = tiene(b.id), oculta = b.secreta && !earned;
-    return `<div class="card badge-card ${earned ? "" : "is-locked"}" style="text-align:center"${ver(b.id, oculta ? "insignia secreta" : b.nombre)}>
-      <div style="font-size:32px;line-height:1">${oculta ? "❔" : b.icon}</div>
-      <div class="card__title" style="font-size:14px;margin-top:6px">${oculta ? "???" : b.nombre}</div>
-      <div class="text-xs muted" style="margin-top:4px">${oculta ? "Insignia secreta" : b.desc}</div>
-      ${earned ? destacar(b.id) : `<div class="chip mt-8" style="display:inline-block">🔒 +${b.reward} ⭐</div>`}
-    </div>`;
-  };
-  const serie = se => {
-    const ids = se.niveles.map((_, k) => idNivel(se, k));
-    const k = ids.reduce((a, id, i) => (tiene(id) ? i : a), -1);
-    const sig = se.niveles[k + 1], valor = (() => { try { return se.metrica(STATE); } catch (e) { return 0; } })();
-    const med = k >= 0 ? MEDALLAS["bpo"[k]] : null;
-    return `<div class="card badge-card ${k >= 0 ? "" : "is-locked"}" style="text-align:center"${ver(ids[Math.max(k, 0)], se.nombre)}>
-      <div style="font-size:32px;line-height:1">${se.icon}${med ? `<span class="badge-med">${med.ico}</span>` : ""}</div>
-      <div class="card__title" style="font-size:14px;margin-top:6px">${se.nombre}${med ? ` · ${med.n}` : ""}</div>
-      <div class="text-xs muted" style="margin-top:4px">${sig ? se.desc(sig[0]) : "¡Nivel máximo! 🥇"}</div>
-      <div class="badge-niveles mt-8">${se.niveles.map(([n], i) => `<span class="${i <= k ? "on" : ""}" title="${MEDALLAS["bpo"[i]].n}: ${n}">${MEDALLAS["bpo"[i]].ico}</span>`).join("")}</div>
-      ${sig ? `<div class="bar mt-8"><div class="bar__fill" style="width:${Math.min(100, Math.round((valor / sig[0]) * 100))}%"></div></div>
-        <div class="text-xs muted mt-8">${Math.min(valor, sig[0])}/${sig[0]} · +${sig[1]} ⭐</div>` : ""}
-      ${k >= 0 ? destacar(ids[k]) : ""}
-    </div>`;
-  };
-  const simples = BADGES.filter(b => !b.serie && !b.secreta), secretas = BADGES.filter(b => b.secreta);
-  return `${simples.map(simple).join("")}${SERIES.map(serie).join("")}${secretas.map(simple).join("")}`;
-}
 function totalInsignias() { return BADGES.length; }
 
 /* -------- Títulos que piden una insignia -------- */

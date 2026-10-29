@@ -34,7 +34,7 @@
   <!-- Las fuentes no frenan el primer dibujo: se ve la letra del sistema y luego la de Rumbo -->
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" /></noscript>
-  <link rel="stylesheet" href="css/styles.css?v=94" />
+  <link rel="stylesheet" href="css/styles.css?v=95" />
   <style>
     /* Pantalla de carga: se dibuja al tiro (antes que el código) y se va al aparecer la app o el acceso */
     .splash { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -123,6 +123,7 @@
         </div>
         <div class="cuenta-menu" id="cuentaMenu" role="menu" hidden>
           <button role="menuitem" data-route="cuenta">👤 Cuenta y avatar</button>
+          <button role="menuitem" data-route="apariencia">🎨 Apariencia</button>
           <button role="menuitem" data-route="notif">🔔 Notificaciones</button>
           <button role="menuitem" data-route="tutoriales">🎓 Tutoriales y ayuda</button>
           <button role="menuitem" data-action="export">⭳ Respaldar datos</button>
@@ -148,6 +149,9 @@
             <div class="save-status" id="saveStatus" hidden></div>
             <div class="pill pill--date" id="todayPill"></div>
             <button class="pill pill--streak" id="streakPill" data-action="info-racha" title="Días cerrados seguidos" aria-label="Días cerrados seguidos"><svg class="pill__ico pill__ico--llama" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.8 1.2 2.8 2.5 3.2C12 9 11 6 12 3z"/></svg> <span id="streakVal">0</span><span class="pill__txt"> días cerrados</span></button>
+            <!-- Las puertas a tus lugares: la cara de tu elefante (Tu casa) y tus medallas (Tu vitrina) -->
+            <button class="puerta" id="puertaCasa" data-action="lugar-entrar" data-ruta="cuarto" aria-label="Tu casa" title="Tu casa"><span class="puerta__cara" id="puertaCara"></span><i class="puerta__z" id="puertaZ" hidden>z</i></button>
+            <button class="puerta puerta--vitrina" id="puertaVitrina" data-action="lugar-entrar" data-ruta="cielo" aria-label="Tu vitrina" title="Tu vitrina"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></svg><b id="puertaN">0</b><i class="puerta__nuevo" id="puertaNuevo" hidden></i></button>
             <button class="pill pill--pts" id="ptsPill" data-action="info-racha" title="Tus monedas" aria-label="Tus monedas"><svg class="pill__ico pill__ico--estrella" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/></svg> <span id="ptsVal">0</span></button>
           </div>
         </div>
@@ -179,43 +183,43 @@
 
   <!-- supabase-js 2.117.2 guardada en el repositorio: una versión nueva del CDN ya no puede romper el inicio de sesión -->
   <script src="js/vendor/supabase-2.117.2.js"></script>
-  <script src="js/store.js?v=94"></script>
-  <script src="js/state.js?v=94"></script>
-  <script src="js/anios.js?v=94"></script>
-  <script src="js/agenda.js?v=94"></script>
-  <script src="js/tareas-motor.js?v=94"></script>
-  <script src="js/habitos-motor.js?v=94"></script>
-  <script src="js/modules.js?v=94"></script>
-  <script src="js/modules2.js?v=94"></script>
-  <script src="js/salud.js?v=94"></script>
-  <script src="js/notas.js?v=94"></script>
-  <script src="js/tienda.js?v=94"></script>
-  <script src="js/ritual-mes.js?v=94"></script>
-  <script src="js/ritual-semana.js?v=94"></script>
-  <script src="js/ritual-trimestre.js?v=94"></script>
-  <script src="js/informe-mes.js?v=94"></script>
-  <script src="js/tutorial.js?v=94"></script>
-  <script src="js/gcal.js?v=94"></script>
-  <script src="js/ritual-express.js?v=94"></script>
-  <script src="js/tendencias.js?v=94"></script>
-  <script src="js/recompensas.js?v=94"></script>
+  <script src="js/store.js?v=95"></script>
+  <script src="js/state.js?v=95"></script>
+  <script src="js/anios.js?v=95"></script>
+  <script src="js/agenda.js?v=95"></script>
+  <script src="js/tareas-motor.js?v=95"></script>
+  <script src="js/habitos-motor.js?v=95"></script>
+  <script src="js/modules.js?v=95"></script>
+  <script src="js/modules2.js?v=95"></script>
+  <script src="js/salud.js?v=95"></script>
+  <script src="js/notas.js?v=95"></script>
+  <script src="js/tienda.js?v=95"></script>
+  <script src="js/ritual-mes.js?v=95"></script>
+  <script src="js/ritual-semana.js?v=95"></script>
+  <script src="js/ritual-trimestre.js?v=95"></script>
+  <script src="js/informe-mes.js?v=95"></script>
+  <script src="js/tutorial.js?v=95"></script>
+  <script src="js/gcal.js?v=95"></script>
+  <script src="js/ritual-express.js?v=95"></script>
+  <script src="js/tendencias.js?v=95"></script>
+  <script src="js/recompensas.js?v=95"></script>
   <!-- Tienda: útiles, funciones, cosméticos y logros (después de recompensas.js) -->
-  <script src="js/consumibles.js?v=94"></script>
-  <script src="js/funciones.js?v=94"></script>
-  <script src="js/cosmeticos.js?v=94"></script>
-  <script src="js/logros.js?v=94"></script>
-  <script src="js/cielo.js?v=94"></script>
-  <script src="js/lugar.js?v=94"></script>
-  <script src="js/casa.js?v=94"></script>
-  <script src="js/elefante.js?v=94"></script>
-  <script src="js/consultorio.js?v=94"></script>
-  <script src="js/avatares.js?v=94"></script>
-  <script src="js/vida.js?v=94"></script>
-  <script src="js/notifs.js?v=94"></script>
-  <script src="js/iconos.js?v=94"></script>
-  <script src="js/navegacion.js?v=94"></script>
-  <script src="js/detalles.js?v=94"></script>
-  <script src="js/app.js?v=94"></script>
+  <script src="js/consumibles.js?v=95"></script>
+  <script src="js/funciones.js?v=95"></script>
+  <script src="js/cosmeticos.js?v=95"></script>
+  <script src="js/logros.js?v=95"></script>
+  <script src="js/cielo.js?v=95"></script>
+  <script src="js/lugar.js?v=95"></script>
+  <script src="js/casa.js?v=95"></script>
+  <script src="js/elefante.js?v=95"></script>
+  <script src="js/consultorio.js?v=95"></script>
+  <script src="js/avatares.js?v=95"></script>
+  <script src="js/vida.js?v=95"></script>
+  <script src="js/notifs.js?v=95"></script>
+  <script src="js/iconos.js?v=95"></script>
+  <script src="js/navegacion.js?v=95"></script>
+  <script src="js/detalles.js?v=95"></script>
+  <script src="js/app.js?v=95"></script>
   <script>
     /* Versión nueva: el service worker nuevo se activa solo y toma la página. Si la app recién se abrió
        (o volvió del fondo), se recarga al tiro para mostrar lo nuevo; si la estás usando, un aviso ofrece

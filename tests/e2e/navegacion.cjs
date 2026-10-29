@@ -38,9 +38,12 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => document.getElementById("masOverlay").hidden), "Esc cierra la hoja");
 
   // 4) Rachas y monedas explicadas
-  await p.click("#streakPill"); await p.waitForTimeout(200);
+  ok(await p.locator("#streakPill").isHidden() && await p.locator("#helpBtn").isHidden() && await p.locator("#puertaCasa").isVisible() && await p.locator("#puertaVitrina").isVisible(),
+    "en el celular, arriba van las puertas a Tu casa y Tu vitrina (la racha y la ayuda se mueven)");
+  await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
+  await p.click("#view .ruta-dia__racha"); await p.waitForTimeout(200);
   const info = await p.locator("#modal").innerText();
-  ok(info.includes("cerrad") && info.includes("hábitos") && info.includes("monedas"), "tocar 🔥 explica cada racha y las monedas");
+  ok(info.includes("cerrad") && info.includes("hábitos") && info.includes("monedas"), "la racha, al pie de tu día, explica cada racha y las monedas");
   await p.evaluate(() => closeModal());
 
   // 5) Botones: compras que dicen cuánto falta y zonas de toque de 44 px
@@ -68,14 +71,13 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('[data-action="habit-vista"][data-v="mes"]'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => HABIT_VIEW === "mensual") && await p.locator('.hab-head .seg button.is-active[data-v="mes"]').count() === 1, "Mes abre la vista mensual");
   await p.click('[data-action="habit-vista"][data-v="hoy"]'); await p.waitForTimeout(200);
-  await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
-  ok(await p.locator(".tienda-cat").count() === 7, "la Tienda tiene categorías arriba (con Cuarto)");
-  await p.click('.tienda-cat[data-id="temas"]'); await p.waitForTimeout(700);
-  const yTemas = (await p.locator("#tienda-temas").boundingBox()).y;
-  ok(yTemas > 0 && yTemas < 200, "tocar Temas salta a los temas");
-  await p.goto(URL + "#insignias"); await p.waitForTimeout(300);
-  await p.click('[data-action="ins-filtro"][data-v="ganadas"]'); await p.waitForTimeout(200);
-  ok(await p.locator(".badge-card.is-locked:visible").count() === 0, "el filtro Ganadas oculta las que faltan");
+  await p.goto(URL + "#recompensas"); await p.waitForTimeout(300);
+  ok(await p.locator("#view .tienda-seg button").count() === 2 && (await p.locator("#view .tienda-seg button.is-active").innerText()) === "Para tu día", "la Tienda tiene dos secciones: Para tu día y Para tu estilo");
+  await p.click('[data-action="tienda-sec"][data-v="estilo"]'); await p.waitForTimeout(300);
+  ok(await p.locator("#view .ficha--tema").count() > 0 && await p.locator('#view .ficha[data-fun="fun:enfoque"]').count() === 0, "Para tu estilo trae los temas (y no las herramientas)");
+  await p.goto(URL + "#insignias"); await p.waitForTimeout(500);
+  ok(await p.evaluate(() => CURRENT === "cielo"), "las insignias viven en Tu vitrina (#insignias la abre)");
+  await p.goto(URL + "#habitos"); await p.waitForTimeout(300);
 
   // 6) Cerrar sesión se encuentra en Cuenta
   await p.goto(URL + "#cuenta"); await p.waitForTimeout(300);
@@ -96,11 +98,12 @@ module.exports = async ({ b, ok, errs }) => {
   await d.click("#cuentaMenu [data-route=cuenta]"); await d.waitForTimeout(250);
   ok(await d.evaluate(() => location.hash === "#cuenta" && document.getElementById("cuentaMenu").hidden), "elegir una opción navega y cierra el menú");
 
-  // 7) Recompensas: pestañas Progreso · Tienda · Insignias
+  // 7) Recompensas: una sola página, con tu rango y la Tienda
   await d.goto(URL + "#recompensas"); await d.waitForTimeout(300);
-  ok(await d.locator(".tabs .tabs__b").count() === 3 && await d.locator('.tabs__b.is-active[data-route="recompensas"]').count() === 1, "Recompensas tiene 3 pestañas");
-  await d.click('.tabs [data-route="tienda"]'); await d.waitForTimeout(300);
-  ok(await d.evaluate(() => location.hash === "#tienda") && await d.locator('.tabs__b.is-active[data-route="tienda"]').count() === 1 && await d.locator(".nav-pie.is-active").count() === 1, "la pestaña Tienda abre la tienda y el pie sigue marcado");
+  ok(await d.locator("#view .tabs").count() === 0 && await d.locator("#view .rango-card").isVisible() && await d.locator("#view #tienda .tienda-seg").isVisible() && await d.locator(".nav-pie.is-active").count() === 1,
+    "Recompensas es una sola página: tu rango arriba y la Tienda abajo (el pie del menú queda marcado)");
+  ok(await d.locator("#view .casa, #view .cielo, #view .ele-card").count() === 0, "sin el cuarto ni el cielo: viven en Tu casa y Tu vitrina");
+  ok(await d.locator('#cuentaMenu [data-route="apariencia"]').count() === 1, "el menú de tu cuenta tiene Apariencia");
 
   // 8) Inicio enfocado: elefante junto al saludo, hábitos de un toque y números solo si hay datos
   await d.goto(URL + "#inicio"); await d.waitForTimeout(300);

@@ -24,8 +24,8 @@ const TOURS = {
         texto: m => `Separadas en 💼 profesionales y 🏠 personales, con tu <b>${BOCADO.corto.toLowerCase()}</b> ${BOCADO.emoji} arriba: la más importante del día.${m ? " Desliza una tarea → para marcarla o ← para posponerla." : ""} Toca su texto para editarla.` },
       { ruta: "inicio", el: { sel: "#view .card", txt: "Hábitos de hoy" }, titulo: "Hábitos de hoy",
         texto: "Solo aparecen los que te tocan hoy según su frecuencia. Un toque y listo." },
-      { el: ".topbar__meta", titulo: "Tus monedas y tu racha",
-        texto: "🔥 son tus días cerrados seguidos y ⭐ tus monedas: las ganas abriendo y cerrando días, con hábitos y objetivos, y las gastas en Recompensas → Tienda. Tócalos para ver el detalle." },
+      { el: ".topbar__meta", titulo: "Tus lugares y tus monedas",
+        texto: m => `La cara de tu elefante abre <b>Tu casa</b> y la estrella, <b>Tu vitrina</b> con tus medallas. ⭐ son tus monedas: las ganas abriendo y cerrando días, con hábitos y objetivos, y las gastas en Recompensas.${m ? " Tu racha 🔥 de días cerrados va al pie de tu día." : " 🔥 es tu racha de días cerrados."}` },
       { el: ["#bottombar", "#nav"], titulo: "Tu menú",
         texto: m => m ? "Abajo tienes lo del día a día y, al centro, el botón para <b>abrir o cerrar tu día</b>. En <b>Más</b> está el resto: Objetivos, Ritual, Finanzas, Recompensas, tu cuenta y la ayuda."
           : "A la izquierda: arriba el botón para abrir o cerrar tu día, luego lo del día a día y tus <b>Módulos</b> (plegables). Abajo, Recompensas y el menú de tu cuenta." },
@@ -33,8 +33,9 @@ const TOURS = {
         texto: "<b>Día</b>, <b>Semana</b>, <b>Mes</b> y <b>Trimestre</b>: abrir y cerrar cada ciclo mantiene vivo todo tu sistema. Cada ritual da ⭐." },
       { ruta: "semana", el: [".week-scroll", "#view .card"], titulo: "Tu semana",
         texto: "Tu plan (foco y 3 prioridades) y tus 7 días. Lo que no alcanzas lo decides al cerrar el día: <b>&gt;</b> mañana, <b>&lt;</b> otro día, <b>@</b> delegar o <b>✕</b> soltar." },
-      { el: "#helpBtn", titulo: "¿Dudas? Toca ?",
-        texto: "Cada pantalla tiene su propia ayuda. Y en <b>Ayuda</b> (en Más o en el menú de tu cuenta) repites cualquier recorrido." },
+      { el: ["#helpBtn", "#bbMas"], titulo: "¿Dudas? Hay ayuda",
+        texto: m => m ? "En <b>Más › Ayuda</b> está la ayuda de cada pantalla, y ahí repites cualquier recorrido."
+          : "Toca <b>?</b> arriba: cada pantalla tiene su propia ayuda. Y en <b>Ayuda</b> (en el menú de tu cuenta) repites cualquier recorrido." },
       { ruta: "inicio", el: "[data-tour=mision]", titulo: "Tu misión: primeros pasos",
         texto: "Seis cosas para arrancar. Se marcan solas cuando las haces y al completarlas ganas +100 ⭐ y la insignia Explorador." },
       { titulo: "¡Listo! 🚀", texto: "Eso es lo esencial. Parte abriendo tu día: te toma 30 segundos." },
@@ -106,20 +107,11 @@ const TOURS = {
     ],
   },
   recompensas: {
-    icon: "🏆", titulo: "Recompensas", desc: "Rango, insignias y la Tienda.",
+    icon: "🏆", titulo: "Recompensas", desc: "Tu rango y la Tienda.",
     pasos: [
-      { ruta: "recompensas", el: ".rank-ladder", titulo: "Tu rango", texto: "La XP mide tu rango y <b>nunca baja</b>, aunque gastes monedas." },
-      { ruta: "recompensas", el: ".ele-card", titulo: "Tu elefante", texto: "Crece con tu XP y cambia en cada etapa, de cría a sabio 👑. Vive en 3D en su casa (ábrela con «Tu casa» en Inicio) y va de un rincón a otro haciendo de todo; su cuarto se llena con tu rango y con lo que compres en 🛍️ Decorar; en la repisa luce tus medallas. Vístelo en 👕 Vestir; hay 4 tipos más que se ganan con constancia." },
-      { ruta: "insignias", el: ".badge-card", titulo: "Insignias", texto: "Se desbloquean con tus logros y cada una da ⭐. Algunas tienen bronce, plata y oro, y hay secretas." },
-      { ruta: "recompensas", el: '.tabs [data-route="tienda"]', titulo: "La Tienda", texto: "Gasta tus ⭐ en útiles, funciones, temas y cosméticos. Está en la pestaña Tienda." },
-    ],
-  },
-  tienda: {
-    icon: "🛒", titulo: "Tienda", desc: "Útiles, funciones, temas y cosméticos.",
-    pasos: [
-      { ruta: "tienda", el: ".tienda-saldo", titulo: "Tu saldo", texto: "Lo que tienes para gastar. <b>Ver lo que tengo</b> muestra solo lo tuyo, para equiparlo." },
-      { ruta: "tienda", el: "[data-util]", titulo: "Fichas", texto: "Cada artículo es una ficha: tócala para ver qué hace y comprarlo. Primero aparece lo que <b>te alcanza</b>." },
-      { ruta: "tienda", el: ".tienda-cats", titulo: "Categorías", texto: "Salta a funciones, temas, títulos, efectos o tu elefante. Los temas se prueban antes de comprarlos; Alto contraste es gratis." },
+      { ruta: "recompensas", el: ".rango-card", titulo: "Tu rango", texto: "La XP mide tu rango y <b>nunca baja</b>, aunque gastes monedas. Las ⭐ son para gastar en la Tienda." },
+      { ruta: "recompensas", el: ".tienda-seg", titulo: "La Tienda", texto: "<b>Para tu día</b>: herramientas como el modo enfoque. <b>Para tu estilo</b>: temas, íconos y efectos. Solo ves lo que puedes comprar; lo tuyo se elige en Cuenta › Apariencia." },
+      { ruta: "recompensas", el: ".tienda-elefante", titulo: "Tu elefante", texto: "Su ropa y sus muebles se compran en Tu casa, viendo cómo quedan. Entras tocando su cara, arriba." },
     ],
   },
 };

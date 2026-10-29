@@ -1,95 +1,146 @@
 /* ============================================================
-   RUMBO · Tienda en fichas
-   Cada artículo es una ficha chica (ícono, nombre y precio). Al tocarla se abre su detalle,
-   que es la misma tarjeta de siempre (con su botón de comprar o equipar): la lógica de compra
-   no cambia. Primero "Te alcanza"; "Lo que tengo" muestra solo lo tuyo.
+   RUMBO · Tienda en fichas (v95: por para qué sirve)
+   La Tienda vende; lo que ya tienes se usa donde corresponde: temas, títulos, marcos y efectos
+   en Cuenta › Apariencia; la ropa y los muebles de tu elefante, en Tu casa (Vestir y Decorar).
+   Dos secciones: Para tu día (herramientas) y Para tu estilo (temas, íconos, efectos y perfil).
+   Cada artículo es una ficha chica (ícono, nombre y precio); al tocarla se abre su detalle, que es
+   la misma tarjeta de siempre (con su botón de comprar o equipar).
    ============================================================ */
-let TIENDA_MIOS = false, TIENDA_FICHA = null;
+let TIENDA_FICHA = null, TIENDA_SEC = "dia";
+const TIENDA_ABIERTOS = new Set();   // grupos con «Ver todo» abierto (los demás muestran sus primeras fichas)
+const TIENDA_POR_GRUPO = 6;
 
-/* Todos los artículos con una forma común: { key, cat, icon, nombre, costo, estado, attr, detalle(), accion? } */
-function tiendaItems() {
+/* Todos los artículos con una forma común: { key, cat, sub, icon, nombre, costo, estado, attr, detalle(), accion? }
+   cat: "dia" | "estilo" | "cuarto" (el cuarto se decora desde Tu casa) */
+function tiendaTodos() {
   const saldo = STATE.gamif.puntos || 0, items = [];
   const estado = (tuyo, costo, bloqueado) => tuyo ? "tuyo" : bloqueado ? "bloqueado" : saldo >= costo ? "ok" : "falta";
-  CONSUMIBLES.forEach(c => { const n = inventario(STATE, c.id);
-    items.push({ key: "util:" + c.id, cat: "utiles", icon: c.icon, nombre: c.nombre, costo: c.costo, estado: estado(false, c.costo), tienes: n, attr: `data-util="${c.id}"`, detalle: () => utilCard(c) }); });
+  // Para tu día
   FUNCIONES.forEach(f => { const fid = "fun:" + f.id;
-    items.push({ key: fid, cat: "funciones", icon: f.icon, nombre: f.nombre, costo: f.costo, estado: estado(funcion(claveFuncion(fid)), f.costo), attr: `data-fun="${fid}"`, detalle: () => funcionCard(fid, f) }); });
-  items.push({ key: "plantillas", cat: "funciones", icon: "📋", nombre: "Plantillas de rutina", costo: 200, precioTxt: "200 ⭐ c/u",
+    items.push({ key: fid, cat: "dia", sub: "herramientas", icon: f.icon, nombre: f.nombre, costo: f.costo, estado: estado(funcion(claveFuncion(fid)), f.costo), attr: `data-fun="${fid}"`, detalle: () => funcionCard(fid, f) }); });
+  items.push({ key: "plantillas", cat: "dia", sub: "herramientas", icon: "📋", nombre: "Plantillas de rutina", costo: 200, precioTxt: "200 ⭐ c/u",
     estado: PLANTILLAS.every(p => funcion("plantilla-" + p.id)) ? "tuyo" : estado(false, 200), accion: `data-action="plantillas-open"` });
-  PACKS_ICONOS.forEach(p => items.push({ key: "pack:" + p.id, cat: "funciones", icon: p.icon, iconoHtml: icoHab(p.icon, 26), nombre: "Íconos · " + p.nombre, costo: p.costo || 150,
+  CONSUMIBLES.forEach(c => { const n = inventario(STATE, c.id);
+    items.push({ key: "util:" + c.id, cat: "dia", sub: "utiles", icon: c.icon, nombre: c.nombre, costo: c.costo, estado: estado(false, c.costo), tienes: n, attr: `data-util="${c.id}"`, detalle: () => utilCard(c) }); });
+  // Para tu estilo
+  TEMA_FAMILIAS.forEach(f => { const activa = familiaDeTema(STATE.settings.theme) === f;
+    items.push({ key: "tema:" + f.id, cat: "estilo", sub: "temas", nombre: f.nombre, costo: f.costo, precioTxt: f.costo ? "" : "Gratis",
+      estado: activa ? "equipado" : estado(familiaTuya(f), f.costo), familia: f, accion: `data-action="tema-preview" data-theme="${f.id}"` }); });
+  PACKS_ICONOS.forEach(p => items.push({ key: "pack:" + p.id, cat: "estilo", sub: "iconos", icon: p.icon, iconoHtml: icoHab(p.icon, 26), nombre: p.nombre, costo: p.costo || 150,
     estado: estado(funcion("iconos-" + p.id), p.costo || 150), attr: `data-pack="${p.id}"`,
     detalle: () => funcionCard("iconos:" + p.id, { icon: icoHab(p.icon, 24), nombre: "Íconos · " + p.nombre, costo: p.costo || 150, desc: `24 íconos de línea nuevos para tus hábitos:<span class="pack-vista">${p.iconos.slice(0, 12).map(e => icoHab(e, 20)).join("")}</span>`, donde: "Hábitos → ✎ editar un hábito" }) }));
-  THEMES.forEach(t => { const tuyo = themeOwned(t.id);
-    // Un automático de la Tienda (Bosque) se activa al tener los dos temas de su par
-    items.push({ key: "tema:" + t.id, cat: "temas", nombre: t.nombre, costo: t.costo, estado: STATE.settings.theme === t.id ? "equipado" : estado(tuyo, t.costo, !!t.par && !tuyo),
-      bloqueoTxt: "Con los dos", tema: t, accion: `data-action="tema-preview" data-theme="${t.id}"` }); });
-  [...TITULOS, ...DETALLES].forEach(it => {
-    const bloq = it.requiere && !requisitoTitulo(it);
-    items.push({ key: "cos:" + it.id, cat: "estilo", icon: it.icon, nombre: it.nombre, costo: it.costo, estado: isEquipped(it) ? "equipado" : estado(isOwned(it.id), it.costo, bloq),
-      bloqueoTxt: bloq ? "Requiere insignia" : "", attr: `data-est="${it.id}"`, detalle: () => `<div data-est="${it.id}">${cosmeticCard(it)}</div>` });
-  });
+  const cosEstado = it => isOwned(it.id) && cosActivo(it.id) ? "equipado" : estado(isOwned(it.id), it.costo, !!it.rango);
   COSMETICOS.forEach(it => {
-    items.push({ key: "cos:" + it.id, cat: "efectos", icon: it.icon, nombre: it.nombre, costo: it.costo, estado: isOwned(it.id) && cosActivo(it.id) ? "equipado" : estado(isOwned(it.id), it.costo, !!it.rango),
+    const sub = it.grupo === "marco" ? "perfil" : it.grupo === "plantilla" ? "informe" : "terminar";
+    items.push({ key: "cos:" + it.id, cat: "estilo", sub, icon: it.icon, nombre: it.nombre, costo: it.costo, estado: cosEstado(it),
       bloqueoTxt: it.rango ? "Rango Élite" : "", attr: `data-cos="${it.id}"`, detalle: () => cosmeticoCard(it) });
   });
+  [...TITULOS, ...DETALLES].forEach(it => {
+    const bloq = it.requiere && !requisitoTitulo(it), sub = it.key === "confeti" ? "terminar" : "perfil";
+    items.push({ key: "cos:" + it.id, cat: "estilo", sub, icon: it.icon, nombre: it.nombre, costo: it.costo, estado: isEquipped(it) ? "equipado" : estado(isOwned(it.id), it.costo, bloq),
+      bloqueoTxt: bloq ? "Requiere insignia" : "", attr: `data-est="${it.id}"`, detalle: () => `<div data-est="${it.id}">${cosmeticCard(it)}</div>` });
+  });
+  // El cuarto de tu elefante: se decora desde Tu casa
   CUARTO_TIENDA.forEach(it => {
-    items.push({ key: "cos:" + it.id, cat: "cuarto", icon: it.icon, pared: it.pared, nombre: it.nombre, costo: it.costo, estado: isOwned(it.id) && cuartoActivo(it.id) ? "equipado" : estado(isOwned(it.id), it.costo),
+    items.push({ key: "cos:" + it.id, cat: "cuarto", sub: "cuarto", icon: it.icon, pared: it.pared, nombre: it.nombre, costo: it.costo, estado: isOwned(it.id) && cuartoActivo(it.id) ? "equipado" : estado(isOwned(it.id), it.costo),
       enUsoTxt: it.pared ? "Pintada" : "En el cuarto", tuyoTxt: it.pared ? "Es tuya" : it.fem ? "Guardada" : "Guardado", attr: `data-cua="${it.id}"`, detalle: () => cuartoCard(it), alAbrir: () => cuartoVista(it.id) });
   });
-  const faltan = PRENDAS_ELEFANTE.filter(p => !p.gana && !tienePrenda(p)).length;
-  items.push({ key: "ele:ropa", cat: "elefante", icon: "👕", nombre: "Ropa para tu elefante", precioTxt: faltan ? `${faltan} por comprar` : "¡Todas!", estado: faltan ? "ok" : "tuyo", accion: `data-action="elefante-open" data-v="ropa"` });
-  items.push({ key: "ele:tipos", cat: "elefante", icon: "🐘", nombre: "Tipos de elefante", precioTxt: "Se ganan", estado: "ok", accion: `data-action="elefante-open" data-v="tipo"` });
   return items;
 }
-const TIENDA_CATS = [["utiles", "Útiles"], ["funciones", "Funciones"], ["temas", "Temas"], ["estilo", "Títulos y detalles"], ["efectos", "Efectos"], ["cuarto", "Cuarto"], ["elefante", "Elefante"]];
+const esTuyo = it => it.estado === "tuyo" || it.estado === "equipado";
+/* Lo que se vende: lo que no tienes (los útiles se compran una y otra vez) */
+function tiendaItems() { return tiendaTodos().filter(i => i.cat !== "cuarto" && (i.sub === "utiles" || !esTuyo(i))); }
+const TIENDA_SECS = [["dia", "Para tu día"], ["estilo", "Para tu estilo"]];
+const TIENDA_SUBS = {
+  dia: [["herramientas", "Herramientas"], ["utiles", "Útiles"]],
+  estilo: [["temas", "Temas"], ["iconos", "Íconos de hábitos"], ["terminar", "Al terminar algo"], ["perfil", "Tu perfil"], ["informe", "Plantillas del informe"]],
+};
 
+/* Miniatura de un tema: mitad su día y mitad su noche (si tiene los dos), con su botón y su acento */
+function temaMiniHtml(f, clase = "ficha__ico ficha__ico--tema") {
+  const d = THEMES.find(t => t.id === (f.solo || f.dia)), n = THEMES.find(t => t.id === (f.solo || f.noche));
+  return `<span class="${clase}" style="background:${f.solo ? d.bg : `linear-gradient(90deg, ${d.bg} 50%, ${n.bg} 50%)`}"><i style="background:${d.cta}"></i><i style="background:${n.accent}"></i></span>`;
+}
 function fichaHtml(it) {
-  const precio = it.estado === "equipado" ? (it.enUsoTxt || "En uso") : it.estado === "tuyo" ? (it.cat === "elefante" ? it.precioTxt : it.tuyoTxt || "Es tuyo")
+  const precio = it.estado === "equipado" ? (it.enUsoTxt || "En uso") : it.estado === "tuyo" ? (it.tuyoTxt || "Es tuyo")
     : it.estado === "bloqueado" ? "🔒 " + (it.bloqueoTxt || "Bloqueado") : (it.precioTxt || it.costo + " ⭐");
-  const par = it.tema && it.tema.par && it.tema.par.map(id => THEMES.find(t => t.id === id));
-  const icono = it.tema ? (par
-      // Automático: mitad el tema de día y mitad el de noche, con el botón del día y el acento de la noche
-      ? `<span class="ficha__ico ficha__ico--tema" style="background:linear-gradient(90deg, ${par[0].bg} 50%, ${par[1].bg} 50%)"><i style="background:${par[0].cta}"></i><i style="background:${par[1].accent}"></i></span>`
-      : `<span class="ficha__ico ficha__ico--tema" style="background:${it.tema.bg}"><i style="background:${it.tema.cta}"></i><i style="background:${it.tema.accent}"></i></span>`)
+  const icono = it.familia ? temaMiniHtml(it.familia)
     : it.pared ? `<span class="ficha__ico ficha__ico--pared" style="--p1:${it.pared[0]};--p2:${it.pared[1]}" aria-hidden="true"></span>`
     : `<span class="ficha__ico">${it.iconoHtml || it.icon}</span>`;
-  return `<button class="ficha is-${it.estado}${it.tema ? " ficha--tema" : ""}" ${it.accion || `data-action="tienda-ficha" data-key="${escapeAttr(it.key)}"`} ${it.attr || ""}>
-    ${it.estado === "tuyo" || it.estado === "equipado" ? `<span class="ficha__ok" aria-hidden="true">✓</span>` : ""}
-    ${icono}<span class="ficha__n">${escapeHtml(it.nombre)}</span><span class="ficha__p">${precio}${it.tienes ? ` · tienes ${it.tienes}` : ""}</span></button>`;
+  const modos = it.familia ? `<span class="ficha__modos">${it.familia.solo ? (it.familia.modo === "dia" ? "De día" : "De noche") : "Día · Noche · Auto"}</span>` : "";
+  return `<button class="ficha is-${it.estado}${it.familia ? " ficha--tema" : ""}" ${it.accion || `data-action="tienda-ficha" data-key="${escapeAttr(it.key)}"`} ${it.attr || ""}>
+    ${esTuyo(it) ? `<span class="ficha__ok" aria-hidden="true">✓</span>` : ""}
+    ${icono}<span class="ficha__n">${escapeHtml(it.nombre)}</span>${modos}<span class="ficha__p">${precio}${it.tienes ? ` · tienes ${it.tienes}` : ""}</span></button>`;
 }
 
-function renderTienda() {
-  const saldo = STATE.gamif.puntos || 0, todos = tiendaItems();
-  const lista = TIENDA_MIOS ? todos.filter(i => i.estado === "tuyo" || i.estado === "equipado") : todos;
-  const alcanza = TIENDA_MIOS ? [] : todos.filter(i => i.estado === "ok" && i.costo && i.cat !== "elefante" && i.cat !== "utiles").sort((a, b) => b.costo - a.costo).slice(0, 6);
-  const grupo = (id, titulo) => { const xs = lista.filter(i => i.cat === id);
-    return xs.length ? `<section id="tienda-${id}" class="tienda-sec"><div class="section-title">${titulo}</div><div class="fichas">${xs.map(fichaHtml).join("")}</div></section>` : ""; };
+/* La Tienda, dentro de Recompensas: Para tu día · Para tu estilo */
+function tiendaHtml() {
+  const venta = tiendaItems(), sec = TIENDA_SECS.some(([id]) => id === TIENDA_SEC) ? TIENDA_SEC : "dia";
+  const deSec = venta.filter(i => i.cat === sec);
+  // Lo que te alcanza va primero (sin repetirlo más abajo)
+  const alcanza = deSec.filter(i => i.estado === "ok" && i.costo && i.sub !== "utiles").sort((a, b) => b.costo - a.costo).slice(0, 3);
+  const resto = deSec.filter(i => !alcanza.includes(i));
+  const grupo = ([id, titulo]) => {
+    const xs = resto.filter(i => i.sub === id); if (!xs.length) return "";
+    const todos = TIENDA_ABIERTOS.has(id) || xs.length <= TIENDA_POR_GRUPO + 1, vis = todos ? xs : xs.slice(0, TIENDA_POR_GRUPO);
+    return `<section id="tienda-${id}" class="tienda-sec"><div class="section-title">${titulo}</div><div class="fichas">${vis.map(fichaHtml).join("")}</div>
+      ${todos ? "" : `<button type="button" class="btn-ghost tienda-mas" data-action="tienda-mas" data-v="${id}">Ver todo (${xs.length})</button>`}</section>`;
+  };
+  const cuerpo = TIENDA_SUBS[sec].map(grupo).join("");
+  return `<section class="tienda" id="tienda" aria-label="Tienda">
+    <div class="tienda__cab"><h2 class="section-title tienda__t">Tienda</h2>
+      <div class="seg tienda-seg" role="tablist" aria-label="Secciones de la Tienda">${TIENDA_SECS.map(([id, l]) =>
+        `<button role="tab" aria-selected="${id === sec}" class="${id === sec ? "is-active" : ""}" data-action="tienda-sec" data-v="${id}">${l}</button>`).join("")}</div></div>
+    ${alcanza.length ? `<section class="tienda-sec"><div class="section-title">✨ Te alcanza</div><div class="fichas">${alcanza.map(fichaHtml).join("")}</div></section>` : ""}
+    ${cuerpo || (alcanza.length ? "" : `<div class="card mt-16"><div class="empty">Ya tienes todo lo de esta sección. 🎉</div></div>`)}
+    <div class="tienda-links">
+      <button type="button" class="tienda-link tienda-elefante" data-action="lugar-entrar" data-ruta="cuarto">${iconoLinea("inicio", 20)}
+        <span><b>Ropa y muebles para tu elefante</b><small>Se compran en Tu casa, viendo cómo quedan</small></span>${iconoLinea("chevron", 16)}</button>
+      <button type="button" class="tienda-link" data-route="apariencia">${iconoLinea("personalizar", 20)}
+        <span><b>Lo que ya tienes</b><small>Temas, títulos, marcos y efectos se eligen en Cuenta › Apariencia</small></span>${iconoLinea("chevron", 16)}</button>
+    </div>
+    <p class="text-xs muted mt-16">Ganas ⭐ usando la app: cerrar el día, hábitos, rituales y objetivos.</p>
+  </section>`;
+}
+
+/* -------- Cuenta › Apariencia: lo que ya tienes, para usarlo -------- */
+function temaFamiliaHtml(f) {
+  const t = STATE.settings.theme, activa = familiaDeTema(t) === f;
+  const modos = f.solo
+    ? `<button class="btn btn--soft fam-card__usar" data-action="set-theme" data-theme="${f.solo}" ${activa ? 'aria-pressed="true"' : ""}>${activa ? "✓ En uso" : "Usar"}</button>`
+    : `<div class="seg fam-card__modos" role="group" aria-label="Modo de ${escapeAttr(f.nombre)}">${[["auto", "Auto"], ["dia", "Día"], ["noche", "Noche"]].map(([k, l]) =>
+        `<button class="${t === f[k] ? "is-active" : ""}" data-action="set-theme" data-theme="${f[k]}" aria-pressed="${t === f[k]}">${l}</button>`).join("")}</div>`;
+  return `<div class="fam-card${activa ? " is-activa" : ""}" data-familia="${f.id}">
+    <button type="button" class="fam-card__prev" data-action="tema-preview" data-theme="${f.id}" aria-label="Ver ${escapeAttr(f.nombre)}">${temaMiniHtml(f, "fam-card__mini")}</button>
+    <div class="fam-card__tx"><b>${escapeHtml(f.nombre)}</b><small>${activa ? "En uso" : f.solo ? (f.modo === "dia" ? "De día" : "De noche") : "Día, noche o automático"}</small></div>
+    ${modos}</div>`;
+}
+function renderApariencia() {
+  const mias = tiendaTodos().filter(i => i.cat === "estilo" && i.sub !== "temas" && esTuyo(i));
+  const fams = TEMA_FAMILIAS.filter(familiaTuya);
+  const grupo = ([id, titulo]) => { const xs = mias.filter(i => i.sub === id);
+    return xs.length ? `<section class="tienda-sec"><div class="section-title">${titulo}</div><div class="fichas">${xs.map(fichaHtml).join("")}</div></section>` : ""; };
+  const resto = TIENDA_SUBS.estilo.filter(([id]) => id !== "temas").map(grupo).join("");
   return `
-  ${tabsRecompensas()}
-  <div class="tienda-saldo"><div><div class="text-sm muted">Tu saldo</div><b>${saldo} ⭐</b></div>
-    <button class="chip-f${TIENDA_MIOS ? " is-on" : ""}" data-action="tienda-mios">${TIENDA_MIOS ? "✓ Lo que tengo" : "Ver lo que tengo"}</button></div>
-  <nav class="tienda-cats" aria-label="Categorías de la tienda">
-    ${TIENDA_CATS.map(([id, l]) => `<button class="tienda-cat" data-action="tienda-ir" data-id="${id}">${l}</button>`).join("")}
-  </nav>
-  ${alcanza.length ? `<section class="tienda-sec"><div class="section-title">✨ Te alcanza</div><div class="fichas">${alcanza.map(fichaHtml).join("")}</div></section>` : ""}
-  ${TIENDA_CATS.map(([id, l]) => grupo(id, l)).join("")}
-  ${TIENDA_MIOS && !lista.length ? `<div class="card mt-16"><div class="empty">Todavía no tienes nada de la tienda. Ganas ⭐ abriendo y cerrando tus días.</div></div>` : ""}
-  <p class="text-xs muted mt-24">Ganas ⭐ usando la app: cerrar el día, hábitos, rituales y objetivos.</p>`;
+  <p class="text-sm muted" style="margin-bottom:16px">Cómo se ve Rumbo con lo que ya tienes. Lo nuevo está en <a href="#recompensas">Recompensas › Tienda</a>.</p>
+  <section class="tienda-sec"><div class="section-title">Tema</div><div class="fam-cards">${fams.map(temaFamiliaHtml).join("")}</div></section>
+  ${resto || `<div class="card mt-16"><div class="empty">Los títulos, marcos, íconos y efectos que compres en la Tienda aparecen aquí para usarlos.</div></div>`}`;
 }
 
 /* Detalle de una ficha: la tarjeta de siempre, en una hoja */
 function openFicha(key) {
-  const it = tiendaItems().find(x => x.key === key);
+  const it = tiendaTodos().find(x => x.key === key);
   if (!it || !it.detalle) return;
   TIENDA_FICHA = key;
-  openModal(it.nombre, `<div class="ficha-detalle">${it.detalle()}</div>`);
+  const volver = it.cat === "cuarto" ? `<button class="btn-ghost ficha-volver" data-action="cuarto-decorar">‹ Decorar</button>` : "";
+  openModal(it.nombre, `${volver}<div class="ficha-detalle">${it.detalle()}</div>`);
   document.getElementById("modal").classList.add("modal--hoja");
   if (it.alAbrir) it.alAbrir();
 }
 /* Después de comprar o equipar desde la hoja: se vuelve a dibujar con el estado nuevo */
 function refrescarFicha() {
   if (!TIENDA_FICHA || document.getElementById("modalOverlay").hidden) { TIENDA_FICHA = null; return; }
-  if (CURRENT === "tienda") openFicha(TIENDA_FICHA);
+  openFicha(TIENDA_FICHA);
 }
 document.addEventListener("click", e => {
   const el = e.target.closest && e.target.closest("[data-action]");

@@ -267,10 +267,15 @@ function migrate(s) {
   // Los demás temas, elegidos o comprados, se respetan.
   // v80: el predeterminado es "auto" (Ruta de día, Ruta noche de noche). Quien está en Ruta o en Navy
   // sin haberlo elegido en la Tienda pasa a automático, con la misma regla de cada carga.
+  // v91 (Norte): Navy y Claro, los temas de BiPlot, se retiran. Automático ahora es Norte de día y Norte noche
+  // de noche. Quien eligió Navy pasa a Norte noche y quien está en Claro a Norte: el mismo modo que tenía.
+  // También en cada carga, por si un equipo con la versión anterior los vuelve a poner.
   if (s.settings) {
-    const TEMAS = ["auto", "ruta", "ruta-noche", "navy", "claro", "grafito", "medianoche", "bosque-claro", "bosque-oscuro", "atardecer", "oceano", "cuaderno", "terminal", "sakura", "alto-contraste"];
+    const TEMAS = ["auto", "norte", "norte-noche", "ruta", "ruta-noche", "grafito", "medianoche", "bosque-claro", "bosque-oscuro", "atardecer", "oceano", "cuaderno", "terminal", "sakura", "alto-contraste"];
     if (s.settings.theme === "bosque") s.settings.theme = "bosque-claro";
     if (["navy", "ruta"].includes(s.settings.theme) && s.settings.temaElegido !== s.settings.theme) s.settings.theme = "auto";
+    const RETIRADOS = { navy: "norte-noche", claro: "norte" };
+    if (RETIRADOS[s.settings.theme]) s.settings.theme = s.settings.temaElegido = RETIRADOS[s.settings.theme];
     if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "auto";
   }
   if (s.gamif && !Array.isArray(s.gamif.usos)) s.gamif.usos = [];   // consumibles de la Tienda

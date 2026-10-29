@@ -1,4 +1,4 @@
-/* Pruebas en navegador · Diseño Ruta (v78): tema predeterminado, paso desde Navy y el día como recorrido */
+/* Pruebas en navegador · Diseño Ruta (v78): un tema gratis que se elige en la Tienda, y el día como recorrido */
 const { URL, nuevoContexto, registrar } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { w: 390, h: 844, fecha: "2026-10-27T08:30:00" });
@@ -6,34 +6,15 @@ module.exports = async ({ b, ok, errs }) => {
   await registrar(p, "ruta@test.cl");
   await p.evaluate(() => { STATE.settings.introVersion = INTRO_VERSION; saveState(); });
 
-  // 1) Cuenta nueva: tema automático (con el teléfono en modo claro se ve Ruta), con la barra de arriba negra
-  ok(await p.evaluate(() => STATE.settings.theme === "auto" && document.documentElement.dataset.theme === "ruta"), "una cuenta nueva parte en automático: de día, Ruta");
-  const barra = await p.evaluate(() => [getComputedStyle(document.querySelector(".topbar")).backgroundColor, getComputedStyle(document.querySelector(".app")).backgroundColor]);
-  ok(barra[0] === "rgb(11, 11, 12)" && barra[1] === "rgb(255, 255, 255)", `barra de arriba negra y contenido blanco (${barra.join(" · ")})`);
-  ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content === "#0B0B0C"), "el color del navegador sigue a la barra");
-  ok(await p.evaluate(() => themeOwned("auto") && themeOwned("ruta") && themeOwned("ruta-noche")), "Automático, Ruta y Ruta noche son gratis");
-
-  // 2) Paso desde Navy y Ruta: quien seguía en el predeterminado pasa a automático; lo elegido se respeta
-  const mig = await p.evaluate(() => {
-    const base = () => JSON.parse(JSON.stringify(STATE));
-    const a = base(); a.settings.theme = "navy"; delete a.settings.temaElegido;
-    const c = base(); c.settings.theme = "sakura";
-    const d = base(); d.settings.theme = "navy"; d.settings.temaElegido = "navy";   // eligió Navy en la Tienda después del cambio
-    const e = base(); e.settings.theme = "ruta"; delete e.settings.temaElegido;      // Ruta por defecto (v78-79)
-    const f = base(); f.settings.theme = "ruta"; f.settings.temaElegido = "ruta";    // eligió Ruta: siempre claro
-    const g = base(); g.settings.theme = "tema-que-no-existe";
-    return [a, c, d, e, f, g].map(x => migrate(x).settings.theme);
-  });
-  ok(JSON.stringify(mig) === '["auto","sakura","navy","auto","ruta","auto"]', "Navy o Ruta por defecto pasan a automático; Sakura, un Navy elegido y un Ruta elegido se quedan: " + mig);
-
-  // Elegir Navy en la Tienda lo deja guardado: una recarga no lo vuelve a cambiar
-  await p.evaluate(() => { STATE.settings.introVersion = INTRO_VERSION; saveState(); });
+  // 1) Ruta se elige en la Tienda y queda guardado: una recarga no lo cambia
   await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
-  await p.evaluate(() => { const b = document.createElement("button"); b.dataset.action = "set-theme"; b.dataset.theme = "navy"; document.getElementById("view").appendChild(b); b.click(); });
+  await p.evaluate(() => { const b = document.createElement("button"); b.dataset.action = "set-theme"; b.dataset.theme = "ruta"; document.getElementById("view").appendChild(b); b.click(); });
   await p.waitForTimeout(200);
   await p.reload(); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(400);
-  ok(await p.evaluate(() => STATE.settings.theme === "navy" && STATE.settings.temaElegido === "navy"), "quien elige Navy en la Tienda lo conserva al recargar");
-  await p.evaluate(() => { STATE.settings.theme = "ruta"; STATE.settings.temaElegido = "ruta"; applyTheme("ruta"); saveState(); });
+  ok(await p.evaluate(() => STATE.settings.theme === "ruta" && STATE.settings.temaElegido === "ruta" && document.documentElement.dataset.theme === "ruta"), "quien elige Ruta en la Tienda lo conserva al recargar");
+  const barra = await p.evaluate(() => [getComputedStyle(document.querySelector(".topbar")).backgroundColor, getComputedStyle(document.querySelector(".app")).backgroundColor]);
+  ok(barra[0] === "rgb(11, 11, 12)" && barra[1] === "rgb(255, 255, 255)", `Ruta: barra de arriba negra y contenido blanco (${barra.join(" · ")})`);
+  ok(await p.evaluate(() => document.querySelector('meta[name="theme-color"]').content === "#0B0B0C"), "el color del navegador sigue a la barra");
 
   // 3) Inicio con el día por abrir: tres paradas y un solo botón principal
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);

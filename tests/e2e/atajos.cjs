@@ -10,23 +10,23 @@ module.exports = async ({ b, ok, errs }) => {
   const html = await p.evaluate(async () => (await fetch("./")).text());
   ok(/id="splash"/.test(html) && /Trayendo tus datos/.test(html), "la pantalla de carga viene en el HTML");
   ok(await p.locator("#splash").count() === 0, "se va cuando aparece la pantalla de acceso");
-  ok(await p.evaluate(() => document.documentElement.dataset.theme) === "ruta-noche", "con el teléfono en modo oscuro, el acceso se ve en Ruta noche");
+  ok(await p.evaluate(() => document.documentElement.dataset.theme) === "norte-noche", "con el teléfono en modo oscuro, el acceso se ve en Norte noche");
   await p.emulateMedia({ colorScheme: "light" });
 
   // 2) Tema automático: sigue al teléfono, también en vivo
   await registrar(p, "atajos@test.cl");
-  ok(await p.evaluate(() => STATE.settings.theme === "auto" && document.documentElement.dataset.theme === "ruta"), "cuenta nueva en automático: de día, Ruta");
+  ok(await p.evaluate(() => STATE.settings.theme === "auto" && document.documentElement.dataset.theme === "norte"), "cuenta nueva en automático: de día, Norte");
   await p.emulateMedia({ colorScheme: "dark" }); await p.waitForTimeout(150);
   const noche = await p.evaluate(() => [document.documentElement.dataset.theme, getComputedStyle(document.querySelector(".app")).backgroundColor, document.querySelector('meta[name="theme-color"]').content]);
-  ok(noche[0] === "ruta-noche" && noche[1] === "rgb(11, 11, 12)" && noche[2] === "#0B0B0C", "el teléfono pasa a modo oscuro y Rumbo cambia a Ruta noche al tiro: " + noche.join(" · "));
+  ok(noche[0] === "norte-noche" && noche[1] === "rgb(12, 15, 30)" && noche[2] === "#0C0F1E", "el teléfono pasa a modo oscuro y Rumbo cambia a Norte noche al tiro: " + noche.join(" · "));
   await p.emulateMedia({ colorScheme: "light" }); await p.waitForTimeout(150);
-  ok(await p.evaluate(() => document.documentElement.dataset.theme) === "ruta", "y vuelve a Ruta en modo claro");
+  ok(await p.evaluate(() => document.documentElement.dataset.theme) === "norte", "y vuelve a Norte en modo claro");
   await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
   const ficha = await p.locator('.ficha[data-theme="auto"]').innerText();
   ok(/Automático/.test(ficha) && /En uso/.test(ficha), "en la Tienda, Automático aparece en uso: " + ficha.replace(/\s+/g, " "));
   await p.click('.ficha[data-theme="auto"]'); await p.waitForTimeout(250);
   const prev = await p.locator("#modalBody").innerText();
-  ok(/De día/.test(prev) && /De noche/.test(prev), "su vista previa muestra el día y la noche");
+  ok(/De día/.test(prev) && /De noche/.test(prev) && /Norte de día y Norte noche de noche/.test(prev), "su vista previa muestra Norte de día y Norte noche de noche");
   await p.evaluate(() => closeModal());
   await p.evaluate(() => { const x = document.createElement("button"); x.dataset.action = "set-theme"; x.dataset.theme = "ruta"; document.getElementById("view").appendChild(x); x.click(); });
   await p.emulateMedia({ colorScheme: "dark" }); await p.waitForTimeout(150);
@@ -34,13 +34,13 @@ module.exports = async ({ b, ok, errs }) => {
   await p.evaluate(() => { STATE.settings.theme = "auto"; delete STATE.settings.temaElegido; applyTheme("auto"); saveState(); });
   await p.emulateMedia({ colorScheme: "light" });
 
-  // 3) Manifest: carga en negro (sin el azul de antes) y tres atajos con su ícono
+  // 3) Manifest: carga en tinta índigo, como la barra de arriba de Norte, y tres atajos con su ícono
   const man = await p.evaluate(async () => {
     const m = await (await fetch("./manifest.json")).json();
     const iconos = await Promise.all((m.shortcuts || []).map(async s => { const r = await fetch(s.icons[0].src); return r.ok && /image\/png/.test(r.headers.get("content-type") || ""); }));
     return { bg: m.background_color, tc: m.theme_color, urls: (m.shortcuts || []).map(s => s.url), iconos };
   });
-  ok(man.bg === "#0B0B0C" && man.tc === "#0B0B0C", "al abrir desde el ícono, la carga es negra como la app: " + man.bg + " · " + man.tc);
+  ok(man.bg === "#161A2E" && man.tc === "#161A2E", "al abrir desde el ícono, la carga es en tinta índigo como la app: " + man.bg + " · " + man.tc);
   ok(JSON.stringify(man.urls) === '["./?atajo=abrir","./?atajo=tarea","./?atajo=cerrar"]' && man.iconos.every(Boolean), "atajos del ícono: abrir, nueva tarea y cerrar, cada uno con su ícono");
 
   // 4) Atajos: abrir mi día

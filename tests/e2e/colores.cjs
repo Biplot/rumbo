@@ -1,4 +1,4 @@
-/* Pruebas en navegador · Colores de BiPlot: un solo botón coral por pantalla y las barras azules del tema Claro */
+/* Pruebas en navegador · Un solo botón principal (la aguja ámbar de Norte) por pantalla, y las barras de cada tema */
 const { URL, nuevoContexto, registrar } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const coral = p => p.evaluate(() => [...document.querySelectorAll("#view .btn--primary")].map(x => x.dataset.action));
@@ -8,7 +8,7 @@ module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { w: 390, h: 844, fecha: "2026-10-15T09:20:00" });
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
   await registrar(p, "colores@test.cl");
-  await p.evaluate(() => { STATE.settings.theme = "claro"; saveState(); applyTheme("claro"); });
+  await p.evaluate(() => { STATE.settings.theme = "norte"; saveState(); applyTheme("norte"); });
   await p.goto(URL + "#inicio"); await p.waitForTimeout(400);
   ok(JSON.stringify(await coral(p)) === '["day-open"]', "Inicio: el único botón coral es «Abre tu día»");
   ok((await borde(p)).includes("tri-ritual"), "Inicio: «Abrir el trimestre» pasa a botón con borde");
@@ -22,13 +22,13 @@ module.exports = async ({ b, ok, errs }) => {
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
   ok(JSON.stringify(await coral(p)) === '["tri-ritual"]', "día en curso: el aviso del trimestre es el único coral");
 
-  // 4) Barras: azules en Claro, sin cambios en Navy
+  // 4) Barras: en Norte, la de arriba en tinta índigo (la hora del iPhone va en blanco) y la de abajo blanca; en Norte noche, índigo noche
   const fondos = () => p.evaluate(() => [".topbar", ".bottombar"].map(s => getComputedStyle(document.querySelector(s)).backgroundColor));
   const [top, bottom] = await fondos();
-  ok(top.includes("14, 42, 71") && bottom.includes("14, 42, 71"), `Claro: barra de arriba y de abajo en Azul Profundo (${top} · ${bottom})`);
-  await p.evaluate(() => { STATE.settings.theme = "navy"; saveState(); applyTheme("navy"); rerender(); });
-  const [topN] = await fondos();
-  ok(topN.includes("10, 30, 51"), `Navy: la barra de arriba sigue en su azul (${topN})`);
+  ok(top === "rgb(22, 26, 46)" && bottom === "rgb(255, 255, 255)", `Norte: barra de arriba en tinta índigo y la de abajo blanca (${top} · ${bottom})`);
+  await p.evaluate(() => { STATE.settings.theme = "norte-noche"; saveState(); applyTheme("norte-noche"); rerender(); });
+  const [topN, bottomN] = await fondos();
+  ok(topN === "rgb(12, 15, 30)" && bottomN === "rgb(20, 25, 50)", `Norte noche: barras en índigo noche (${topN} · ${bottomN})`);
 
   // 5) La barra de arriba es sólida y sin desenfoque en todos los temas: si no, desde iOS 26 el
   //    iPhone difumina el borde de arriba de la app instalada (la hora queda sobre un degradado gris)
@@ -52,7 +52,7 @@ module.exports = async ({ b, ok, errs }) => {
   }).filter(Boolean));
   ok(!lienzo.length, "el fondo de base de la página es del color de la barra en todos los temas " + lienzo.join(", "));
   const claro = await p.evaluate(() => {
-    applyTheme("claro");
+    applyTheme("norte");
     const r = [getComputedStyle(document.documentElement).backgroundColor, getComputedStyle(document.querySelector(".app")).backgroundColor];
     document.getElementById("authScreen").hidden = false;
     r.push(getComputedStyle(document.documentElement).backgroundColor);
@@ -60,7 +60,7 @@ module.exports = async ({ b, ok, errs }) => {
     applyTheme(STATE.settings.theme);
     return r;
   });
-  ok(claro[0] === "rgb(14, 42, 71)" && claro[1] === "rgb(242, 244, 247)", `Claro: base azul y contenido gris claro (${claro[0]} · ${claro[1]})`);
-  ok(claro[2] === "rgb(242, 244, 247)", `Claro: con la pantalla de ingreso, la base toma su fondo (${claro[2]})`);
+  ok(claro[0] === "rgb(22, 26, 46)" && claro[1] === "rgb(245, 246, 250)", `Norte: base en tinta índigo y contenido claro (${claro[0]} · ${claro[1]})`);
+  ok(claro[2] === "rgb(245, 246, 250)", `Norte: con la pantalla de ingreso, la base toma su fondo (${claro[2]})`);
   await ctx.close();
 };

@@ -71,4 +71,23 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(s.gamif.puntos, 1000);
     const otro = clone(s); assert.equal(mergeStates(otro, s).gamif.puntos, 1000);   // la fusión no la vuelve a cobrar
   });
+
+  test("Tienda: Grafito y Medianoche se retiran: vuelven las ⭐, dejan de ser tuyos y quien los usaba pasa a su gemelo gratis", () => {
+    const s = migrate(defaultState()); ledgerRegistrar(s, "saldo-test", 1000, 0, "t");
+    assert.equal(ledgerComprar(s, "tema-grafito", 400).ok, true);
+    assert.equal(ledgerComprar(s, "tema-medianoche", 500).ok, true);
+    assert.equal(ledgerComprar(s, "tema-oceano", 100).ok, true);   // uno que sigue a la venta no se toca
+    assert.equal(s.gamif.puntos, 0);
+    s.settings.theme = "medianoche"; s.settings.temaElegido = "medianoche";
+    migrate(s);
+    assert.equal(s.gamif.puntos, 900);
+    assert.equal(s.gamif.owned.includes("tema-grafito") || s.gamif.owned.includes("tema-medianoche"), false);
+    assert.ok(s.gamif.owned.includes("tema-oceano"));
+    assert.equal(s.settings.theme, "norte-noche");
+    assert.ok(s.gamif.ledger.find(m => m.id === "compra:tema-grafito").motivo.includes("devuelta"));
+    const g = clone(s); g.settings.theme = "grafito"; assert.equal(migrate(g).settings.theme, "ruta-noche");
+    migrate(s);
+    assert.equal(s.gamif.puntos, 900);   // una sola vez
+    const otro = clone(s); assert.equal(mergeStates(otro, s).gamif.puntos, 900);
+  });
 }

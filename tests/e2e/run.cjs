@@ -10,7 +10,7 @@ const http = require("http");
 const fs = require("fs");
 const { chromium, URL } = require("./lib.cjs");
 
-const SPECS = ["registro", "posponer", "metricas", "semana", "express", "anios", "cruce", "etapa3", "trimestre", "informe", "tutorial", "gcal", "google-login", "tienda", "funciones", "cosmeticos", "logros", "elefante", "avatares", "navegacion", "gcal-permanente", "modulos", "conoce", "cierre-ayer", "notificaciones", "colores", "consultorio", "general", "ruta", "norte", "detalles", "atajos", "cielo", "ganar", "casa", "cuarto", "lugar", "lugares", "casa-vida"];
+const SPECS = ["registro", "posponer", "metricas", "semana", "express", "anios", "cruce", "etapa3", "trimestre", "informe", "tutorial", "gcal", "google-login", "tienda", "funciones", "cosmeticos", "logros", "elefante", "avatares", "navegacion", "gcal-permanente", "modulos", "conoce", "cierre-ayer", "notificaciones", "colores", "consultorio", "general", "ruta", "norte", "temas", "detalles", "atajos", "cielo", "ganar", "casa", "cuarto", "lugar", "lugares", "casa-vida"];
 const arriba = () => new Promise(res => http.get(URL, r => { r.resume(); res(true); }).on("error", () => res(false)));
 
 (async () => {

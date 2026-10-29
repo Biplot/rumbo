@@ -270,11 +270,13 @@ function migrate(s) {
   // v91 (Norte): Navy y Claro, los temas de BiPlot, se retiran. Automático ahora es Norte de día y Norte noche
   // de noche. Quien eligió Navy pasa a Norte noche y quien está en Claro a Norte: el mismo modo que tenía.
   // También en cada carga, por si un equipo con la versión anterior los vuelve a poner.
+  // v92: Grafito y Medianoche se retiran de la Tienda (se parecían a Ruta noche y a Norte noche, que son
+  // gratis). Quien los usa pasa a ese gemelo gratis y se le devuelven las ⭐ (retirarTemas).
   if (s.settings) {
-    const TEMAS = ["auto", "norte", "norte-noche", "ruta", "ruta-noche", "grafito", "medianoche", "bosque-claro", "bosque-oscuro", "atardecer", "oceano", "cuaderno", "terminal", "sakura", "alto-contraste"];
+    const TEMAS = ["auto", "norte", "norte-noche", "ruta", "ruta-noche", "bosque-claro", "bosque-oscuro", "atardecer", "oceano", "cuaderno", "terminal", "sakura", "alto-contraste"];
     if (s.settings.theme === "bosque") s.settings.theme = "bosque-claro";
     if (["navy", "ruta"].includes(s.settings.theme) && s.settings.temaElegido !== s.settings.theme) s.settings.theme = "auto";
-    const RETIRADOS = { navy: "norte-noche", claro: "norte" };
+    const RETIRADOS = { navy: "norte-noche", claro: "norte", medianoche: "norte-noche", grafito: "ruta-noche" };
     if (RETIRADOS[s.settings.theme]) s.settings.theme = s.settings.temaElegido = RETIRADOS[s.settings.theme];
     if (!TEMAS.includes(s.settings.theme)) s.settings.theme = "auto";
   }
@@ -283,6 +285,7 @@ function migrate(s) {
   if (s.gamif && s.gamif.equipped && (!s.gamif.equipped.avatar || typeof s.gamif.equipped.avatar !== "object")) s.gamif.equipped.avatar = { id: null, propio: null, ts: 0 };   // v66: avatares
   retirarConsumibles(s);   // v61: protector, día libre, rescate y pase ya no se venden (se devuelve lo no usado)
   retirarFunciones(s);     // v73: el aviso de mediodía es gratis (se devuelve lo pagado)
+  retirarTemas(s);         // v92: Grafito y Medianoche ya no se venden (se devuelve lo pagado)
   if (!s.enfoque || typeof s.enfoque !== "object" || Array.isArray(s.enfoque)) s.enfoque = {};
   if (!Array.isArray(s.enfoque.sesiones)) s.enfoque.sesiones = [];   // modo enfoque
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
@@ -435,13 +438,18 @@ function retirarConsumibles(s, hoy) {
    como el resto de los avisos opcionales. La compra se anula (vuelven las ⭐) y el aviso sigue
    igual. Idempotente: una segunda pasada no encuentra nada que anular. */
 const FUNCIONES_RETIRADAS = ["mediodia"];
-function retirarFunciones(s) {
+function retirarFunciones(s) { return devolverCompras(s, FUNCIONES_RETIRADAS.map(id => "compra:fun-" + id), "devuelta (ahora es gratis)"); }
+/* Temas que dejaron de venderse (v92): Grafito y Medianoche. Su compra se anula (vuelven las ⭐). */
+const TEMAS_RETIRADOS = ["grafito", "medianoche"];
+function retirarTemas(s) { return devolverCompras(s, TEMAS_RETIRADOS.map(id => "compra:tema-" + id), "devuelta (el tema se retiró)"); }
+/* Anula las compras vigentes con esos ids. Idempotente: una segunda pasada no encuentra nada que anular. */
+function devolverCompras(s, ids, nota) {
   const g = s && s.gamif;
   if (!g || !Array.isArray(g.ledger)) return s;
   let cambio = false;
   g.ledger.forEach(m => {
-    if (!m || m.anulado || !FUNCIONES_RETIRADAS.some(id => m.id === "compra:fun-" + id)) return;
-    m.anulado = true; m.ts = (m.ts || 0) + 1; m.motivo = (m.motivo || "Compra") + " · devuelta (ahora es gratis)"; cambio = true;
+    if (!m || m.anulado || !ids.includes(m.id)) return;
+    m.anulado = true; m.ts = (m.ts || 0) + 1; m.motivo = (m.motivo || "Compra") + " · " + nota; cambio = true;
   });
   if (cambio) recalcGamif(s);
   return s;

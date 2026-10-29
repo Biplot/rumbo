@@ -2,7 +2,7 @@
    RUMBO · Sistema de diseño
    Temas (html[data-theme="…"]):
      norte (:root, predeterminado de día) · norte-noche (predeterminado de noche)
-     ruta · ruta-noche · y los de la Tienda (grafito, medianoche, bosque…)
+     ruta · ruta-noche · y los de la Tienda (bosque, atardecer, océano, cuaderno, terminal, sakura)
    "auto" (el predeterminado) se resuelve en JS: Norte de día, Norte noche de noche.
    Variables clave:
      --cian      acento (barras, chips, bordes, fondos de acento). En Norte: índigo
@@ -807,32 +807,9 @@ textarea.input { resize: vertical; min-height: 84px; }
 html:has(#authScreen:not([hidden])), html:has(#enfoque:not([hidden])) { --lienzo: var(--bg); }
 
 /* Los temas de la Tienda que no traen letra propia siguen con Space Grotesk */
-html[data-theme="grafito"], html[data-theme="medianoche"], html[data-theme="atardecer"], html[data-theme="oceano"],
-html[data-theme="sakura"], html[data-theme="alto-contraste"] {
+html[data-theme="atardecer"], html[data-theme="oceano"], html[data-theme="sakura"], html[data-theme="alto-contraste"] {
   --font-body: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-/* TIENDA · Grafito (oscuro neutro) */
-html[data-theme="grafito"] {
-  --bg:#111418; --bg-grad:none; --surface:#1A1E24; --surface-2:#20252C; --surface-3:#272D35;
-  --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.18);
-  --text:#E9ECEF; --text-soft:#B4BAC1; --text-muted:#8A9199;
-  --cian:#39B9AE; --cian-ink:#39B9AE; --on-cian:#06231f; --coral:#E8563A; --coral-btn:#CF4228;
-  --cian-soft:rgba(57,185,174,.15); --coral-soft:rgba(232,86,58,.16);
-  --sidebar-bg:#111418; --topbar-bg:#111418;
-  --shadow:0 1px 2px rgba(0,0,0,.3), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.32);
-  --on-coral:#FFFFFF;
-}
-/* TIENDA · Medianoche (oscuro, acento índigo) */
-html[data-theme="medianoche"] {
-  --bg:#131A2C; --bg-grad:none; --surface:#1C2540; --surface-2:#212B4A; --surface-3:#293356;
-  --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.20);
-  --text:#E7EAF4; --text-soft:#AFB6D0; --text-muted:#8C93AE;
-  --cian:#8B93E8; --cian-ink:#8B93E8; --on-cian:#10142a; --coral:#E8563A; --coral-btn:#CF4228;
-  --cian-soft:rgba(139,147,232,.16); --coral-soft:rgba(232,86,58,.16);
-  --sidebar-bg:#131A2C; --topbar-bg:#131A2C;
-  --shadow:0 1px 2px rgba(0,0,0,.28), 0 16px 34px -22px rgba(0,0,0,.6); --shadow-sm:0 1px 2px rgba(0,0,0,.3);
-  --on-coral:#FFFFFF;
 }
 
 /* TIENDA · Bosque Claro (paleta Fundos 360°)
@@ -932,6 +909,37 @@ html[data-theme="sakura"] {
   --cian-soft:rgba(226,109,138,.12); --coral-soft:rgba(79,122,57,.12); --azul:#A8395A;
   --sidebar-bg:#FFFFFF; --topbar-bg:#FFF6F7;
   --shadow:0 1px 2px rgba(90,40,60,.05), 0 12px 28px -20px rgba(90,40,60,.25); --shadow-sm:0 1px 2px rgba(90,40,60,.05);
+}
+/* Los claros de la Tienda en el celular (y en la app instalada): la hora del iPhone va en blanco, así que
+   la barra de arriba toma la tinta oscura de cada tema (como Norte de día). Adentro rigen colores claros. */
+@media (max-width: 760px), (display-mode: standalone) {
+  html[data-theme="bosque-claro"] { --topbar-bg: #16301F; }
+  html[data-theme="bosque-claro"] .topbar {
+    --surface: #16301F; --surface-2: #21402B; --surface-3: #2B4D36;
+    --line: rgba(247, 245, 240, .12); --line-strong: rgba(247, 245, 240, .22);
+    --text: #F7F5F0; --text-soft: #E4DED2; --text-muted: #BDB6A8;
+    --cian: #C8A165; --cian-ink: #D9B98A; --on-cian: #0A140E; --cian-soft: rgba(200, 161, 101, .18);
+    --coral: #E3C48F; --coral-soft: rgba(200, 161, 101, .16);
+    color: var(--text); border-bottom-color: transparent;
+  }
+  html[data-theme="cuaderno"] { --topbar-bg: #24395F; }
+  html[data-theme="cuaderno"] .topbar {
+    --surface: #24395F; --surface-2: #2E4570; --surface-3: #38507C;
+    --line: rgba(255, 253, 247, .14); --line-strong: rgba(255, 253, 247, .24);
+    --text: #FFFDF7; --text-soft: #E2E8F2; --text-muted: #C9D3E6;
+    --cian: #FFFDF7; --cian-ink: #FFFDF7; --on-cian: #24395F; --cian-soft: rgba(255, 253, 247, .14);
+    --coral: #FFC2B8; --coral-soft: rgba(255, 194, 184, .18);
+    color: var(--text); border-bottom-color: transparent;
+  }
+  html[data-theme="sakura"] { --topbar-bg: #3A2230; }
+  html[data-theme="sakura"] .topbar {
+    --surface: #3A2230; --surface-2: #4A2D3E; --surface-3: #58384B;
+    --line: rgba(255, 246, 247, .12); --line-strong: rgba(255, 246, 247, .22);
+    --text: #FFF6F7; --text-soft: #EED8DE; --text-muted: #CFB2BD;
+    --cian: #F29BB0; --cian-ink: #F6B6C5; --on-cian: #3A0E1C; --cian-soft: rgba(242, 155, 176, .18);
+    --coral: #A9D38C; --coral-soft: rgba(169, 211, 140, .18);
+    color: var(--text); border-bottom-color: transparent;
+  }
 }
 /* TIENDA · Alto contraste (gratis, accesibilidad) */
 html[data-theme="alto-contraste"] {

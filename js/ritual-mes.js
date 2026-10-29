@@ -313,7 +313,8 @@ function mesCierrePaso(w) {
       <div class="field"><label>🛑 Qué dejar de hacer</label><input class="input" id="mc-dejar" value="${escapeAttr(d.dejar)}"></div>
       <div class="field"><label>🌱 Una cosa para el próximo mes</label><input class="input" id="mc-prox" value="${escapeAttr(d.proximo)}" placeholder="Se precargará al abrir el próximo mes"></div>`;
   }
-  if (w.paso === 5) return resumenAnioHtml(resumenAnio(STATE, w.y, d.nota));
+  if (w.paso === 5) return resumenAnioHtml(resumenAnio(STATE, w.y, d.nota))
+    + (typeof medallasCierreHtml === "function" ? medallasCierreHtml(medallasDelAnio(STATE, w.y), "🏅 Tus medallas del año", "En Tendencias está tu camino del año: cada una en el día en que la ganaste. Se puede compartir.") : "");
   return `<div class="field"><label>Nota de ${MESES[w.m]}: <b id="mc-nl" style="font-size:20px">${d.nota}</b>/10</label>
     <input type="range" min="1" max="10" step="1" id="mc-nota" value="${d.nota}" style="width:100%;accent-color:var(--cian)"
       oninput="document.getElementById('mc-nl').textContent=this.value"></div>

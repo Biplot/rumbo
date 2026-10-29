@@ -159,6 +159,7 @@ function cieloMotor() {
           // La casa del elefante (casa.js)
           repisa: () => (typeof repisaIds === "function" ? repisaIds(STATE) : []), cosas: () => (typeof casaCosas === "function" ? casaCosas(STATE) : []),
           libros: () => (typeof lg_libros === "function" ? lg_libros(STATE) : 0), vacio: () => { if (typeof openRepisa === "function") { REPISA_SEL = null; openRepisa(); } },
+          camino: () => (typeof caminoDatos === "function" ? caminoDatos() : { y: new Date().getFullYear(), medallas: [], hoy: 0 }),
           ancla: casaAnclaEle, cerrados: () => Object.keys(STATE.ritual.dias || {}).filter(k => STATE.ritual.dias[k] && STATE.ritual.dias[k].cerrado),
         });
         return CIELO_ESTADO.motor;
@@ -174,7 +175,7 @@ function cieloMotor() {
 function cieloSin3d() {
   if (window.THREE) CIELO_ESTADO.sin3d = true;
   const sec = document.getElementById("cielo"); if (sec) sec.classList.add("is-sin3d");
-  const casa = document.querySelector(".casa-card"); if (casa) casa.classList.add("is-sin3d");
+  document.querySelectorAll(".casa-card, .camino-card").forEach(c => c.classList.add("is-sin3d"));
   if (CERCA.id) pintarCerca();
 }
 /* Tu elefante (el dibujo de siempre) se para sobre la alfombra del cuarto: el motor dice dónde */
@@ -187,7 +188,11 @@ function casaAnclaEle(a) {
 
 
 /* Dónde vive el 3D en cada pantalla: el cielo en Insignias y el cuarto del elefante en Progreso */
-const CIELO_LUGARES = { insignias: { lugar: "cielo", lienzo: "cieloLienzo", marco: ".cielo" }, recompensas: { lugar: "casa", lienzo: "casaLienzo", marco: ".casa-card" } };
+const CIELO_LUGARES = {
+  insignias: { lugar: "cielo", lienzo: "cieloLienzo", marco: ".cielo" },
+  recompensas: { lugar: "casa", lienzo: "casaLienzo", marco: ".casa-card" },
+  tendencias: { lugar: "camino", lienzo: "caminoLienzo", marco: ".camino-card" },
+};
 /* Tras cada render se monta (o se vuelve a colgar) el 3D de la pantalla; fuera de ellas, se pausa.
    Una ficha abierta manda: sigue abierta mientras no cambies de pantalla */
 function cieloTrasRender(route) {

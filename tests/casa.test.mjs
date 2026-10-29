@@ -41,4 +41,42 @@ export default async function ({ G, test, assert, clone, cargar }) {
     assert.equal(cargar(B, A).gamif.equipped.repisa.ids.join(","), "buho");           // la local es más nueva
     assert.equal(cargar(A, clone(base)).gamif.equipped.repisa.ids.join(","), "buho");
   });
+
+  // Lo que se compra en la Tienda para el cuarto
+  const ledgerComprar = G("ledgerComprar"), cuartoPuestas = G("cuartoPuestas"), cuartoPared = G("cuartoPared"), cuartoEq = G("cuartoEq"), guardarCuarto = G("guardarCuarto");
+  const CUARTO = G("CUARTO_TIENDA");
+  test("Tienda › Cuarto: ocho cosas y tres paredes, cada una con su precio y su lugar", () => {
+    assert.equal(CUARTO.filter(it => it.cosa).length, 8);
+    assert.equal(CUARTO.filter(it => it.pared).length, 3);
+    assert.ok(CUARTO.every(it => it.costo > 0 && it.desc && (it.cosa ? !it.pared : it.pared.length === 2)));
+    assert.equal(new Set(CUARTO.map(it => it.id)).size, CUARTO.length);
+    assert.ok(G("findCosmetic")("cua-gato") === CUARTO.find(it => it.id === "cua-gato"));   // se compra como cualquier cosmético
+  });
+
+  test("lo comprado llega puesto; guardar lo saca del cuarto; la pared se pinta de a una", () => {
+    const s = conXp(0); ledgerRegistrar(s, "pts", 3000, 0, "test");
+    assert.equal(cuartoPuestas(s).length, 0); assert.equal(cuartoPared(s), null);
+    assert.ok(ledgerComprar(s, "cua-pecera", 550).ok && ledgerComprar(s, "cua-gato", 900).ok);
+    assert.equal(cuartoPuestas(s).join(","), "pecera,gato");
+    guardarCuarto(s, { off: ["cua-gato"], pared: null });
+    assert.equal(cuartoPuestas(s).join(","), "pecera");
+    // Una pared que no compraste no se pinta (aunque esté elegida)
+    guardarCuarto(s, { off: [], pared: "par-noche" });
+    assert.equal(cuartoPared(s), null);
+    assert.ok(ledgerComprar(s, "par-noche", 250).ok);
+    assert.equal(cuartoPared(s).join(","), "#3A4766,#33405D");
+    assert.equal(s.gamif.puntos, 3000 - 550 - 900 - 250);
+    assert.ok(!ledgerComprar(s, "cua-gato", 900).ok);                                  // no se cobra dos veces
+  });
+
+  test("fusión: gana lo del cuarto cambiado más recientemente; un equipo sin cambios no lo borra", () => {
+    const base = conXp(0);
+    const A = clone(base), B = clone(base);
+    A.gamif.equipped.cuarto = { off: ["cua-gato"], pared: "par-salvia", ts: 2000 };
+    B.gamif.equipped.cuarto = { off: [], pared: null, ts: 1000 };
+    assert.equal(cargar(A, B).gamif.equipped.cuarto.pared, "par-salvia");
+    assert.equal(cargar(B, A).gamif.equipped.cuarto.off.join(","), "cua-gato");
+    assert.equal(cargar(A, clone(base)).gamif.equipped.cuarto.pared, "par-salvia");
+    assert.equal(cuartoEq(clone(base)).off.length, 0);                                // sin nada guardado: todo puesto
+  });
 }

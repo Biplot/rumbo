@@ -69,7 +69,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => HABIT_VIEW === "mensual") && await p.locator('.hab-head .seg button.is-active[data-v="mes"]').count() === 1, "Mes abre la vista mensual");
   await p.click('[data-action="habit-vista"][data-v="hoy"]'); await p.waitForTimeout(200);
   await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
-  ok(await p.locator(".tienda-cat").count() === 6, "la Tienda tiene categorías arriba");
+  ok(await p.locator(".tienda-cat").count() === 7, "la Tienda tiene categorías arriba (con Cuarto)");
   await p.click('.tienda-cat[data-id="temas"]'); await p.waitForTimeout(700);
   const yTemas = (await p.locator("#tienda-temas").boundingBox()).y;
   ok(yTemas > 0 && yTemas < 200, "tocar Temas salta a los temas");

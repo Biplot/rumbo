@@ -151,7 +151,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 23;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 24;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -327,6 +327,10 @@ const NOVEDADES = {
   23: [
     ["🛤️", "El camino de tu año", "En Tendencias, tu año es un sendero de enero a diciembre: cada medalla que ganaste es un hito en el día en que pasó. Tócalo para verla de cerca y comparte tu camino."],
     ["🧭", "Medallas en tus cierres", "Al cerrar un trimestre o el año ves las medallas que ganaste en ese tiempo."],
+  ],
+  24: [
+    ["🛋️", "Decora el cuarto de tu elefante", "En la Tienda, la sección Cuarto trae un sillón, una lámpara, una pecera, un telescopio, un tocadiscos, un gato y más. Cada ficha te muestra cómo queda en su cuarto antes de comprarla."],
+    ["🎨", "Paredes de colores", "Pinta el cuarto de salvia, durazno o azul noche. Lo que compras se puede guardar y volver a poner cuando quieras."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1219,6 +1223,8 @@ function onClick(e) {
     case "cos-buy": buyItem(d.id); break;
     case "cos-equip": equipItem(d.id); break;
     case "ins-ver": abrirInsignia(d.id); break;
+    case "cuarto-ver": cuartoVer(); break;
+    case "cuarto-decorar": cuartoDecorar(); break;
     case "repisa-elegir": REPISA_SEL = null; openRepisa(); break;
     case "camino-compartir": compartirCamino(+d.y); break;
     case "repisa-toggle": repisaToggle(d.id); break;

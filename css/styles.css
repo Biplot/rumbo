@@ -1614,6 +1614,21 @@ button.dmap__c { cursor: pointer; color: #0E2A47; }
 .ficha-detalle > .card, .ficha-detalle > div > .card { border: 0; padding: 0; background: none; box-shadow: none; }
 @media (max-width: 760px) { .fichas { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .ficha { padding: 10px 4px; } .ficha__ico { width: 46px; height: 46px; font-size: 24px; } }
 .tienda-sec .section-title:first-child { margin-top: 22px; }
+/* Tienda › Cuarto: la pared a rayas como muestra y la ficha con la foto del cuarto */
+.ficha__ico--pared { border: 1px solid var(--line-strong); background: repeating-linear-gradient(90deg, var(--p1) 0 8px, var(--p2) 8px 16px); }
+.cua-vista { position: relative; margin: 0; aspect-ratio: 16 / 10; border-radius: 14px; overflow: hidden; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 60%, var(--surface-2), var(--surface-3, var(--surface-2))); }
+.cua-vista--pared { background: repeating-linear-gradient(90deg, var(--p1) 0 22px, var(--p2) 22px 44px); }
+.cua-vista__ico { font-size: 64px; line-height: 1; }
+.cua-vista__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .35s ease; }
+.cua-vista.is-foto .cua-vista__img { opacity: 1; }
+.cua-vista.is-foto .cua-vista__ico { visibility: hidden; }
+.cua-vista__ele { position: absolute; transform: translate(-50%, -93%); pointer-events: none; }
+.cua-vista__ele .ele-svg { overflow: visible; width: 100%; height: auto; }
+.cua-vista__ele.is-noche .ele-svg { filter: brightness(.8) saturate(.9); }
+.cua-vista__pie { position: absolute; left: 8px; bottom: 8px; padding: 3px 9px; border-radius: 999px; background: rgba(11, 11, 12, .62); color: #FFFFFF;
+  font-size: 11px; font-weight: 600; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+@media (prefers-reduced-motion: reduce) { .cua-vista__img { transition: none; } }
 
 /* El consultorio de La Línea (el diario de BiPlot): el consejo de la semana en Inicio, con tu elefante */
 .consultorio { display: grid; grid-template-columns: 92px 1fr; gap: 16px; align-items: start; }
@@ -2094,6 +2109,7 @@ html .ins-cerca .btn--linea:hover { background: rgba(255, 224, 138, .1); }
 .casa__repisa { display: none; margin-top: 12px; }
 .casa-card.is-sin3d .casa__repisa { display: block; }
 .casa__pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.casa__btns { display: flex; gap: 6px; margin-left: auto; }
 .repisa-sel { display: flex; flex-wrap: wrap; gap: 8px; }
 .repisa-sel__b.is-on { border-color: var(--cian); background: var(--cian-soft, var(--surface-3)); box-shadow: inset 0 0 0 1px var(--cian); }
 .repisa-sel__b.is-on::after { content: "✓"; margin-left: 2px; font-weight: 800; color: var(--cian-ink, var(--cian)); }

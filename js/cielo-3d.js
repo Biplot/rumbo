@@ -767,6 +767,7 @@ function crearMotorCielo(T, D) {
     const piso = new T.Mesh(CAJA, [canto, canto, madPiso, canto, canto, canto]); piso.scale.set(7.3, 0.3, 7.3); piso.position.set(-0.15, -0.15, -0.15); piso.receiveShadow = true; e.add(piso);
     const [cw, gw] = lienzo(256); gw.fillStyle = "#DCE3E7"; gw.fillRect(0, 0, 256, 256); gw.fillStyle = "#D2DADF"; for (let k = 0; k < 8; k += 2) gw.fillRect(k * 32, 0, 32, 256);
     const tw = tex(cw); tw.wrapS = tw.wrapT = T.RepeatWrapping; tw.repeat.set(5, 3);
+    casa.muro = { g: gw, t: tw, clave: "gris" };   // la pared se puede pintar (Tienda): se redibuja la misma textura
     const muro = mat(0xFFFFFF, { map: tw, roughness: 0.95 }), muroCanto = mat(0xEDEAE4);
     const mi = new T.Mesh(CAJA, [muro, muroCanto, muroCanto, muroCanto, muroCanto, muroCanto]); mi.scale.set(0.3, 4.2, 7.3); mi.position.set(-3.65, 2.1, -0.15); mi.receiveShadow = true; e.add(mi);
     const mf = new T.Mesh(CAJA, [muroCanto, muroCanto, muroCanto, muroCanto, muro, muroCanto]); mf.scale.set(7.3, 4.2, 0.3); mf.position.set(-0.15, 2.1, -3.65); mf.receiveShadow = true; e.add(mf);
@@ -856,7 +857,160 @@ function crearMotorCielo(T, D) {
       pts.forEach((p, i) => { if (i % 2) return; const f = new T.Mesh(ESF, new T.MeshBasicMaterial({ color: colores[i % 3], toneMapped: false })); f.scale.setScalar(0.05); f.position.copy(p).add(new T.Vector3(0, -0.06, 0.03)); ln.add(f); focos.push(f); });
       c.userData.luces = ln; c.userData.focos = focos; C.copa = c;
     }
+
+    // Lo que se compra en la Tienda (casa.js): cada cosa en un rincón libre, con su foco para la foto de la ficha
+    const negroC = mat(0x141416, { roughness: 0.3 }), metalOsc = mat(0x2A2A2E, { roughness: 0.4, metalness: 0.6 });
+    const cosa = (id, x, z, ry, foco) => { const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = ry; g.userData.foco = foco; e.add(g); C[id] = g; return g; };
+    { // 🛋️ sillón de lectura, mirando a la alfombra
+      const s = cosa("sillon", -2.45, 2.6, 2.15, [-2.45, 0.6, 2.6, 0.95]), tela = mat(0x3C7A74, { roughness: 0.95 });
+      [[-0.42, -0.3], [0.42, -0.3], [-0.42, 0.34], [0.42, 0.34]].forEach(q => s.add(cm(new T.CylinderGeometry(0.035, 0.025, 0.24, 8), madOsc, q[0], 0.12, q[1])));
+      s.add(bloque(1.12, 0.26, 0.92, tela, 0, 0.37, 0.02)); s.add(bloque(0.8, 0.14, 0.74, mat(0x4E8F88, { roughness: 0.95 }), 0, 0.57, 0.09));
+      s.add(bloque(1.12, 0.8, 0.22, tela, 0, 0.84, -0.36));
+      [-1, 1].forEach(k => s.add(bloque(0.17, 0.46, 0.92, tela, k * 0.475, 0.62, 0.02)));
+      const coj = bloque(0.36, 0.3, 0.1, mat(0xE4532F, { roughness: 0.95 }), 0.16, 0.8, -0.2); coj.rotation.set(-0.25, 0, 0.2); s.add(coj);
+    }
+    { // 💡 lámpara de pie: al atardecer y de noche alumbra el rincón
+      const l = cosa("lampara", -3.05, 3.1, 0, [-3.05, 1.1, 3.1, 1.15]);
+      l.add(cm(new T.CylinderGeometry(0.2, 0.22, 0.05, 24), metalOsc, 0, 0.025, 0)); l.add(cm(new T.CylinderGeometry(0.022, 0.022, 1.8, 10), metalOsc, 0, 0.92, 0));
+      const pant = new T.Mesh(new T.CylinderGeometry(0.19, 0.3, 0.36, 28, 1, true), mat(0xF3E6CF, { roughness: 0.9, side: T.DoubleSide, emissive: 0xFFC57A, emissiveIntensity: 0 }));
+      pant.position.y = 1.86; pant.castShadow = true; l.add(pant);
+      const foco = new T.Mesh(ESF, new T.MeshBasicMaterial({ color: 0xFFE6B0 })); foco.scale.setScalar(0.07); foco.position.y = 1.78; l.add(foco);
+      l.userData.pantalla = pant;
+      // la luz queda siempre en la escena (prenderla o apagarla no recompila los materiales)
+      casa.luz.lampara = new T.PointLight(0xFFB86B, 0, 6.5, 1.6); casa.luz.lampara.position.set(-3.05, 1.72, 3.1); e.add(casa.luz.lampara);
+    }
+    { // 🔭 telescopio en su trípode, junto al sillón, apuntando a la ventana
+      const t = cosa("telescopio", -0.45, 3.2, -1.95, [-0.45, 0.8, 3.2, 0.95]);
+      const pata = new T.CylinderGeometry(0.018, 0.024, 1.12, 8);
+      for (let k = 0; k < 3; k++) { const a = k / 3 * 6.283 + 0.5, q = cm(pata, madera, Math.sin(a) * 0.2, 0.52, Math.cos(a) * 0.2); q.rotation.set(-Math.cos(a) * 0.36, 0, Math.sin(a) * 0.36); t.add(q); }
+      t.add(cm(new T.CylinderGeometry(0.06, 0.06, 0.08, 12), metalOsc, 0, 1.06, 0));
+      const piv = new T.Group(); piv.position.y = 1.14; piv.rotation.x = -0.3; t.add(piv);
+      const eje = (geo, m, y, z) => { const o = cm(geo, m, 0, y, z); o.rotation.x = Math.PI / 2; piv.add(o); return o; };
+      eje(new T.CylinderGeometry(0.095, 0.07, 1.0, 20), mat(0x2E3D6B, { roughness: 0.35, metalness: 0.2 }), 0, 0.1);
+      eje(new T.CylinderGeometry(0.105, 0.105, 0.09, 20), matMetal("oro"), 0, 0.58);
+      eje(new T.CylinderGeometry(0.03, 0.03, 0.18, 10), metalOsc, 0.01, -0.46); eje(new T.CylinderGeometry(0.024, 0.024, 0.3, 10), metalOsc, 0.12, 0.18);
+      const lente = new T.Mesh(new T.CircleGeometry(0.09, 20), mat(0x0B1030, { roughness: 0.1, metalness: 0.5 })); lente.position.z = 0.63; piv.add(lente);
+    }
+    { // 🐠 pecera con tres peces, sobre su mueble (mirando hacia ti), al lado de la alfombra
+      const p = cosa("pecera", 3.05, 0.75, 0.8, [3.05, 0.8, 0.75, 0.8]);
+      p.add(bloque(1.0, 0.62, 0.5, madera, 0, 0.31, 0)); p.add(bloque(1.04, 0.04, 0.54, madOsc, 0, 0.64, 0));
+      [-0.245, 0.245].forEach(x => p.add(bloque(0.45, 0.46, 0.02, madOsc, x, 0.31, 0.255)));
+      p.add(bloque(0.9, 0.1, 0.42, mat(0xE8D7B0, { roughness: 1 }), 0, 0.71, 0));
+      const alga = mat(0x4E9A5A, { roughness: 0.8 });
+      [[-0.3, 0.08, 0.3], [-0.2, -0.08, 0.2], [0.33, -0.04, 0.26]].forEach(q => p.add(cm(new T.ConeGeometry(0.04, q[2], 6), alga, q[0], 0.76 + q[2] / 2, q[1])));
+      const peces = [];
+      [0xFF8A3D, 0xFFC24A, 0xE4532F].forEach((c, i) => {
+        const f = new T.Group(), m = mat(c, { roughness: 0.5 });
+        const cu = cm(ESF, m); cu.scale.set(0.07, 0.045, 0.026); f.add(cu);
+        const co = cm(new T.ConeGeometry(0.035, 0.05, 4), m, -0.085, 0, 0); co.rotation.z = -Math.PI / 2; f.add(co);
+        [-1, 1].forEach(k => { const oj = malla(ESF, negroC, 0.042, 0.012, 0.02 * k); oj.scale.setScalar(0.008); f.add(oj); });
+        f.scale.setScalar(1.35); f.userData = { fase: i * 2.1, y: 0.82 + i * 0.08, vel: 0.55 + i * 0.17 }; p.add(f); peces.push(f);
+      });
+      const agua = new T.Mesh(CAJA, new T.MeshStandardMaterial({ color: new T.Color(0x58B7DA).convertSRGBToLinear(), transparent: true, opacity: 0.48, roughness: 0.1, depthWrite: false }));
+      agua.scale.set(0.88, 0.42, 0.4); agua.position.y = 0.87; p.add(agua);
+      const vidrio = new T.Mesh(CAJA, new T.MeshStandardMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.12, roughness: 0.05, metalness: 0.1, depthWrite: false }));
+      vidrio.scale.set(0.92, 0.5, 0.44); vidrio.position.y = 0.92; p.add(vidrio);
+      // el marco: arriba y abajo, y las cuatro esquinas
+      [0.67, 1.165].forEach(y => { [-0.22, 0.22].forEach(z => p.add(bloque(0.94, 0.03, 0.025, metalOsc, 0, y, z))); [-0.46, 0.46].forEach(x => p.add(bloque(0.025, 0.03, 0.46, metalOsc, x, y, 0))); });
+      [-0.46, 0.46].forEach(x => [-0.22, 0.22].forEach(z => p.add(bloque(0.02, 0.5, 0.02, metalOsc, x, 0.92, z))));
+      p.userData.peces = peces; nadar(p, 0);
+    }
+    { // 🐈 un gato que duerme la siesta en su cojín (y mueve la cola)
+      const g = cosa("gato", 1.35, 3.05, 0.5, [1.35, 0.3, 3.05, 0.62]);
+      g.add(cm(new T.CylinderGeometry(0.44, 0.47, 0.13, 28), mat(0xD9A441, { roughness: 1 }), 0, 0.065, 0));
+      const pelo = mat(0xE39147, { roughness: 0.9 }), claro = mat(0xF6E3C8, { roughness: 0.9 });
+      const cu = cm(ESF, pelo, -0.02, 0.25, 0); cu.scale.set(0.3, 0.16, 0.24); g.add(cu);
+      const ca = cm(ESF, pelo, 0.24, 0.27, 0.1); ca.scale.set(0.13, 0.11, 0.12); g.add(ca);
+      [-1, 1].forEach(k => {
+        const o = cm(new T.ConeGeometry(0.045, 0.09, 4), pelo, 0.25, 0.38, 0.1 + k * 0.06); o.rotation.set(k * 0.35, 0, -0.25); g.add(o);
+        const oj = bloque(0.012, 0.008, 0.04, negroC, 0.355, 0.29, 0.1 + k * 0.045); oj.rotation.y = -k * 0.4; oj.castShadow = false; g.add(oj);
+        const pa = cm(ESF, claro, 0.27, 0.15, 0.03 + k * 0.08); pa.scale.set(0.07, 0.04, 0.045); g.add(pa);
+      });
+      const ho = cm(ESF, claro, 0.34, 0.24, 0.1); ho.scale.set(0.045, 0.035, 0.05); g.add(ho);
+      const cola = new T.Group(); cola.position.set(-0.02, 0.15, 0); cola.rotation.y = -0.94; g.add(cola);
+      const tc = cm(new T.TorusGeometry(0.33, 0.045, 8, 24, 2.2), pelo); tc.rotation.x = Math.PI / 2; cola.add(tc);
+      g.userData.cola = cola; burbujas(g, "z", "#5C7FA8", 0.3, 0.5, 0.1);
+    }
+    { // 🎶 tocadiscos sobre un mueble bajo, adelante a la derecha
+      const t = cosa("tocadiscos", 2.9, 2.45, 0.8, [2.9, 0.7, 2.45, 0.85]);
+      t.add(bloque(1.3, 0.6, 0.5, madera, 0, 0.36, 0));
+      [-0.55, 0.55].forEach(x => [-0.18, 0.18].forEach(z => t.add(cm(new T.CylinderGeometry(0.025, 0.02, 0.06, 8), madOsc, x, 0.03, z))));
+      [-0.32, 0.32].forEach(x => t.add(bloque(0.6, 0.48, 0.02, madOsc, x, 0.36, 0.251)));
+      t.add(bloque(0.64, 0.09, 0.46, mat(0xEFE9DF, { roughness: 0.6 }), -0.24, 0.705, 0));
+      const plato = new T.Group(); plato.position.set(-0.3, 0.757, 0.02); t.add(plato);
+      plato.add(cm(new T.CylinderGeometry(0.19, 0.19, 0.016, 40), mat(0x18181B, { roughness: 0.35 })));
+      plato.add(malla(new T.CylinderGeometry(0.065, 0.065, 0.018, 24), mat(0xE4532F, { roughness: 0.7 })));
+      const marca = malla(CAJA, mat(0xFBFAF6), 0.03, 0, 0); marca.scale.set(0.05, 0.02, 0.016); plato.add(marca);
+      t.add(cm(new T.CylinderGeometry(0.03, 0.03, 0.05, 10), metalOsc, -0.02, 0.775, -0.16));
+      const brazo = bloque(0.018, 0.018, 0.25, metalOsc, -0.08, 0.795, -0.06); brazo.rotation.y = 0.45; t.add(brazo);
+      t.add(bloque(0.3, 0.4, 0.26, madOsc, 0.42, 0.86, -0.02));
+      const cono = malla(new T.CircleGeometry(0.085, 20), negroC, 0.42, 0.89, 0.111); t.add(cono);
+      t.userData.plato = plato; burbujas(t, "♪", "#E4532F", -0.3, 0.95, 0.02);
+    }
+    { // 🌍 globo terráqueo en su pie de madera, bajo la repisa
+      const g = cosa("globo", 0.0, -3.0, 0, [-0.05, 0.7, -3.0, 0.7]);
+      g.add(cm(new T.CylinderGeometry(0.2, 0.24, 0.05, 24), madOsc, 0, 0.025, 0)); g.add(cm(new T.CylinderGeometry(0.03, 0.045, 0.6, 10), madera, 0, 0.33, 0));
+      const eje = new T.Group(); eje.position.y = 0.62; eje.rotation.z = 0.41; g.add(eje);
+      const aro = cm(new T.TorusGeometry(0.31, 0.014, 8, 40, Math.PI), matMetal("oro"), 0, 0.31, 0); aro.rotation.z = -Math.PI / 2; eje.add(aro);
+      const tierra = cm(new T.SphereGeometry(0.27, 32, 20), mat(0xFFFFFF, { map: texGlobo(), roughness: 0.55 }), 0, 0.31, 0); eje.add(tierra);
+      g.userData.tierra = tierra;
+    }
+    { // 🎸 guitarra apoyada en la pared, bajo el cuadro
+      const g = cosa("guitarra", -3.2, -0.8, Math.PI / 2, [-3.25, 0.65, -0.8, 0.8]);
+      const gu = new T.Group(); gu.rotation.x = -0.18; g.add(gu);
+      const caja = mat(0xD99A5B, { roughness: 0.5 }), oscura = mat(0x5A3A22, { roughness: 0.6 });
+      [[0.22, 0.24], [0.17, 0.5]].forEach(q => { const b = cm(new T.CylinderGeometry(q[0], q[0], 0.1, 32), caja, 0, q[1], 0); b.rotation.x = Math.PI / 2; gu.add(b); });
+      gu.add(malla(new T.CircleGeometry(0.062, 24), negroC, 0, 0.44, 0.052));
+      gu.add(bloque(0.14, 0.03, 0.012, oscura, 0, 0.2, 0.056));
+      gu.add(bloque(0.07, 0.58, 0.04, oscura, 0, 0.92, 0)); gu.add(bloque(0.09, 0.16, 0.035, oscura, 0, 1.28, -0.005));
+      const cuerdas = bloque(0.03, 1.0, 0.004, mat(0xEDEDED, { roughness: 0.3, metalness: 0.6 }), 0, 0.72, 0.054); cuerdas.castShadow = false; gu.add(cuerdas);
+    }
     return casa;
+  }
+  /* Símbolos que suben y se desvanecen (las notas del tocadiscos, los zzz del gato) */
+  function texSimbolo(t, color) { return texCache("sim:" + t + color, () => { const [c, g] = lienzo(64); g.fillStyle = color; g.font = "800 46px " + UI; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(t, 32, 34); return tex(c); }); }
+  function burbujas(grupo, t, color, x, y, z) {
+    grupo.userData.burbujas = [0, 1, 2].map(i => {
+      const sp = new T.Sprite(new T.SpriteMaterial({ map: texSimbolo(t, color), transparent: true, depthWrite: false, opacity: 0 }));
+      sp.scale.setScalar(0.2 + i * 0.03); grupo.add(sp); return { sp, x, y, z, fase: i / 3 };
+    });
+    flotar(grupo.userData.burbujas, 0);
+  }
+  function flotar(l, t) {
+    l.forEach((b, i) => {
+      const f = CALMO ? 0.4 : (t * 0.3 + b.fase) % 1;
+      b.sp.position.set(b.x + Math.sin(f * 5 + i * 2) * 0.07, b.y + f * 0.75, b.z);
+      b.sp.material.opacity = CALMO ? (i ? 0 : 0.85) : Math.sin(f * Math.PI) * 0.9;
+    });
+  }
+  /* Los peces van y vienen por la pecera */
+  function nadar(p, t) {
+    p.userData.peces.forEach(f => {
+      const u = f.userData, a = t * u.vel + u.fase;
+      f.position.set(Math.sin(a) * 0.31, u.y + Math.sin(a * 2.3) * 0.02, Math.sin(a * 0.5 + u.fase) * 0.1);
+      f.rotation.y = Math.cos(a) > 0 ? 0 : Math.PI;
+    });
+  }
+  /* El globo: océano, continentes inventados y los polos */
+  function texGlobo() {
+    return texCache("globo", () => {
+      const [c, g] = lienzo(512, 256), rs = semilla(21);
+      g.fillStyle = "#3F7FB8"; g.fillRect(0, 0, 512, 256);
+      [[90, 80, 60, 45], [125, 170, 35, 55], [255, 80, 45, 35], [272, 160, 40, 55], [365, 90, 80, 45], [425, 185, 35, 22]].forEach(([x, y, w, h], i) => {
+        g.fillStyle = i % 2 ? "#7DB36A" : "#A8C77E";
+        for (let k = 0; k < 14; k++) { g.beginPath(); g.ellipse(x + (rs() - 0.5) * w, y + (rs() - 0.5) * h, w * (0.25 + rs() * 0.3), h * (0.25 + rs() * 0.3), rs() * 3, 0, 6.283); g.fill(); }
+      });
+      g.fillStyle = "#F4F1EA"; g.fillRect(0, 0, 512, 16); g.fillRect(0, 240, 512, 16);
+      g.strokeStyle = "rgba(255,255,255,.22)"; g.lineWidth = 1.5; for (let k = 1; k < 6; k++) { g.beginPath(); g.moveTo(0, k * 256 / 6); g.lineTo(512, k * 256 / 6); g.stroke(); }
+      return tex(c);
+    });
+  }
+  /* La pared: gris de siempre o el color que compraste (dos tonos, a rayas) */
+  function pintarPared(p) {
+    const M = casa.muro, k = p ? p.join() : "gris"; if (M.clave === k) return;
+    M.clave = k; const [a, b] = p || ["#DCE3E7", "#D2DADF"];
+    M.g.fillStyle = a; M.g.fillRect(0, 0, 256, 256); M.g.fillStyle = b; for (let i = 0; i < 8; i += 2) M.g.fillRect(i * 32, 0, 32, 256);
+    M.t.needsUpdate = true;
   }
   /* Los libros de la biblioteca: uno por libro que terminaste (hasta llenarla) */
   function ponerLibros(n) {
@@ -887,7 +1041,8 @@ function crearMotorCielo(T, D) {
       }
     });
   }
-  function actualizarCasa() {
+  /* op (para la foto de la Tienda): { cosa, pared } que se muestran aunque aún no sean tuyas */
+  function actualizarCasa(op) {
     const h = new Date(), f = franjaDe(h.getHours()), L = LUZ_FRANJA[f];
     if (casa.franja !== f) {
       casa.franja = f; casa.escena.background = new T.Color(L.fondo);
@@ -896,8 +1051,12 @@ function crearMotorCielo(T, D) {
       hemi.color.set(L.hemi[0]); hemi.groundColor.set(L.hemi[1]); hemi.intensity = L.hemi[2];
       sol.color.set(L.sol[0]); sol.intensity = L.sol[1]; vent.color.set(L.vent[0]); vent.intensity = L.vent[1]; cuarto.intensity = L.cuarto;
     }
-    const cosas = new Set(D.cosas());
+    const cosas = new Set(D.cosas()); if (op && op.cosa) cosas.add(op.cosa);
     Object.keys(casa.cosas).forEach(k => { casa.cosas[k].visible = cosas.has(k); });
+    pintarPared(op && op.pared ? op.pared : D.pared ? D.pared() : null);
+    // la lámpara alumbra al atardecer y de noche
+    const lam = cosas.has("lampara") ? { dia: 0, tarde: 0.6, noche: 1.4 }[casa.franja] : 0;
+    casa.luz.lampara.intensity = lam; casa.cosas.lampara.userData.pantalla.material.emissiveIntensity = lam ? 0.4 + lam * 0.4 : 0;
     if (cosas.has("biblioteca")) ponerLibros(Math.min(48, D.libros()));
     const cerr = D.cerrados ? D.cerrados() : [], claveCal = h.toDateString() + cerr.length;
     if (casa.claves.cal !== claveCal) {
@@ -922,14 +1081,35 @@ function crearMotorCielo(T, D) {
   }
   const PC = new T.Vector3();
   function enPantallaC(v) { PC.copy(v).project(camC); return PC.z < 1 && PC.z > -1 ? [(PC.x + 1) / 2 * ancho, (1 - PC.y) / 2 * alto] : null; }
+  /* Una foto para la ficha de la Tienda: esa cosa en su rincón (aunque aún no sea tuya) o el cuarto
+     pintado de ese color (con dónde va tu elefante, en fracciones de la foto). Después todo vuelve a como está */
+  const camF = new T.PerspectiveCamera(30, 1, 0.1, 100);
+  function fotoCuarto(op, w, hh) {
+    armarCasa(); actualizarCasa(op);
+    const pr = r.getPixelRatio(), a0 = ancho, h0 = alto, o = op.cosa && casa.cosas[op.cosa];
+    r.setPixelRatio(1); r.setSize(w, hh, false); ancho = w; alto = hh;
+    let c = camC, ancla = null;
+    if (o) {
+      const [x, y, z, rad] = o.userData.foco, asp = w / hh, d = rad / Math.tan(15 * Math.PI / 180) / Math.min(1, asp) * 1.15, pit = 0.42;
+      camF.aspect = asp; camF.position.set(x + d * Math.sin(CASA_V.yaw) * Math.cos(pit), y + d * Math.sin(pit), z + d * Math.cos(CASA_V.yaw) * Math.cos(pit));
+      camF.lookAt(x, y, z); camF.updateProjectionMatrix(); c = camF;
+    } else { const a = anclaCasa(); if (a) ancla = { x: a.x / w, y: a.y / hh, ancho: a.ancho / w, noche: a.noche }; }   // el cuarto entero: con tu elefante encima
+    ponerHora(true);
+    r.toneMappingExposure = LUZ_FRANJA[casa.franja].exp; r.render(casa.escena, c);
+    let url = null; try { url = canvas.toDataURL("image/jpeg", 0.88); } catch (e) { url = null; }
+    r.setPixelRatio(pr); ancho = a0; alto = h0; if (a0 && h0) r.setSize(a0, h0, false);
+    actualizarCasa();
+    return url ? { url, ancla } : null;
+  }
   /* Dónde va tu elefante: sobre la alfombra, del ancho que le toca a esa distancia */
-  function anclarElefante() {
+  function anclaCasa() {
     camaraCasa();
     const lado = new T.Vector3(Math.cos(CASA_V.yaw), 0, -Math.sin(CASA_V.yaw)).multiplyScalar(1.3);
     const p = enPantallaC(ALFOMBRA), a = enPantallaC(ALFOMBRA.clone().add(lado)), b = enPantallaC(ALFOMBRA.clone().sub(lado));
-    if (!p || !a || !b) return D.ancla(null);
-    D.ancla({ x: p[0], y: p[1] + 0.06 * Math.hypot(a[0] - b[0], a[1] - b[1]), ancho: Math.hypot(a[0] - b[0], a[1] - b[1]) * 1.45, noche: casa.franja === "noche" });
+    if (!p || !a || !b) return null;
+    return { x: p[0], y: p[1] + 0.06 * Math.hypot(a[0] - b[0], a[1] - b[1]), ancho: Math.hypot(a[0] - b[0], a[1] - b[1]) * 1.45, noche: casa.franja === "noche" };
   }
+  function anclarElefante() { D.ancla(anclaCasa()); }
   /* ¿Qué lugar de la repisa hay bajo el dedo? */
   function lugarEn(x, y) {
     let mejor = null, dmin = TACTIL ? 36 : 28;
@@ -1243,6 +1423,12 @@ function crearMotorCielo(T, D) {
       casa.lugares.forEach(L => { L.g.rotation.y = 0.55 + (CALMO ? 0 : Math.sin(reloj * 0.6 + L.fase) * 0.22); });
       const p = casa.cosas.planta; if (p.visible) p.userData.hojas.rotation.y = CALMO ? 0 : Math.sin(reloj * 0.4) * 0.05;
       const c = casa.cosas.copa; if (c.visible) c.userData.focos.forEach((f, i) => { f.material.color.setHSL([0.11, 0.05, 0.13][i % 3], 1, CALMO ? 0.72 : 0.62 + 0.16 * Math.sin(reloj * 2 + i)); });
+      // lo de la Tienda: los peces nadan, el disco y el globo giran, el gato mueve la cola
+      const K = casa.cosas, t = CALMO ? 0 : reloj;
+      if (K.pecera.visible) nadar(K.pecera, t);
+      if (K.tocadiscos.visible) { K.tocadiscos.userData.plato.rotation.y = -t * 3.5; flotar(K.tocadiscos.userData.burbujas, t); }
+      if (K.globo.visible) K.globo.userData.tierra.rotation.y = 0.8 + t * 0.25;
+      if (K.gato.visible) { K.gato.userData.cola.rotation.y = -0.94 + Math.sin(t * 1.4) * 0.12; flotar(K.gato.userData.burbujas, t); }
       r.toneMappingExposure = LUZ_FRANJA[casa.franja].exp; r.render(casa.escena, camC);
     } else if (modo === "camino" && camino) {
       const k = Math.min(1, dt * 8); camino.u.yaw += (camino.uObj.yaw - camino.u.yaw) * k; camino.u.pitch += (camino.uObj.pitch - camino.u.pitch) * k;
@@ -1309,10 +1495,13 @@ function crearMotorCielo(T, D) {
       modo = "cielo"; canvas.style.touchAction = "pan-y"; colgar(c); actualizar(); arrancar();
     },
     foto: fotoCamino,
+    fotoCuarto,
     /* Dónde está un hito del camino en el lienzo (para las pruebas) */
     dondeHito(id) { if (modo !== "camino" || !camino) return null; const H = camino.hitos.find(x => x.id === id); if (!H) return null; camaraCamino(); return enPantallaK(H.pos); },
     /* Dónde está un lugar de la repisa en el lienzo (para las pruebas) */
     dondeRepisa(i) { if (modo !== "casa" || !casa || !casa.lugares[i]) return null; camaraCasa(); return enPantallaC(casa.lugares[i].pos); },
+    /* Qué cosas se ven en el cuarto y de qué color está la pared (para las pruebas) */
+    cuarto() { return casa ? { cosas: Object.keys(casa.cosas).filter(k => casa.cosas[k].visible), pared: casa.muro.clave, lampara: casa.luz.lampara.intensity } : null; },
     soltar() {
       modo = null; hover(null); if (casa) hoverCasa(null); if (camino) hoverCamino(null); detener();
       // lo que quedaba por animar (una estrella fugaz a medio camino) se termina de golpe

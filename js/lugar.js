@@ -99,9 +99,11 @@ function lugarEntrar(ruta, desdeEl) {
   return true;
 }
 function lugarVolver() {
-  const base = LUGAR_BASE[CURRENT] || "recompensas", el = document.getElementById("lugar");
-  const ir = () => go(LUGAR.volver && ROUTE_MAP[LUGAR.volver] && !ROUTE_MAP[LUGAR.volver].lugar ? LUGAR.volver : base);
+  const ruta = CURRENT, base = LUGAR_BASE[ruta] || "recompensas", el = document.getElementById("lugar");
+  // al terminar de desvanecerse, sale solo si sigues en el lugar (si ya te fuiste con atrás, no te devuelve)
+  const ir = () => { if (CURRENT === ruta) go(LUGAR.volver && ROUTE_MAP[LUGAR.volver] && !ROUTE_MAP[LUGAR.volver].lugar ? LUGAR.volver : base); };
   if (!el || reduceMotion() || !el.animate) return ir();
+  if (el.dataset.saliendo) return; el.dataset.saliendo = "1";
   el.animate([{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(.97)" }], { duration: 170, easing: "ease-in" }).onfinish = ir;
 }
 /* Después de cada render del lugar: la hoja en su estado, el encuadre y (al entrar) la animación desde la tarjeta */

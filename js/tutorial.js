@@ -109,7 +109,7 @@ const TOURS = {
     icon: "🏆", titulo: "Recompensas", desc: "Rango, insignias y la Tienda.",
     pasos: [
       { ruta: "recompensas", el: ".rank-ladder", titulo: "Tu rango", texto: "La XP mide tu rango y <b>nunca baja</b>, aunque gastes monedas." },
-      { ruta: "recompensas", el: ".ele-card", titulo: "Tu elefante", texto: "Crece con tu XP y cambia en cada etapa, de cría a sabio 👑. Su cuarto se llena con tu rango y en la repisa luce tus medallas. Vístelo en 👕 Vestir; hay 4 tipos más que se ganan con constancia." },
+      { ruta: "recompensas", el: ".ele-card", titulo: "Tu elefante", texto: "Crece con tu XP y cambia en cada etapa, de cría a sabio 👑. Su cuarto se llena con tu rango (y con lo que compres en 🛍️ Decorar) y en la repisa luce tus medallas. Vístelo en 👕 Vestir; hay 4 tipos más que se ganan con constancia." },
       { ruta: "insignias", el: ".badge-card", titulo: "Insignias", texto: "Se desbloquean con tus logros y cada una da ⭐. Algunas tienen bronce, plata y oro, y hay secretas." },
       { ruta: "recompensas", el: '.tabs [data-route="tienda"]', titulo: "La Tienda", texto: "Gasta tus ⭐ en útiles, funciones, temas y cosméticos. Está en la pestaña Tienda." },
     ],

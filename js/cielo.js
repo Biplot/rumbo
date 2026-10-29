@@ -157,7 +157,8 @@ function cieloMotor() {
           orden: cieloOrden, info: id => cieloInfo(id), ganadas: () => new Set(STATE.gamif.badges || []), familias: CIELO_FAMILIAS,
           tocar: id => abrirInsignia(id), perdido: cieloSin3d, visto: cieloVisto, guardarVisto: cieloGuardarVisto,
           // La casa del elefante (casa.js)
-          repisa: () => (typeof repisaIds === "function" ? repisaIds(STATE) : []), cosas: () => (typeof casaCosas === "function" ? casaCosas(STATE) : []),
+          repisa: () => (typeof repisaIds === "function" ? repisaIds(STATE) : []), cosas: () => (typeof casaCosas === "function" ? casaCosas(STATE).concat(cuartoPuestas(STATE)) : []),
+          pared: () => (typeof cuartoPared === "function" ? cuartoPared(STATE) : null),
           libros: () => (typeof lg_libros === "function" ? lg_libros(STATE) : 0), vacio: () => { if (typeof openRepisa === "function") { REPISA_SEL = null; openRepisa(); } },
           camino: () => (typeof caminoDatos === "function" ? caminoDatos() : { y: new Date().getFullYear(), medallas: [], hoy: 0 }),
           ancla: casaAnclaEle, cerrados: () => Object.keys(STATE.ritual.dias || {}).filter(k => STATE.ritual.dias[k] && STATE.ritual.dias[k].cerrado),

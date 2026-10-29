@@ -98,7 +98,8 @@ const DETALLES = [
   { id: "det-acento-neon", nombre: "Acento Neón", icon: "💗", costo: 200, key: "acento", value: "#FF4FD8" },
   { id: "det-acento-verde", nombre: "Acento Verde", icon: "🟢", costo: 200, key: "acento", value: "#3BE38B" },
 ];
-function findCosmetic(id) { return TITULOS.concat(DETALLES, typeof COSMETICOS !== "undefined" ? COSMETICOS : []).find(c => c.id === id); }
+function findCosmetic(id) { return TITULOS.concat(DETALLES, typeof COSMETICOS !== "undefined" ? COSMETICOS : [], typeof CUARTO_TIENDA !== "undefined" ? CUARTO_TIENDA : []).find(c => c.id === id); }
+function esDelCuarto(it) { return typeof CUARTO_TIENDA !== "undefined" && CUARTO_TIENDA.includes(it); }
 function isOwned(id) {
   if (id === "mar-diamante" && (STATE.gamif.xp || 0) >= 7000) return true;   // 💎 llega con el rango Élite, no se compra
   return (STATE.gamif.owned || []).includes(id);
@@ -112,8 +113,9 @@ function buyItem(id) {
   if (!confirm(`¿Comprar "${it.nombre}" por ${it.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - it.costo} ⭐.`)) return;
   const res = ledgerComprar(STATE, id, it.costo);
   if (!res.ok) return res.yaTenia ? rerender() : toast("Te faltan " + res.falta + " ⭐", true);
+  if (esDelCuarto(it)) cuartoComprado(it);
   saveState(); updateTopbar(); rerender();
-  toast("🛍️ " + it.nombre + " desbloqueado");
+  toast(esDelCuarto(it) ? `${it.pared ? "🎨" : it.icon} ${it.nombre}: ${it.pared ? "el cuarto de tu elefante quedó pintado" : "ya está en el cuarto de tu elefante"}` : "🛍️ " + it.nombre + " desbloqueado");
 }
 
 /* Tarjeta de cosmético (usada en la Tienda) */
@@ -134,6 +136,7 @@ function equipItem(id) {
   const it = findCosmetic(id); if (!it || !isOwned(id)) return;
   const eq = STATE.gamif.equipped;
   if (typeof COSMETICOS !== "undefined" && COSMETICOS.includes(it)) equipCosmetico(it);
+  else if (esDelCuarto(it)) equipCuarto(it);
   else if (TITULOS.includes(it)) { eq.titulo = (eq.titulo === id ? null : id); }
   else if (it.key === "confeti") { eq.confeti = !eq.confeti; }
   else if (it.key === "acento") { eq.acento = (eq.acento === it.value ? null : it.value); }
@@ -142,6 +145,7 @@ function equipItem(id) {
 function isEquipped(it) {
   const eq = STATE.gamif.equipped;
   if (typeof COSMETICOS !== "undefined" && COSMETICOS.includes(it)) return cosActivo(it.id);
+  if (esDelCuarto(it)) return cuartoActivo(it.id);
   if (TITULOS.includes(it)) return eq.titulo === it.id;
   if (it.key === "confeti") return !!eq.confeti;
   if (it.key === "acento") return eq.acento === it.value;

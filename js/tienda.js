@@ -31,20 +31,25 @@ function tiendaItems() {
     items.push({ key: "cos:" + it.id, cat: "efectos", icon: it.icon, nombre: it.nombre, costo: it.costo, estado: isOwned(it.id) && cosActivo(it.id) ? "equipado" : estado(isOwned(it.id), it.costo, !!it.rango),
       bloqueoTxt: it.rango ? "Rango Élite" : "", attr: `data-cos="${it.id}"`, detalle: () => cosmeticoCard(it) });
   });
+  CUARTO_TIENDA.forEach(it => {
+    items.push({ key: "cos:" + it.id, cat: "cuarto", icon: it.icon, pared: it.pared, nombre: it.nombre, costo: it.costo, estado: isOwned(it.id) && cuartoActivo(it.id) ? "equipado" : estado(isOwned(it.id), it.costo),
+      enUsoTxt: it.pared ? "Pintada" : "En el cuarto", tuyoTxt: it.pared ? "Es tuya" : it.fem ? "Guardada" : "Guardado", attr: `data-cua="${it.id}"`, detalle: () => cuartoCard(it), alAbrir: () => cuartoVista(it.id) });
+  });
   const faltan = PRENDAS_ELEFANTE.filter(p => !p.gana && !tienePrenda(p)).length;
   items.push({ key: "ele:ropa", cat: "elefante", icon: "👕", nombre: "Ropa para tu elefante", precioTxt: faltan ? `${faltan} por comprar` : "¡Todas!", estado: faltan ? "ok" : "tuyo", accion: `data-action="elefante-open" data-v="ropa"` });
   items.push({ key: "ele:tipos", cat: "elefante", icon: "🐘", nombre: "Tipos de elefante", precioTxt: "Se ganan", estado: "ok", accion: `data-action="elefante-open" data-v="tipo"` });
   return items;
 }
-const TIENDA_CATS = [["utiles", "Útiles"], ["funciones", "Funciones"], ["temas", "Temas"], ["estilo", "Títulos y detalles"], ["efectos", "Efectos"], ["elefante", "Elefante"]];
+const TIENDA_CATS = [["utiles", "Útiles"], ["funciones", "Funciones"], ["temas", "Temas"], ["estilo", "Títulos y detalles"], ["efectos", "Efectos"], ["cuarto", "Cuarto"], ["elefante", "Elefante"]];
 
 function fichaHtml(it) {
-  const precio = it.estado === "equipado" ? "En uso" : it.estado === "tuyo" ? (it.cat === "elefante" ? it.precioTxt : "Es tuyo")
+  const precio = it.estado === "equipado" ? (it.enUsoTxt || "En uso") : it.estado === "tuyo" ? (it.cat === "elefante" ? it.precioTxt : it.tuyoTxt || "Es tuyo")
     : it.estado === "bloqueado" ? "🔒 " + (it.bloqueoTxt || "Bloqueado") : (it.precioTxt || it.costo + " ⭐");
   const icono = it.tema ? (it.tema.auto
       // Automático: mitad Ruta (día) y mitad Ruta noche, con un punto de cada uno
       ? `<span class="ficha__ico ficha__ico--tema" style="background:linear-gradient(90deg, #FFFFFF 50%, #0B0B0C 50%)"><i style="background:#0B0B0C"></i><i style="background:#FFFFFF"></i></span>`
       : `<span class="ficha__ico ficha__ico--tema" style="background:${it.tema.bg}"><i style="background:${it.tema.cta}"></i><i style="background:${it.tema.accent}"></i></span>`)
+    : it.pared ? `<span class="ficha__ico ficha__ico--pared" style="--p1:${it.pared[0]};--p2:${it.pared[1]}" aria-hidden="true"></span>`
     : `<span class="ficha__ico">${it.icon}</span>`;
   return `<button class="ficha is-${it.estado}${it.tema ? " ficha--tema" : ""}" ${it.accion || `data-action="tienda-ficha" data-key="${escapeAttr(it.key)}"`} ${it.attr || ""}>
     ${it.estado === "tuyo" || it.estado === "equipado" ? `<span class="ficha__ok" aria-hidden="true">✓</span>` : ""}
@@ -77,6 +82,7 @@ function openFicha(key) {
   TIENDA_FICHA = key;
   openModal(it.nombre, `<div class="ficha-detalle">${it.detalle()}</div>`);
   document.getElementById("modal").classList.add("modal--hoja");
+  if (it.alAbrir) it.alAbrir();
 }
 /* Después de comprar o equipar desde la hoja: se vuelve a dibujar con el estado nuevo */
 function refrescarFicha() {

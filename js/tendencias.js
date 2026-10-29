@@ -4,7 +4,7 @@
 
 function svgLine(values, opts = {}) {
   const { color = "var(--cian)", goal = null, fmt = (v) => v, labels = MESES_CORTO } = opts;
-  const W = 680, H = 200, padL = 46, padR = 18, padT = 14, padB = 28;
+  const W = 680, H = 210, padL = 46, padR = 18, padT = 24, padB = 28;
   const idx = values.map((v, i) => [i, v]).filter(p => p[1] != null);
   if (!idx.length) return `<div class="empty" style="height:160px;display:grid;place-items:center">Sin datos aún.</div>`;
 
@@ -27,15 +27,20 @@ function svgLine(values, opts = {}) {
     <text x="${W - padR}" y="${(Y(goal) - 5).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--coral)">meta ${fmt(goal)}</text>` : "";
   const path = idx.map((p, k) => `${k ? "L" : "M"}${X(p[0]).toFixed(1)} ${Y(p[1]).toFixed(1)}`).join(" ");
   const dots = idx.map(p => `<circle cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="3.2" fill="${color}"/>`).join("");
+  // Etiqueta de datos sobre cada punto (o debajo, si el punto está muy arriba)
+  const etq = idx.map(p => { const y = Y(p[1]), arriba = y - padT > 12;
+    return `<text x="${X(p[0]).toFixed(1)}" y="${(arriba ? y - 8 : y + 16).toFixed(1)}" text-anchor="middle" class="graf-dato">${fmt(redondo(p[1]))}</text>`; }).join("");
   const xl = values.map((v, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="var(--text-muted)">${labels[i] ?? ""}</text>`).join("");
 
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${grid}${goalLine}
-    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}${xl}</svg>`;
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}${etq}${xl}</svg>`;
 }
+/* Un decimal como mucho, para las etiquetas de datos */
+function redondo(v) { return Number.isInteger(v) ? v : Math.round(v * 10) / 10; }
 
 function svgBar(values, opts = {}) {
   const { color = "var(--cian)", fmt = (v) => v, labels = MESES_CORTO, max = null } = opts;
-  const W = 680, H = 200, padL = 46, padR = 18, padT = 14, padB = 28;
+  const W = 680, H = 210, padL = 46, padR = 18, padT = 24, padB = 28;
   const present = values.filter(v => v != null);
   if (!present.length) return `<div class="empty" style="height:160px;display:grid;place-items:center">Sin datos aún.</div>`;
   let hi = max != null ? max : Math.max(...present, 0); if (hi <= 0) hi = 1;
@@ -55,7 +60,8 @@ function svgBar(values, opts = {}) {
   const bars = values.map((v, i) => {
     if (v == null) return "";
     const h = Math.max(0, base - Y(v));
-    return `<rect x="${(X(i) - bw / 2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}"/>`;
+    return `<rect x="${(X(i) - bw / 2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}"/>
+      ${v ? `<text x="${X(i).toFixed(1)}" y="${(Math.min(Y(v), base) - 6).toFixed(1)}" text-anchor="middle" class="graf-dato">${fmt(redondo(v))}</text>` : ""}`;   // etiqueta de datos (en cero no hay barra que rotular)
   }).join("");
   const xl = values.map((v, i) => `<text x="${X(i).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="8" fill="var(--text-muted)">${labels[i] ?? ""}</text>`).join("");
 
@@ -178,7 +184,7 @@ function computeInsights() {
 function renderFocoPostergacion() {
   const S = STATE, hoy = todayISO(), desde = agSumar(hoy, -29);
   const r = tmResumen(S, desde, hoy);
-  const titulo = `<div class="section-title">🎯 Foco y postergación <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· últimos 30 días</span></div>`;
+  const titulo = `<div class="section-title">${icoHab("🎯", 16)} Foco y postergación <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· últimos 30 días</span></div>`;
   if (r.tareas < 3) return titulo + `<div class="card"><div class="empty">Cuando tengas unos días de tareas en tu registro diario, aquí verás cuánto postergas, qué días y qué tareas se te repiten. Empieza cerrando tu día y decidiendo tus pendientes.</div></div>`;
   const cap = tmCapacidad(S, hoy, 14);
   const serie = tmSerieSemanas(S, hoy, 8);
@@ -205,23 +211,23 @@ function renderFocoPostergacion() {
         <span class="chip">✕ ${r.soltadas} soltadas</span><span class="chip">@ ${r.delegadas} delegadas</span>
         <span class="chip">• ${r.pendientes} pendientes</span></div>
       <div class="row-wrap mt-16" style="gap:8px">
-        <span class="chip">${AMBITOS.pro.icon} Postergas ${amb("pro")} de lo profesional</span>
-        <span class="chip">${AMBITOS.per.icon} Postergas ${amb("per")} de lo personal</span></div>
+        <span class="chip">${icoHab(AMBITOS.pro.icon, 14)} Postergas ${amb("pro")} de lo profesional</span>
+        <span class="chip">${icoHab(AMBITOS.per.icon, 14)} Postergas ${amb("per")} de lo personal</span></div>
       <p class="text-xs muted mt-16">Soltar no es fallar: si sueltas mucho, quizás anotas más de lo que cabe en tu día.</p></div>
     <div class="card"><div class="card__title">Más postergadas</div>
       ${r.cronicas.length ? `<div class="mt-8">${r.cronicas.slice(0, 5).map(c => `<div class="flex-between" style="padding:8px 0;gap:8px;border-top:1px solid var(--line)">
         <span class="text-sm">${escapeHtml(c.txt)}</span><span class="row" style="gap:6px"><span class="chip chip--mig is-cronica">↪ ${c.n}</span>${estadoChip(c)}</span></div>`).join("")}</div>
         <p class="text-xs muted mt-8">Regla del bullet journal: si la postergaste 3 veces, pregúntate si vale la pena. Hazla tu primer bocado, pártela o suéltala.</p>`
-      : `<div class="empty">Ninguna tarea postergada 3 veces o más. 👏</div>`}</div>
+      : `<div class="empty">Ninguna tarea postergada 3 veces o más.</div>`}</div>
   </div>`;
 }
 
 function renderDescubrimientos() {
   const ins = computeInsights().slice(0, 6);
   const cuerpo = ins.length
-    ? `<div class="grid grid-2">${ins.map(i => `<div class="card insight-card"><div class="insight-ico">${i.icon}</div><div class="insight-txt">${i.text}</div></div>`).join("")}</div>`
-    : `<div class="card"><div class="empty">Registra tu ánimo (en el cierre del ritual) y tus hábitos unos días. Cuando haya suficiente, aquí verás <b>qué te hace bien</b> — correlaciones entre tu día y cómo te sientes. 🔍</div></div>`;
-  return `<div class="section-title">💡 Tus descubrimientos</div>${cuerpo}`;
+    ? `<div class="grid grid-2">${ins.map(i => `<div class="card insight-card"><div class="insight-ico">${icoHab(i.icon, 22)}</div><div class="insight-txt">${i.text}</div></div>`).join("")}</div>`
+    : `<div class="card"><div class="empty">Registra tu ánimo (en el cierre del ritual) y tus hábitos unos días. Cuando haya suficiente, aquí verás <b>qué te hace bien</b> — correlaciones entre tu día y cómo te sientes.</div></div>`;
+  return `<div class="section-title">${icoHab("💡", 16)} Tus descubrimientos</div>${cuerpo}`;
 }
 
 /* Totales de un año para compararlo con el anterior */
@@ -240,7 +246,7 @@ function comparacionAnios(S, y) {
   if (!b.hay) return "";
   const chip = (ico, label, va, vb, fmt) => {
     const dif = va == null || vb == null ? "" : va > vb ? ' <span class="delta is-up">▲</span>' : va < vb ? ' <span class="delta is-down">▼</span>' : "";
-    return `<span class="chip">${ico} ${label}: <b>${fmt(va)}</b> <span class="muted">vs ${fmt(vb)}</span>${dif}</span>`;
+    return `<span class="chip">${icoHab(ico, 14)} ${label}: <b>${fmt(va)}</b> <span class="muted">vs ${fmt(vb)}</span>${dif}</span>`;
   };
   const pct = v => (v == null ? "—" : v + "%"), n = v => v;
   return `<div class="row-wrap" style="gap:8px;margin-bottom:16px"><span class="text-xs muted" style="width:100%">Comparado con ${y - 1}</span>
@@ -299,7 +305,6 @@ function renderTendencias() {
   const setSemana = new Set(semanaISO);
   const moodsSem = diario.filter(e => e.mood && setSemana.has(e.fecha)).map(e => e.mood);
   const moodAvgSem = moodsSem.length ? moodsSem.reduce((a, b) => a + b, 0) / moodsSem.length : null;
-  const moodEmojiSem = moodAvgSem != null ? MOODS[Math.round(moodAvgSem) - 1] : "—";
   const cerradosSem = semanaISO.filter(iso => S.ritual.dias[iso] && S.ritual.dias[iso].cerrado).length;
   const habSem = cumplimientoGrupo(S.habitos.defs, semanaISO[0], semanaISO[6], S);
   const habPctSem = habSem.pct == null ? 0 : habSem.pct;
@@ -312,13 +317,13 @@ function renderTendencias() {
   <div class="section-title">Resumen de la semana</div>
   <div class="card">
     <div class="grid grid-4">
-      <div class="stat"><div class="stat__label">😊 Ánimo</div><div class="stat__value">${moodEmojiSem} <small>${moodAvgSem != null ? moodAvgSem.toFixed(1) : "—"}</small></div></div>
-      <div class="stat"><div class="stat__label">🌙 Días cerrados</div><div class="stat__value">${cerradosSem}<small>/7</small></div></div>
-      <div class="stat"><div class="stat__label">📊 Hábitos</div><div class="stat__value">${habPctSem}%</div></div>
-      <div class="stat"><div class="stat__label">📋 Tareas hechas</div><div class="stat__value">${tareasDoneSem}<small>/${tareasSem.length}</small></div></div>
+      <div class="stat"><div class="stat__label">${icoHab("😊", 14)} Ánimo</div><div class="stat__value">${moodAvgSem != null ? `${moodAvgSem.toFixed(1).replace(".", ",")}<small>/5</small>` : "—"}</div></div>
+      <div class="stat"><div class="stat__label">${icoHab("🌙", 14)} Días cerrados</div><div class="stat__value">${cerradosSem}<small>/7</small></div></div>
+      <div class="stat"><div class="stat__label">${icoHab("📊", 14)} Hábitos</div><div class="stat__value">${habPctSem}%</div></div>
+      <div class="stat"><div class="stat__label">${icoHab("📋", 14)} Tareas hechas</div><div class="stat__value">${tareasDoneSem}<small>/${tareasSem.length}</small></div></div>
     </div>
     ${gratisSem.length ? `<div class="divider"></div>
-      <div class="text-xs muted" style="margin-bottom:8px">💛 Gratitudes de la semana</div>
+      <div class="text-xs muted" style="margin-bottom:8px">${icoHab("💛", 14)} Gratitudes de la semana</div>
       <div class="row-wrap" style="gap:8px">${gratisSem.map(e => `<span class="chip chip--coral">${escapeHtml(e.gratitud)}</span>`).join("")}</div>` : ""}
   </div>`;
 
@@ -341,37 +346,36 @@ function renderTendencias() {
 
   <div class="section-title">Tu evolución</div>
   ${selectorAnio()}
-  ${typeof caminoCardHtml === "function" ? caminoCardHtml(y) : ""}
   ${comparacionAnios(S, y)}
   ${y < anioActual() ? `<div class="card" style="margin-bottom:18px">${resumenAnioHtml(resumenAnio(S, y), true)}</div>` : ""}
-  ${informeAnioDisponible(y) ? `<div class="row" style="margin-bottom:18px;justify-content:flex-end"><button class="btn ${funcion("informe-anio") ? "btn--cian" : "btn--soft"}" data-action="informe-anio" data-y="${y}">🗂️ Informe de ${y}${funcion("informe-anio") ? "" : " · 400 ⭐"}</button></div>` : ""}
+  ${informeAnioDisponible(y) ? `<div class="row" style="margin-bottom:18px;justify-content:flex-end"><button class="btn ${funcion("informe-anio") ? "btn--cian" : "btn--soft"}" data-action="informe-anio" data-y="${y}">${icoHab("🗂️", 16)} Informe de ${y}${funcion("informe-anio") ? "" : " · 400 ⭐"}</button></div>` : ""}
   <div class="grid grid-2">
     <div class="card">
-      <div class="card__head"><div class="card__title">⚖️ Peso (kg)</div><span class="card__hint">${S.salud.pesoObjetivo != null ? "objetivo " + S.salud.pesoObjetivo + " kg" : ""}</span></div>
+      <div class="card__head"><div class="card__title">${icoHab("⚖️", 16)} Peso (kg)</div><span class="card__hint">${S.salud.pesoObjetivo != null ? "objetivo " + S.salud.pesoObjetivo + " kg" : ""}</span></div>
       ${svgLine(pesos, { color: "var(--cian)", goal: S.salud.pesoObjetivo, fmt: v => v })}
     </div>
     <div class="card">
-      <div class="card__head"><div class="card__title">💰 Ahorro por mes</div><span class="card__hint">ingreso − gasto</span></div>
+      <div class="card__head"><div class="card__title">${icoHab("💰", 16)} Ahorro por mes</div><span class="card__hint">ingreso − gasto</span></div>
       ${svgBar(ahorroVals, { color: "var(--cian)", fmt: v => "$" + Math.round(v / 1000) + "k" })}
     </div>
   </div>
   <div class="grid grid-2 mt-24">
     <div class="card">
-      <div class="card__head"><div class="card__title">📊 Cumplimiento de hábitos</div><span class="card__hint">% del mes</span></div>
+      <div class="card__head"><div class="card__title">${icoHab("📊", 16)} Cumplimiento de hábitos</div><span class="card__hint">% del mes</span></div>
       ${svgBar(habPct, { color: "var(--coral)", fmt: v => v + "%" })}
     </div>
     <div class="card">
-      <div class="card__head"><div class="card__title">🧭 Rueda de la vida</div><span class="card__hint">promedio mensual</span></div>
+      <div class="card__head"><div class="card__title">${icoHab("🧭", 16)} Rueda de la vida</div><span class="card__hint">promedio mensual</span></div>
       ${svgLine(ruedaAvg, { color: "var(--cian)", fmt: v => v })}
     </div>
   </div>
   <div class="grid grid-2 mt-24">
     <div class="card">
-      <div class="card__head"><div class="card__title">😊 Estado de ánimo por mes</div><span class="card__hint">promedio 1–5 · desde tu Diario</span></div>
+      <div class="card__head"><div class="card__title">${icoHab("😊", 16)} Estado de ánimo por mes</div><span class="card__hint">promedio 1–5 · desde tu Diario</span></div>
       ${svgLine(moodByMonth, { color: "var(--coral)", fmt: v => v })}
     </div>
     <div class="card">
-      <div class="card__head"><div class="card__title">📚 Libros terminados por mes</div><span class="card__hint">${libros} en el año</span></div>
+      <div class="card__head"><div class="card__title">${icoHab("📚", 16)} Libros terminados por mes</div><span class="card__hint">${libros} en el año</span></div>
       ${svgBar(librosMes, { color: "var(--cian)", fmt: v => v })}
     </div>
   </div>

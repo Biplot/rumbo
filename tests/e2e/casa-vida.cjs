@@ -39,6 +39,9 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click(".mundo__b--casa"); await en(p, "cuarto", true); await p.waitForTimeout(600);
     ok(await p.evaluate(() => document.body.classList.contains("en-lugar")) && (await p.locator(".lugar__t b").innerText()) === "Tu casa", "un toque en Tu casa la abre a pantalla completa");
     ok((await rut(p)).act === ahora.id && (await p.locator("#cuaAhora").innerText()).includes(ahora.txt), "y tu elefante está haciendo lo que decía Inicio (la hoja lo cuenta)");
+    // Las medallas de la repisa no se tapan entre sí
+    const rep = await p.evaluate(() => CIELO_ESTADO.motor.cajasRepisa());
+    ok(rep.length === 2 && rep.every((a, i) => rep.every((b, j) => j <= i || Math.min(a.x1, b.x1) <= Math.max(a.x0, b.x0) || Math.min(a.y1, b.y1) <= Math.max(a.y0, b.y0))), "en la repisa, cada medalla en su lugar, sin tapar a la de al lado");
     // Duerme la siesta en su alfombra
     const s = await hasta(p, "siesta");
     ok(s.pose.echado > 0.9 && s.pose.dormir > 0.9 && s.pose.zzz > 0.5 && Math.hypot(s.x - 0.45, s.z - 0.6) < 0.1, "duerme la siesta echado en su alfombra, con zzz");

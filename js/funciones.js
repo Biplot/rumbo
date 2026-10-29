@@ -203,8 +203,8 @@ function renderFocoTendencias() {
   const horas = semanas.map(l => +(minutosFoco(STATE, l, agSumar(l, 6)) / 60).toFixed(1));
   const esta = minutosFoco(STATE, L, agSumar(L, 6));
   const n = sesionesEnfoque(STATE).filter(x => !x.borrada && x.fecha >= L).length;
-  return `<div class="section-title">⏱️ Foco</div>
-  <div class="grid grid-2"><div class="card stat"><div class="stat__label">⏱️ Foco esta semana</div><div class="stat__value">${fmtFoco(esta)}</div>
+  return `<div class="section-title">${icoHab("⏱️", 16)} Foco</div>
+  <div class="grid grid-2"><div class="card stat"><div class="stat__label">${icoHab("⏱️", 14)} Foco esta semana</div><div class="stat__value">${fmtFoco(esta)}</div>
       <div class="text-xs muted mt-8">${n} ${n === 1 ? "sesión" : "sesiones"} · ${sesionesCompletas(STATE)} completas en total</div>
       <button class="btn btn--cian mt-16" data-action="enfoque-open">Enfocarme ahora</button></div>
     <div class="card"><div class="card__head"><div class="card__title">Horas de foco por semana</div><span class="card__hint">últimas 8</span></div>
@@ -274,7 +274,7 @@ function renderCompararMeses() {
   const hoy = agDate(todayISO());
   const keys = Array.from({ length: 24 }, (_, i) => { const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1); return mesKey(d.getFullYear(), d.getMonth()); });
   if (!funcion("comparar")) return `<div class="card mt-24 locked-card"><div class="flex-between" style="gap:12px;flex-wrap:wrap">
-    <div><div class="card__title">📊 Comparar meses</div><div class="text-sm muted mt-8">Pon dos meses lado a lado: tareas, hábitos, postergación, ánimo y ahorro.</div></div>
+    <div><div class="card__title">${icoHab("📊", 16)} Comparar meses</div><div class="text-sm muted mt-8">Pon dos meses lado a lado: tareas, hábitos, postergación, ánimo y ahorro.</div></div>
     <button class="btn btn--primary" data-action="fun-buy" data-id="fun:comparar">Desbloquear · 500 ⭐</button></div></div>`;
   COMPARAR = COMPARAR || { a: keys[0], b: keys[1] };
   const nom = k => { const { y, m } = mesDeKey(k); return `${MESES[m]} ${y}`; };
@@ -284,10 +284,10 @@ function renderCompararMeses() {
     const a = A[k], b = B[k]; if (a == null && b == null) return "";
     let flecha = "";
     if (a != null && b != null && a !== b) flecha = (a > b) === mejorAlto ? '<span class="hl-cian">▲</span>' : '<span style="color:var(--coral)">▼</span>';
-    return `<tr><td>${ico} ${label}</td><td><b>${a == null ? "—" : fmt(a)}</b> ${flecha}</td><td>${b == null ? "—" : fmt(b)}</td></tr>`;
+    return `<tr><td>${icoHab(ico, 14)} ${label}</td><td><b>${a == null ? "—" : fmt(a)}</b> ${flecha}</td><td>${b == null ? "—" : fmt(b)}</td></tr>`;
   };
   const pct = v => v + "%", num = v => String(v).replace(".", ",");
-  return `<div class="section-title">📊 Comparar meses</div>
+  return `<div class="section-title">${icoHab("📊", 16)} Comparar meses</div>
   <div class="card"><div class="row" style="gap:10px;flex-wrap:wrap">${sel("a")}<span class="muted">vs</span>${sel("b")}</div>
     <table class="tabla-comparar mt-16"><thead><tr><th></th><th>${nom(COMPARAR.a)}</th><th>${nom(COMPARAR.b)}</th></tr></thead><tbody>
       ${fila("🌙", "Días cerrados", "cerrados", num)}
@@ -393,8 +393,8 @@ function renderFuncionesTienda() {
   const card = funcionCard;
   const plantillas = { icon: "📋", nombre: "Plantillas de rutina", costo: 200, desc: "Hábitos y tareas recurrentes ya armados: " + PLANTILLAS.map(p => p.nombre).join(", ") + ".", donde: "Hábitos → 📋 Plantillas" };
   const packs = `<div class="row-wrap mt-8" style="gap:6px">${PACKS_ICONOS.map(p => funcion("iconos-" + p.id)
-    ? `<span class="chip chip--cian">${p.icon} ${p.nombre} ✓</span>`
-    : `<button class="chip" data-action="fun-buy" data-id="iconos:${p.id}">${p.icon} ${p.nombre} · 150 ⭐</button>`).join("")}</div>`;
+    ? `<span class="chip chip--cian">${icoHab(p.icon, 15)} ${p.nombre} ✓</span>`
+    : `<button class="chip" data-action="fun-buy" data-id="iconos:${p.id}">${icoHab(p.icon, 15)} ${p.nombre} · 150 ⭐</button>`).join("")}</div>`;
   return `<div class="section-title">⚙️ Funciones <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· se desbloquean una vez y quedan para siempre</span></div>
     <div class="grid grid-3">
       ${FUNCIONES.map(f => card("fun:" + f.id, f)).join("")}
@@ -404,6 +404,6 @@ function renderFuncionesTienda() {
         <button class="btn btn--soft btn-block mt-8" data-action="plantillas-open">Ver plantillas</button></div>
       <div class="card util-card"><div class="row" style="gap:10px;align-items:flex-start"><span class="util-ico">🎨</span>
         <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">Packs de íconos</div><div class="text-xs muted">150 ⭐ cada pack · 24 íconos</div></div></div>
-        <p class="text-sm soft mt-8">Más íconos para tus hábitos.</p>${packs}</div>
+        <p class="text-sm soft mt-8">Más íconos de línea para tus hábitos.</p>${packs}</div>
     </div>`;
 }

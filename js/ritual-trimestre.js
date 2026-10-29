@@ -136,7 +136,7 @@ function triCierrePaso(w) {
       <input type="hidden" id="tc-e-${o.id}" value="${d.estados[o.id]}"></div>`).join("");
   }
   if (w.paso === 1) return resumenTrimestreHtml(resumenTrimestre(w.y, w.q))
-    + (typeof medallasCierreHtml === "function" ? medallasCierreHtml(medallasDelTrimestre(STATE, w.y, w.q), "🏅 Medallas del trimestre", "Están en tu camino del año, en Tendencias.") : "");
+    + (typeof medallasCierreHtml === "function" ? medallasCierreHtml(medallasDelTrimestre(STATE, w.y, w.q), "🏅 Medallas del trimestre", "Todas brillan en tu vitrina.") : "");
   if (w.paso === 2) return `<div class="field"><label>🏆 Tu logro principal del trimestre</label><textarea class="input" id="tc-logro">${escapeHtml(d.logro)}</textarea></div>
     <div class="field"><label>🧠 Lo que aprendiste</label><textarea class="input" id="tc-apr">${escapeHtml(d.aprendizaje)}</textarea></div>
     <div class="field"><label>🔧 Qué cambiarías el próximo trimestre</label><input class="input" id="tc-cambiar" value="${escapeAttr(d.cambiar)}" placeholder="Lo verás al abrir el siguiente"></div>`;

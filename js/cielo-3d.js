@@ -1,8 +1,9 @@
 /* ============================================================
    RUMBO · El cielo de insignias en 3D (three.js r128)
-   Lo carga cielo.js solo al entrar a Insignias. Un renderer para dos escenas:
-   el cielo nocturno con sus constelaciones de medallas y el estudio donde una
-   medalla se mira de cerca (se gira, se le da vuelta, brilla su metal).
+   Lo carga cielo.js al entrar a tu vitrina o a tu casa. Un renderer para tres escenas:
+   el cielo nocturno con sus constelaciones de medallas (tu vitrina), el estudio donde
+   una medalla se mira de cerca (se gira, se le da vuelta, brilla su metal) y el cuarto
+   de tu elefante (tu casa).
    D: datos de la app → { orden(), info(id), ganadas(), familias, tocar(id), perdido() }
    ============================================================ */
 function crearMotorCielo(T, D) {
@@ -32,21 +33,23 @@ function crearMotorCielo(T, D) {
     obsidiana: { c: 0x2A2731, css: "#3A3644", luz: "#C7AEFF" },
   };
   const FAM = {}; D.familias.forEach(f => { FAM[f.id] = f; });
-  /* Cada figura: centro en el cielo (yc: giro, pc: altura, en radianes), tamaño s, puntos p y trazos l */
+  /* Cada figura: centro en el cielo (yc: giro, pc: altura, en radianes), tamaño s, puntos p y trazos l.
+     Tres arriba (La Copa, La Brújula, El Elefante) y tres abajo (El Sol, La Columna, La Medalla), en tres
+     columnas, con aire entre una y otra y entre cada figura y su rótulo: ninguna medalla tapa a otra */
   const FIG = {
-    rachas: { yc: 0.52, pc: 0.72, s: 0.085, p: [[-0.85, 0.85], [0.85, 0.85], [0, -0.1], [0, -0.95]], l: [[0, 1], [0, 2], [1, 2], [2, 3]] },
-    hitos: { yc: 0.03, pc: 0.74, s: 0.092, p: [[0, 0.95], [0.75, 0], [0, -0.95], [-0.75, 0], [0, 0], [0.52, 0.62]], l: [[0, 1], [1, 2], [2, 3], [3, 0], [4, 0], [4, 5]] },
-    foco: { yc: -0.48, pc: 0.6, s: 0.21, p: [[0.98, -0.75], [0.92, -0.25], [0.8, 0.2], [0.5, 0.6], [0, 0.62], [-0.6, 0.45], [-0.98, 0.05], [-0.62, -0.75], [-0.32, -0.75], [0, -0.32], [0.25, -0.75], [0.5, -0.75], [0.38, 0.22]],
+    rachas: { yc: 0.56, pc: 0.76, s: 0.085, p: [[-0.85, 0.85], [0.85, 0.85], [0, -0.1], [0, -0.95]], l: [[0, 1], [0, 2], [1, 2], [2, 3]] },
+    hitos: { yc: 0.0, pc: 0.775, s: 0.125, p: [[0, 0.95], [0.75, 0], [0, -0.95], [-0.75, 0], [0, 0], [0.52, 0.62]], l: [[0, 1], [1, 2], [2, 3], [3, 0], [4, 0], [4, 5]] },
+    foco: { yc: -0.52, pc: 0.775, s: 0.17, p: [[0.98, -0.75], [0.92, -0.25], [0.8, 0.2], [0.5, 0.6], [0, 0.62], [-0.6, 0.45], [-0.98, 0.05], [-0.72, -0.75], [-0.3, -0.75], [0, -0.32], [0.12, -0.75], [0.52, -0.75], [0.38, 0.22]],
       l: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [5, 7], [7, 8], [8, 9], [9, 10], [10, 11], [11, 2], [3, 12]] },
-    rituales: { yc: 0.52, pc: 0.35, s: 0.12, p: [], l: [] },
-    habitos: { yc: 0.1, pc: 0.5, s: 0.12, p: [[0, -1], [0.06, -0.5], [0, 0], [-0.06, 0.5], [0, 1]], l: [[0, 1], [1, 2], [2, 3], [3, 4]] },
-    vida: { yc: -0.3, pc: 0.3, s: 0.13, p: [[-0.55, 1.25], [-0.18, 0.52], [0.55, 1.25], [0.18, 0.52]], l: [[0, 1], [2, 3]] },
+    rituales: { yc: 0.56, pc: 0.4, s: 0.135, p: [], l: [] },
+    habitos: { yc: 0.0, pc: 0.375, s: 0.13, p: [[0, -1], [0.06, -0.5], [0, 0], [-0.06, 0.5], [0, 1]], l: [[0, 1], [1, 2], [2, 3], [3, 4]] },
+    vida: { yc: -0.52, pc: 0.35, s: 0.165, p: [[-0.75, 1.0], [-0.25, 0.84], [0.75, 1.0], [0.25, 0.84]], l: [[0, 1], [2, 3]] },
   };
   for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i / 5 * 6.283; FIG.rituales.p.push([Math.cos(a) * 0.42, -Math.sin(a) * 0.42]); }
   for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i / 5 * 6.283; FIG.rituales.p.push([Math.cos(a), -Math.sin(a)]); FIG.rituales.l.push([i, (i + 1) % 5], [i, i + 5]); }
-  for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i / 10 * 6.283; FIG.vida.p.push([Math.cos(a) * 0.7, -0.3 + Math.sin(a) * 0.7]); FIG.vida.l.push([4 + i, 4 + (i + 1) % 10]); }
+  for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i / 10 * 6.283; FIG.vida.p.push([Math.cos(a) * 0.66, -0.17 + Math.sin(a) * 0.66]); FIG.vida.l.push([4 + i, 4 + (i + 1) % 10]); }
   FIG.vida.l.push([1, 4], [3, 4]);
-  const SECRETAS = { buho: [0.27, 0.55], aniversario: [-0.17, 0.43], "anio-nuevo": [0.8, 0.52], remontada: [-0.22, 0.86] };
+  const SECRETAS = { buho: [0.27, 0.56], aniversario: [-0.24, 0.42], "anio-nuevo": [0.86, 0.6], remontada: [-0.2, 0.86] };   // en los huecos entre figuras
 
   /* -------- Utilidades -------- */
   const lerp = (a, b, k) => a + (b - a) * k;
@@ -69,11 +72,11 @@ function crearMotorCielo(T, D) {
   /* A pantalla completa (lugar.js), la barra de arriba y la hoja (o el panel al costado) tapan parte del lienzo:
      cada cámara se encuadra en lo que queda libre (setViewOffset). zoom: lo que acercaste con pellizco o rueda */
   const ENC = { arriba: 0, abajo: 0, der: 0 }, ENCo = { arriba: 0, abajo: 0, der: 0 };
-  const ZOOM = { cielo: 1, camino: 1 }, ZOOMo = { cielo: 1, camino: 1 }, ZOOM_LIM = { cielo: [0.62, 1.12], camino: [0.55, 1.15] };
+  const ZOOM = { cielo: 1 }, ZOOMo = { cielo: 1 }, ZOOM_LIM = { cielo: [0.62, 1.12] };
   function areaLibre() { return [Math.max(160, ancho - ENC.der), Math.max(120, alto - ENC.arriba - ENC.abajo)]; }
   function corrimiento(c, w, h) { if (ENC.arriba || ENC.abajo || ENC.der) c.setViewOffset(w, h, 0, -ENC.arriba, ancho, alto); else c.clearViewOffset(); }
-  function vistaMoviendo() { return ["arriba", "abajo", "der"].some(k => Math.abs(ENC[k] - ENCo[k]) > 0.5) || Math.abs(ZOOM.cielo - ZOOMo.cielo) > 1e-3 || Math.abs(ZOOM.camino - ZOOMo.camino) > 1e-3; }
-  function acercarVista(dt) { const k = Math.min(1, dt * 7); ["arriba", "abajo", "der"].forEach(q => { ENC[q] += (ENCo[q] - ENC[q]) * k; }); ZOOM.cielo += (ZOOMo.cielo - ZOOM.cielo) * k; ZOOM.camino += (ZOOMo.camino - ZOOM.camino) * k; }
+  function vistaMoviendo() { return ["arriba", "abajo", "der"].some(k => Math.abs(ENC[k] - ENCo[k]) > 0.5) || Math.abs(ZOOM.cielo - ZOOMo.cielo) > 1e-3; }
+  function acercarVista(dt) { const k = Math.min(1, dt * 7); ["arriba", "abajo", "der"].forEach(q => { ENC[q] += (ENCo[q] - ENC[q]) * k; }); ZOOM.cielo += (ZOOMo.cielo - ZOOM.cielo) * k; }
 
   function mat(c, o) {
     const p = Object.assign({ color: c, roughness: 0.85, metalness: 0 }, o || {});
@@ -346,7 +349,7 @@ function crearMotorCielo(T, D) {
      EL CIELO
      ============================================================ */
   const POS = new T.Vector3(1.0, 1.3, 7.6), R = 60;
-  const VISTA = { yaw: 0.02, pitch: 0.45, fov: 56, aspecto: 1.6, lim: { yaw: [-0.6, 0.6], pitch: [-0.22, 0.3] }, vaiven: 0.025 };
+  const VISTA = { yaw: 0.02, pitch: 0.48, fov: 56, aspecto: 1.6, lim: { yaw: [-0.6, 0.6], pitch: [-0.22, 0.3] }, vaiven: 0.025 };
   const dirMirar = (yaw, pitch) => new T.Vector3(-Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), -Math.cos(yaw) * Math.cos(pitch));
   const enCielo = (yaw, pitch, rad) => dirMirar(yaw, pitch).multiplyScalar(rad || R).add(POS);
   const cielo = { escena: new T.Scene(), u: { yaw: 0, pitch: 0 }, uObj: { yaw: 0, pitch: 0 }, nodos: {}, porFam: {}, lineas: [], rotulos: {} };
@@ -367,7 +370,7 @@ function crearMotorCielo(T, D) {
     const relleno = new T.DirectionalLight(0x2A3460, 0.18); relleno.position.set(3, 3, 10); e.add(relleno);
     // El elefante sobre la loma, de perfil, con la trompa hacia las estrellas
     elefante = crearElefante(mat(0x1B2141, { roughness: 1 }));
-    elefante.g.scale.setScalar(0.62); elefante.g.position.set(0.15, 1.98, 0.2); elefante.g.rotation.y = Math.PI; e.add(elefante.g);
+    elefante.g.scale.setScalar(0.46); elefante.g.position.set(-1.05, 1.94, 0.46); elefante.g.rotation.y = Math.PI; e.add(elefante.g);
     // Estrellas de fondo y la Vía Láctea
     const rnd = semilla(7), nE = MOVIL ? 1400 : 2200, pe = new Float32Array(nE * 3), ta = new Float32Array(nE), fa = new Float32Array(nE);
     for (let i = 0; i < nE; i++) {
@@ -444,7 +447,7 @@ function crearMotorCielo(T, D) {
     if (!sp) {
       sp = new T.Sprite(new T.SpriteMaterial({ transparent: true, depthWrite: false }));
       const ab = F.p.reduce((m, p) => Math.min(m, p[1]), 1), s = limitar(F.s, 0.11, 0.13);
-      sp.position.copy(enCielo(F.yc, F.pc + ab * F.s - 0.075, R - 1)); sp.scale.set(s * R * 2.4, s * R * 0.75, 1); cielo.escena.add(sp); cielo.rotulos[f] = sp;
+      sp.position.copy(enCielo(F.yc, F.pc + ab * F.s - 0.068, R - 1)); sp.scale.set(s * R * 2.4, s * R * 0.75, 1); cielo.escena.add(sp); cielo.rotulos[f] = sp;
     } else if (sp.material.map) sp.material.map.dispose();
     sp.material.map = texRotulo(figNombre(f), txt); sp.material.needsUpdate = true; sp.userData.txt = txt;
     sp.material.opacity = n === L.length ? 0.9 : 0.42;
@@ -798,10 +801,10 @@ function crearMotorCielo(T, D) {
     // La repisa: cinco lugares para tus medallas
     e.add(bloque(3.3, 0.07, 0.42, madera, 0.95, REPISA_Y, -3.28));
     [-0.55, 2.45].forEach(x => { const sq = bloque(0.06, 0.26, 0.3, madOsc, x, REPISA_Y - 0.15, -3.35); e.add(sq); });
-    for (let i = 0; i < 5; i++) {
-      const x = -0.25 + i * 0.6, base = bloque(0.3, 0.045, 0.18, madOsc, x, REPISA_Y + 0.057, -3.22); e.add(base);
-      const g = new T.Group(); g.position.set(x, REPISA_Y + 0.42, -3.2); g.rotation.y = 0.55; e.add(g);
-      casa.lugares.push({ i, g, pos: new T.Vector3(x, REPISA_Y + 0.4, -3.2), id: null, fase: i * 1.3 });
+    for (let i = 0; i < 5; i++) {   // bien separadas y mirando hacia ti, para que ninguna tape a la de al lado
+      const x = -0.6 + i * 0.79, base = bloque(0.3, 0.045, 0.18, madOsc, x, REPISA_Y + 0.057, -3.22); e.add(base);
+      const g = new T.Group(); g.position.set(x, REPISA_Y + 0.33, -3.2); g.rotation.y = 0.75; e.add(g);
+      casa.lugares.push({ i, g, pos: new T.Vector3(x, REPISA_Y + 0.33, -3.2), id: null, fase: i * 1.3 });
     }
     // Lo que llega con el rango
     const C = casa.cosas;
@@ -1045,9 +1048,9 @@ function crearMotorCielo(T, D) {
       L.id = id; L.listo = true;
       if (id) {
         const I = D.info(id); if (!I) return;
-        const m = heroMedalla(I, true); m.scale.setScalar(0.3); m.traverse(o => { if (o.isMesh) o.castShadow = true; }); L.g.add(m);
+        const m = heroMedalla(I, true); m.scale.setScalar(0.22); m.traverse(o => { if (o.isMesh) o.castShadow = true; }); L.g.add(m);
       } else {
-        const aro = new T.Mesh(new T.TorusGeometry(0.85, 0.06, 10, 40), vidrioDe("plata")); aro.scale.setScalar(0.3); L.g.add(aro);
+        const aro = new T.Mesh(new T.TorusGeometry(0.85, 0.06, 10, 40), vidrioDe("plata")); aro.scale.setScalar(0.22); L.g.add(aro);
       }
     });
   }
@@ -1263,222 +1266,6 @@ function crearMotorCielo(T, D) {
     el.style.left = p[0] + "px"; el.style.top = (p[1] - 14) + "px"; el.hidden = false;
   }
 
-  /* ============================================================
-     EL CAMINO DEL AÑO: una isla con un sendero de enero a diciembre (camino.js)
-     Cada medalla del año es un hito al lado del sendero, en el día en que se ganó
-     ============================================================ */
-  const camK = new T.PerspectiveCamera(34, 1.45, 0.1, 300);
-  const CAMINO_V = { target: new T.Vector3(-0.2, 0.2, 0.6), dist: 25.5, yaw: 0, pitch: 0.8, aspecto: 1.45, lim: { yaw: [-0.55, 0.55], pitch: [-0.3, 0.2] } };
-  const MESES_K = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
-  let camino = null;
-  function alturaK(x, z) {
-    let y = 0.55 * Math.sin(x * 0.32 + 0.6) * Math.cos(z * 0.27 - 0.4) + 0.32 * Math.sin(x * 0.71 + z * 0.53) + 0.16 * Math.cos(x * 1.3 - z * 0.9);
-    y += 3.7 * Math.exp(-((x - 6.2) ** 2 + (z + 4.6) ** 2) / 7.5);
-    y += 1.7 * Math.exp(-((x + 7.2) ** 2 + (z + 5.4) ** 2) / 9);
-    y -= 1.5 * Math.exp(-((x + 3.4) ** 2 + (z - 2.3) ** 2) / 3.2);
-    return y;
-  }
-  function armarCamino() {
-    if (camino) return camino;
-    const e = new T.Scene(), rnd = semilla(11), h = alturaK;
-    e.background = new T.Color(0x9FD3EA); e.environment = envEstudio();
-    camino = { escena: e, hitos: [], clave: null, u: { yaw: 0, pitch: 0 }, uObj: { yaw: 0, pitch: 0 } };
-    e.add(new T.HemisphereLight(0xE4F2FF, 0x6E8F5E, 0.5));
-    const sol = new T.DirectionalLight(0xFFF3E2, 1.6); sol.position.set(-9, 16, 9); e.add(sol);
-    if (!LENTO) {
-      sol.castShadow = true; const n = MOVIL ? 1024 : 2048; sol.shadow.mapSize.set(n, n);
-      const sc = sol.shadow.camera; sc.left = sc.bottom = -14; sc.right = sc.top = 14; sc.near = 1; sc.far = 60; sc.updateProjectionMatrix();
-      sol.shadow.bias = -0.0004; sol.shadow.normalBias = 0.03;
-    }
-    // La isla: potreros de colores, arena junto a la laguna, roca y nieve en la cumbre
-    const AN = 22, FO = 15, gt = new T.PlaneGeometry(AN, FO, MOVIL ? 88 : 132, MOVIL ? 60 : 90); gt.rotateX(-Math.PI / 2);
-    const pa = gt.attributes.position;
-    for (let i = 0; i < pa.count; i++) pa.setY(i, h(pa.getX(i), pa.getZ(i)));
-    gt.computeVertexNormals();
-    const LC = [-3.4, 2.3], LY = h(LC[0], LC[1]) + 0.42; let LR = 0.5;
-    for (let a = 0; a < 36; a++) { const an = a / 36 * Math.PI * 2; let r0 = 0.1; while (r0 < 3.2 && h(LC[0] + Math.cos(an) * r0, LC[1] + Math.sin(an) * r0) < LY) r0 += 0.04; LR = Math.max(LR, r0); }
-    const CAMPOS = ["#7CC46A", "#9BD36E", "#5FB35C", "#C9DB6A", "#E8C95A", "#8CCB7A", "#A8D46F"].map(c => new T.Color(c).convertSRGBToLinear());
-    const ARENA = new T.Color("#EAD9A2").convertSRGBToLinear(), ROCA = new T.Color("#B49A7A").convertSRGBToLinear(), NIEVE = new T.Color("#F6F6F1").convertSRGBToLinear(), cc = new T.Color(), cS = [];
-    for (let i = 0; i < pa.count; i++) {
-      const vx = pa.getX(i), vz = pa.getZ(i), vy = pa.getY(i);
-      const cel = Math.floor((vx + 30) * 0.42 + Math.sin(vz * 0.7) * 0.6) * 7 + Math.floor((vz + 30) * 0.5 + Math.sin(vx * 0.5) * 0.6) * 13;
-      cc.copy(CAMPOS[((cel % 7) + 7) % 7]);
-      const dl = Math.hypot(vx - LC[0], vz - LC[1]); if (dl < LR + 0.45) cc.lerp(ARENA, limitar((LR + 0.45 - dl) / 0.4, 0, 1));
-      if (vy > 1.7) cc.lerp(ROCA, limitar((vy - 1.7) / 0.6, 0, 1));
-      if (vy > 2.9) cc.lerp(NIEVE, limitar((vy - 2.9) / 0.35, 0, 1));
-      cS.push(cc.r, cc.g, cc.b);
-    }
-    gt.setAttribute("color", new T.Float32BufferAttribute(cS, 3));
-    const mt = mat(0xFFFFFF, { roughness: 0.92, vertexColors: true });
-    mt.extensions = { derivatives: true };
-    mt.onBeforeCompile = sh => {   // curvas de nivel, como en un mapa
-      sh.vertexShader = "varying float vAlt;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\nvAlt = position.y;");
-      sh.fragmentShader = "varying float vAlt;\n" + sh.fragmentShader.replace("#include <color_fragment>", [
-        "#include <color_fragment>",
-        "float ca = vAlt * 3.2; float cw = max(fwidth(ca), 1e-4); float c1 = 1.0 - min(abs(fract(ca - 0.5) - 0.5) / cw, 1.0);",
-        "float cb = vAlt * 0.8; float cw2 = max(fwidth(cb), 1e-4); float c2 = 1.0 - min(abs(fract(cb - 0.5) - 0.5) / (cw2 * 1.5), 1.0);",
-        "diffuseColor.rgb *= 1.0 - max(c1 * 0.16, c2 * 0.3);"].join("\n"));
-    };
-    const suelo = new T.Mesh(gt, mt); suelo.receiveShadow = true; e.add(suelo);
-    const mf = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, side: T.DoubleSide, envMapIntensity: 0.3 });
-    const faldon = (a, b, n) => {
-      const v = [], col = [], idx = [];
-      for (let j = 0; j <= n; j++) {
-        const x = lerp(a[0], b[0], j / n), z = lerp(a[1], b[1], j / n);
-        v.push(x, h(x, z), z, x, -2.3, z); col.push(0.33, 0.17, 0.08, 0.11, 0.055, 0.03);
-        if (j) { const q = (j - 1) * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); }
-      }
-      const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(v, 3)); g.setAttribute("color", new T.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
-      e.add(new T.Mesh(g, mf));
-    };
-    const X = AN / 2, Z = FO / 2;
-    faldon([-X, Z], [X, Z], 140); faldon([X, Z], [X, -Z], 100); faldon([X, -Z], [-X, -Z], 140); faldon([-X, -Z], [-X, Z], 100);
-    e.add(malla(new T.BoxGeometry(AN + 0.5, 0.2, FO + 0.5), mat(0x18181A, { roughness: 0.5 }), 0, -2.4, 0));
-    const lago = new T.Mesh(new T.CircleGeometry(LR + 0.1, 64), mat(0x3FA9DE, { roughness: 0.08, metalness: 0.1 }));
-    lago.rotation.x = -Math.PI / 2; lago.position.set(LC[0], LY, LC[1]); lago.receiveShadow = true; e.add(lago);
-    // El sendero: lo recorrido (coral) y lo que falta (punteado)
-    const CP = [[-9.6, 6.3], [-7.4, 5.4], [-5.6, 5.0], [-2.6, 5.6], [0.2, 4.7], [1.3, 2.8], [-0.4, 1.0], [-3.0, -0.6], [-5.3, -1.8], [-4.8, -4.0], [-1.9, -4.9], [0.9, -3.4], [2.9, -1.5], [5.0, -1.2], [6.4, -2.6], [6.3, -4.3]];
-    const curva = new T.CatmullRomCurve3(CP.map(q => new T.Vector3(q[0], 0, q[1])), false, "centripetal");
-    const NP = 700, P = curva.getSpacedPoints(NP - 1);
-    const lado = j => { const q = P[Math.min(NP - 1, j + 1)], o = P[Math.max(0, j - 1)], tx = q.x - o.x, tz = q.z - o.z, l = Math.hypot(tx, tz) || 1; return [-tz / l, tx / l]; };
-    const cinta = (ancho, alto, filtro) => {
-      const v = [], idx = [];
-      for (let j = 0; j < NP; j++) { const l = lado(j), q = P[j], sx = l[0] * ancho, sz = l[1] * ancho; v.push(q.x + sx, h(q.x + sx, q.z + sz) + alto, q.z + sz, q.x - sx, h(q.x - sx, q.z - sz) + alto, q.z - sz); }
-      for (let j = 0; j < NP - 1; j++) if (!filtro || filtro(j)) { const q = j * 2; idx.push(q, q + 2, q + 1, q + 1, q + 2, q + 3); }
-      const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(v, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
-    };
-    const gHecho = cinta(0.2, 0.05);
-    const hecho = new T.Mesh(gHecho, mat(0xE4532F, { roughness: 0.5, emissive: 0xE4532F, emissiveIntensity: 0.1, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
-    hecho.receiveShadow = true; e.add(hecho);
-    e.add(new T.Mesh(cinta(0.085, 0.035, j => Math.floor(j / 6) % 2 === 0), mat(0xFFFFFF, { roughness: 0.8, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })));
-    const enCamino = u => { const f = limitar(u * (NP - 1), 0, NP - 1.001), j = Math.floor(f), k = f - j, x = lerp(P[j].x, P[j + 1].x, k), z = lerp(P[j].z, P[j + 1].z, k); return { x, z, y: h(x, z), j }; };
-    Object.assign(camino, { h, P, NP, lado, enCamino, gHecho, LC, LR });
-    // Los meses, al borde del sendero (el día 1 de cada uno)
-    const yRef = 2026, dAnio = (new Date(yRef + 1, 0, 1) - new Date(yRef, 0, 1));
-    MESES_K.forEach((m, k) => {
-      const u = (new Date(yRef, k, 1) - new Date(yRef, 0, 1)) / dAnio, q = enCamino(Math.max(0.004, u)), l = lado(q.j), s = k % 2 ? 1 : -1;
-      const x = q.x - l[0] * 0.75 * s, z = q.z - l[1] * 0.75 * s;
-      const [c, g] = lienzo(128, 48); g.fillStyle = "rgba(255,255,255,.92)"; rr(g, 4, 4, 120, 40, 18); g.fill(); g.fillStyle = "#2E3D6B"; g.font = "800 26px " + UI; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(m, 64, 25);
-      const sp = new T.Sprite(new T.SpriteMaterial({ map: tex(c), transparent: true, depthWrite: false })); sp.position.set(x, h(x, z) + 0.5, z); sp.scale.set(1.15, 0.43, 1); e.add(sp);
-    });
-    // «Estás aquí»
-    const punta = new T.Group(); e.add(punta);
-    punta.add(malla(new T.CylinderGeometry(0.32, 0.32, 0.07, 32), mat(0xFFFFFF, { roughness: 0.4 }), 0, 0.07, 0));
-    punta.add(malla(new T.CylinderGeometry(0.21, 0.21, 0.09, 32), mat(0xE4532F, { roughness: 0.4, emissive: 0xE4532F, emissiveIntensity: 0.4 }), 0, 0.09, 0));
-    const pulso = new T.Mesh(new T.RingGeometry(0.3, 0.38, 48), new T.MeshBasicMaterial({ color: 0xE4532F, transparent: true, opacity: 0.6, depthWrite: false, side: T.DoubleSide }));
-    pulso.rotation.x = -Math.PI / 2; pulso.position.y = 0.06; punta.add(pulso);
-    Object.assign(camino, { punta, pulso });
-    // La cumbre: el 31 de diciembre
-    const fin = enCamino(1), lf = lado(NP - 2), cx = fin.x + lf[0] * 0.5, cz = fin.z + lf[1] * 0.5;
-    const cumbre = new T.Group(); cumbre.position.set(cx, h(cx, cz), cz); cumbre.scale.setScalar(2); e.add(cumbre);
-    const mont = malla(new T.SphereGeometry(0.24, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xC9B79C, { roughness: 0.9 })); mont.scale.y = 0.5; cumbre.add(mont);
-    cumbre.add(malla(new T.CylinderGeometry(0.014, 0.014, 0.95, 6), mat(0x3E64D8, { roughness: 0.45 }), 0, 0.47, 0));
-    const gB = new T.BufferGeometry(); gB.setAttribute("position", new T.Float32BufferAttribute([0, 0.93, 0, 0, 0.66, 0, 0.36, 0.795, 0], 3)); gB.computeVertexNormals();
-    cumbre.add(malla(gB, mat(0xE4532F, { roughness: 0.5, side: T.DoubleSide })));
-    // Árboles, lejos del sendero y de la laguna
-    const MAX = 80, copas = new T.InstancedMesh(new T.SphereGeometry(1, 10, 8), mat(0xFFFFFF, { roughness: 0.9 }), MAX), troncos = new T.InstancedMesh(new T.CylinderGeometry(0.03, 0.04, 0.26, 5), mat(0x6B5E52), MAX);
-    copas.castShadow = troncos.castShadow = true; copas.receiveShadow = true;
-    const M4 = new T.Matrix4(), Q = new T.Quaternion(), V = new T.Vector3(), S = new T.Vector3(), col = new T.Color(); let nA = 0;
-    for (let t = 0; t < 900 && nA < MAX; t++) {
-      const x = (rnd() - 0.5) * (AN - 1.2), z = (rnd() - 0.5) * (FO - 1.2), y = h(x, z);
-      let ok = y < 2.5 && Math.hypot(x - LC[0], z - LC[1]) > LR + 0.4 && Math.hypot(x - cx, z - cz) > 1.2;
-      for (let j = 0; ok && j < NP; j += 3) if (Math.hypot(P[j].x - x, P[j].z - z) < 1.15) ok = false;
-      if (!ok) continue;
-      const r2 = 0.2 + rnd() * 0.16;
-      M4.compose(V.set(x, y + 0.24 + r2 * 0.8, z), Q, S.set(r2, r2 * 1.15, r2)); copas.setMatrixAt(nA, M4);
-      col.set([0x3E9A4E, 0x5DB65A, 0x2E8045, 0x79C35A, 0x4FA85A, 0xF2A23A, 0xE8642E, 0xF5C542][Math.floor(rnd() * 8)]).convertSRGBToLinear(); copas.setColorAt(nA, col);
-      M4.compose(V.set(x, y + 0.12, z), Q, S.set(1, 1, 1)); troncos.setMatrixAt(nA, M4); nA++;
-    }
-    copas.count = troncos.count = nA; e.add(copas); e.add(troncos);
-    camino.grupo = new T.Group(); e.add(camino.grupo);
-    return camino;
-  }
-  /* Los hitos: uno por familia (faro, bandera, portal, farol, piedras, casita; las secretas, un monolito) */
-  const GK = {};
-  function hitoCamino(f, m, k) {
-    if (!GK.torre) Object.assign(GK, {
-      torre: new T.CylinderGeometry(0.085, 0.13, 0.62, 14), banda: new T.CylinderGeometry(0.106, 0.112, 0.1, 14), galeria: new T.CylinderGeometry(0.125, 0.125, 0.04, 14),
-      linterna: new T.CylinderGeometry(0.07, 0.07, 0.11, 12), techo: new T.ConeGeometry(0.1, 0.13, 14), mont: new T.SphereGeometry(0.24, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-      mastil: new T.CylinderGeometry(0.014, 0.014, 0.95, 6), poste: new T.BoxGeometry(0.07, 0.5, 0.07), dintel: new T.BoxGeometry(0.5, 0.08, 0.11),
-      farol: new T.CylinderGeometry(0.018, 0.024, 0.62, 6), brazo: new T.BoxGeometry(0.16, 0.018, 0.018), vidrio: new T.CylinderGeometry(0.05, 0.04, 0.1, 8), tapa: new T.ConeGeometry(0.07, 0.07, 8),
-      roca: new T.SphereGeometry(1, 10, 8), casa: new T.BoxGeometry(0.34, 0.26, 0.3), puerta: new T.BoxGeometry(0.08, 0.13, 0.01), mono: new T.BoxGeometry(0.16, 0.62, 0.09),
-      techoC: (() => { const g = new T.CylinderGeometry(0.22, 0.22, 0.38, 3); g.rotateY(Math.PI / 2); g.rotateZ(Math.PI / 2); return g; })(),
-      bandera: (() => { const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute([0, 0.93, 0, 0, 0.66, 0, 0.36, 0.795, 0], 3)); g.computeVertexNormals(); return g; })(),
-      blanco: mat(0xFBFAF7, { roughness: 0.6 }), piedra: mat(0xC9B79C, { roughness: 0.9 }), coral: mat(0xE4532F, { roughness: 0.5 }), luz: new T.MeshBasicMaterial({ color: 0xFFD27A }),
-      violeta: mat(0x8B6CF0, { roughness: 0.5 }), azul: mat(0x3E64D8, { roughness: 0.45 }), teal: mat(0x1F8A8A, { roughness: 0.45 }),
-      pastel: [0xFFD6A5, 0xBDE0FE, 0xCDEAC0, 0xFFC8DD].map(c => mat(c, { roughness: 0.6 })),
-    });
-    const g = new T.Group(), M = matMetal(m), add = (geo, mm, x, y, z) => { const me = malla(geo, mm, x, y, z); me.castShadow = true; g.add(me); return me; };
-    if (f === "rachas") { add(GK.torre, GK.blanco, 0, 0.31, 0); add(GK.banda, GK.coral, 0, 0.36, 0); add(GK.galeria, M, 0, 0.63, 0); add(GK.linterna, GK.luz, 0, 0.7, 0); add(GK.techo, M, 0, 0.82, 0); }
-    else if (f === "hitos") { add(GK.mont, GK.piedra).scale.y = 0.5; add(GK.mastil, GK.azul, 0, 0.47, 0); add(GK.bandera, GK["flag" + m] || (GK["flag" + m] = mat(METAL[m].c, { metalness: 1, roughness: 0.3, side: T.DoubleSide }))); }
-    else if (f === "foco") { add(GK.poste, GK.violeta, -0.18, 0.25, 0); add(GK.poste, GK.violeta, 0.18, 0.25, 0); add(GK.dintel, M, 0, 0.53, 0); }
-    else if (f === "rituales") { add(GK.farol, GK.teal, 0, 0.31, 0); add(GK.brazo, GK.teal, 0.07, 0.6, 0); add(GK.vidrio, GK.luz, 0.14, 0.52, 0); add(GK.tapa, M, 0.14, 0.6, 0); }
-    else if (f === "habitos") [[0.2, 0.09, 0.17, 0.08, GK.piedra], [0.16, 0.075, 0.14, 0.23, GK.piedra], [0.12, 0.06, 0.1, 0.35, GK.piedra], [0.085, 0.05, 0.075, 0.45, M]].forEach((s, i) => { const p = add(GK.roca, s[4], 0, s[3], 0); p.scale.set(s[0], s[1], s[2]); p.rotation.y = i * 1.3; });
-    else if (f === "vida") { add(GK.casa, GK.pastel[k % 4], 0, 0.13, 0); add(GK.techoC, M, 0, 0.37, 0); add(GK.puerta, GK.coral, 0, 0.065, 0.152); }
-    else add(GK.mono, M, 0, 0.3, 0).rotation.z = 0.08;
-    return g;
-  }
-  function ponerCamino(datos) {
-    const K = camino, clave = datos.y + ":" + datos.medallas.map(m => m.id).join(",");
-    // «Estás aquí» y lo recorrido
-    const u = limitar(datos.hoy, 0, 1), q = K.enCamino(u);
-    K.punta.position.set(q.x, q.y + 0.02, q.z); K.gHecho.setDrawRange(0, Math.floor(u * (K.NP - 1)) * 6); K.punta.visible = u > 0 && u < 1;
-    if (K.clave === clave) return;
-    K.clave = clave;
-    while (K.grupo.children.length) K.grupo.remove(K.grupo.children[0]);   // geometrías y materiales son compartidos
-    K.hitos = [];
-    let uPrev = -1, lado = 1;
-    datos.medallas.forEach((m, k) => {
-      const I = D.info(m.id); if (!I) return;
-      let um = m.u; if (um - uPrev < 0.014) um = uPrev + 0.014;   // el mismo día o casi: uno tras otro
-      uPrev = um; lado = -lado;
-      const p = K.enCamino(Math.min(0.995, um)), l = K.lado(p.j);
-      let x = p.x + l[0] * 0.62 * lado, z = p.z + l[1] * 0.62 * lado;
-      if (Math.hypot(x - K.LC[0], z - K.LC[1]) < K.LR + 0.4) { x = p.x - l[0] * 0.62 * lado; z = p.z - l[1] * 0.62 * lado; }
-      const g = hitoCamino(I.fam, I.metal, k); g.position.set(x, K.h(x, z) - 0.02, z); g.rotation.y = (k * 2.399) % 6.283; g.scale.setScalar(1.6); K.grupo.add(g);
-      K.hitos.push({ id: m.id, ts: m.ts, g, pos: new T.Vector3(x, K.h(x, z) + 0.8, z) });
-    });
-  }
-  function camaraCamino() {
-    const [w, h] = areaLibre(), asp = w / h, rel = CAMINO_V.aspecto / asp, t = CAMINO_V.target;
-    // en vertical se aleja hasta que la isla quepa a lo ancho (a pantalla completa, un poco menos: se recorre arrastrando)
-    const d = CAMINO_V.dist * Math.max(1, Math.pow(rel, camino.libre ? 0.66 : 1)) * ZOOM.camino;
-    const yaw = CAMINO_V.yaw + camino.u.yaw, pitch = CAMINO_V.pitch + camino.u.pitch;
-    camK.aspect = asp; camK.fov = 34;
-    camK.position.set(t.x + d * Math.sin(yaw) * Math.cos(pitch), t.y + d * Math.sin(pitch), t.z + d * Math.cos(yaw) * Math.cos(pitch));
-    camK.lookAt(t); corrimiento(camK, w, h); camK.updateProjectionMatrix(); camK.updateMatrixWorld();
-  }
-  const PK = new T.Vector3();
-  function enPantallaK(v) { PK.copy(v).project(camK); return PK.z < 1 && PK.z > -1 ? [(PK.x + 1) / 2 * ancho, (1 - PK.y) / 2 * alto] : null; }
-  function hitoEn(x, y) {
-    let mejor = null, dmin = TACTIL ? 32 : 24;
-    camino.hitos.forEach(H => { const p = enPantallaK(H.pos); if (!p) return; const d = Math.hypot(p[0] - x, p[1] - y); if (d < dmin) { dmin = d; mejor = H; } });
-    return mejor;
-  }
-  let hoverH = null;
-  function hoverCamino(H) {
-    if (H === hoverH) return;
-    hoverH = H; canvas.style.cursor = H ? "pointer" : "";
-    const el = document.getElementById("caminoEtq"); if (!el) return;
-    if (!H) { el.hidden = true; return; }
-    const I = D.info(H.id), p = enPantallaK(H.pos); if (!I || !p) { el.hidden = true; return; }
-    const d = new Date(H.ts);
-    el.innerHTML = "<b></b><span></span>"; el.querySelector("b").textContent = I.b.nombre;
-    el.querySelector("span").textContent = `${d.getDate()} de ${["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"][d.getMonth()]}`;
-    el.style.left = p[0] + "px"; el.style.top = p[1] + "px"; el.hidden = false;
-  }
-  /* Una foto del camino para compartir (sin moverlo de su lugar en la pantalla) */
-  function fotoCamino(w, hh) {
-    armarCamino(); ponerCamino(D.camino());
-    const pr = r.getPixelRatio(), a0 = ancho, h0 = alto, u0 = { ...camino.u }, e0 = { ...ENC }, z0 = ZOOM.camino;
-    camino.u.yaw = camino.u.pitch = 0; Object.assign(ENC, { arriba: 0, abajo: 0, der: 0 }); ZOOM.camino = 1;   // la foto, siempre de frente y entera
-    r.setPixelRatio(1); r.setSize(w, hh, false); ancho = w; alto = hh; camaraCamino();
-    r.toneMappingExposure = 0.92; r.render(camino.escena, camK);
-    let url = null; try { url = canvas.toDataURL("image/jpeg", 0.9); } catch (e) { url = null; }
-    Object.assign(camino.u, u0); Object.assign(ENC, e0); ZOOM.camino = z0; r.setPixelRatio(pr); ancho = a0; alto = h0; r.setSize(a0, h0, false); pedir();
-    return url;
-  }
-
   /* Al subir la medalla, la cámara pasa de mirarla a ella a mirar su constelación entera */
   const P1 = new T.Vector3(), M1 = new T.Vector3();
   function mirarFigura(v) {
@@ -1515,9 +1302,9 @@ function crearMotorCielo(T, D) {
     raf = 0;
     if (!modo || !caja || !document.body.contains(canvas)) return;
     if (LENTO && ultimo && now - ultimo < 66) { raf = requestAnimationFrame(cuadro); return; }   // por software: unos 15 cuadros por segundo
-    if ((modo === "casa" || modo === "camino") && ultimo && now - ultimo < 32) { raf = requestAnimationFrame(cuadro); return; }   // se mueven poco: 30 cuadros bastan
+    if (modo === "casa" && ultimo && now - ultimo < 32) { raf = requestAnimationFrame(cuadro); return; }   // se mueve poco: 30 cuadros bastan
     const dt = Math.min(LENTO ? 0.1 : 0.05, ultimo ? (now - ultimo) / 1000 : 0.016); ultimo = now;
-    const ocupado = !A.vacio() || arrastre || vistaMoviendo() || (modo === "casa" && casa && ((casa.ele && casa.ele.ocupado()) || vistaCasaMoviendo())) || (modo === "cielo" && etqNueva) || (modo === "cerca" && hero && !hero.A.vacio()) || Math.abs(giro.vel) > 1e-4 || (modo === "cerca" && Math.abs(giro.obj - giro.rot) > 1e-3);
+    const ocupado = !A.vacio() || arrastre || vistaMoviendo() || (modo === "casa" && casa && ((casa.ele && casa.ele.ocupado()) || vistaCasaMoviendo())) || (modo === "cielo" && (etqNueva || Math.abs(cielo.uObj.yaw - cielo.u.yaw) > 1e-3 || Math.abs(cielo.uObj.pitch - cielo.u.pitch) > 1e-3)) || (modo === "cerca" && hero && !hero.A.vacio()) || Math.abs(giro.vel) > 1e-4 || (modo === "cerca" && Math.abs(giro.obj - giro.rot) > 1e-3);
     if (!visible && modo !== "cerca") return;   // quedó fuera de la vista: vuelve al reaparecer
     if (CALMO && !ocupado && !sucio) return;   // sin movimiento: se dibuja solo cuando algo cambia (pedir)
     raf = requestAnimationFrame(cuadro);
@@ -1528,7 +1315,7 @@ function crearMotorCielo(T, D) {
       uE.uT.value = CALMO ? 0 : reloj; uE.uPR.value = r.getPixelRatio();
       elefante.vivo(reloj * 0.6);
       // En pantallas chicas las medallas crecen un poco para que se vean y se puedan tocar
-      const esc = limitar(Math.tan(cam.fov * Math.PI / 360) / Math.tan(28 * Math.PI / 180) * 500 / alto, 1, 1.6);
+      const esc = limitar(Math.tan(cam.fov * Math.PI / 360) / Math.tan(28 * Math.PI / 180) * 500 / alto, 1, 1.3);
       Object.values(cielo.nodos).forEach(E => {
         const pop = E.pop || 1;
         if (E.on) { E.sp.material.opacity = CALMO ? 0.92 : 0.82 + 0.18 * Math.sin(reloj * 1.7 + E.fase); E.sp.scale.setScalar(E.tam * pop * esc); }
@@ -1558,7 +1345,7 @@ function crearMotorCielo(T, D) {
       if (!CALMO) avanzarRutina(dt);
       if (casa.ele) casa.ele.vivo(reloj);
       // las medallas de la repisa se mecen apenas, para que el metal brille; la planta respira
-      casa.lugares.forEach(L => { L.g.rotation.y = 0.55 + (CALMO ? 0 : Math.sin(reloj * 0.6 + L.fase) * 0.22); });
+      casa.lugares.forEach(L => { L.g.rotation.y = 0.75 + (CALMO ? 0 : Math.sin(reloj * 0.6 + L.fase) * 0.12); });
       const p = casa.cosas.planta; if (p.visible) p.userData.hojas.rotation.y = CALMO ? 0 : Math.sin(reloj * 0.4) * 0.05;
       const c = casa.cosas.copa; if (c.visible) c.userData.focos.forEach((f, i) => { f.material.color.setHSL([0.11, 0.05, 0.13][i % 3], 1, CALMO ? 0.72 : 0.62 + 0.16 * Math.sin(reloj * 2 + i)); });
       // lo de la Tienda: los peces nadan, el disco y el globo giran, el gato mueve la cola
@@ -1568,22 +1355,16 @@ function crearMotorCielo(T, D) {
       if (K.globo.visible) K.globo.userData.tierra.rotation.y = 0.8 + t * 0.25;
       if (K.gato.visible) { K.gato.userData.cola.rotation.y = -0.94 + Math.sin(t * 1.4) * 0.12; flotar(K.gato.userData.burbujas, t); }
       r.toneMappingExposure = LUZ_FRANJA[casa.franja].exp; r.render(casa.escena, camC);
-    } else if (modo === "camino" && camino) {
-      const k = Math.min(1, dt * 8); camino.u.yaw += (camino.uObj.yaw - camino.u.yaw) * k; camino.u.pitch += (camino.uObj.pitch - camino.u.pitch) * k;
-      camaraCamino();
-      if (!CALMO) { const f = (reloj * 0.9) % 1; camino.pulso.scale.setScalar(1 + f * 1.8); camino.pulso.material.opacity = 0.6 * (1 - f); }
-      if (hoverH) { const p = enPantallaK(hoverH.pos), el = document.getElementById("caminoEtq"); if (p && el) { el.style.left = p[0] + "px"; el.style.top = p[1] + "px"; } }
-      r.toneMappingExposure = 0.92; r.render(camino.escena, camK);
     }
   }
 
   /* -------- Dedo y mouse -------- */
   /* ¿El lugar está a pantalla completa? (ahí se gira más, se acerca y se pellizca) */
-  function libre() { return (modo === "casa" && casa && casa.libre) || (modo === "cielo" && cielo.libre) || (modo === "camino" && camino && camino.libre); }
-  function zoomObj() { return modo === "casa" ? VCo.zoom : modo === "cielo" || modo === "camino" ? ZOOMo[modo] : 1; }
+  function libre() { return (modo === "casa" && casa && casa.libre) || (modo === "cielo" && cielo.libre); }
+  function zoomObj() { return modo === "casa" ? VCo.zoom : modo === "cielo" ? ZOOMo.cielo : 1; }
   function ponerZoom(z) {
     if (modo === "casa") VCo.zoom = limitar(z, VC_LIM.zoom[0], VC_LIM.zoom[1]);
-    else if (modo === "cielo" || modo === "camino") ZOOMo[modo] = limitar(z, ZOOM_LIM[modo][0], ZOOM_LIM[modo][1]);
+    else if (modo === "cielo") ZOOMo.cielo = limitar(z, ZOOM_LIM.cielo[0], ZOOM_LIM.cielo[1]);
     pedir();
   }
   const dedos = new Map();   // para pellizcar (dos dedos) a pantalla completa
@@ -1606,7 +1387,7 @@ function crearMotorCielo(T, D) {
       }
     }
     if (!arrastre || arrastre.id !== ev.pointerId) {
-      if (ev.pointerType === "mouse") { if (modo === "cielo") { const E = nodoEn(x, y); hover(E); if (!E) canvas.style.cursor = cielo.libre ? "grab" : D.entrar ? "zoom-in" : ""; } else if (modo === "casa" && casa) { const L = lugarEn(x, y); hoverCasa(L); if (!L) canvas.style.cursor = eleEn(x, y) ? "pointer" : casa.libre ? "grab" : D.entrar ? "zoom-in" : ""; } else if (modo === "camino" && camino) { const H = hitoEn(x, y); hoverCamino(H); if (!H) canvas.style.cursor = camino.libre ? "grab" : D.entrar ? "zoom-in" : ""; } }
+      if (ev.pointerType === "mouse") { if (modo === "cielo") { const E = nodoEn(x, y); hover(E); if (!E) canvas.style.cursor = cielo.libre ? "grab" : D.entrar ? "zoom-in" : ""; } else if (modo === "casa" && casa) { const L = lugarEn(x, y); hoverCasa(L); if (!L) canvas.style.cursor = eleEn(x, y) ? "pointer" : casa.libre ? "grab" : D.entrar ? "zoom-in" : ""; } }
       return;
     }
     if (modo === "casa") {
@@ -1616,13 +1397,9 @@ function crearMotorCielo(T, D) {
       return;
     }
     const dx = ev.clientX - arrastre.x, dy = ev.clientY - arrastre.y; arrastre.x = ev.clientX; arrastre.y = ev.clientY;
-    if (!arrastre.movido && Math.hypot(ev.clientX - arrastre.x0, ev.clientY - arrastre.y0) > 6) { arrastre.movido = true; hover(null); if (camino) hoverCamino(null); }
+    if (!arrastre.movido && Math.hypot(ev.clientX - arrastre.x0, ev.clientY - arrastre.y0) > 6) { arrastre.movido = true; hover(null); }
     if (!arrastre.movido) return;
-    if (modo === "camino") {
-      const L = CAMINO_V.lim;
-      camino.uObj.yaw = limitar(camino.uObj.yaw - dx * 0.005, L.yaw[0], L.yaw[1]);
-      if (arrastre.tipo !== "touch" || camino.libre) camino.uObj.pitch = limitar(camino.uObj.pitch + dy * 0.004, L.pitch[0], L.pitch[1]);
-    } else if (modo === "cielo") {
+    if (modo === "cielo") {
       const k = (cam.fov * Math.PI / 180) / alto;
       cielo.uObj.yaw = limitar(cielo.uObj.yaw + dx * k, VISTA.lim.yaw[0], VISTA.lim.yaw[1]);
       if (arrastre.tipo !== "touch" || cielo.libre) cielo.uObj.pitch = limitar(cielo.uObj.pitch + dy * k, VISTA.lim.pitch[0], VISTA.lim.pitch[1]);
@@ -1645,14 +1422,13 @@ function crearMotorCielo(T, D) {
       else if (!casa.libre && D.entrar) D.entrar("casa");   // en la tarjeta: tocar el cuarto lo abre a pantalla completa
       return;
     }
-    if (modo === "camino" && camino) { const H = hitoEn(x, y); if (H) { hoverCamino(null); D.tocar(H.id); } else if (!camino.libre && D.entrar) D.entrar("camino"); return; }
     if (modo !== "cielo") return;
     const E = nodoEn(x, y);
     if (E) { hover(null); D.tocar(E.id); } else if (!cielo.libre && D.entrar) D.entrar("cielo");
   };
   canvas.addEventListener("pointerup", ev => soltarDedo(ev, false));
   canvas.addEventListener("pointercancel", ev => soltarDedo(ev, true));
-  canvas.addEventListener("pointerleave", ev => { if (ev.pointerType === "mouse" && !arrastre) { hover(null); if (casa) hoverCasa(null); if (camino) hoverCamino(null); } });
+  canvas.addEventListener("pointerleave", ev => { if (ev.pointerType === "mouse" && !arrastre) { hover(null); if (casa) hoverCasa(null); } });
   canvas.addEventListener("wheel", ev => {
     if (libre()) { ev.preventDefault(); ponerZoom(zoomObj() * (1 + ev.deltaY * 0.0012)); return; }
     if (modo !== "cerca") return; ev.preventDefault(); giro.zoom = limitar(giro.zoom * (1 + ev.deltaY * 0.0012), 0.6, 1.5); pedir();
@@ -1661,7 +1437,6 @@ function crearMotorCielo(T, D) {
     if (!libre()) return;
     if (modo === "casa") { VCo.yaw = CASA_V.yaw; VCo.zoom = 1; }
     else if (modo === "cielo") { cielo.uObj.yaw = cielo.uObj.pitch = 0; ZOOMo.cielo = 1; }
-    else if (modo === "camino") { camino.uObj.yaw = camino.uObj.pitch = 0; ZOOMo.camino = 1; }
     pedir();
   });
   canvas.addEventListener("webglcontextlost", ev => { ev.preventDefault(); detener(); modo = null; D.perdido(); });
@@ -1671,11 +1446,6 @@ function crearMotorCielo(T, D) {
     montar(c, lugar, op) {
       const lib = !!(op && op.libre);
       if (!lib) { Object.assign(ENC, { arriba: 0, abajo: 0, der: 0 }); Object.assign(ENCo, ENC); }
-      if (lugar === "camino") {
-        armarCamino();
-        if (camino.libre !== lib) { camino.libre = lib; camino.uObj.yaw = camino.uObj.pitch = 0; ZOOM.camino = ZOOMo.camino = 1; }
-        modo = "camino"; canvas.style.touchAction = lib ? "none" : "pan-y"; ponerCamino(D.camino()); colgar(c); arrancar(); return;
-      }
       if (lugar === "casa") {
         const libre = !!(op && op.libre); armarCasa();
         if (casa.libre !== libre) { casa.libre = libre; Object.assign(VC, { yaw: CASA_V.yaw, zoom: 1 }); Object.assign(VCo, { yaw: CASA_V.yaw, zoom: 1 }); }
@@ -1684,7 +1454,6 @@ function crearMotorCielo(T, D) {
       if (cielo.libre !== lib) { cielo.libre = lib; cielo.uObj.yaw = cielo.uObj.pitch = 0; ZOOM.cielo = ZOOMo.cielo = 1; }
       modo = "cielo"; canvas.style.touchAction = lib ? "none" : "pan-y"; colgar(c); actualizar(); arrancar();
     },
-    foto: fotoCamino,
     fotoCuarto,
     /* Lo que tapan la barra de arriba y la hoja de abajo (px): el cuarto se encuadra en lo que queda; ya: sin animar */
     encuadre(e, ya) { ENCo.arriba = Math.max(0, e.arriba || 0); ENCo.abajo = Math.max(0, e.abajo || 0); ENCo.der = Math.max(0, e.der || 0); if (ya) Object.assign(ENC, ENCo); pedir(); },
@@ -1694,11 +1463,39 @@ function crearMotorCielo(T, D) {
       cielo.uObj.yaw = limitar(F.yc - VISTA.yaw, VISTA.lim.yaw[0], VISTA.lim.yaw[1]); cielo.uObj.pitch = limitar(F.pc - VISTA.pitch - 0.05, VISTA.lim.pitch[0], VISTA.lim.pitch[1]); pedir();
     },
     /* Cómo está la vista del lugar montado (para las pruebas) */
-    vista() { return { modo, libre: libre(), enc: { ...ENC }, zoom: modo === "casa" ? VC.zoom : ZOOM[modo] || 1, u: modo === "cielo" ? { ...cielo.uObj } : modo === "camino" && camino ? { ...camino.uObj } : null }; },
+    vista() { return { modo, libre: libre(), enc: { ...ENC }, zoom: modo === "casa" ? VC.zoom : ZOOM[modo] || 1, u: modo === "cielo" ? { ...cielo.uObj } : null }; },
     /* Dónde está tu elefante en el lienzo (para las pruebas) */
     dondeElefante() { if (modo !== "casa" || !casa || !casa.ele) return null; camaraCasa(); const v = new T.Vector3(); casa.ele.g.getWorldPosition(v); v.y += 0.9; return enPantallaC(v); },
-    /* Dónde está un hito del camino en el lienzo (para las pruebas) */
-    dondeHito(id) { if (modo !== "camino" || !camino) return null; const H = camino.hitos.find(x => x.id === id); if (!H) return null; camaraCamino(); return enPantallaK(H.pos); },
+    /* Lo que ocupa en el lienzo cada medalla y cada rótulo del cielo (para las pruebas: que no se tapen) */
+    cajasCielo() {
+      if (modo !== "cielo") return [];
+      ponerCamara(reloj);
+      const out = [], v = new T.Vector3(), k = areaLibre()[1] / (2 * Math.tan(cam.fov * Math.PI / 360));   // px por unidad, en lo que no tapan la barra y la hoja
+      const caja = (o, f, tipo, w, h) => {
+        v.copy(o.position).project(cam); if (v.z > 1 || v.z < -1) return;
+        const d = o.position.distanceTo(cam.position), x = (v.x + 1) / 2 * ancho, y = (1 - v.y) / 2 * alto, hw = w * k / d / 2, hh = h * k / d / 2;
+        out.push({ f, tipo, x0: x - hw, x1: x + hw, y0: y - hh, y1: y + hh });
+      };
+      Object.values(cielo.nodos).forEach(E => { if (E.nodo.visible) caja(E.nodo, E.I.fam, "medalla", E.nodo.scale.x * 0.78, E.nodo.scale.y * 0.78); });
+      Object.keys(cielo.rotulos).forEach(f => { const sp = cielo.rotulos[f]; caja(sp, f, "rotulo", sp.scale.x * 0.82, sp.scale.y * 0.62); });
+      if (elefante) {   // la silueta del elefante sobre la loma
+        const b = new T.Box3().setFromObject(elefante.g), q = [];
+        [b.min.x, b.max.x].forEach(x => [b.min.y, b.max.y].forEach(y => [b.min.z, b.max.z].forEach(z => { v.set(x, y, z).project(cam); q.push([(v.x + 1) / 2 * ancho, (1 - v.y) / 2 * alto]); })));
+        out.push({ f: "loma", tipo: "silueta", x0: Math.min(...q.map(a => a[0])), x1: Math.max(...q.map(a => a[0])), y0: Math.min(...q.map(a => a[1])), y1: Math.max(...q.map(a => a[1])) });
+      }
+      return out;
+    },
+    /* Lo que ocupa en el lienzo cada medalla de la repisa (para las pruebas: que no se tapen) */
+    cajasRepisa() {
+      if (modo !== "casa" || !casa) return [];
+      camaraCasa();
+      const v = new T.Vector3();
+      return casa.lugares.filter(L => L.id).map(L => {
+        const b = new T.Box3().setFromObject(L.g), q = [];
+        [b.min.x, b.max.x].forEach(x => [b.min.y, b.max.y].forEach(y => [b.min.z, b.max.z].forEach(z => { v.set(x, y, z).project(camC); q.push([(v.x + 1) / 2 * ancho, (1 - v.y) / 2 * alto]); })));
+        return { i: L.i, x0: Math.min(...q.map(a => a[0])), x1: Math.max(...q.map(a => a[0])), y0: Math.min(...q.map(a => a[1])), y1: Math.max(...q.map(a => a[1])) };
+      });
+    },
     /* Qué está haciendo tu elefante y dónde (para las pruebas) */
     rutina() { return rut && casa && casa.ele ? { act: rut.act, fase: rut.fase, x: rut.x, z: rut.z, rot: rut.rot, pose: casa.ele.pose() } : null; },
     /* Adelanta su rutina unos segundos, empezando (si se pide) por una actividad (para las pruebas) */
@@ -1713,7 +1510,7 @@ function crearMotorCielo(T, D) {
     /* Qué cosas se ven en el cuarto y de qué color está la pared (para las pruebas) */
     cuarto() { return casa ? { cosas: Object.keys(casa.cosas).filter(k => casa.cosas[k].visible), pared: casa.muro.clave, lampara: casa.luz.lampara.intensity, elefante: casa.claves.ele ? JSON.parse(casa.claves.ele) : null, reaccion: !!(casa.ele && casa.ele.ocupado()), libre: !!casa.libre, vista: { ...VC, ...ENC } } : null; },
     soltar() {
-      modo = null; hover(null); if (casa) hoverCasa(null); if (camino) hoverCamino(null); detener();
+      modo = null; hover(null); if (casa) hoverCasa(null); detener();
       // lo que quedaba por animar (una estrella fugaz a medio camino) se termina de golpe
       A.l.length = 0; etqNueva = null; fugaz.activa = fugaz.cabeza.visible = fugaz.estela.visible = false;
       Object.values(cielo.nodos).forEach(E => { E.pop = 1; });

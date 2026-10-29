@@ -288,7 +288,7 @@ function semAperturaPaso(w) {
   return `<div class="field"><label>🏆 Tu premio de la semana</label>
       <input class="input" id="sw-premio" value="${escapeAttr(d.premio)}" placeholder="¿Con qué te vas a premiar al cumplir tus prioridades?"></div>
     <div class="field"><label>✨ Hábitos en foco (elige hasta 3)</label>
-      ${activos.length ? activos.map(h => `<label class="mes-hab" style="cursor:pointer"><span class="mes-hab__n">${h.icon} ${escapeHtml(h.nombre)} <span class="text-xs muted">· ${hmFreqLabel(h)}</span></span>
+      ${activos.length ? activos.map(h => `<label class="mes-hab" style="cursor:pointer"><span class="mes-hab__n">${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)} <span class="text-xs muted">· ${hmFreqLabel(h)}</span></span>
         <input type="checkbox" class="sw-hab" value="${h.id}" ${d.habitosFoco.includes(h.id) ? "checked" : ""} onchange="semHabLimite(this)"></label>`).join("")
       : `<div class="empty">No tienes hábitos activos.</div>`}
       <p class="text-xs muted mt-8">Los verás con su avance de la semana en Ritual → Semana.</p></div>`;
@@ -581,7 +581,7 @@ function renderSemana() {
   const habs = ((a && a.habitosFoco) || []).map(id => STATE.habitos.defs.find(h => h.id === id)).filter(Boolean);
   const habsHtml = habs.length ? habs.map(h => {
     const p = habSemana(h, L), pct = p.meta ? Math.min(100, Math.round((p.hecho / p.meta) * 100)) : 0;
-    return `<div class="pilar-row"><span class="text-sm" style="width:130px">${h.icon} ${escapeHtml(h.nombre)}</span>
+    return `<div class="pilar-row"><span class="text-sm" style="width:130px">${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)}</span>
       <div class="bar"><div class="bar__fill" style="width:${pct}%"></div></div><span class="chip">${p.hecho}/${p.meta}</span></div>`;
   }).join("") : `<div class="empty">Elige hasta 3 hábitos en foco al planificar la semana.</div>`;
 

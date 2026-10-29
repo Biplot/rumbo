@@ -20,8 +20,9 @@ function tiendaItems() {
     estado: estado(funcion("iconos-" + p.id), p.costo || 150), attr: `data-pack="${p.id}"`,
     detalle: () => funcionCard("iconos:" + p.id, { icon: icoHab(p.icon, 24), nombre: "Íconos · " + p.nombre, costo: p.costo || 150, desc: `24 íconos de línea nuevos para tus hábitos:<span class="pack-vista">${p.iconos.slice(0, 12).map(e => icoHab(e, 20)).join("")}</span>`, donde: "Hábitos → ✎ editar un hábito" }) }));
   THEMES.forEach(t => { const tuyo = themeOwned(t.id);
-    items.push({ key: "tema:" + t.id, cat: "temas", nombre: t.nombre, costo: t.costo, estado: STATE.settings.theme === t.id ? "equipado" : estado(tuyo, t.costo),
-      tema: t, accion: `data-action="tema-preview" data-theme="${t.id}"` }); });
+    // Un automático de la Tienda (Bosque) se activa al tener los dos temas de su par
+    items.push({ key: "tema:" + t.id, cat: "temas", nombre: t.nombre, costo: t.costo, estado: STATE.settings.theme === t.id ? "equipado" : estado(tuyo, t.costo, !!t.par && !tuyo),
+      bloqueoTxt: "Con los dos", tema: t, accion: `data-action="tema-preview" data-theme="${t.id}"` }); });
   [...TITULOS, ...DETALLES].forEach(it => {
     const bloq = it.requiere && !requisitoTitulo(it);
     items.push({ key: "cos:" + it.id, cat: "estilo", icon: it.icon, nombre: it.nombre, costo: it.costo, estado: isEquipped(it) ? "equipado" : estado(isOwned(it.id), it.costo, bloq),
@@ -45,9 +46,10 @@ const TIENDA_CATS = [["utiles", "Útiles"], ["funciones", "Funciones"], ["temas"
 function fichaHtml(it) {
   const precio = it.estado === "equipado" ? (it.enUsoTxt || "En uso") : it.estado === "tuyo" ? (it.cat === "elefante" ? it.precioTxt : it.tuyoTxt || "Es tuyo")
     : it.estado === "bloqueado" ? "🔒 " + (it.bloqueoTxt || "Bloqueado") : (it.precioTxt || it.costo + " ⭐");
-  const icono = it.tema ? (it.tema.auto
-      // Automático: mitad Norte (día) y mitad Norte noche, con la aguja ámbar y el índigo
-      ? `<span class="ficha__ico ficha__ico--tema" style="background:linear-gradient(90deg, #F5F6FA 50%, #0C0F1E 50%)"><i style="background:#F4AE3D"></i><i style="background:#8D9BFF"></i></span>`
+  const par = it.tema && it.tema.par && it.tema.par.map(id => THEMES.find(t => t.id === id));
+  const icono = it.tema ? (par
+      // Automático: mitad el tema de día y mitad el de noche, con el botón del día y el acento de la noche
+      ? `<span class="ficha__ico ficha__ico--tema" style="background:linear-gradient(90deg, ${par[0].bg} 50%, ${par[1].bg} 50%)"><i style="background:${par[0].cta}"></i><i style="background:${par[1].accent}"></i></span>`
       : `<span class="ficha__ico ficha__ico--tema" style="background:${it.tema.bg}"><i style="background:${it.tema.cta}"></i><i style="background:${it.tema.accent}"></i></span>`)
     : it.pared ? `<span class="ficha__ico ficha__ico--pared" style="--p1:${it.pared[0]};--p2:${it.pared[1]}" aria-hidden="true"></span>`
     : `<span class="ficha__ico">${it.iconoHtml || it.icon}</span>`;

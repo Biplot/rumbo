@@ -11,18 +11,30 @@
   <meta name="theme-color" content="#161A2E" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <!-- Sin apple-mobile-web-app-status-bar-style: desde iOS 26.1, con "black-translucent" el iPhone difumina el borde
+       de arriba de la app instalada y la página no puede evitarlo. Sin la etiqueta, la barra de estado es sólida,
+       va sobre la página (no encima) y toma el color de theme-color. -->
   <meta name="apple-mobile-web-app-title" content="Rumbo" />
   <link rel="apple-touch-icon" href="assets/icon-180.png" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="alternate icon" type="image/png" href="assets/icon-192.png" />
   <link rel="manifest" href="manifest.json" />
+  <script>
+    /* Antes de dibujar: el tema y el color de la barra de estado de la última vez (el iPhone lo toma al abrir la app),
+       y el alto real de la pantalla (sin la barra de estado translúcida, 100vh mide de más en el iPhone). */
+    try {
+      const g = JSON.parse(localStorage.getItem("rumbo-tema-inicio") || "null"), i = matchMedia("(prefers-color-scheme: dark)").matches ? 1 : 0;
+      if (g && g.t && g.c) { document.documentElement.dataset.theme = g.t[i]; document.querySelector('meta[name="theme-color"]').content = g.c[i]; }
+    } catch (e) {}
+    const altoApp = () => document.documentElement.style.setProperty("--alto-app", innerHeight + "px");
+    altoApp(); addEventListener("resize", altoApp);
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Las fuentes no frenan el primer dibujo: se ve la letra del sistema y luego la de Rumbo -->
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" /></noscript>
-  <link rel="stylesheet" href="css/styles.css?v=92" />
+  <link rel="stylesheet" href="css/styles.css?v=94" />
   <style>
     /* Pantalla de carga: se dibuja al tiro (antes que el código) y se va al aparecer la app o el acceso */
     .splash { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -167,46 +179,61 @@
 
   <!-- supabase-js 2.117.2 guardada en el repositorio: una versión nueva del CDN ya no puede romper el inicio de sesión -->
   <script src="js/vendor/supabase-2.117.2.js"></script>
-  <script src="js/store.js?v=92"></script>
-  <script src="js/state.js?v=92"></script>
-  <script src="js/anios.js?v=92"></script>
-  <script src="js/agenda.js?v=92"></script>
-  <script src="js/tareas-motor.js?v=92"></script>
-  <script src="js/habitos-motor.js?v=92"></script>
-  <script src="js/modules.js?v=92"></script>
-  <script src="js/modules2.js?v=92"></script>
-  <script src="js/salud.js?v=92"></script>
-  <script src="js/notas.js?v=92"></script>
-  <script src="js/tienda.js?v=92"></script>
-  <script src="js/ritual-mes.js?v=92"></script>
-  <script src="js/ritual-semana.js?v=92"></script>
-  <script src="js/ritual-trimestre.js?v=92"></script>
-  <script src="js/informe-mes.js?v=92"></script>
-  <script src="js/tutorial.js?v=92"></script>
-  <script src="js/gcal.js?v=92"></script>
-  <script src="js/ritual-express.js?v=92"></script>
-  <script src="js/tendencias.js?v=92"></script>
-  <script src="js/recompensas.js?v=92"></script>
+  <script src="js/store.js?v=94"></script>
+  <script src="js/state.js?v=94"></script>
+  <script src="js/anios.js?v=94"></script>
+  <script src="js/agenda.js?v=94"></script>
+  <script src="js/tareas-motor.js?v=94"></script>
+  <script src="js/habitos-motor.js?v=94"></script>
+  <script src="js/modules.js?v=94"></script>
+  <script src="js/modules2.js?v=94"></script>
+  <script src="js/salud.js?v=94"></script>
+  <script src="js/notas.js?v=94"></script>
+  <script src="js/tienda.js?v=94"></script>
+  <script src="js/ritual-mes.js?v=94"></script>
+  <script src="js/ritual-semana.js?v=94"></script>
+  <script src="js/ritual-trimestre.js?v=94"></script>
+  <script src="js/informe-mes.js?v=94"></script>
+  <script src="js/tutorial.js?v=94"></script>
+  <script src="js/gcal.js?v=94"></script>
+  <script src="js/ritual-express.js?v=94"></script>
+  <script src="js/tendencias.js?v=94"></script>
+  <script src="js/recompensas.js?v=94"></script>
   <!-- Tienda: útiles, funciones, cosméticos y logros (después de recompensas.js) -->
-  <script src="js/consumibles.js?v=92"></script>
-  <script src="js/funciones.js?v=92"></script>
-  <script src="js/cosmeticos.js?v=92"></script>
-  <script src="js/logros.js?v=92"></script>
-  <script src="js/cielo.js?v=92"></script>
-  <script src="js/lugar.js?v=92"></script>
-  <script src="js/casa.js?v=92"></script>
-  <script src="js/elefante.js?v=92"></script>
-  <script src="js/consultorio.js?v=92"></script>
-  <script src="js/avatares.js?v=92"></script>
-  <script src="js/vida.js?v=92"></script>
-  <script src="js/notifs.js?v=92"></script>
-  <script src="js/iconos.js?v=92"></script>
-  <script src="js/navegacion.js?v=92"></script>
-  <script src="js/detalles.js?v=92"></script>
-  <script src="js/app.js?v=92"></script>
+  <script src="js/consumibles.js?v=94"></script>
+  <script src="js/funciones.js?v=94"></script>
+  <script src="js/cosmeticos.js?v=94"></script>
+  <script src="js/logros.js?v=94"></script>
+  <script src="js/cielo.js?v=94"></script>
+  <script src="js/lugar.js?v=94"></script>
+  <script src="js/casa.js?v=94"></script>
+  <script src="js/elefante.js?v=94"></script>
+  <script src="js/consultorio.js?v=94"></script>
+  <script src="js/avatares.js?v=94"></script>
+  <script src="js/vida.js?v=94"></script>
+  <script src="js/notifs.js?v=94"></script>
+  <script src="js/iconos.js?v=94"></script>
+  <script src="js/navegacion.js?v=94"></script>
+  <script src="js/detalles.js?v=94"></script>
+  <script src="js/app.js?v=94"></script>
   <script>
+    /* Versión nueva: el service worker nuevo se activa solo y toma la página. Si la app recién se abrió
+       (o volvió del fondo), se recarga al tiro para mostrar lo nuevo; si la estás usando, un aviso ofrece
+       actualizar, para no perder lo que escribes. Al volver a la app se busca si hay una versión nueva. */
     if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+      const habia = !!navigator.serviceWorker.controller;   // en la primera instalación no hay nada que actualizar
+      let visibleDesde = performance.now(), recargando = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (!habia || recargando) return;
+        if (performance.now() - visibleDesde < 10000) { recargando = true; location.reload(); return; }
+        if (typeof toastAccion === "function") toastAccion("Hay una versión nueva de Rumbo", "Actualizar", () => location.reload());
+      });
+      window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").then(reg => {
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState !== "visible") return;
+          visibleDesde = performance.now(); reg.update().catch(() => {});
+        });
+      }).catch(() => {}));
     }
   </script>
 </body>

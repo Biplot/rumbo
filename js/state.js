@@ -273,7 +273,7 @@ function migrate(s) {
   // v92: Grafito y Medianoche se retiran de la Tienda (se parecían a Ruta noche y a Norte noche, que son
   // gratis). Quien los usa pasa a ese gemelo gratis y se le devuelven las ⭐ (retirarTemas).
   if (s.settings) {
-    const TEMAS = ["auto", "norte", "norte-noche", "ruta", "ruta-noche", "bosque-claro", "bosque-oscuro", "atardecer", "oceano", "cuaderno", "terminal", "sakura", "alto-contraste"];
+    const TEMAS = ["auto", "norte", "norte-noche", "ruta-auto", "ruta", "ruta-noche", "bosque-auto", "bosque-claro", "bosque-oscuro", "atardecer", "oceano", "cuaderno", "terminal", "sakura", "alto-contraste"];
     if (s.settings.theme === "bosque") s.settings.theme = "bosque-claro";
     if (["navy", "ruta"].includes(s.settings.theme) && s.settings.temaElegido !== s.settings.theme) s.settings.theme = "auto";
     const RETIRADOS = { navy: "norte-noche", claro: "norte", medianoche: "norte-noche", grafito: "ruta-noche" };

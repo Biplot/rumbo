@@ -56,8 +56,17 @@ module.exports = async ({ b, ok, errs }) => {
   // 5) Animaciones: tocarlo, cerrar el día, crecer y desbloquear
   await p.evaluate(() => { localStorage.removeItem("rumbo-sin-escenas"); closeModal(); });
   await p.goto(URL + "#inicio"); await p.waitForTimeout(400);
+  // el de Inicio reacciona y te lleva a su casa (sin 3D, a Progreso, donde está su cuarto)
+  await p.click(".ele-hero"); await p.waitForTimeout(120);
+  const salta = await p.evaluate(() => document.querySelector(".ele-hero .ele-svg").getAttribute("class"));
+  await p.waitForFunction(() => ["cuarto", "recompensas"].includes(CURRENT), null, { timeout: 10000 }).catch(() => {});
+  ok(salta.includes("re-salta") && await p.evaluate(() => ["cuarto", "recompensas"].includes(CURRENT)), "el elefante de Inicio salta y te lleva a su casa");
+  // en el probador (👕 Vestir), el dibujo salta, saluda y le salen corazones
+  await p.goto(URL + "#recompensas"); await p.waitForTimeout(500);
+  await p.evaluate(() => { ELE_REACCION = 0; openElefante("ropa"); }); await p.waitForTimeout(300);
   const reac = [];
-  for (let k = 0; k < 3; k++) { await p.click(".ele-hero"); await p.waitForTimeout(120); reac.push(await p.evaluate(() => document.querySelector(".ele-hero .ele-svg").getAttribute("class"))); await p.waitForTimeout(1100); }
+  for (let k = 0; k < 3; k++) { await p.click(".vest-escena"); await p.waitForTimeout(120); reac.push(await p.evaluate(() => document.querySelector(".vest-escena .ele-svg").getAttribute("class"))); await p.waitForTimeout(1100); }
+  await p.evaluate(() => closeModal());
   ok(reac[0].includes("re-salta") && reac[1].includes("re-saluda") && reac[2].includes("re-corazones"), "al tocarlo salta, saluda y le salen corazones: " + reac.join(" | "));
   await p.evaluate(() => { STATE.ritual.dias["2026-09-28"] = { hecho: true, mision: "x" }; saveState(); openCierreModal("2026-09-28"); });
   await p.waitForTimeout(300); await p.click('[data-action="cierre-save"]'); await p.waitForTimeout(400);

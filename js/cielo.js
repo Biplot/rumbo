@@ -116,18 +116,18 @@ function cieloCompletas(s = STATE) { return CIELO_FAMILIAS.filter(f => f.fig && 
 function cieloTactil() { return typeof window !== "undefined" && !!(window.matchMedia && matchMedia("(pointer: coarse)").matches); }
 function cieloHtml(g) {
   const orden = cieloOrden(), n = orden.filter(id => g.badges.includes(id)).length, c = cieloCompletas();
-  return `<section class="cielo${CIELO_ESTADO.sin3d ? " is-sin3d" : ""}" id="cielo" data-gesto aria-label="Tu cielo de insignias">
-    <div class="cielo__lienzo" id="cieloLienzo" role="img" aria-label="Tu cielo: ${n} de ${orden.length} medallas encendidas. Abajo está la lista para verlas una por una."></div>
-    <div class="cielo__cab"><div class="cielo__t">Tu cielo</div>
+  return `<section class="cielo${CIELO_ESTADO.sin3d ? " is-sin3d" : ""}" id="cielo" data-gesto aria-label="Tu vitrina de medallas">
+    <div class="cielo__lienzo" id="cieloLienzo" role="img" aria-label="Tu vitrina: ${n} de ${orden.length} medallas encendidas en el cielo. Abajo está la lista para verlas una por una."></div>
+    <div class="cielo__cab"><div class="cielo__t">Tu vitrina</div>
       <div class="cielo__s">${n} de ${orden.length} medallas · ${c === 1 ? "1 constelación completa" : `${c} constelaciones completas`}</div></div>
     <div class="cielo__etq" id="cieloEtq" hidden></div>
     <div class="cielo__pista">${cieloTactil() ? "Toca una medalla para verla de cerca" : "Haz clic en una medalla para verla de cerca · arrastra para mirar"}</div>
-    <button type="button" class="lugar-abrir" data-action="lugar-entrar" data-ruta="cielo" aria-label="Ver tu cielo a pantalla completa">${typeof iconoLinea === "function" ? iconoLinea("expandir", 18) : "⤢"}</button>
+    <button type="button" class="lugar-abrir" data-action="lugar-entrar" data-ruta="cielo" aria-label="Ver tu vitrina a pantalla completa">${typeof iconoLinea === "function" ? iconoLinea("expandir", 18) : "⤢"}</button>
     <div class="cielo__carga" aria-hidden="true">Encendiendo el cielo…</div>
   </section>`;
 }
 
-/* -------- Tu cielo a pantalla completa (ruta #cielo, lugar.js): todas tus medallas por familia en la hoja -------- */
+/* -------- Tu vitrina a pantalla completa (ruta #cielo, lugar.js): tus medallas en el cielo y, en la hoja, todas por familia -------- */
 function renderCielo() {
   if (CIELO_ESTADO.sin3d) { setTimeout(() => go("insignias"), 0); return renderInsignias(); }
   const g = STATE.gamif, orden = cieloOrden(), n = orden.filter(id => g.badges.includes(id)).length, c = cieloCompletas(), tactil = cieloTactil();
@@ -145,8 +145,8 @@ function renderCielo() {
     <div class="hoja__bts">${CIELO_FAMILIAS.filter(f => f.fig).map(f => `<button class="hb" data-action="cielo-mirar" data-id="${f.id}">${f.n} ${cieloEncendidas(f)}/${f.ids.length}</button>`).join("")}</div>`;
   const cuerpo = `${familias}<button class="btn-ghost btn-block mt-8" data-route="insignias">Ver la lista con el progreso de cada una</button>`;
   return lugarHtml({
-    lienzo: "lugarLienzo", titulo: "Tu cielo", sub: `${n} de ${orden.length} medallas · ${c === 1 ? "1 constelación completa" : `${c} constelaciones completas`}`,
-    oscuro: true, fondo: "#05060C", aria: `Tu cielo: ${n} de ${orden.length} medallas encendidas. En la hoja de abajo están todas, por familia.`,
+    lienzo: "lugarLienzo", titulo: "Tu vitrina", sub: `${n} de ${orden.length} medallas · ${c === 1 ? "1 constelación completa" : `${c} constelaciones completas`}`,
+    oscuro: true, fondo: "#05060C", aria: `Tu vitrina: ${n} de ${orden.length} medallas encendidas en el cielo. En la hoja de abajo están todas, por familia.`,
     hojaAria: "Tus medallas por familia", carga: "Encendiendo el cielo…", extra: `<div class="cielo__etq" id="cieloEtq" hidden></div>`, cab, cuerpo,
   });
 }
@@ -190,6 +190,10 @@ function cieloMotor() {
           // Tu elefante en 3D (elefante-3d.js): el mismo del dibujo, con su tipo, etapa, ropa y ánimo
           elefante: () => (typeof tipoElefante === "function" ? { tipo: tipoElefante(), etapa: etapaElefante(STATE.gamif.xp || 0).idx, ropa: ropaPuesta(), animo: animoElefante() } : null),
           tocoEle: () => { if (typeof vibrar === "function") vibrar(12); },
+          // lo que hace en su cuarto (casa.js): ahora mismo, lo que puede hacer y el aviso cuando cambia
+          ahora: () => (typeof eleActividadAhora === "function" ? eleActividadAhora(STATE).id : "sentado"),
+          actividades: () => (typeof eleActividades === "function" ? eleActividades(STATE).map(a => [a.id, a.w]) : []),
+          haciendo: id => { if (typeof eleHaciendo === "function") eleHaciendo(id); },
           entrar: l => { if (typeof lugarDesdeTarjeta === "function") lugarDesdeTarjeta(l); },
           cerrados: () => Object.keys(STATE.ritual.dias || {}).filter(k => STATE.ritual.dias[k] && STATE.ritual.dias[k].cerrado),
         });
@@ -338,7 +342,7 @@ function fichaGanarHtml(I) {
     ${constel}
     <div class="ins-cerca__acc">
       ${mas ? `<button class="btn btn--linea" data-c="siguiente">Siguiente medalla ›</button>` : `<button class="btn btn--linea" data-c="listo">Listo</button>`}
-      <button class="btn btn--soft" data-c="alcielo">Ver en tu cielo</button>
+      <button class="btn btn--soft" data-c="alcielo">Ver en tu vitrina</button>
     </div>`;
 }
 /* Medalla plana (sin WebGL): su silueta en el color del metal, con el ícono de la insignia */

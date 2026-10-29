@@ -1,4 +1,5 @@
-/* Tests de la casa del elefante (casa.js): lo que el cuarto gana con el rango y la repisa de medallas */
+/* Tests de la casa del elefante (casa.js): lo que el cuarto gana con el rango, la repisa de medallas
+   y lo que hace tu elefante en su cuarto (según lo que hay y la hora) */
 export default async function ({ G, test, assert, clone, cargar }) {
   console.log("\nLa casa del elefante");
   const defaultState = G("defaultState"), migrate = G("migrate"), ledgerRegistrar = G("ledgerRegistrar");
@@ -78,5 +79,26 @@ export default async function ({ G, test, assert, clone, cargar }) {
     assert.equal(cargar(B, A).gamif.equipped.cuarto.off.join(","), "cua-gato");
     assert.equal(cargar(A, clone(base)).gamif.equipped.cuarto.pared, "par-salvia");
     assert.equal(cuartoEq(clone(base)).off.length, 0);                                // sin nada guardado: todo puesto
+  });
+
+  test("lo que hace tu elefante: depende de lo que hay en su cuarto y de la hora; lo de ahora dura 20 minutos", () => {
+    const eleActividades = G("eleActividades"), eleActividadAhora = G("eleActividadAhora"), ledgerComprar = G("ledgerComprar");
+    const tarde = new Date(2026, 9, 28, 15, 0), noche = new Date(2026, 9, 28, 22, 30);
+    const ids = (s, d) => eleActividades(s, d).map(a => a.id);
+    const s0 = conXp(0);
+    assert.equal(ids(s0, tarde).join(","), "siesta,ventana,pasea,sentado,cola");            // Aprendiz, sin medallas ni compras
+    const s = conXp(2500); ledgerRegistrar(s, "pts", 3000, 0, "test");                                  // con planta, reloj y biblioteca
+    assert.ok(ids(s, tarde).includes("planta") && ids(s, tarde).includes("libros"));
+    assert.ok(!ids(s, noche).includes("planta") && !ids(s, noche).includes("cola"), "de noche no riega ni persigue su cola");
+    assert.equal(eleActividades(s, noche).find(a => a.id === "siesta").w, 8, "de noche duerme más");
+    assert.ok(!ids(s, tarde).includes("gato"));
+    assert.ok(ledgerComprar(s, "cua-gato", 900).ok); assert.ok(ids(s, tarde).includes("gato"), "con el gato, le hace cariño");
+    s.gamif.equipped.cuarto = { off: ["cua-gato"], pared: null, ts: 1 }; assert.ok(!ids(s, tarde).includes("gato"), "si lo guardas, ya no");
+    s.gamif.badges.push("primer-paso"); ledgerRegistrar(s, "insignia:primer-paso", 1, 1, "x");
+    assert.ok(ids(s, tarde).includes("repisa"), "con medallas en la repisa, las admira");
+    // lo de ahora: lo mismo durante 20 minutos, y a lo largo del día va cambiando
+    assert.equal(eleActividadAhora(s, tarde).id, eleActividadAhora(s, new Date(2026, 9, 28, 15, 19, 59)).id);
+    const dia = new Set(); for (let k = 0; k < 36; k++) dia.add(eleActividadAhora(s, new Date(2026, 9, 28, 8, k * 20)).id);
+    assert.ok(dia.size >= 5, "en un día hace al menos 5 cosas distintas: " + [...dia].join(", "));
   });
 }

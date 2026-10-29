@@ -1,5 +1,6 @@
 /* Tests del elefante en 3D (elefante-3d.js): se arma con three.js de verdad (sin dibujar) en cada tipo,
-   etapa, ánimo y prenda; crece con la etapa, viste cada prenda y reacciona al tocarlo */
+   etapa, ánimo y prenda; crece con la etapa, viste cada prenda, reacciona al tocarlo y toma sus posturas
+   (camina, se echa a dormir, se sienta, riega, baila) */
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
@@ -69,5 +70,38 @@ export default async function ({ G, test, assert }) {
     E.reaccion("saluda"); E.vivo(30); E.vivo(30.65); assert.ok(E.ocupado());
     E.vivo(32); assert.ok(!E.ocupado());
     E.dispose();
+  });
+
+  test("vive en su cuarto: camina con las patas en diagonal, se echa a dormir, se sienta, riega, baila y vuelve a pararse", () => {
+    const E = crear(T, { tipo: "clasico", etapa: 2 });
+    let t = 0;
+    const correr = (seg, cada) => { for (const fin = t + seg; t < fin; t += 1 / 30) { E.vivo(t); if (cada) cada(E.pose()); } };
+    E.postura({ andar: 1 });
+    let diagonal = 0, alzada = 0;
+    correr(1.5, q => {
+      const d = [q.pies[0][0] - 0.38, q.pies[1][0] - 0.38, q.pies[2][0] + 0.44, q.pies[3][0] + 0.44];
+      if (Math.abs(d[0]) > 0.05 && Math.sign(d[0]) === Math.sign(d[3]) && Math.sign(d[0]) !== Math.sign(d[1]) && Math.sign(d[1]) === Math.sign(d[2])) diagonal++;
+      alzada = Math.max(alzada, ...q.pies.map(f => f[1]));
+    });
+    assert.ok(diagonal > 10 && alzada > 0.04, "camina: adelante derecha con atrás izquierda, y levanta las patas");
+    E.postura({ echado: 1, dormir: 1 });
+    let zzz = 0; correr(2.5, q => { zzz = Math.max(zzz, q.zzz); });
+    const q1 = E.pose();
+    assert.ok(q1.alto < -0.27 && q1.ojos < 0.2 && zzz > 0.5, "se echa en el piso, cierra los ojos y le salen zzz");
+    E.postura({ sentado: 1, giro: 0.6 }); correr(2.5);
+    assert.ok(E.pose().sentado > 0.95 && E.pose().giro > 0.55, "se sienta y gira la cabeza");
+    E.postura({ regar: 1 }); let gotas = 0; correr(2.5, q => { gotas = Math.max(gotas, q.gotas); });
+    assert.ok(gotas > 0.5, "riega: le salen gotas de la trompa");
+    E.postura({ baile: 1 }); let notas = 0; correr(2.5, q => { notas = Math.max(notas, q.notas); });
+    assert.ok(notas > 0.5, "baila con notas");
+    E.postura({}); correr(3);
+    const q2 = E.pose();
+    assert.ok(Math.abs(q2.alto) < 0.01 && Math.abs(q2.pies[0][0] - 0.38) < 0.01 && q2.zzz === 0 && q2.notas === 0, "y vuelve a pararse como siempre");
+    E.dispose();
+    // en calma (sin animaciones) la postura llega de una: duerme echado, quieto
+    const C = crear(T, { tipo: "peluche", etapa: 0, calmo: true });
+    C.postura({ echado: 1, dormir: 1 }); C.vivo(0);
+    assert.ok(C.pose().alto < -0.29 && C.pose().zzz > 0.8);
+    C.dispose();
   });
 }

@@ -2039,3 +2039,42 @@ html .ins-cerca .btn--linea:hover { background: rgba(255, 224, 138, .1); }
 .ins-plano.is-vidrio { background: rgba(220, 232, 245, .1); border: 2px solid rgba(220, 232, 245, .4); box-shadow: 0 0 50px rgba(169, 184, 232, .15); }
 .ins-plano.is-vidrio span { filter: grayscale(.8); opacity: .6; }
 @media (prefers-reduced-motion: reduce) { .ins-cerca { animation: none; } }
+
+/* ---------- El momento de ganar una medalla (cielo.js) ---------- */
+.ins-cerca.is-ganar .ins-cerca__nav { display: none; }
+.ins-cerca__fam.is-nueva { color: #FFE08A; letter-spacing: .1em; }
+.ins-cerca__const.is-completa { color: #FFE08A; }
+.ins-cerca__const.is-completa b { color: #FFFFFF; }
+.ins-plano.is-gana { animation: insGana 1.1s cubic-bezier(.2, 1.3, .4, 1) both; }
+@keyframes insGana { 0% { transform: scale(.1) rotateY(540deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; } }
+/* Aviso de medalla nueva fuera del cierre: se toca para verla */
+.ins-aviso { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 190; display: flex; align-items: center; gap: 10px;
+  width: max-content; max-width: calc(100vw - 24px); padding: 8px 14px 8px 8px; border-radius: 999px; cursor: pointer; text-align: left;
+  background: #0B1030; color: #EEF1FF; border: 1px solid rgba(255, 224, 138, .55); box-shadow: 0 12px 30px rgba(3, 4, 10, .45); font: inherit; }
+.ins-aviso[hidden] { display: none; }
+.ins-aviso.is-entra { animation: insAvisoEntra .45s cubic-bezier(.2, 1.3, .4, 1); }
+@keyframes insAvisoEntra { from { opacity: 0; transform: translate(-50%, 16px) scale(.96); } to { opacity: 1; transform: translate(-50%, 0); } }
+.ins-aviso__m { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; border-radius: 50%; font-size: 20px;
+  background: radial-gradient(circle at 35% 30%, #FFFFFF, var(--metal) 55%); box-shadow: 0 0 16px color-mix(in srgb, var(--metal) 60%, transparent); }
+.ins-aviso__t { display: grid; min-width: 0; line-height: 1.25; }
+.ins-aviso__t b { font-size: 13px; color: #FFE08A; }
+.ins-aviso__t span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ins-aviso__ver { margin-left: 4px; font-size: 13px; font-weight: 700; color: #FFE08A; white-space: nowrap; }
+@media (max-width: 760px) { .ins-aviso { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); } }
+@media (prefers-reduced-motion: reduce) { .ins-plano.is-gana, .ins-aviso.is-entra { animation: none; } }
+/* En el recibo del día: las medallas de hoy o la que tienes más cerca */
+.recibo__k { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+.recibo__meds { padding: 11px 0; border-bottom: 1px solid var(--line); }
+.recibo__meds-l { display: flex; flex-wrap: wrap; gap: 8px; }
+.med-chip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border-radius: 999px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; }
+.med-chip:hover { background: var(--surface-3); }
+.med-chip__m { display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; font-size: 16px;
+  background: radial-gradient(circle at 35% 30%, #FFFFFF, var(--metal) 60%); }
+.recibo__cerca { display: block; width: 100%; padding: 11px 0; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text);
+  text-align: left; font: inherit; cursor: pointer; }
+.recibo__cerca-n { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 15px; }
+.recibo__cerca-n small { margin-left: auto; font-size: 13px; color: var(--text-muted); text-align: right; }
+.recibo__cerca .med-chip__m { filter: grayscale(.7); opacity: .85; }
+.recibo__cerca .bar { display: block; }
+.recibo__cerca .bar__fill { display: block; }

@@ -245,6 +245,7 @@ function openCierreModal(date) {
   const iso = date || todayISO();
   CIERRE_DATE = iso;
   if (!puedeCerrarDia(iso)) return toast("Primero abre tu día 🌅", true);
+  if (typeof cieloPrecargar === "function") cieloPrecargar();   // por si cerrar el día trae una medalla
   const r = STATE.ritual.dias[iso] || {};
   const esHoy = iso === todayISO();
   const c = r.cierre || {};
@@ -348,9 +349,12 @@ function saveCierre() {
   dEntry.ts = Date.now();
 
   if (!yaCerrado) registrarMovimiento("ritual-cierre:" + iso, 40, 40, "Ritual de cierre");
+  const medallas = !yaCerrado && typeof cierreMedallasEmpieza === "function";   // las que gane se muestran al final
+  if (medallas) cierreMedallasEmpieza();
   saveState(); closeModal(); updateTopbar(); rerender();
+  const hubo = medallas && cierreMedallasTermina();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
-  if (!yaCerrado) { sonar("cierre"); vibrar([15, 60, 25]); animarRacha(); if (typeof celebrarCierreElefante === "function") celebrarCierreElefante(); }
+  if (!yaCerrado) { sonar("cierre"); vibrar([15, 60, 25]); animarRacha(); if (!hubo && typeof celebrarCierreElefante === "function") celebrarCierreElefante(); }
   const resumenTr = decid ? textoTriage(decid) : "";
   toast(resumenTr ? `Día cerrado 🌙 · ${resumenTr}` : "Día cerrado 🌙 ¡Descansa!");
 }

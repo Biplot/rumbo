@@ -124,6 +124,7 @@ function saveExpressApertura() {
 function openExpressCierre(date) {
   const iso = date || todayISO();
   if (!puedeCerrarDia(iso)) return toast("Primero abre tu día 🌅", true);
+  if (typeof cieloPrecargar === "function") cieloPrecargar();
   const r = STATE.ritual.dias[iso] || {};
   EXPRESS_FECHA = iso;
   const { cronicas, resto } = pendientesCierreExpress(STATE, iso);
@@ -159,10 +160,13 @@ function saveExpressCierre() {
   const { nuevo, n } = aplicarCierreExpress(STATE, iso, { mood: parseNum(val("xc-mood")), gratitud: val("xc-gratitud"), elecciones });
   const monedas = EXPRESS_MONEDAS.cierre;
   const pagado = nuevo && registrarMovimiento("ritual-cierre:" + iso, monedas, monedas, "Cierre express", true);
+  const medallas = nuevo && typeof cierreMedallasEmpieza === "function";
+  if (medallas) cierreMedallasEmpieza();
   saveState(); closeModal(); updateTopbar(); rerender();
+  const hubo = medallas && cierreMedallasTermina();
   if (pagado && typeof sonar === "function") sonar("cierre");
   if (nuevo) { vibrar([15, 60, 25]); animarRacha(); }
-  if (nuevo && typeof celebrarCierreElefante === "function") celebrarCierreElefante();
+  if (nuevo && !hubo && typeof celebrarCierreElefante === "function") celebrarCierreElefante();
   const t = textoTriage(n);
   toast(`⚡ Día cerrado${pagado ? ` · +${monedas} ⭐` : ""}${t ? " · " + t : ""}`);
 }

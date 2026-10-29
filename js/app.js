@@ -151,7 +151,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 20;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 21;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -315,6 +315,10 @@ const NOVEDADES = {
   20: [
     ["🌌", "Tu cielo de insignias", "En Recompensas → Insignias cada insignia es una medalla en el cielo, y cada familia una constelación: La Copa, La Brújula, El Elefante, El Sol, La Columna y La Medalla. Enciéndelas una a una."],
     ["🏅", "Medallas de cerca", "Toca cualquier medalla, en el cielo o en la lista, para verla en 3D: gírala, dale vuelta y mira cuándo la ganaste o cuánto te falta."],
+  ],
+  21: [
+    ["✨", "El momento de ganar", "Si al cerrar tu día ganas una medalla, llega girando, brilla y sube a su estrella en tu cielo. Si con ella completas una constelación, la figura se vuelve dorada."],
+    ["🧾", "Medallas en tu recibo", "El recibo del día muestra las medallas que ganaste hoy o la que tienes más cerca y cuánto te falta. Tócalas para verlas de cerca."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1689,6 +1693,7 @@ function renderCierreResumen(r) {
     <ol class="ruta">${paradas}</ol>
     <dl class="recibo__filas">${filas}</dl>
     ${notas}
+    ${typeof reciboMedallasHtml === "function" ? reciboMedallasHtml(iso) : ""}
     ${ganadas ? `<div class="recibo__total"><span>Ganaste hoy</span><b>+${ganadas} ${iconoLinea("estrella", 18)}</b></div>` : ""}
     <div class="recibo__acc"><button class="btn btn--soft" data-action="compartir-dia">${iconoLinea("compartir", 18)}Compartir mi día</button>
       <button class="btn-ghost" data-action="day-close">Editar el cierre</button></div>

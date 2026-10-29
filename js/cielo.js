@@ -127,7 +127,7 @@ function cieloHtml(g) {
 }
 
 /* -------- Carga diferida del 3D -------- */
-const CIELO_ESTADO = { motor: null, carga: null, sin3d: false };
+const CIELO_ESTADO = { motor: null, carga: null, scripts: null, sin3d: false };
 const CIELO_V = (typeof document !== "undefined" && document.currentScript && (document.currentScript.src.match(/\?v=\d+/) || [""])[0]) || "";
 function cieloScript(src) {
   return new Promise((ok, mal) => {
@@ -136,18 +136,26 @@ function cieloScript(src) {
     document.head.appendChild(s);
   });
 }
+/* three.js y el motor del cielo, bajados una sola vez (si falla la red, se reintenta después) */
+function cieloScripts() {
+  if (!CIELO_ESTADO.scripts) {
+    CIELO_ESTADO.scripts = (window.THREE ? Promise.resolve() : cieloScript("js/vendor/three-0.128.0.min.js"))
+      .then(() => (typeof crearMotorCielo === "function" ? null : cieloScript("js/cielo-3d.js" + CIELO_V)))
+      .catch(e => { CIELO_ESTADO.scripts = null; throw e; });
+  }
+  return CIELO_ESTADO.scripts;
+}
 /* Promesa del motor 3D (una sola vez). Falla si no hay WebGL o no se pudo bajar three.js */
 function cieloMotor() {
   if (CIELO_ESTADO.motor) return Promise.resolve(CIELO_ESTADO.motor);
   if (CIELO_ESTADO.sin3d) return Promise.reject(new Error("sin 3D"));
   if (!CIELO_ESTADO.carga) {
-    CIELO_ESTADO.carga = (window.THREE ? Promise.resolve() : cieloScript("js/vendor/three-0.128.0.min.js"))
-      .then(() => (typeof crearMotorCielo === "function" ? null : cieloScript("js/cielo-3d.js" + CIELO_V)))
+    CIELO_ESTADO.carga = cieloScripts()
       .then(() => (document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1200))]) : null))
       .then(() => {
         CIELO_ESTADO.motor = crearMotorCielo(window.THREE, {
           orden: cieloOrden, info: id => cieloInfo(id), ganadas: () => new Set(STATE.gamif.badges || []), familias: CIELO_FAMILIAS,
-          tocar: id => abrirInsignia(id), perdido: cieloSin3d,
+          tocar: id => abrirInsignia(id), perdido: cieloSin3d, visto: cieloVisto, guardarVisto: cieloGuardarVisto,
         });
         return CIELO_ESTADO.motor;
       })
@@ -165,17 +173,16 @@ function cieloSin3d() {
   if (CERCA.id) pintarCerca();
 }
 
-/* Tras cada render: en Insignias se monta (o se vuelve a colgar) el cielo; fuera, se pausa */
+
+/* Tras cada render: en Insignias se monta (o se vuelve a colgar) el cielo; fuera, se pausa.
+   Una ficha abierta manda: sigue abierta mientras no cambies de pantalla */
 function cieloTrasRender(route) {
-  if (route !== "insignias") {
-    if (CERCA.id) cerrarInsignia(true);
-    if (CIELO_ESTADO.motor) CIELO_ESTADO.motor.soltar();
-    return;
-  }
+  if (CERCA.id && route !== CERCA.ruta) cerrarInsignia(true);
+  if (CERCA.id) { pintarCerca(true); return; }
+  if (route !== "insignias") { if (CIELO_ESTADO.motor) CIELO_ESTADO.motor.soltar(); return; }
   const caja = document.getElementById("cieloLienzo"); if (!caja) return;
-  if (CERCA.id) pintarCerca(true);
   if (CIELO_ESTADO.sin3d) return;
-  if (CIELO_ESTADO.motor) { if (!CERCA.id) CIELO_ESTADO.motor.montar(caja); return; }
+  if (CIELO_ESTADO.motor) { CIELO_ESTADO.motor.montar(caja); return; }
   caja.closest(".cielo").classList.add("is-cargando");
   cieloMotor().then(m => {
     const c2 = document.getElementById("cieloLienzo");
@@ -187,8 +194,13 @@ function cieloTrasRender(route) {
   });
 }
 
-/* -------- De cerca: la medalla grande y su ficha -------- */
-const CERCA = { id: null, volver: null, hist: false };
+/* Medallas que el cielo ya mostró en este equipo: las nuevas llegan como estrella fugaz */
+const CIELO_CLAVE_VISTO = "rumbo-cielo-visto";
+function cieloVisto() { try { const v = JSON.parse(localStorage.getItem(CIELO_CLAVE_VISTO) || "null"); return Array.isArray(v) ? v : null; } catch (e) { return null; } }
+function cieloGuardarVisto(ids) { try { localStorage.setItem(CIELO_CLAVE_VISTO, JSON.stringify(ids)); } catch (e) {} }
+
+/* -------- De cerca: la medalla grande y su ficha (modo "ver") o el momento de ganarla ("ganar") -------- */
+const CERCA = { id: null, modo: "ver", cola: [], i: 0, ruta: null, volver: null, hist: false };
 function cercaEl() {
   let el = document.getElementById("insCerca");
   if (el) return el;
@@ -198,7 +210,7 @@ function cercaEl() {
   el.innerHTML = `<div class="ins-cerca__escena">
       <div class="ins-cerca__lienzo" id="insCercaLienzo"></div>
       <div class="ins-cerca__plano" id="insCercaPlano" hidden></div>
-      <button class="ins-cerca__x" data-c="cerrar" aria-label="Volver al cielo">✕</button>
+      <button class="ins-cerca__x" data-c="cerrar" aria-label="Cerrar">✕</button>
       <button class="ins-cerca__nav ins-cerca__nav--ant" data-c="ant" aria-label="Insignia anterior">‹</button>
       <button class="ins-cerca__nav ins-cerca__nav--sig" data-c="sig" aria-label="Insignia siguiente">›</button>
       <div class="ins-cerca__pista" id="insCercaPista"></div>
@@ -208,15 +220,17 @@ function cercaEl() {
   el.addEventListener("click", e => {
     const b = e.target.closest("[data-c]"); if (!b) return;
     const c = b.dataset.c;
-    if (c === "cerrar") cerrarInsignia();
+    if (c === "cerrar" || c === "listo") cerrarInsignia();
     else if (c === "ant" || c === "sig") moverInsignia(c === "sig" ? 1 : -1);
     else if (c === "nivel") cambiarInsignia(b.dataset.id);
     else if (c === "voltear" && CIELO_ESTADO.motor) CIELO_ESTADO.motor.voltear();
+    else if (c === "siguiente") siguienteGanada();
+    else if (c === "alcielo") { cerrarInsignia(true, true); go("insignias"); }
   });
   document.addEventListener("keydown", e => {
     if (!CERCA.id) return;
     if (e.key === "Escape") { e.preventDefault(); cerrarInsignia(); }
-    else if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && !isFormEl(e.target)) { e.preventDefault(); moverInsignia(e.key === "ArrowRight" ? 1 : -1); }
+    else if ((e.key === "ArrowRight" || e.key === "ArrowLeft") && CERCA.modo === "ver" && !isFormEl(e.target)) { e.preventDefault(); moverInsignia(e.key === "ArrowRight" ? 1 : -1); }
     else if (e.key === "Tab") {   // el foco no sale de la ficha mientras está abierta
       const f = [...el.querySelectorAll("button:not([disabled])")].filter(x => x.offsetParent);
       if (!f.length) return;
@@ -255,35 +269,60 @@ function fichaCercaHtml(I) {
       ${I.gano ? `<button class="btn btn--linea" data-action="badge-destacar" data-id="${I.id}">${destacada ? "★ Destacada" : "Destacar"}</button>` : ""}
     </div>`;
 }
+/* La ficha del momento de ganar: qué ganaste y qué se encendió en tu cielo */
+function fichaGanarHtml(I) {
+  const fam = I.familia, M = CIELO_METALES[I.metal], tot = CERCA.cola.length, mas = CERCA.i < tot - 1;
+  const n = fam ? cieloEncendidas(fam) : 0, completa = !!(fam && fam.fig) && n === fam.ids.length;
+  const constel = fam && fam.fig
+    ? completa ? `<div class="ins-cerca__const is-completa">✦ ¡Completaste <b>${fam.fig}</b>! Sus ${fam.ids.length} estrellas brillan en tu cielo.</div>`
+      : `<div class="ins-cerca__const">Se encendió su estrella en <b>${fam.fig}</b> · ${n} de ${fam.ids.length}</div>`
+    : I.fam === "secretas" ? `<div class="ins-cerca__const">Una secreta: desde hoy brilla suelta en tu cielo.</div>` : "";
+  return `<div class="ins-cerca__fam is-nueva">¡Medalla nueva!${tot > 1 ? ` · ${CERCA.i + 1} de ${tot}` : ""}</div>
+    <h2 class="ins-cerca__t" id="insCercaT">${escapeHtml(I.b.nombre)}</h2>
+    <p class="ins-cerca__desc">${escapeHtml(I.b.desc)}</p>
+    <div class="ins-cerca__estado is-ganada">+${I.b.reward} ⭐ · ${escapeHtml(fam ? fam.n : "Insignia")} · ${M.n}</div>
+    ${constel}
+    <div class="ins-cerca__acc">
+      ${mas ? `<button class="btn btn--linea" data-c="siguiente">Siguiente medalla ›</button>` : `<button class="btn btn--linea" data-c="listo">Listo</button>`}
+      <button class="btn btn--soft" data-c="alcielo">Ver en tu cielo</button>
+    </div>`;
+}
 /* Medalla plana (sin WebGL): su silueta en el color del metal, con el ícono de la insignia */
-function planoCercaHtml(I) {
+function planoCercaHtml(I, gana) {
   const ico = I.oculta ? "❔" : I.b.icon;
-  return `<div class="ins-plano ins-plano--${I.metal}${I.gano ? "" : " is-vidrio"}" aria-hidden="true"><span>${ico}</span></div>`;
+  return `<div class="ins-plano ins-plano--${I.metal}${I.gano ? "" : " is-vidrio"}${gana ? " is-gana" : ""}" aria-hidden="true"><span>${ico}</span></div>`;
 }
 /* Pinta la ficha (y la medalla plana si no hay 3D). conservar: no mueve el foco */
 function pintarCerca(conservar) {
   const el = cercaEl(), I = cieloInfo(CERCA.id); if (!I) return;
-  document.getElementById("insCercaFicha").innerHTML = fichaCercaHtml(I);
+  const gana = CERCA.modo === "ganar";
+  document.getElementById("insCercaFicha").innerHTML = gana ? fichaGanarHtml(I) : fichaCercaHtml(I);
   const plano = document.getElementById("insCercaPlano"), con3d = !!CIELO_ESTADO.motor && !CIELO_ESTADO.sin3d;
+  const antes = plano.dataset.id;
   plano.hidden = con3d || (!CIELO_ESTADO.sin3d && !!CIELO_ESTADO.carga);
-  if (!plano.hidden) plano.innerHTML = planoCercaHtml(I);
+  if (!plano.hidden && antes !== CERCA.id + CERCA.modo) { plano.innerHTML = planoCercaHtml(I, gana); plano.dataset.id = CERCA.id + CERCA.modo; }
   el.classList.toggle("is-plano", !con3d);
-  document.getElementById("insCercaPista").textContent = con3d ? (cieloTactil() ? "Arrastra para girarla" : "Arrastra para girarla · ← → para cambiar") : "";
-  if (!conservar) { const x = el.querySelector(".ins-cerca__x"); if (x) x.focus({ preventScroll: true }); }
+  el.classList.toggle("is-ganar", gana);
+  document.getElementById("insCercaPista").textContent = !con3d || gana ? "" : cieloTactil() ? "Arrastra para girarla" : "Arrastra para girarla · ← → para cambiar";
+  if (!conservar) { const x = el.querySelector(gana ? '[data-c="listo"], [data-c="siguiente"]' : ".ins-cerca__x"); if (x) x.focus({ preventScroll: true }); }
 }
-function abrirInsignia(id) {
-  if (!findBadge(id)) return;
+function abrirCapa(id, modo, cola) {
   const el = cercaEl(), abierta = !!CERCA.id;
-  if (!abierta) CERCA.volver = document.activeElement;
-  CERCA.id = id;
+  if (!abierta) { CERCA.volver = document.activeElement; CERCA.ruta = CURRENT; }
+  CERCA.id = id; CERCA.modo = modo; CERCA.cola = cola || []; CERCA.i = 0;
   el.hidden = false; document.body.classList.add("ins-cerca-abierta");
   if (!abierta && history.pushState) { try { history.pushState({ insCerca: 1 }, ""); CERCA.hist = true; } catch (e) { CERCA.hist = false; } }
   const motor = CIELO_ESTADO.sin3d ? null : cieloMotor();   // antes de pintar: mientras carga no se ve la medalla plana
   pintarCerca();
   if (!motor) return;
-  motor.then(m => { if (CERCA.id) { m.abrir(CERCA.id, document.getElementById("insCercaLienzo")); pintarCerca(true); } })
-    .catch(() => { if (CERCA.id) pintarCerca(true); });
+  motor.then(m => {
+    if (!CERCA.id) return;
+    const caja = document.getElementById("insCercaLienzo");
+    if (CERCA.modo === "ganar") m.ganar(CERCA.id, caja); else m.abrir(CERCA.id, caja);
+    pintarCerca(true);
+  }).catch(() => { if (CERCA.id) pintarCerca(true); });
 }
+function abrirInsignia(id) { if (findBadge(id)) abrirCapa(id, "ver"); }
 function cambiarInsignia(id) {
   if (!CERCA.id || !findBadge(id) || id === CERCA.id) return;
   CERCA.id = id;
@@ -292,17 +331,116 @@ function cambiarInsignia(id) {
 }
 /* Anterior / siguiente, en el orden del cielo (las secretas sin ganar se saltan) */
 function moverInsignia(dir) {
+  if (CERCA.modo !== "ver") return;
   const g = STATE.gamif.badges, l = cieloOrden().filter(id => id === CERCA.id || !findBadge(id).secreta || g.includes(id));
   const i = l.indexOf(CERCA.id); if (i < 0) return;
   cambiarInsignia(l[(i + dir + l.length) % l.length]);
 }
-function cerrarInsignia(sinHistoria) {
+/* alCielo: se va a Insignias a ver llegar las medallas como estrella fugaz (no se marcan vistas) */
+function cerrarInsignia(sinHistoria, alCielo) {
   if (!CERCA.id) return;
-  const el = cercaEl(); CERCA.id = null;
+  const el = cercaEl(), gano = CERCA.modo === "ganar" ? CERCA.cola.slice() : [];
+  CERCA.id = null; CERCA.modo = "ver"; CERCA.cola = [];
   el.hidden = true; document.body.classList.remove("ins-cerca-abierta");
   if (CERCA.hist) { CERCA.hist = false; if (!sinHistoria) { try { history.back(); } catch (e) {} } }
+  if (gano.length && !alCielo) { const v = cieloVisto(); cieloGuardarVisto(v ? [...new Set(v.concat(gano))] : [...STATE.gamif.badges]); }
   const m = CIELO_ESTADO.motor;
   if (m) { m.cerrar(); const caja = document.getElementById("cieloLienzo"); if (caja && CURRENT === "insignias") m.montar(caja); }
   const v = CERCA.volver; CERCA.volver = null;
   if (v && document.body.contains(v) && v.focus) v.focus({ preventScroll: true });
+}
+
+/* -------- El momento de ganar -------- */
+function abrirMomento(ids) {
+  ids = (ids || []).filter(id => findBadge(id)); if (!ids.length) return;
+  if (CERCA.id && CERCA.modo === "ganar") { ids.forEach(id => { if (!CERCA.cola.includes(id)) CERCA.cola.push(id); }); pintarCerca(true); return; }
+  if (CERCA.id) cerrarInsignia(true);
+  const ov = document.getElementById("modalOverlay");
+  if (ov && !ov.hidden && typeof closeModal === "function") closeModal();
+  // Quien nunca abrió su cielo: lo de antes queda visto, para que estas lleguen como estrella fugaz si va a verlas
+  if (!cieloVisto()) cieloGuardarVisto(STATE.gamif.badges.filter(id => !ids.includes(id)));
+  abrirCapa(ids[0], "ganar", ids);
+}
+function siguienteGanada() {
+  if (CERCA.modo !== "ganar" || CERCA.i >= CERCA.cola.length - 1) return;
+  CERCA.i++; CERCA.id = CERCA.cola[CERCA.i];
+  if (CIELO_ESTADO.motor && !CIELO_ESTADO.sin3d) CIELO_ESTADO.motor.ganar(CERCA.id);
+  pintarCerca();
+}
+
+/* checkBadges avisa aquí las insignias recién ganadas. Devuelve true si se anuncian aquí (sin toast).
+   Durante el cierre del día se juntan y se muestran al final; fuera, un aviso que se puede tocar */
+const INS_NUEVAS = { cola: [], cierre: 0, timer: 0 };
+function cieloEscenas() { try { return !localStorage.getItem("rumbo-sin-escenas"); } catch (e) { return true; } }   // las pruebas automáticas las apagan
+function tomarNuevas() { const l = INS_NUEVAS.cola; INS_NUEVAS.cola = []; return l; }
+function anunciarInsignias(ids) {
+  ids.forEach(id => { if (!INS_NUEVAS.cola.includes(id)) INS_NUEVAS.cola.push(id); });
+  if (Date.now() - INS_NUEVAS.cierre < 4000) return true;   // el cierre en curso las muestra al final
+  if (typeof document === "undefined" || !cieloEscenas()) { INS_NUEVAS.cola = []; return false; }
+  if (CERCA.id && CERCA.modo === "ganar") { abrirMomento(tomarNuevas()); return true; }
+  avisoInsignias(); return true;
+}
+function avisoInsignias() {
+  const ids = INS_NUEVAS.cola.slice(); if (!ids.length) return;
+  let el = document.getElementById("insAviso");
+  if (!el) {
+    el = document.createElement("button"); el.id = "insAviso"; el.className = "ins-aviso"; el.type = "button";
+    el.addEventListener("click", () => { el.hidden = true; clearTimeout(INS_NUEVAS.timer); abrirMomento(tomarNuevas()); });
+    document.body.appendChild(el);
+  }
+  const b = findBadge(ids[ids.length - 1]), tot = ids.reduce((a, id) => a + (findBadge(id).reward || 0), 0);
+  el.innerHTML = `<span class="ins-aviso__m" style="--metal:${CIELO_METALES[cieloMetal(b)].css}">${b.icon}</span>
+    <span class="ins-aviso__t"><b>${ids.length === 1 ? "¡Medalla nueva!" : `¡${ids.length} medallas nuevas!`}</b><span>${escapeHtml(b.nombre)}${ids.length > 1 ? " y más" : ""} · +${tot} ⭐</span></span>
+    <span class="ins-aviso__ver">Verla ›</span>`;
+  el.hidden = false; el.classList.remove("is-entra"); void el.offsetWidth; el.classList.add("is-entra");
+  clearTimeout(INS_NUEVAS.timer);
+  INS_NUEVAS.timer = setTimeout(() => { el.hidden = true; INS_NUEVAS.cola = []; }, 7000);   // sin tocarlo, igual llegan a tu cielo
+}
+/* El cierre del día junta las medallas que gane y las muestra después de la racha */
+function cierreMedallasEmpieza() { INS_NUEVAS.cierre = Date.now(); }
+function cierreMedallasTermina() {
+  INS_NUEVAS.cierre = 0;
+  if (!INS_NUEVAS.cola.length) return false;
+  if (!cieloEscenas()) { INS_NUEVAS.cola = []; return false; }
+  const ids = tomarNuevas();
+  setTimeout(() => abrirMomento(ids), 1000);
+  return true;
+}
+/* Al abrir el cierre se baja el 3D en silencio: si ganas una medalla, el momento parte sin esperar */
+function cieloPrecargar() {
+  if (typeof window === "undefined" || CIELO_ESTADO.sin3d || !cieloEscenas()) return;
+  cieloScripts().catch(() => {});
+}
+
+/* -------- En el recibo del día -------- */
+/* Las insignias que ganaste un día (del ledger), en el orden en que llegaron */
+function insigniasDelDia(s, iso) {
+  const g = (s.gamif && s.gamif.badges) || [];
+  return ((s.gamif && s.gamif.ledger) || [])
+    .filter(m => m && !m.anulado && typeof m.id === "string" && m.id.startsWith("insignia:") && m.ts && isoLocal(new Date(m.ts)) === iso)
+    .sort((a, b) => a.ts - b.ts).map(m => m.id.slice(9)).filter(id => g.includes(id) && findBadge(id));
+}
+/* La medalla que tienes más cerca: la de mayor avance (sin secretas; de cada serie, su próximo nivel) */
+function cieloMasCerca(s) {
+  const g = (s.gamif && s.gamif.badges) || []; let mejor = null;
+  cieloOrden().forEach(id => {
+    const b = findBadge(id); if (!b || b.secreta || g.includes(id)) return;
+    if (b.serie && b.nivel > 0 && !g.includes(idNivel(SERIES.find(x => x.id === b.serie), b.nivel - 1))) return;
+    const a = cieloAvance(b, s); if (!a || a.pct <= 0 || a.pct >= 100) return;
+    if (!mejor || a.pct > mejor.a.pct || (a.pct === mejor.a.pct && a.meta - a.v < mejor.a.meta - mejor.a.v)) mejor = { id, b, a };
+  });
+  return mejor;
+}
+function medChip(b, etiqueta) {
+  return `<span class="med-chip__m" style="--metal:${CIELO_METALES[cieloMetal(b)].css}" aria-hidden="true">${b.icon}</span>${etiqueta}`;
+}
+function reciboMedallasHtml(iso) {
+  const hoy = insigniasDelDia(STATE, iso);
+  if (hoy.length) return `<div class="recibo__meds"><span class="recibo__k">${hoy.length === 1 ? "Medalla de hoy" : "Medallas de hoy"}</span>
+    <div class="recibo__meds-l">${hoy.map(id => { const b = findBadge(id); return `<button class="med-chip" data-action="ins-ver" data-id="${id}">${medChip(b, escapeHtml(b.nombre))}</button>`; }).join("")}</div></div>`;
+  const c = cieloMasCerca(STATE); if (!c) return "";
+  return `<button class="recibo__cerca" data-action="ins-ver" data-id="${c.id}" aria-label="Lo más cerca: ${escapeAttr(c.b.nombre)}, ${escapeAttr(c.a.txt)}">
+    <span class="recibo__k">Lo más cerca</span>
+    <span class="recibo__cerca-n">${medChip(c.b, `<b>${escapeHtml(c.b.nombre)}</b>`)}<small>${escapeHtml(c.a.txt)}</small></span>
+    <span class="bar"><span class="bar__fill" style="width:${c.a.pct}%"></span></span></button>`;
 }

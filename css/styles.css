@@ -2078,3 +2078,22 @@ html .ins-cerca .btn--linea:hover { background: rgba(255, 224, 138, .1); }
 .recibo__cerca .med-chip__m { filter: grayscale(.7); opacity: .85; }
 .recibo__cerca .bar { display: block; }
 .recibo__cerca .bar__fill { display: block; }
+
+/* ---------- La casa del elefante en Progreso (casa.js) ---------- */
+.casa { position: relative; height: clamp(260px, 56vw, 420px); margin-bottom: 14px; border-radius: var(--r); overflow: hidden; isolation: isolate; background: #DCE4EA; }
+.casa__lienzo { position: absolute; inset: 0; }
+/* Mientras llega el 3D queda al centro, abajo; el motor lo pone sobre la alfombra (left, top y ancho) */
+.casa__ele { position: absolute; z-index: 1; left: 50%; top: 90%; width: min(40%, 220px); transform: translate(-50%, -93%); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.casa__ele .ele-svg { overflow: visible; }
+.casa__ele.is-noche .ele-svg { filter: brightness(.8) saturate(.9); }
+.casa__ele:focus-visible { outline: 2px solid var(--cian); outline-offset: 4px; border-radius: 12px; }
+.casa__carga { position: absolute; inset: 0 0 auto; display: none; justify-content: center; padding-top: 14px; font-size: 13px; color: #5A6B7D; }
+.casa-card.is-cargando .casa__carga { display: flex; }
+.casa-card:not(.is-sin3d) .ele-mini { display: none; }   /* con 3D, tu elefante vive en su cuarto */
+.casa-card.is-sin3d .casa { display: none; }
+.casa__repisa { display: none; margin-top: 12px; }
+.casa-card.is-sin3d .casa__repisa { display: block; }
+.casa__pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.repisa-sel { display: flex; flex-wrap: wrap; gap: 8px; }
+.repisa-sel__b.is-on { border-color: var(--cian); background: var(--cian-soft, var(--surface-3)); box-shadow: inset 0 0 0 1px var(--cian); }
+.repisa-sel__b.is-on::after { content: "✓"; margin-left: 2px; font-weight: 800; color: var(--cian-ink, var(--cian)); }

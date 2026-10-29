@@ -21,6 +21,7 @@ function crearMotorCielo(T, D) {
   const CALMO = QUIETO || LENTO;
   r.setPixelRatio(LENTO ? 1 : Math.min(window.devicePixelRatio || 1, 2));
   r.outputEncoding = T.sRGBEncoding; r.toneMapping = T.ACESFilmicToneMapping;
+  r.shadowMap.enabled = !LENTO; r.shadowMap.type = T.PCFSoftShadowMap;   // solo el sol del cuarto hace sombra
   const canvas = r.domElement; canvas.className = "cielo__canvas";
 
   /* -------- Metales, familias y figuras -------- */
@@ -211,7 +212,7 @@ function crearMotorCielo(T, D) {
   }
   function trazar(g, pts, N, esc) { const k = N / EXT * (esc || 1); g.beginPath(); pts.forEach((p, i) => { const x = N / 2 + p[0] * k, y = N / 2 - p[1] * k; if (i) g.lineTo(x, y); else g.moveTo(x, y); }); g.closePath(); }
   /* Cara o reverso: un mapa de color (grabados oscuros) y uno de relieve (blanco = alto) */
-  function caraMedalla(I, dorso) {
+  function caraMedalla(I, dorso, chica) {
     const N = 512, k = N / EXT, C = contorno(I.fam), [cA, ga] = lienzo(N), [cR, gr] = lienzo(N), c = N / 2;
     ga.fillStyle = "#BDBDBD"; ga.fillRect(0, 0, N, N); gr.fillStyle = "#000"; gr.fillRect(0, 0, N, N);
     trazar(ga, C.pts, N); ga.fillStyle = "#E0E0E0"; ga.fill();
@@ -250,18 +251,21 @@ function crearMotorCielo(T, D) {
         g.font = `800 ${chico ? 21 : 26}px ${MONO}`; g.fillText(l2, c, c + C.anillo * k + (chico ? 35 : 46));
       });
     }
-    const tA = tex(cA), tR = tex(cR, false);
+    const tA = tex(chica ? achicar(cA, chica) : cA), tR = tex(chica ? achicar(cR, chica) : cR, false);
     [tA, tR].forEach(t => { t.repeat.set(1 / EXT, 1 / EXT); t.offset.set(0.5, 0.5); });
     return [tA, tR];
   }
-  function heroMedalla(I) {
+  /* Se dibuja a 512 px y se guarda más chica (las medallas de la repisa no necesitan más) */
+  function achicar(cv, n) { const [c2, g2] = lienzo(n); g2.drawImage(cv, 0, 0, n, n); return c2; }
+  /* mini: para la repisa, solo la cara de adelante y en 256 px */
+  function heroMedalla(I, mini) {
     const g = new T.Group(), C = contorno(I.fam), M = METAL[I.metal], gano = I.gano;
-    const geo = new T.ExtrudeGeometry(C.shape, { depth: 0.12, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.045, bevelSegments: 3, curveSegments: 1 }); geo.translate(0, 0, -0.06);
-    const rugo = I.metal === "obsidiana" ? 0.1 : 0.27, colorV = new T.Color(0xDCE8F5).lerp(new T.Color(M.c), 0.5).convertSRGBToLinear();
-    g.add(new T.Mesh(geo, gano ? mat(M.c, { metalness: 1, roughness: rugo, envMapIntensity: 1.4 }) : vidrioDe(I.metal)));
-    [false, true].forEach(dorso => {
-      const [map, bumpMap] = caraMedalla(I, dorso), o = { map, bumpMap, bumpScale: 0.022, envMapIntensity: 1.4 };
-      const mt = gano ? new T.MeshStandardMaterial(Object.assign({ color: new T.Color(M.c).convertSRGBToLinear(), metalness: 1, roughness: rugo + 0.04 }, o))
+    const geo = new T.ExtrudeGeometry(C.shape, { depth: 0.12, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.045, bevelSegments: mini ? 2 : 3, curveSegments: 1 }); geo.translate(0, 0, -0.06);
+    const rugo = (I.metal === "obsidiana" ? 0.1 : 0.27) + (mini ? 0.1 : 0), metal = mini ? 0.7 : 1, colorV = new T.Color(0xDCE8F5).lerp(new T.Color(M.c), 0.5).convertSRGBToLinear();
+    g.add(new T.Mesh(geo, gano ? mat(M.c, { metalness: metal, roughness: rugo, envMapIntensity: 1.4 }) : vidrioDe(I.metal)));
+    (mini ? [false] : [false, true]).forEach(dorso => {
+      const [map, bumpMap] = caraMedalla(I, dorso, mini ? 256 : 0), o = { map, bumpMap, bumpScale: 0.022, envMapIntensity: 1.4 };
+      const mt = gano ? new T.MeshStandardMaterial(Object.assign({ color: new T.Color(M.c).convertSRGBToLinear(), metalness: metal, roughness: rugo + 0.04 }, o))
         : new T.MeshPhysicalMaterial(Object.assign({ color: colorV, metalness: 0, roughness: 0.25, transmission: 0.5, transparent: true, clearcoat: 1, clearcoatRoughness: 0.1 }, o));
       const d = new T.Mesh(new T.ShapeGeometry(C.shape), mt); d.position.z = dorso ? -0.112 : 0.112; if (dorso) d.rotation.y = Math.PI; g.add(d);
     });
@@ -682,6 +686,269 @@ function crearMotorCielo(T, D) {
     camI.fov = 30; camI.aspect = asp; camI.position.set(0, d * sp, d * cp); camI.lookAt(0, 0, 0); camI.updateProjectionMatrix();
   }
 
+  /* ============================================================
+     LA CASA DEL ELEFANTE: su cuarto en Progreso (casa.js decide qué tiene)
+     Tu elefante no es 3D: es el dibujo de siempre, puesto encima de la alfombra
+     ============================================================ */
+  const camC = new T.PerspectiveCamera(31, 1.25, 0.1, 200);
+  const CASA_V = { target: new T.Vector3(-0.3, 1.45, -0.3), dist: 16.5, yaw: 0.8, pitch: 0.5, aspecto: 1.25 };
+  const ALFOMBRA = new T.Vector3(0.55, 0, 0.6), REPISA_Y = 2.15;
+  const CAJA = new T.BoxGeometry(1, 1, 1), ESF = new T.SphereGeometry(1, 20, 14);
+  let casa = null;
+  function cm(geo, m, x, y, z) { const me = malla(geo, m, x, y, z); me.castShadow = me.receiveShadow = true; return me; }
+  function bloque(w, h, d, m, x, y, z) { const b = cm(CAJA, m, x, y, z); b.scale.set(w, h, d); return b; }
+  function texSombra() { return texCache("sombra", () => { const [c, g] = lienzo(128), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, "rgba(0,0,0,.7)"); gr.addColorStop(0.55, "rgba(0,0,0,.28)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return tex(c); }); }
+  /* La hora del día manda la luz: de día, al atardecer o de noche */
+  const franjaDe = h => (h >= 20 || h < 6 ? "noche" : h >= 18 || h < 8 ? "tarde" : "dia");
+  function texVentana(f) {
+    return texCache("ventana:" + f, () => {
+      const [c, g] = lienzo(256, 228), gr = g.createLinearGradient(0, 0, 0, 228);
+      if (f === "noche") {
+        gr.addColorStop(0, "#0B1030"); gr.addColorStop(1, "#24305E"); g.fillStyle = gr; g.fillRect(0, 0, 256, 228);
+        const rs = semilla(3); g.fillStyle = "#FFFFFF"; for (let i = 0; i < 40; i++) { g.globalAlpha = 0.4 + rs() * 0.6; g.beginPath(); g.arc(rs() * 256, rs() * 160, 0.6 + rs() * 1.2, 0, 6.283); g.fill(); }
+        g.globalAlpha = 1; g.fillStyle = "#FFF4D6"; g.beginPath(); g.arc(178, 58, 20, 0, 6.283); g.fill(); g.fillStyle = "#24305E"; g.beginPath(); g.arc(188, 52, 18, 0, 6.283); g.fill();
+        g.fillStyle = "#1A2238";
+      } else if (f === "tarde") {
+        gr.addColorStop(0, "#7FA9DE"); gr.addColorStop(0.62, "#F7C7A1"); gr.addColorStop(1, "#FFD9A6"); g.fillStyle = gr; g.fillRect(0, 0, 256, 228);
+        g.fillStyle = "#FFF1C9"; g.beginPath(); g.arc(84, 170, 30, 0, 6.283); g.fill(); g.fillStyle = "#6F8E86";
+      } else {
+        gr.addColorStop(0, "#6FA8E0"); gr.addColorStop(1, "#CDE6F7"); g.fillStyle = gr; g.fillRect(0, 0, 256, 228);
+        g.fillStyle = "#FFF6D8"; g.beginPath(); g.arc(196, 54, 22, 0, 6.283); g.fill();
+        g.fillStyle = "rgba(255,255,255,.85)"; [[90, 70, 26], [112, 66, 20], [70, 76, 18], [160, 120, 16], [176, 116, 12]].forEach(q => { g.beginPath(); g.arc(q[0], q[1], q[2], 0, 6.283); g.fill(); });
+        g.fillStyle = "#6E9A6A";
+      }
+      g.beginPath(); g.moveTo(0, 228); g.lineTo(0, 196); g.quadraticCurveTo(70, 176, 130, 200); g.quadraticCurveTo(200, 180, 256, 196); g.lineTo(256, 228); g.fill();
+      return tex(c);
+    });
+  }
+  const LUZ_FRANJA = {
+    dia: { fondo: 0xDCE4EA, hemi: [0xF2F4FF, 0x5A4A3E, 0.55], sol: [0xFFE9CF, 1.9], vent: [0xFFE2C0, 0.9], cuarto: 0, exp: 1.05 },
+    tarde: { fondo: 0xE6D6CB, hemi: [0xFFE4D2, 0x5A4A3E, 0.45], sol: [0xFFC9A0, 1.35], vent: [0xFFB27A, 1.4], cuarto: 0.25, exp: 1.0 },
+    noche: { fondo: 0x151A2C, hemi: [0x7B8BC4, 0x1B1A22, 0.3], sol: [0x9FB2FF, 0.35], vent: [0x9FB2FF, 0.5], cuarto: 1.1, exp: 1.0 },
+  };
+  const MESES_C = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+  /* El calendario de la pared: el mes de hoy, con un punto en cada día que cerraste */
+  function texCalendario(hoy, cerrados) {
+    const [c, g] = lienzo(256, 320), y = hoy.getFullYear(), m = hoy.getMonth(), d0 = (new Date(y, m, 1).getDay() + 6) % 7, nd = new Date(y, m + 1, 0).getDate();
+    g.fillStyle = "#FBFAF6"; g.fillRect(0, 0, 256, 320); g.fillStyle = "#E4532F"; g.fillRect(0, 0, 256, 64);
+    g.fillStyle = "#FFFFFF"; g.font = "800 28px " + UI; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(MESES_C[m], 128, 34);
+    g.font = "700 13px " + MONO; g.fillStyle = "#9A948A"; "LMMJVSD".split("").forEach((l, i) => g.fillText(l, 26 + i * 34, 82));
+    for (let dia = 1; dia <= nd; dia++) {
+      const pos = d0 + dia - 1, x = 26 + (pos % 7) * 34, yy = 108 + Math.floor(pos / 7) * 38, iso = `${y}-${String(m + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+      if (dia === hoy.getDate()) { g.strokeStyle = "#E4532F"; g.lineWidth = 3; g.beginPath(); g.arc(x, yy, 15, 0, 6.283); g.stroke(); }
+      g.fillStyle = "#3A3A3E"; g.font = "600 16px " + MONO; g.fillText(String(dia), x, yy - 2);
+      if (cerrados.has(iso)) { g.fillStyle = "#3E9C95"; g.beginPath(); g.arc(x, yy + 11, 3.2, 0, 6.283); g.fill(); }
+    }
+    return tex(c);
+  }
+  function armarCasa() {
+    if (casa) return casa;
+    const e = new T.Scene(), rnd = semilla(5);
+    casa = { escena: e, franja: null, claves: {}, lugares: [], cosas: {} };
+    e.environment = envEstudio();
+    const hemi = new T.HemisphereLight(0xF2F4FF, 0x5A4A3E, 0.55); e.add(hemi);
+    const sol = new T.DirectionalLight(0xFFE9CF, 1.9); sol.position.set(7, 11, 8); e.add(sol);
+    if (!LENTO) {
+      sol.castShadow = true; const n = MOVIL ? 1024 : 2048; sol.shadow.mapSize.set(n, n);
+      const sc = sol.shadow.camera; sc.left = sc.bottom = -7; sc.right = sc.top = 7; sc.near = 1; sc.far = 40; sc.updateProjectionMatrix();
+      sol.shadow.bias = -0.0004; sol.shadow.normalBias = 0.03;
+    }
+    const vent = new T.PointLight(0xFFD2A0, 1.0, 7, 1.5); vent.position.set(-2.9, 2.5, 1.3); e.add(vent);
+    const cuarto = new T.PointLight(0xFFC98A, 0, 9, 1.6); cuarto.position.set(0.4, 3.6, 0.2); e.add(cuarto);
+    casa.luz = { hemi, sol, vent, cuarto };
+    // Piso de madera, dos muros a rayas y zócalos
+    const [cp, gp] = lienzo(512);
+    for (let k = 0; k < 8; k++) {
+      const tono = 196 + Math.floor(rnd() * 22); gp.fillStyle = `rgb(${tono},${Math.floor(tono * 0.76)},${Math.floor(tono * 0.54)})`; gp.fillRect(0, k * 64, 512, 64);
+      gp.strokeStyle = "rgba(90,60,30,.12)"; gp.lineWidth = 1.5; for (let v = 0; v < 5; v++) { const yv = k * 64 + 8 + v * 11 + rnd() * 4; gp.beginPath(); gp.moveTo(0, yv); gp.bezierCurveTo(150, yv + rnd() * 6 - 3, 350, yv + rnd() * 6 - 3, 512, yv); gp.stroke(); }
+      gp.fillStyle = "rgba(70,45,25,.55)"; gp.fillRect(0, k * 64, 512, 2); gp.fillRect(rnd() * 450, k * 64, 2, 64);
+    }
+    const madPiso = mat(0xFFFFFF, { map: tex(cp), roughness: 0.7 }), canto = mat(0x8E6440);
+    const piso = new T.Mesh(CAJA, [canto, canto, madPiso, canto, canto, canto]); piso.scale.set(7.3, 0.3, 7.3); piso.position.set(-0.15, -0.15, -0.15); piso.receiveShadow = true; e.add(piso);
+    const [cw, gw] = lienzo(256); gw.fillStyle = "#DCE3E7"; gw.fillRect(0, 0, 256, 256); gw.fillStyle = "#D2DADF"; for (let k = 0; k < 8; k += 2) gw.fillRect(k * 32, 0, 32, 256);
+    const tw = tex(cw); tw.wrapS = tw.wrapT = T.RepeatWrapping; tw.repeat.set(5, 3);
+    const muro = mat(0xFFFFFF, { map: tw, roughness: 0.95 }), muroCanto = mat(0xEDEAE4);
+    const mi = new T.Mesh(CAJA, [muro, muroCanto, muroCanto, muroCanto, muroCanto, muroCanto]); mi.scale.set(0.3, 4.2, 7.3); mi.position.set(-3.65, 2.1, -0.15); mi.receiveShadow = true; e.add(mi);
+    const mf = new T.Mesh(CAJA, [muroCanto, muroCanto, muroCanto, muroCanto, muro, muroCanto]); mf.scale.set(7.3, 4.2, 0.3); mf.position.set(-0.15, 2.1, -3.65); mf.receiveShadow = true; e.add(mf);
+    const zoc = mat(0xF6F4EF); e.add(bloque(0.06, 0.16, 7.0, zoc, -3.47, 0.08, 0)); e.add(bloque(7.0, 0.16, 0.06, zoc, 0, 0.08, -3.47));
+    // La alfombra (donde se para tu elefante) y su sombra
+    const [la, ga] = lienzo(512);
+    [[256, "#C9472C"], [236, "#E4532F"], [206, "#F4EDE3"], [190, "#E4532F"], [120, "#D24A2D"], [104, "#F4EDE3"], [92, "#E4532F"]].forEach(c => { ga.fillStyle = c[1]; ga.beginPath(); ga.arc(256, 256, c[0], 0, 6.283); ga.fill(); });
+    const alf = new T.Mesh(new T.CircleGeometry(1.75, 64), mat(0xFFFFFF, { map: tex(la), roughness: 1 })); alf.rotation.x = -Math.PI / 2; alf.position.set(ALFOMBRA.x, 0.012, ALFOMBRA.z); alf.receiveShadow = true; e.add(alf);
+    const sombraE = new T.Mesh(new T.PlaneGeometry(2.6, 1.5), new T.MeshBasicMaterial({ map: texSombra(), transparent: true, opacity: 0.35, depthWrite: false })); sombraE.rotation.x = -Math.PI / 2; sombraE.position.set(ALFOMBRA.x, 0.02, ALFOMBRA.z); e.add(sombraE);
+    // La ventana (cambia con la hora) con sus cortinas
+    const madera = mat(0xB98656, { roughness: 0.7 }), madOsc = mat(0x8C603A, { roughness: 0.75 }), marcoV = mat(0xF7F5F0, { roughness: 0.6 });
+    casa.ventana = new T.Mesh(new T.PlaneGeometry(1.7, 1.5), new T.MeshBasicMaterial({ map: texVentana("dia"), toneMapped: false })); casa.ventana.rotation.y = Math.PI / 2; casa.ventana.position.set(-3.49, 2.45, 1.3); e.add(casa.ventana);
+    e.add(bloque(0.1, 0.1, 1.86, marcoV, -3.46, 3.24, 1.3)); e.add(bloque(0.1, 0.1, 1.86, marcoV, -3.46, 1.66, 1.3)); e.add(bloque(0.1, 1.6, 0.1, marcoV, -3.46, 2.45, 0.42)); e.add(bloque(0.1, 1.6, 0.1, marcoV, -3.46, 2.45, 2.18));
+    e.add(bloque(0.06, 1.5, 0.05, marcoV, -3.47, 2.45, 1.3)); e.add(bloque(0.06, 0.05, 1.7, marcoV, -3.47, 2.45, 1.3)); e.add(bloque(0.3, 0.07, 2.0, marcoV, -3.35, 1.6, 1.3));
+    const cortina = mat(0xEFE9DF, { roughness: 1 }); e.add(bloque(0.08, 2.3, 0.4, cortina, -3.4, 2.3, 0.08)); e.add(bloque(0.08, 2.3, 0.4, cortina, -3.4, 2.3, 2.52));
+    // El calendario con tus días cerrados
+    casa.calendario = new T.Mesh(new T.PlaneGeometry(0.62, 0.78), mat(0xFFFFFF, { roughness: 0.8 })); casa.calendario.rotation.y = Math.PI / 2; casa.calendario.position.set(-3.48, 1.6, -1.75); casa.calendario.receiveShadow = true; e.add(casa.calendario);
+    // La repisa: cinco lugares para tus medallas
+    e.add(bloque(3.3, 0.07, 0.42, madera, 0.95, REPISA_Y, -3.28));
+    [-0.55, 2.45].forEach(x => { const sq = bloque(0.06, 0.26, 0.3, madOsc, x, REPISA_Y - 0.15, -3.35); e.add(sq); });
+    for (let i = 0; i < 5; i++) {
+      const x = -0.25 + i * 0.6, base = bloque(0.3, 0.045, 0.18, madOsc, x, REPISA_Y + 0.057, -3.22); e.add(base);
+      const g = new T.Group(); g.position.set(x, REPISA_Y + 0.42, -3.2); g.rotation.y = 0.55; e.add(g);
+      casa.lugares.push({ i, g, pos: new T.Vector3(x, REPISA_Y + 0.4, -3.2), id: null, fase: i * 1.3 });
+    }
+    // Lo que llega con el rango
+    const C = casa.cosas;
+    { // 🪴 planta
+      const p = new T.Group(); p.position.set(2.85, 0, -2.85); e.add(p);
+      p.add(cm(new T.LatheGeometry([[0, 0], [0.2, 0], [0.27, 0.46], [0.3, 0.5], [0, 0.5]].map(q => new T.Vector2(q[0], q[1])), 32), mat(0x2E3035, { roughness: 0.6 })));
+      const hojas = new T.Group(); hojas.position.y = 0.48; p.add(hojas);
+      const verde = [mat(0x5E9563, { roughness: 0.8 }), mat(0x7AAE6E, { roughness: 0.8 })];
+      for (let k = 0; k < 9; k++) { const a = k / 9 * 6.283, h = cm(ESF, verde[k % 2]); h.scale.set(0.07, 0.42 + (k % 3) * 0.08, 0.16); h.position.set(Math.cos(a) * 0.12, 0.32, Math.sin(a) * 0.12); h.rotation.set(Math.sin(a) * 0.5, -a, Math.cos(a) * -0.5, "YXZ"); hojas.add(h); }
+      C.planta = p; p.userData.hojas = hojas;
+    }
+    { // 🕰️ reloj de pared, con la hora de verdad
+      const [lr, g] = lienzo(256); g.fillStyle = "#FBFAF6"; g.beginPath(); g.arc(128, 128, 128, 0, 6.283); g.fill();
+      g.strokeStyle = "#2A2A2E"; for (let k = 0; k < 60; k++) { const a = k / 60 * 6.283, l = k % 5 ? 8 : 20; g.lineWidth = k % 5 ? 2 : 6; g.beginPath(); g.moveTo(128 + Math.sin(a) * 116, 128 - Math.cos(a) * 116); g.lineTo(128 + Math.sin(a) * (116 - l), 128 - Math.cos(a) * (116 - l)); g.stroke(); }
+      g.fillStyle = "#E4532F"; g.font = "700 18px " + MONO; g.textAlign = "center"; g.fillText("RUMBO", 128, 176);
+      const rl = new T.Group(); rl.position.set(-0.75, 3.15, -3.46); e.add(rl);
+      const aro = cm(new T.CylinderGeometry(0.4, 0.4, 0.07, 48), matMetal("bronce")); aro.rotation.x = Math.PI / 2; rl.add(aro);
+      const cara = new T.Mesh(new T.CircleGeometry(0.35, 48), mat(0xFFFFFF, { map: tex(lr), roughness: 0.6 })); cara.position.z = 0.037; rl.add(cara);
+      const negro = mat(0x141416, { roughness: 0.3 });
+      const aguja = (largo, ancho) => { const p = new T.Group(); p.position.z = 0.045; const m = bloque(ancho, largo, 0.012, negro, 0, largo / 2 - 0.03, 0); m.castShadow = false; p.add(m); rl.add(p); return p; };
+      rl.userData.h = aguja(0.2, 0.03); rl.userData.m = aguja(0.29, 0.02); C.reloj = rl;
+    }
+    { // 📚 biblioteca: los libros son los que terminaste
+      const b = new T.Group(); b.position.set(-2.35, 0, -3.2); e.add(b);
+      b.add(bloque(0.06, 2.7, 0.55, madera, -0.92, 1.35, 0)); b.add(bloque(0.06, 2.7, 0.55, madera, 0.92, 1.35, 0)); b.add(bloque(1.9, 2.7, 0.04, madOsc, 0, 1.35, -0.255));
+      [0.04, 0.92, 1.8, 2.68].forEach(y => b.add(bloque(1.84, 0.06, 0.52, madera, 0, y, 0.01)));
+      b.userData.libros = new T.Group(); b.add(b.userData.libros); b.userData.n = -1; C.biblioteca = b;
+    }
+    { // 🐷 mesita con alcancía, bajo la ventana
+      const a = new T.Group(); e.add(a);
+      a.add(cm(new T.CylinderGeometry(0.42, 0.42, 0.05, 32), madera, -2.85, 0.68, 1.3)); a.add(cm(new T.CylinderGeometry(0.05, 0.07, 0.66, 12), madOsc, -2.85, 0.33, 1.3)); a.add(cm(new T.CylinderGeometry(0.25, 0.27, 0.04, 24), madOsc, -2.85, 0.02, 1.3));
+      const ch = new T.Group(); ch.position.set(-2.85, 0.705, 1.3); ch.rotation.y = -0.5; a.add(ch);
+      const mc = matMetal("bronce"), negro = mat(0x141416, { roughness: 0.3 });
+      const cu = cm(ESF, mc, 0, 0.26, 0); cu.scale.set(0.27, 0.22, 0.22); ch.add(cu);
+      const ho = cm(new T.CylinderGeometry(0.07, 0.075, 0.08, 20), mc, 0.29, 0.27, 0); ho.rotation.z = Math.PI / 2; ch.add(ho);
+      [1, -1].forEach(s => {
+        ch.add(cm(new T.ConeGeometry(0.05, 0.09, 10), mc, 0.15, 0.45, 0.08 * s));
+        ch.add(cm(new T.CylinderGeometry(0.04, 0.04, 0.1, 10), mc, 0.13, 0.05, 0.1 * s)); ch.add(cm(new T.CylinderGeometry(0.04, 0.04, 0.1, 10), mc, -0.13, 0.05, 0.1 * s));
+        const oj = cm(ESF, negro, 0.22, 0.33, 0.085 * s); oj.scale.setScalar(0.022); ch.add(oj);
+      });
+      ch.add(bloque(0.13, 0.012, 0.025, negro, 0, 0.48, 0)); C.alcancia = a;
+    }
+    { // 🖼️ cuadro de la cumbre, sobre la repisa
+      const [lc, g] = lienzo(256, 192), gr = g.createLinearGradient(0, 0, 0, 192); gr.addColorStop(0, "#F7C7A1"); gr.addColorStop(1, "#FBEFE2"); g.fillStyle = gr; g.fillRect(0, 0, 256, 192);
+      g.fillStyle = "#FFF1C9"; g.beginPath(); g.arc(186, 64, 22, 0, 6.283); g.fill();
+      g.fillStyle = "#8FA3B8"; g.beginPath(); g.moveTo(0, 192); g.lineTo(70, 96); g.lineTo(118, 150); g.lineTo(176, 70); g.lineTo(256, 192); g.fill();
+      g.fillStyle = "#2E3D6B"; g.beginPath(); g.moveTo(40, 192); g.lineTo(128, 56); g.lineTo(216, 192); g.fill();
+      g.fillStyle = "#FFFFFF"; g.beginPath(); g.moveTo(108, 87); g.lineTo(128, 56); g.lineTo(148, 87); g.lineTo(136, 82); g.lineTo(128, 92); g.lineTo(120, 82); g.fill();
+      g.fillStyle = "#E4532F"; g.fillRect(127, 30, 2.5, 28); g.beginPath(); g.moveTo(129.5, 30); g.lineTo(146, 36); g.lineTo(129.5, 42); g.fill();
+      const q = new T.Group(); q.position.set(-3.47, 2.55, -0.45); q.rotation.y = Math.PI / 2; e.add(q);
+      q.add(bloque(1.04, 0.8, 0.05, madOsc, 0, 0, 0));
+      const lam = new T.Mesh(new T.PlaneGeometry(0.92, 0.68), mat(0xFFFFFF, { map: tex(lc), roughness: 0.8 })); lam.position.z = 0.027; q.add(lam); C.cuadro = q;
+    }
+    { // 🏆 copa dorada en su pedestal y una guirnalda de luces
+      const c = new T.Group(); e.add(c);
+      c.add(cm(new T.CylinderGeometry(0.32, 0.36, 0.9, 32), mat(0xEDE6DA, { roughness: 0.5 }), 2.45, 0.45, -1.3));
+      const copa = cm(new T.LatheGeometry([[0, 0], [0.11, 0], [0.11, 0.03], [0.04, 0.05], [0.025, 0.14], [0.03, 0.18], [0.1, 0.22], [0.13, 0.32], [0.12, 0.42], [0.1, 0.42], [0.105, 0.33], [0, 0.3]].map(q => new T.Vector2(q[0], q[1])), 32), matMetal("oro"), 2.45, 0.9, -1.3);
+      copa.scale.setScalar(1.6); c.add(copa);
+      const ln = new T.Group(); c.add(ln); const pts = [], focos = [];
+      for (let i = 0; i <= 22; i++) { const t = i / 22, x = -3.3 + t * 6.5, y = 3.9 - Math.sin(t * Math.PI * 3) ** 2 * 0.22; pts.push(new T.Vector3(x, y, -3.44)); }
+      ln.add(new T.Line(new T.BufferGeometry().setFromPoints(pts), new T.LineBasicMaterial({ color: 0x3A3330 })));
+      const colores = [0xFFD27A, 0xFF9F6B, 0xFFF1C9];
+      pts.forEach((p, i) => { if (i % 2) return; const f = new T.Mesh(ESF, new T.MeshBasicMaterial({ color: colores[i % 3], toneMapped: false })); f.scale.setScalar(0.05); f.position.copy(p).add(new T.Vector3(0, -0.06, 0.03)); ln.add(f); focos.push(f); });
+      c.userData.luces = ln; c.userData.focos = focos; C.copa = c;
+    }
+    return casa;
+  }
+  /* Los libros de la biblioteca: uno por libro que terminaste (hasta llenarla) */
+  function ponerLibros(n) {
+    const b = casa.cosas.biblioteca, g = b.userData.libros; if (b.userData.n === n) return;
+    b.userData.n = n;
+    while (g.children.length) g.remove(g.children[0]);   // caja y colores son compartidos: no hay nada que liberar
+    const mats = casa.matsLibro || (casa.matsLibro = [0xE4532F, 0x2E3D6B, 0xD9A441, 0x6E9A6A, 0xEDE3D0, 0x3B3B40, 0x9C4A3A, 0x5C7FA8].map(c => mat(c, { roughness: 0.7 })));
+    const rnd = semilla(11); let k = 0;
+    [0.07, 0.95, 1.83].forEach(y => {
+      let x = -0.86;
+      while (k < n && x < 0.86) {
+        const w = 0.06 + rnd() * 0.06, h = 0.48 + rnd() * 0.24; if (x + w > 0.86) break;
+        const lb = bloque(w, h, 0.36 + rnd() * 0.06, mats[Math.floor(rnd() * mats.length)], x + w / 2, y + h / 2, 0.02); g.add(lb); x += w + 0.004; k++;
+      }
+    });
+  }
+  /* Las medallas de la repisa (las mismas que se abren de cerca) o un lugar libre */
+  function ponerRepisa(ids) {
+    casa.lugares.forEach((L, i) => {
+      const id = ids[i] || null; if (L.id === id && L.listo) return;
+      while (L.g.children.length) { const o = L.g.children.pop(); liberar(o); }
+      L.id = id; L.listo = true;
+      if (id) {
+        const I = D.info(id); if (!I) return;
+        const m = heroMedalla(I, true); m.scale.setScalar(0.3); m.traverse(o => { if (o.isMesh) o.castShadow = true; }); L.g.add(m);
+      } else {
+        const aro = new T.Mesh(new T.TorusGeometry(0.85, 0.06, 10, 40), vidrioDe("plata")); aro.scale.setScalar(0.3); L.g.add(aro);
+      }
+    });
+  }
+  function actualizarCasa() {
+    const h = new Date(), f = franjaDe(h.getHours()), L = LUZ_FRANJA[f];
+    if (casa.franja !== f) {
+      casa.franja = f; casa.escena.background = new T.Color(L.fondo);
+      casa.ventana.material.map = texVentana(f); casa.ventana.material.needsUpdate = true;
+      const { hemi, sol, vent, cuarto } = casa.luz;
+      hemi.color.set(L.hemi[0]); hemi.groundColor.set(L.hemi[1]); hemi.intensity = L.hemi[2];
+      sol.color.set(L.sol[0]); sol.intensity = L.sol[1]; vent.color.set(L.vent[0]); vent.intensity = L.vent[1]; cuarto.intensity = L.cuarto;
+    }
+    const cosas = new Set(D.cosas());
+    Object.keys(casa.cosas).forEach(k => { casa.cosas[k].visible = cosas.has(k); });
+    if (cosas.has("biblioteca")) ponerLibros(Math.min(48, D.libros()));
+    const cerr = D.cerrados ? D.cerrados() : [], claveCal = h.toDateString() + cerr.length;
+    if (casa.claves.cal !== claveCal) {
+      casa.claves.cal = claveCal;
+      if (casa.calendario.material.map) casa.calendario.material.map.dispose();
+      casa.calendario.material.map = texCalendario(h, new Set(cerr)); casa.calendario.material.needsUpdate = true;
+    }
+    ponerRepisa(D.repisa());
+    ponerHora(true);
+    pedir();
+  }
+  let segCasa = -1;
+  function ponerHora(forzar) {
+    const r0 = casa.cosas.reloj; if (!r0 || !r0.visible) return;
+    const d = new Date(), s0 = d.getSeconds(); if (!forzar && s0 === segCasa) return; segCasa = s0;
+    const mi = d.getMinutes() + s0 / 60; r0.userData.m.rotation.z = -mi / 60 * 6.283; r0.userData.h.rotation.z = -((d.getHours() % 12) + mi / 60) / 12 * 6.283;
+  }
+  function camaraCasa() {
+    const asp = ancho / alto, rel = CASA_V.aspecto / asp, d = CASA_V.dist * Math.max(1, Math.pow(rel, 0.92)), t = CASA_V.target;
+    camC.aspect = asp; camC.position.set(t.x + d * Math.sin(CASA_V.yaw) * Math.cos(CASA_V.pitch), t.y + d * Math.sin(CASA_V.pitch), t.z + d * Math.cos(CASA_V.yaw) * Math.cos(CASA_V.pitch));
+    camC.lookAt(t); camC.updateProjectionMatrix(); camC.updateMatrixWorld();
+  }
+  const PC = new T.Vector3();
+  function enPantallaC(v) { PC.copy(v).project(camC); return PC.z < 1 && PC.z > -1 ? [(PC.x + 1) / 2 * ancho, (1 - PC.y) / 2 * alto] : null; }
+  /* Dónde va tu elefante: sobre la alfombra, del ancho que le toca a esa distancia */
+  function anclarElefante() {
+    camaraCasa();
+    const lado = new T.Vector3(Math.cos(CASA_V.yaw), 0, -Math.sin(CASA_V.yaw)).multiplyScalar(1.3);
+    const p = enPantallaC(ALFOMBRA), a = enPantallaC(ALFOMBRA.clone().add(lado)), b = enPantallaC(ALFOMBRA.clone().sub(lado));
+    if (!p || !a || !b) return D.ancla(null);
+    D.ancla({ x: p[0], y: p[1] + 0.06 * Math.hypot(a[0] - b[0], a[1] - b[1]), ancho: Math.hypot(a[0] - b[0], a[1] - b[1]) * 1.45, noche: casa.franja === "noche" });
+  }
+  /* ¿Qué lugar de la repisa hay bajo el dedo? */
+  function lugarEn(x, y) {
+    let mejor = null, dmin = TACTIL ? 36 : 28;
+    casa.lugares.forEach(L => { const p = enPantallaC(L.pos); if (!p) return; const d = Math.hypot(p[0] - x, p[1] - y); if (d < dmin) { dmin = d; mejor = L; } });
+    return mejor;
+  }
+  let hoverL = null;
+  function hoverCasa(L) {
+    if (L === hoverL) return;
+    hoverL = L; canvas.style.cursor = L ? "pointer" : "";
+    const el = document.getElementById("casaEtq"); if (!el) return;
+    if (!L) { el.hidden = true; return; }
+    const I = L.id ? D.info(L.id) : null, p = enPantallaC(L.pos); if (!p) { el.hidden = true; return; }
+    el.innerHTML = "<b></b><span></span>";
+    el.querySelector("b").textContent = I ? I.b.nombre : "Lugar libre";
+    el.querySelector("span").textContent = I ? (I.fecha ? "Ganada el " + I.fecha : "Ganada") : "Toca para elegir una medalla";
+    el.style.left = p[0] + "px"; el.style.top = (p[1] - 14) + "px"; el.hidden = false;
+  }
+
   /* Al subir la medalla, la cámara pasa de mirarla a ella a mirar su constelación entera */
   const P1 = new T.Vector3(), M1 = new T.Vector3();
   function mirarFigura(v) {
@@ -709,6 +976,7 @@ function crearMotorCielo(T, D) {
     if (!caja) return;
     const b = caja.getBoundingClientRect(), w = Math.max(1, Math.round(b.width)), h = Math.max(1, Math.round(b.height));
     if (w !== ancho || h !== alto || canvas.width < 2) { ancho = w; alto = h; r.setSize(w, h, false); }
+    if (modo === "casa" && casa) anclarElefante();
     pedir();
   }
   function arrancar() { if (!raf && modo) { ultimo = 0; raf = requestAnimationFrame(cuadro); } }
@@ -718,9 +986,10 @@ function crearMotorCielo(T, D) {
     raf = 0;
     if (!modo || !caja || !document.body.contains(canvas)) return;
     if (LENTO && ultimo && now - ultimo < 66) { raf = requestAnimationFrame(cuadro); return; }   // por software: unos 15 cuadros por segundo
+    if (modo === "casa" && ultimo && now - ultimo < 32) { raf = requestAnimationFrame(cuadro); return; }   // el cuarto se mueve poco: 30 bastan
     const dt = Math.min(LENTO ? 0.1 : 0.05, ultimo ? (now - ultimo) / 1000 : 0.016); ultimo = now;
     const ocupado = !A.vacio() || arrastre || (modo === "cielo" && etqNueva) || (modo === "cerca" && hero && !hero.A.vacio()) || Math.abs(giro.vel) > 1e-4 || (modo === "cerca" && Math.abs(giro.obj - giro.rot) > 1e-3);
-    if (!visible && modo === "cielo") return;   // el cielo quedó fuera de la vista: vuelve al reaparecer
+    if (!visible && modo !== "cerca") return;   // quedó fuera de la vista: vuelve al reaparecer
     if (CALMO && !ocupado && !sucio) return;   // sin movimiento: se dibuja solo cuando algo cambia (pedir)
     raf = requestAnimationFrame(cuadro);
     sucio = false; reloj += dt; A.tick(dt);
@@ -754,6 +1023,13 @@ function crearMotorCielo(T, D) {
       hero.A.tick(dt); hero.anim(reloj); encuadrar();
       if (hero.vista && hero.vista.k > 0) mirarFigura(hero.vista);
       r.toneMappingExposure = 1; r.render(est.escena, camI);
+    } else if (modo === "casa" && casa) {
+      camaraCasa(); ponerHora(false);
+      // las medallas de la repisa se mecen apenas, para que el metal brille; la planta respira
+      casa.lugares.forEach(L => { L.g.rotation.y = 0.55 + (CALMO ? 0 : Math.sin(reloj * 0.6 + L.fase) * 0.22); });
+      const p = casa.cosas.planta; if (p.visible) p.userData.hojas.rotation.y = CALMO ? 0 : Math.sin(reloj * 0.4) * 0.05;
+      const c = casa.cosas.copa; if (c.visible) c.userData.focos.forEach((f, i) => { f.material.color.setHSL([0.11, 0.05, 0.13][i % 3], 1, CALMO ? 0.72 : 0.62 + 0.16 * Math.sin(reloj * 2 + i)); });
+      r.toneMappingExposure = LUZ_FRANJA[casa.franja].exp; r.render(casa.escena, camC);
     }
   }
 
@@ -766,7 +1042,11 @@ function crearMotorCielo(T, D) {
   });
   canvas.addEventListener("pointermove", ev => {
     const b = canvas.getBoundingClientRect(), x = ev.clientX - b.left, y = ev.clientY - b.top;
-    if (!arrastre || arrastre.id !== ev.pointerId) { if (modo === "cielo" && ev.pointerType === "mouse") hover(nodoEn(x, y)); return; }
+    if (!arrastre || arrastre.id !== ev.pointerId) {
+      if (ev.pointerType === "mouse") { if (modo === "cielo") hover(nodoEn(x, y)); else if (modo === "casa" && casa) hoverCasa(lugarEn(x, y)); }
+      return;
+    }
+    if (modo === "casa") { if (Math.hypot(ev.clientX - arrastre.x0, ev.clientY - arrastre.y0) > 6) arrastre.movido = true; return; }
     const dx = ev.clientX - arrastre.x, dy = ev.clientY - arrastre.y; arrastre.x = ev.clientX; arrastre.y = ev.clientY;
     if (!arrastre.movido && Math.hypot(ev.clientX - arrastre.x0, ev.clientY - arrastre.y0) > 6) { arrastre.movido = true; hover(null); }
     if (!arrastre.movido) return;
@@ -783,21 +1063,29 @@ function crearMotorCielo(T, D) {
   const soltarDedo = (ev, cancelado) => {
     if (!arrastre || arrastre.id !== ev.pointerId) return;
     const a = arrastre; arrastre = null;
-    if (cancelado || a.movido || modo !== "cielo") return;
-    const b = canvas.getBoundingClientRect(), E = nodoEn(ev.clientX - b.left, ev.clientY - b.top);
+    if (cancelado || a.movido) return;
+    const b = canvas.getBoundingClientRect(), x = ev.clientX - b.left, y = ev.clientY - b.top;
+    if (modo === "casa" && casa) { const L = lugarEn(x, y); if (L) { hoverCasa(null); if (L.id) D.tocar(L.id); else D.vacio(); } return; }
+    if (modo !== "cielo") return;
+    const E = nodoEn(x, y);
     if (E) { hover(null); D.tocar(E.id); }
   };
   canvas.addEventListener("pointerup", ev => soltarDedo(ev, false));
   canvas.addEventListener("pointercancel", ev => soltarDedo(ev, true));
-  canvas.addEventListener("pointerleave", ev => { if (ev.pointerType === "mouse" && !arrastre) hover(null); });
+  canvas.addEventListener("pointerleave", ev => { if (ev.pointerType === "mouse" && !arrastre) { hover(null); if (casa) hoverCasa(null); } });
   canvas.addEventListener("wheel", ev => { if (modo !== "cerca") return; ev.preventDefault(); giro.zoom = limitar(giro.zoom * (1 + ev.deltaY * 0.0012), 0.6, 1.5); pedir(); }, { passive: false });
   canvas.addEventListener("webglcontextlost", ev => { ev.preventDefault(); detener(); modo = null; D.perdido(); });
 
   /* -------- Lo que usa cielo.js -------- */
   return {
-    montar(c) { modo = "cielo"; canvas.style.touchAction = "pan-y"; colgar(c); actualizar(); arrancar(); },
+    montar(c, lugar) {
+      if (lugar === "casa") { modo = "casa"; canvas.style.touchAction = "pan-y"; armarCasa(); actualizarCasa(); colgar(c); anclarElefante(); arrancar(); return; }
+      modo = "cielo"; canvas.style.touchAction = "pan-y"; colgar(c); actualizar(); arrancar();
+    },
+    /* Dónde está un lugar de la repisa en el lienzo (para las pruebas) */
+    dondeRepisa(i) { if (modo !== "casa" || !casa || !casa.lugares[i]) return null; camaraCasa(); return enPantallaC(casa.lugares[i].pos); },
     soltar() {
-      modo = null; hover(null); detener();
+      modo = null; hover(null); if (casa) hoverCasa(null); detener();
       // lo que quedaba por animar (una estrella fugaz a medio camino) se termina de golpe
       A.l.length = 0; etqNueva = null; fugaz.activa = fugaz.cabeza.visible = fugaz.estela.visible = false;
       Object.values(cielo.nodos).forEach(E => { E.pop = 1; });

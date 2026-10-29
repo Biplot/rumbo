@@ -156,6 +156,10 @@ function cieloMotor() {
         CIELO_ESTADO.motor = crearMotorCielo(window.THREE, {
           orden: cieloOrden, info: id => cieloInfo(id), ganadas: () => new Set(STATE.gamif.badges || []), familias: CIELO_FAMILIAS,
           tocar: id => abrirInsignia(id), perdido: cieloSin3d, visto: cieloVisto, guardarVisto: cieloGuardarVisto,
+          // La casa del elefante (casa.js)
+          repisa: () => (typeof repisaIds === "function" ? repisaIds(STATE) : []), cosas: () => (typeof casaCosas === "function" ? casaCosas(STATE) : []),
+          libros: () => (typeof lg_libros === "function" ? lg_libros(STATE) : 0), vacio: () => { if (typeof openRepisa === "function") { REPISA_SEL = null; openRepisa(); } },
+          ancla: casaAnclaEle, cerrados: () => Object.keys(STATE.ritual.dias || {}).filter(k => STATE.ritual.dias[k] && STATE.ritual.dias[k].cerrado),
         });
         return CIELO_ESTADO.motor;
       })
@@ -170,26 +174,40 @@ function cieloMotor() {
 function cieloSin3d() {
   if (window.THREE) CIELO_ESTADO.sin3d = true;
   const sec = document.getElementById("cielo"); if (sec) sec.classList.add("is-sin3d");
+  const casa = document.querySelector(".casa-card"); if (casa) casa.classList.add("is-sin3d");
   if (CERCA.id) pintarCerca();
+}
+/* Tu elefante (el dibujo de siempre) se para sobre la alfombra del cuarto: el motor dice dónde */
+function casaAnclaEle(a) {
+  const el = document.getElementById("casaEle"); if (!el) return;
+  if (!a) { el.classList.remove("is-puesto"); return; }
+  el.style.left = a.x + "px"; el.style.top = a.y + "px"; el.style.width = a.ancho + "px";
+  el.classList.add("is-puesto"); el.classList.toggle("is-noche", !!a.noche);
 }
 
 
-/* Tras cada render: en Insignias se monta (o se vuelve a colgar) el cielo; fuera, se pausa.
+/* Dónde vive el 3D en cada pantalla: el cielo en Insignias y el cuarto del elefante en Progreso */
+const CIELO_LUGARES = { insignias: { lugar: "cielo", lienzo: "cieloLienzo", marco: ".cielo" }, recompensas: { lugar: "casa", lienzo: "casaLienzo", marco: ".casa-card" } };
+/* Tras cada render se monta (o se vuelve a colgar) el 3D de la pantalla; fuera de ellas, se pausa.
    Una ficha abierta manda: sigue abierta mientras no cambies de pantalla */
 function cieloTrasRender(route) {
   if (CERCA.id && route !== CERCA.ruta) cerrarInsignia(true);
   if (CERCA.id) { pintarCerca(true); return; }
-  if (route !== "insignias") { if (CIELO_ESTADO.motor) CIELO_ESTADO.motor.soltar(); return; }
-  const caja = document.getElementById("cieloLienzo"); if (!caja) return;
+  montarLugar(route);
+}
+function montarLugar(route) {
+  const L = CIELO_LUGARES[route];
+  if (!L) { if (CIELO_ESTADO.motor) CIELO_ESTADO.motor.soltar(); return; }
+  const caja = document.getElementById(L.lienzo); if (!caja) return;
   if (CIELO_ESTADO.sin3d) return;
-  if (CIELO_ESTADO.motor) { CIELO_ESTADO.motor.montar(caja); return; }
-  caja.closest(".cielo").classList.add("is-cargando");
+  if (CIELO_ESTADO.motor) { CIELO_ESTADO.motor.montar(caja, L.lugar); return; }
+  caja.closest(L.marco).classList.add("is-cargando");
   cieloMotor().then(m => {
-    const c2 = document.getElementById("cieloLienzo");
-    if (c2) c2.closest(".cielo").classList.remove("is-cargando");
-    if (c2 && CURRENT === "insignias" && !CERCA.id) m.montar(c2);
+    const c2 = document.getElementById(L.lienzo);
+    if (c2) c2.closest(L.marco).classList.remove("is-cargando");
+    if (c2 && CURRENT === route && !CERCA.id) m.montar(c2, L.lugar);
   }).catch(() => {
-    const sec = document.getElementById("cielo"); if (sec) sec.classList.remove("is-cargando");
+    const sec = document.querySelector(L.marco); if (sec) sec.classList.remove("is-cargando");
     if (!CIELO_ESTADO.sin3d && sec) sec.classList.add("is-sin3d");
   });
 }
@@ -345,7 +363,7 @@ function cerrarInsignia(sinHistoria, alCielo) {
   if (CERCA.hist) { CERCA.hist = false; if (!sinHistoria) { try { history.back(); } catch (e) {} } }
   if (gano.length && !alCielo) { const v = cieloVisto(); cieloGuardarVisto(v ? [...new Set(v.concat(gano))] : [...STATE.gamif.badges]); }
   const m = CIELO_ESTADO.motor;
-  if (m) { m.cerrar(); const caja = document.getElementById("cieloLienzo"); if (caja && CURRENT === "insignias") m.montar(caja); }
+  if (m) { m.cerrar(); montarLugar(CURRENT); }
   const v = CERCA.volver; CERCA.volver = null;
   if (v && document.body.contains(v) && v.focus) v.focus({ preventScroll: true });
 }

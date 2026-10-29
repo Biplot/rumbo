@@ -220,7 +220,7 @@ function renderRecompensas() {
   <div class="section-title">🏔️ Escalera de rangos</div>
   <div class="card"><div class="rank-ladder">${escalera}</div></div>
 
-  ${typeof renderElefanteCard === "function" ? `<div class="mt-24">${renderElefanteCard()}</div>` : ""}
+  ${typeof casaCardHtml === "function" ? `<div class="mt-24">${casaCardHtml()}</div>` : typeof renderElefanteCard === "function" ? `<div class="mt-24">${renderElefanteCard()}</div>` : ""}
 
   <div class="card mt-24">
     <div class="flex-between" style="flex-wrap:wrap;gap:10px">

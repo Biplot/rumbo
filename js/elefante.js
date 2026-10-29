@@ -430,11 +430,13 @@ function nombreElefante() {
   const T = TIPOS_ELEFANTE[tipoElefante()], { etapa } = etapaElefante(STATE.gamif.xp || 0);
   return `${T.n} · ${etapa.n}${etapa.corona ? " 👑" : ""}`;
 }
-function renderElefanteCard() {
+function renderElefanteCard() { return `<div class="card ele-card" data-tour="elefante">${eleFichaHtml()}</div>`; }
+/* Tu elefante: dibujo chico, etapa y botones (en Progreso va dentro de su cuarto, casa.js) */
+function eleFichaHtml() {
   const xp = STATE.gamif.xp || 0, { etapa, sig } = etapaElefante(xp), animo = animoElefante();
   const prog = sig ? Math.min(100, Math.round(((xp - etapa.min) / (sig.min - etapa.min)) * 100)) : 100;
   const sinElegir = !eleEstado().tipo, T = TIPOS_ELEFANTE[tipoElefante()];
-  return `<div class="card ele-card" data-tour="elefante"><div class="row" style="gap:16px;align-items:center">
+  return `<div class="row" style="gap:16px;align-items:center">
     <div class="ele-mini ele-toca ${T.papel ? "papel" : ""}" data-action="ele-toca" title="Tócalo">${elefanteSVG()}</div>
     <div style="flex:1;min-width:0"><div class="card__title" style="font-size:15px">🐘 Tu elefante · ${sinElegir ? "¡elígelo!" : nombreElefante()}</div>
       <div class="text-xs muted mt-8">${sinElegir ? "Elige entre el Clásico y el Asiático. Crece contigo y cambia al pasar de cría a sabio."
@@ -443,7 +445,7 @@ function renderElefanteCard() {
       ${sig && !sinElegir ? `<div class="bar mt-8"><div class="bar__fill" style="width:${prog}%"></div></div>` : ""}
       <div class="row mt-8" style="gap:8px;flex-wrap:wrap">${sinElegir ? `<button class="btn btn--primary" data-action="ele-elegir" style="padding:6px 12px">Elegir mi elefante</button>` : ""}
         <button class="btn-ghost" data-action="elefante-open" data-v="ropa" style="padding:4px 10px">👕 Vestir</button>
-        <button class="btn-ghost" data-action="elefante-open" data-v="tipo" style="padding:4px 10px">🐘 Tipos</button></div></div></div></div>`;
+        <button class="btn-ghost" data-action="elefante-open" data-v="tipo" style="padding:4px 10px">🐘 Tipos</button></div></div></div>`;
 }
 /* Dibujo de una prenda sola (para su ficha en el vestidor) */
 function prendaMini(p) { return `<svg viewBox="${p.vb || "0 0 260 240"}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${p.svg}</svg>`; }

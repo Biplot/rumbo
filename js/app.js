@@ -151,7 +151,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 21;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 22;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -319,6 +319,10 @@ const NOVEDADES = {
   21: [
     ["✨", "El momento de ganar", "Si al cerrar tu día ganas una medalla, llega girando, brilla y sube a su estrella en tu cielo. Si con ella completas una constelación, la figura se vuelve dorada."],
     ["🧾", "Medallas en tu recibo", "El recibo del día muestra las medallas que ganaste hoy o la que tienes más cerca y cuánto te falta. Tócalas para verlas de cerca."],
+  ],
+  22: [
+    ["🏠", "La casa de tu elefante", "En Recompensas → Progreso tu elefante tiene su cuarto. Se llena con tu rango: una planta, un reloj, la biblioteca con los libros que terminaste… y la ventana sigue la hora del día."],
+    ["🏅", "Tu repisa", "En su repisa tu elefante luce tus mejores medallas, o las que tú elijas en 🏅 Repisa. Tócalas para verlas de cerca."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1211,6 +1215,10 @@ function onClick(e) {
     case "cos-buy": buyItem(d.id); break;
     case "cos-equip": equipItem(d.id); break;
     case "ins-ver": abrirInsignia(d.id); break;
+    case "repisa-elegir": REPISA_SEL = null; openRepisa(); break;
+    case "repisa-toggle": repisaToggle(d.id); break;
+    case "repisa-guardar": repisaGuardar(false); break;
+    case "repisa-auto": repisaGuardar(true); break;
     case "badge-destacar":
       STATE.gamif.equipped.insignia = (STATE.gamif.equipped.insignia === d.id ? null : d.id);
       saveState(); rerender(); break;

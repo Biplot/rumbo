@@ -20,7 +20,7 @@ const COSMETICOS = [
   { id: "pla-atardecer", grupo: "plantilla", icon: "🌇", nombre: "Plantilla Atardecer", costo: 300, key: "plantilla", value: "atardecer" },
   { id: "pla-terminal", grupo: "plantilla", icon: "💻", nombre: "Plantilla Terminal", costo: 300, key: "plantilla", value: "terminal" },
   // Marcos de avatar (uno a la vez). Diamante no se compra: llega con el rango Élite.
-  { id: "mar-cian", grupo: "marco", icon: "🔵", nombre: "Marco Cian", costo: 200, key: "marco", value: "cian" },
+  { id: "mar-cian", grupo: "marco", icon: "🔵", nombre: "Marco Índigo", costo: 200, key: "marco", value: "cian" },
   { id: "mar-oro", grupo: "marco", icon: "🟡", nombre: "Marco Oro", costo: 400, key: "marco", value: "oro" },
   { id: "mar-llama", grupo: "marco", icon: "🔥", nombre: "Marco Llama", costo: 700, key: "marco", value: "llama", animado: true },
   { id: "mar-aurora", grupo: "marco", icon: "🌌", nombre: "Marco Aurora", costo: 900, key: "marco", value: "aurora", animado: true },

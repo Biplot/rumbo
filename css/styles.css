@@ -1043,10 +1043,12 @@ html[data-theme="alto-contraste"] :focus-visible { outline:3px solid #FFD400 !im
 .marco::before { content: ""; position: absolute; inset: -4px; border-radius: 50%; z-index: -1; }
 .marco::after { content: ""; position: absolute; inset: 0; border-radius: 50%; z-index: -1; background: var(--cian); box-shadow: 0 0 0 2px var(--bg); }   /* el fondo del avatar va sobre el anillo */
 .marco { background: transparent !important; }
-.marco--cian::before { background: var(--cian); box-shadow: 0 0 0 1px var(--bg); }
+/* Índigo (antes Cian; la clase se mantiene para quien ya lo tiene) */
+.marco--cian::before { background: linear-gradient(135deg, #8D9BFF, #3949C9 55%, #2B378F); box-shadow: 0 0 0 1px var(--bg); }
 .marco--oro::before { background: linear-gradient(135deg, #FFE08A, #C8962E 45%, #FFD35C 70%, #9C6B12); }
 .marco--llama::before { background: conic-gradient(from 0deg, #FF3D00, #FFB000, #FF6B4A, #FFE08A, #FF3D00); animation: marcoGira 3s linear infinite; filter: blur(.3px); }
-.marco--aurora::before { background: conic-gradient(from 0deg, #17C3B2, #8B93E8, #FF4FD8, #3BE38B, #17C3B2); animation: marcoGira 6s linear infinite; }
+/* Aurora con los colores de Norte: índigo, ámbar, rosa y salvia */
+.marco--aurora::before { background: conic-gradient(from 0deg, #3949C9, #8D9BFF, #F4AE3D, #F08A8A, #4FB07F, #3949C9); animation: marcoGira 6s linear infinite; }
 .marco--diamante::before { background: conic-gradient(from 45deg, #E8FBFF, #8FF3E8, #FFFFFF, #B9C7FF, #E8FBFF); box-shadow: 0 0 10px rgba(143,243,232,.7); }
 @keyframes marcoGira { to { transform: rotate(360deg); } }
 .cos-card .account__avatar { margin-top: 4px; }
@@ -1210,7 +1212,6 @@ html[data-check="sello"] .tarea-row.is-just .strike::after { animation: chkSello
 .av-ficha__img svg { width: 100%; height: auto; display: block; }
 .av-ficha.is-no .av-ficha__img { filter: grayscale(.85) brightness(.85); opacity: .8; }
 .av-ficha__n { font-size: 13px; font-weight: 600; line-height: 1.2; }
-.av-placa { font-style: normal; font-family: ui-monospace, monospace; font-size: 10px; font-weight: 700; background: var(--cian); color: var(--on-cian); border-radius: 3px; padding: 0 4px; }
 .av-op { display: flex; flex-direction: column; gap: 6px; }
 .av-op > span { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
 .av-op .chip { cursor: pointer; font: inherit; font-size: 13px; }

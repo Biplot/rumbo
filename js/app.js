@@ -152,7 +152,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 33;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 34;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -371,6 +371,11 @@ const NOVEDADES = {
     ["🎨", "Apariencia", "Lo que ya tienes se elige en Cuenta › Apariencia: tu tema (de día, de noche o automático), títulos, marcos y efectos."],
     ["✨", "Tus medallas, en el cielo", "Tu vitrina es el único lugar de tus medallas: la lista está en su hoja y cada una se abre de cerca. «Poner en tu repisa» reemplaza a Destacar."],
     ["🌲", "Bosque, una sola compra", "Trae día y noche por 900 ⭐. Si tenías uno de los dos, ya tienes los dos; si compraste los dos, te devolvimos 300 ⭐."],
+  ],
+  34: [
+    ["🐾", "La manada", "Los avatares ahora son los amigos de tu elefante. Zorra, Castor, Hormiga, Abeja, Camaleón, Tortuga, Tamandúa, Llama y Ardilla se ganan con los mismos logros de antes, y el Cóndor y el Pudú vienen de regalo. Si ya ganaste uno, lo conservas."],
+    ["🎭", "Avatares con el estilo de Rumbo", "Todos son planos y con los colores de Norte. Al que armas tú ahora le eliges el fondo, y «Tu elefante» muestra su cara completa."],
+    ["🔵", "Marcos al día", "El marco Cian ahora es Índigo, y Aurora toma los colores de Norte."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

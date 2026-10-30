@@ -276,29 +276,6 @@ function plFila(p) {
     <span class="pl-fila__t"><b>${escapeHtml(p.titulo)}</b><span class="text-xs muted">${escapeHtml(plCuando(p))}${donde ? " · " + escapeHtml(donde) : ""}</span></span>
     ${plCaras(p, 22)}${plMarca(p)}</button>`;
 }
-/* Amigos: la tarjeta de planes (invitaciones primero, después los próximos y los que se votan) */
-function plAmigosHtml(amigos) {
-  planesCargar(false);   // a lo más una vez por minuto
-  if (PLAN.error === "sin-servidor") return "";
-  const l = PLAN.lista || [], hoy = todayISO();
-  if (!l.length && !amigos.length) return "";
-  const inv = l.filter(plInvitacion);
-  const abiertos = l.filter(p => p.respuesta === "abierto"), mios = l.filter(p => p.respuesta !== "abierto");
-  const prox = mios.filter(p => !inv.includes(p) && p.fecha && p.fecha >= hoy), votar = mios.filter(p => !inv.includes(p) && !p.fecha);
-  const pasados = l.filter(p => plVa(p) && p.fecha < hoy).sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 5);
-  const invHtml = inv.map(p => `<div class="pl-inv">${plFila(p)}
-      <div class="pl-inv__b"><button class="btn-ghost" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="no">No puedo</button>
-        <button class="btn btn--soft" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="quizas">Tal vez</button>
-        <button class="btn btn--primary" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="voy">Voy</button></div></div>`).join("");
-  const seccion = (t, ps) => ps.length ? `<div class="cj-sub mt-8">${t}</div>${ps.map(plFila).join("")}` : "";
-  return `<div class="card pl-card"><div class="flex-between"><div class="card__title">${icoUI("ticket")} Planes</div>
-      ${amigos.length ? `<button class="btn btn--soft pl-card__nuevo" data-action="pl-nuevo">${icoUI("plus")} Nuevo plan</button>` : ""}</div>
-    ${inv.length ? `<div class="cj-sub mt-8">Te invitan</div>${invHtml}` : ""}
-    ${abiertos.length ? `<div class="cj-sub mt-8">¿Quién se suma?</div>${abiertos.map(p => `<div class="pl-inv">${plFila(p)}
-      <div class="pl-inv__b"><button class="btn btn--soft" data-action="pl-sumarme" data-id="${escapeHtml(p.id)}">${icoUI("plus")} Me sumo</button></div></div>`).join("")}` : ""}
-    ${seccion("Próximos", prox)}${seccion("Por definir", votar)}${seccion("Ya pasaron", pasados)}
-    ${!l.length ? `<p class="text-sm muted mt-8">Una película el viernes, un asado o salir a correr: propón un plan, invita a tus amigos y cada uno responde si va. Queda en la Semana y el Calendario de cada uno.</p>` : ""}</div>`;
-}
 /* El perfil de un amigo: los planes que tienen juntos (para «Lo que hacen juntos») */
 function plJuntos(amigoId) {
   return (PLAN.lista || []).filter(p => !p.cancelado && p.miembros.some(m => m.id === amigoId && m.respuesta !== "no"))

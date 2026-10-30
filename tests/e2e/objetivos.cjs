@@ -1,7 +1,7 @@
 /* Pruebas en navegador · Objetivos en conjunto: crear uno con un amigo, unirse, aportar, la barra de cada uno,
    lograrlo (+20 ⭐ y la medalla En Equipo), editar, borrar un aporte y salir. Las cuentas locales comparten
    la "base" de amigos (LocalBackend), con las reglas de supabase/objetivos.sql. */
-const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
+const { URL, nuevoContexto, registrar, shot, hojaAmigos } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { fecha: "2026-11-04T11:00:00", w: 1280, h: 900 });
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
@@ -14,7 +14,7 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('[data-action="auth-login"]'); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(900);
     await p.evaluate(() => closeModal());
   };
-  const ir = async r => { await p.goto(URL + "#" + r); await p.waitForTimeout(700); };
+  const ir = async r => { await p.evaluate(() => closeModal()); await p.goto(URL + "#" + r); await p.waitForTimeout(700); };   // sin hojas abiertas
   const vista = () => p.locator("#view").innerText();
   const tarjeta = () => p.locator(".oj").first().innerText();
   const aportar = async (cant, nota) => {
@@ -45,9 +45,10 @@ module.exports = async ({ b, ok, errs }) => {
   await entrar("bruno@oj.cl");
   ok(await p.locator('#nav [data-route="amigos"].tiene-nuevo').count() === 1, "a Bruno le aparece el punto en Amigos");
   await ir("amigos");
-  ok((await vista()).includes("Te invitan a un objetivo") && (await vista()).includes("Ana te invita"), "y la invitación al objetivo");
-  await p.click('[data-action="oj-unirme"]'); await p.waitForTimeout(900);
-  ok((await vista()).includes("Objetivos en conjunto") && (await vista()).includes("Viaje a Chiloé") && !(await vista()).includes("Te invitan a un objetivo"), "al unirse, lo ve en Objetivos en conjunto");
+  ok((await p.locator(".at-fila", { hasText: "Viaje a Chiloé" }).innerText()).includes("Ana te invita a un objetivo"), "y la invitación al objetivo, en «Para responder»");
+  await p.click('.at-fila [data-action="oj-unirme"]'); await p.waitForTimeout(900);
+  ok(await p.locator(".at-fila", { hasText: "Viaje a Chiloé" }).count() === 0 && (await p.locator('.at-tile[data-v="objetivos"]').innerText()).includes("Viaje a Chiloé")
+    && (await hojaAmigos(p, "objetivos")).includes("Viaje a Chiloé"), "al unirse, lo ve en la baldosa Objetivos (y en su hoja)");
 
   // 3) Bruno aporta $165.000
   await ir("metas"); await aportar("165.000", "vendí la bici");
@@ -91,7 +92,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok((await tarjeta()).includes("$380.000"), "Ana borra su aporte de $220.000: vuelven a $380.000");
 
   // 8) El perfil de Bruno: lo que hacen juntos y proponer otro
-  await ir("amigos");
+  await ir("amigos"); await hojaAmigos(p, "amigos");
   await p.click('.am-fila [data-action="am-ver"]'); await p.waitForTimeout(300);
   const perfil = await p.locator("#modal").innerText();
   ok(perfil.includes("Viaje a Chiloé") && perfil.includes("Proponer un objetivo") && perfil.includes("Proponer un hábito"), "en el perfil de Bruno: el objetivo que comparten y proponer otro");

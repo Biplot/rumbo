@@ -1,7 +1,7 @@
 /* Pruebas en navegador · Hábitos en conjunto: crear uno con un amigo, unirse, marcarlo los dos,
    la racha de a dos y el +5 ⭐, editarlo para todos, salir y borrar. Las cuentas locales comparten
    la "base" de amigos (LocalBackend), con las reglas de supabase/conjunto.sql. */
-const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
+const { URL, nuevoContexto, registrar, shot, hojaAmigos } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { fecha: "2026-11-04T11:00:00", w: 1280, h: 900 });
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
@@ -14,7 +14,7 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('[data-action="auth-login"]'); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(900);
     await p.evaluate(() => closeModal());
   };
-  const ir = async r => { await p.goto(URL + "#" + r); await p.waitForTimeout(700); };
+  const ir = async r => { await p.evaluate(() => closeModal()); await p.goto(URL + "#" + r); await p.waitForTimeout(700); };   // sin hojas abiertas
   const vista = () => p.locator("#view").innerText();
   const yo = () => p.evaluate(() => localStorage.getItem("rumbo_session"));
   const hoy = "2026-11-04";
@@ -45,12 +45,13 @@ module.exports = async ({ b, ok, errs }) => {
   await entrar("bruno@cj.cl");
   ok(await p.locator('#nav [data-route="amigos"].tiene-nuevo').count() === 1, "a Bruno le aparece el punto en Amigos");
   await ir("amigos");
-  ok((await vista()).includes("Te invitan a un hábito") && (await vista()).includes("Ana te invita"), "y la invitación de Ana");
+  const inv = await p.locator(".at-fila", { hasText: "Leer 20 minutos" }).innerText();
+  ok(inv.includes("Ana te invita a un hábito"), "y la invitación de Ana, en «Para responder»");
   await shot(p, "conjunto-invitacion");
   await p.click('[data-action="cj-unirme"]'); await p.waitForTimeout(900);
   const hB = await p.evaluate(() => STATE.habitos.defs.find(h => h.conjunto));
   ok(hB && hB.nombre === "Leer 20 minutos" && hB.icon === "📖" && hB.creado === "2026-11-04", "al unirse, el hábito queda en sus hábitos desde hoy");
-  ok((await vista()).includes("Hábitos en conjunto") && !(await vista()).includes("Te invitan"), "la invitación se va y el hábito aparece en Hábitos en conjunto");
+  ok(await p.locator(".at-fila", { hasText: "Leer 20 minutos" }).count() === 0 && (await hojaAmigos(p, "habitos")).includes("Leer 20 minutos"), "la invitación se va y el hábito aparece en la baldosa Hábitos");
 
   // 3) Bruno lo marca en Inicio; Ana ve que ya lo hizo
   await ir("inicio");
@@ -90,7 +91,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok((await p.locator(".hb-today .hb-today__cj").innerText()).includes("con Bruno · 4 días de racha de a dos"), "en Hábitos › Hoy, la tarjeta dice con quién y la racha");
 
   // 6) El perfil de Bruno: lo que hacen juntos
-  await ir("amigos");
+  await ir("amigos"); await hojaAmigos(p, "amigos");
   await p.click('.am-fila [data-action="am-ver"]'); await p.waitForTimeout(300);
   const perfil = await p.locator("#modal").innerText();
   ok(/lo que hacen juntos/i.test(perfil) && perfil.includes("Leer 20 minutos") && perfil.includes("Proponer un hábito"), "en el perfil de Bruno: lo que hacen juntos y proponer otro");
@@ -125,7 +126,7 @@ module.exports = async ({ b, ok, errs }) => {
   // 10) Mientras no se corra supabase/conjunto.sql
   await p.evaluate(() => { BACKEND.conjuntoLista = async () => ({ error: "sin-servidor" }); Object.assign(CONJ, { lista: null, error: null, t: 0 }); });
   await p.evaluate(() => conjuntoCargar(true)); await ir("amigos");
-  ok((await vista()).includes("Todavía no están activos en el servidor"), "sin la base de hábitos en conjunto, Amigos lo dice");
+  ok(await p.locator('.at-tile[data-v="habitos"]').count() === 0 && await p.locator('.at-tile[data-v="planes"]').count() === 1, "sin la base de hábitos en conjunto, Amigos no muestra su baldosa");
   await p.evaluate(() => openHabitModal()); await p.waitForTimeout(200);
   ok(!(await p.locator("#modal").innerText()).includes("Con amigos"), "y el formulario de hábito no ofrece hacerlo con amigos");
   await ctx.close();

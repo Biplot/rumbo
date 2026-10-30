@@ -245,7 +245,7 @@ function ojSeccionMetas() {
       : `<div class="card"><p class="text-sm muted" style="margin:0 0 14px">Una meta con avance sumado: juntar para un viaje, correr 100 km en el mes o leer 12 libros entre varios. Cada aporte se ve en la barra, y al lograrlo ganan la medalla En Equipo.</p>${boton}</div>`}
     <div class="section-title">Tus objetivos <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· los personales siguen aquí, solo para ti</span></div>`;
 }
-/* Invitaciones a objetivos (en Objetivos y en Amigos) */
+/* Invitaciones a objetivos, en Objetivos (en Amigos están en «Para responder») */
 function ojInvitacionesHtml() {
   const inv = (OBJ.lista || []).filter(o => o.estado === "invitado");
   if (!inv.length) return "";
@@ -253,17 +253,6 @@ function ojInvitacionesHtml() {
     ${inv.map(o => `<div class="am-sol cj-inv"><span class="cj-fila__ico">${ojIcono(o)}</span><span class="am-sol__t"><b>${escapeHtml(o.nombre)}</b>
       <span class="text-xs muted">${escapeHtml(ojQuienInvita(o))} te invita · ${escapeHtml(ojFmt(o.meta, o.unidad))} · ${escapeHtml(ojPlazo(o))}</span></span>
       <span class="am-sol__b"><button class="btn-ghost" data-action="oj-rechazar" data-id="${escapeHtml(o.id)}">Ahora no</button><button class="btn btn--primary" data-action="oj-unirme" data-id="${escapeHtml(o.id)}">Unirme</button></span></div>`).join("")}</div>`;
-}
-/* Amigos: una tarjeta con los objetivos en conjunto, en corto */
-function ojAmigosHtml(amigos) {
-  if (OBJ.error === "sin-servidor") return "";
-  const act = (OBJ.lista || []).filter(o => o.estado === "activo");
-  if (!act.length && !amigos.length) return "";
-  return `<div class="card"><div class="card__title">${icoUI("mision")} Objetivos en conjunto</div>
-    ${act.length ? act.map(o => `<button type="button" class="oj-mini" data-action="oj-ver" data-id="${escapeHtml(o.id)}"><span class="oj__ico">${ojIcono(o)}</span>
-      <span class="oj__t"><b>${escapeHtml(o.nombre)}</b><span class="text-xs muted">${o.cumplido ? "¡Lo lograron!" : ojPct(o) + " % · " + escapeHtml(ojFmt(ojTotal(o), o.unidad)) + " de " + escapeHtml(ojFmt(o.meta, o.unidad))}</span></span>${ojBarra(o, 6)}</button>`).join("")
-      : `<p class="text-sm muted mt-8">Metas con avance sumado, como juntar para un viaje o correr 100 km entre varios.</p>`}
-    <div class="mt-16"><button class="btn btn--soft" data-action="oj-nuevo">${icoUI("handshake")} Objetivo con amigos</button></div></div>`;
 }
 /* El perfil de un amigo: los objetivos que comparten (para «Lo que hacen juntos») */
 function ojJuntos(amigoId) {

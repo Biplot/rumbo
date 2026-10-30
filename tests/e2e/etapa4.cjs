@@ -1,7 +1,7 @@
 /* Pruebas en navegador · Etapa 4 de los planes con amigos: «¿Quién se suma?» (Ana abre un plan a todos sus amigos y
    Bruno se suma), el cumpleaños de Ana (lo comparte y Bruno la saluda) y leer el mismo libro (cada uno su página).
    Las cuentas locales comparten la "base" de amigos (LocalBackend). */
-const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
+const { URL, nuevoContexto, registrar, shot, hojaAmigos } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { fecha: "2026-11-04T11:00:00", w: 1280, h: 900 });
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
@@ -14,7 +14,7 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('[data-action="auth-login"]'); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(900);
     await p.evaluate(() => closeModal());
   };
-  const ir = async r => { await p.goto(URL + "#" + r); await p.waitForTimeout(700); };
+  const ir = async r => { await p.evaluate(() => closeModal()); await p.goto(URL + "#" + r); await p.waitForTimeout(700); };   // sin hojas abiertas
   const vista = () => p.locator("#view").innerText();
   const modal = () => p.locator("#modal").innerText();
 
@@ -32,17 +32,19 @@ module.exports = async ({ b, ok, errs }) => {
   await entrar("ana@e4.cl"); await p.evaluate(id => BACKEND.amigosResponder(id, true), idB); await p.evaluate(() => amigosCargar(true)); await p.waitForTimeout(400);
 
   // 1) «¿Quién se suma?»: Ana abre un plan a todos sus amigos
-  await ir("amigos"); await p.click('.pl-card [data-action="pl-nuevo"]'); await p.waitForTimeout(300);
+  await ir("amigos"); await hojaAmigos(p, "planes"); await p.click('#modal [data-action="pl-nuevo"]'); await p.waitForTimeout(300);
   await p.click('label.pl-chip:has(input[name="pl-tipo"][value="deporte"])');
   await p.fill("#pl-titulo", "Salir a correr"); await p.check("#pl-abierto"); await p.waitForTimeout(100);
   ok(await p.locator("#pl-con-quien").isHidden() && await p.locator("#pl-cuando-seg").isHidden() && (await p.locator('[data-action="pl-guardar"]').innerText()).includes("Avisar a mis amigos"),
     "«¿Quién se suma?»: sin elegir amigos ni votar, y el botón dice «Avisar a mis amigos»");
   await p.fill("#pl-fecha", "2026-11-06"); await p.fill("#pl-hora", "19:00"); await p.fill("#pl-lugar", "Parque Bicentenario");
   await p.click('[data-action="pl-guardar"]'); await p.waitForTimeout(900);
-  ok((await p.locator(".pl-card").innerText()).includes("Salir a correr") && (await p.locator(".pl-card").innerText()).includes("Abierto"), "queda en sus Próximos, marcado «Abierto»");
+  const prox = await hojaAmigos(p, "planes", "proximos");
+  ok(prox.includes("Salir a correr") && prox.includes("Abierto"), "queda en sus Próximos, marcado «Abierto»");
+  await p.evaluate(() => closeModal());
 
   // 2) Ana comparte su cumpleaños
-  await p.click('[data-action="am-muestra"][data-k="cumple"]'); await p.waitForTimeout(500);
+  await hojaAmigos(p, "ajustes"); await p.click('[data-action="am-muestra"][data-k="cumple"]'); await p.waitForTimeout(500);
   ok(await p.evaluate(() => { const db = JSON.parse(localStorage.getItem("rumbo_amigos")); return Object.values(db.perfiles).find(x => x.nombre === "Ana").estado.cumple; }) === "11-04",
     "al encender «Tu cumpleaños», se publica solo el día y el mes (11-04)");
 
@@ -54,17 +56,24 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 4) Bruno: se suma al plan abierto
   await entrar("bruno@e4.cl"); await ir("amigos");
-  const t1 = await p.locator(".pl-card").innerText();
-  ok(/¿quién se suma\?/i.test(t1) && t1.includes("Salir a correr"), "Bruno ve «¿Quién se suma?» con el plan de Ana, sin estar invitado");
+  const semana = await p.locator(".at-semana").innerText();
+  ok(semana.includes("Salir a correr") && semana.includes("Ana pregunta: ¿te sumas?"), "en «Esta semana», el plan abierto de Ana: «¿te sumas?»");
+  ok(await p.locator(".at-fila", { hasText: "Salir a correr" }).count() === 0, "no está en «Para responder»: nadie espera su respuesta");
+  const t1 = await hojaAmigos(p, "planes");
+  ok(/¿quién se suma\?/i.test(t1) && t1.includes("Salir a correr"), "en Planes, «¿Quién se suma?» con el plan de Ana, sin estar invitado");
   await shot(p, "etapa4-amigos");
-  await p.click('.pl-card [data-action="pl-sumarme"]'); await p.waitForTimeout(900);
-  ok(/próximos/i.test(await p.locator(".pl-card").innerText()) && !/¿quién se suma\?/i.test(await p.locator(".pl-card").innerText()), "«Me sumo»: pasa a sus Próximos");
+  await p.click('#modal [data-action="pl-sumarme"]'); await p.waitForTimeout(900);
+  const t2 = await hojaAmigos(p, "planes");
+  ok(t2.includes("Salir a correr") && !/¿quién se suma\?/i.test(t2) && (await p.locator(".at-semana").innerText()).includes("con Ana"), "«Me sumo»: pasa a sus Próximos (y en la semana, «con Ana»)");
   await ir("semana");
   ok((await p.locator(".pl-ev").allInnerTexts()).some(t => t.includes("Salir a correr")), "y está en su Semana");
 
   // 5) Bruno: el cumpleaños de Ana
   await ir("amigos");
-  ok((await p.locator(".am-fila").first().innerText()).includes("¡Hoy está de cumpleaños!"), "en Amigos: «¡Hoy está de cumpleaños!» junto a Ana");
+  ok((await p.locator(".at-semana").innerText()).includes("Está de cumpleaños: saluda") && (await p.locator('.at-tile[data-v="amigos"]').innerText()).includes("Hoy cumple Ana"),
+    "en Amigos: el cumpleaños de Ana en «Esta semana» y en la baldosa Amigos");
+  await hojaAmigos(p, "amigos");
+  ok((await p.locator(".am-fila").first().innerText()).includes("¡Hoy está de cumpleaños!"), "y en su hoja, «¡Hoy está de cumpleaños!» junto a Ana");
   await ir("inicio");
   ok((await p.locator(".am-cumples").innerText().catch(() => "")).includes("Hoy está de cumpleaños Ana"), "en Inicio: «Hoy está de cumpleaños Ana»");
   await p.click('.am-cumples [data-action="am-animo"]'); await p.waitForTimeout(300);

@@ -146,7 +146,7 @@ function ljAvanceHtml(b) {
       <span class="lj-otro__t"><b>${escapeHtml(m.nombre || "Sin nombre")}</b><span>${m.estado === "invitado" ? "invitado" : m.terminado ? "¡Lo terminó!" : `pág. ${m.pagina} · ${ljPct(l, m)} %`}</span></span>
       <span class="lj-otro__bar"><i style="width:${m.estado === "invitado" ? 0 : ljPct(l, m)}%"></i></span></div>`).join("")}</div>`;
 }
-/* Invitaciones a leer (en Lecturas y en Amigos) */
+/* Invitaciones a leer, en Lecturas (en Amigos están en «Para responder») */
 function ljInvitacionesHtml() {
   const inv = (LJ.lista || []).filter(l => l.estado === "invitado");
   if (!inv.length) return "";

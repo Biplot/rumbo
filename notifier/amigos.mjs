@@ -35,6 +35,37 @@ export function mensajeAmigo(tipo, { nombre, mensaje } = {}) {
   return null;
 }
 
+/* Los cumpleaños de tus amigos (los que lo comparten en Amigos › Lo que muestras): una vez en el día,
+   desde la mañana (puedeAvisarAmigo), a cada amigo suyo. El día es el de Chile. notif_sent evita repetirlo. */
+export function mensajeCumple(nombre) {
+  const quien = String(nombre || "").trim() || "un amigo";
+  return { title: `🎂 Hoy está de cumpleaños ${quien}`, body: "Mándale un saludo desde Amigos.", url: "./#amigos", tag: "rumbo-amigo-cumple" };
+}
+export async function recordatoriosCumples({ sb, enviar, ahora = new Date() }) {
+  const dia = new Intl.DateTimeFormat("en-CA", { timeZone: TZ_DEFECTO, year: "numeric", month: "2-digit", day: "2-digit" }).format(ahora);
+  const { data: cumples, error } = await sb.from("perfiles").select("user_id, nombre").eq("estado->>cumple", dia.slice(5));
+  if (error) throw new Error(error.message);
+  const r = { cumples: (cumples || []).length, enviadas: 0 };
+  for (const c of cumples || []) {
+    const [{ data: f1, error: e1 }, { data: f2, error: e2 }] = await Promise.all([
+      sb.from("amistades").select("a, b").eq("a", c.user_id).eq("estado", "aceptada"),
+      sb.from("amistades").select("a, b").eq("b", c.user_id).eq("estado", "aceptada"),
+    ]);
+    if (e1 || e2) throw new Error((e1 || e2).message);
+    for (const uid of [...(f1 || []).map(x => x.b), ...(f2 || []).map(x => x.a)]) {
+      const [{ data: est }, { data: dispositivos, error: e3 }] = await Promise.all([
+        sb.from("estado_usuario").select("notif:data->settings->notif").eq("user_id", uid).maybeSingle(),
+        sb.from("suscripciones_push").select("id, endpoint, p256dh, auth").eq("user_id", uid),
+      ]);
+      if (e3) throw new Error(e3.message);
+      if (!dispositivos || !dispositivos.length || !puedeAvisarAmigo(est && est.notif, ahora)) continue;
+      if ((await sb.from("notif_sent").insert({ user_id: uid, tipo: "cumple:" + c.user_id, fecha: dia })).error) continue;   // ya se le avisó hoy
+      r.enviadas += ((await enviar(dispositivos, mensajeCumple(c.nombre))) || {}).enviadas || 0;
+    }
+  }
+  return r;
+}
+
 /* El par ordenado como en la tabla amistades (a < b, igual que least/greatest de uuid en Postgres) */
 export function parAmistad(x, y) {
   const a = String(x).toLowerCase(), b = String(y).toLowerCase();

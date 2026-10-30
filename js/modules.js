@@ -581,9 +581,10 @@ function renderLecturas() {
           <div class="bar mt-8"><div class="bar__fill bar__fill--coral" style="width:${pct}%"></div></div>
           <div class="lect-now__foot">
             <label class="text-xs muted">Página</label>
-            <input class="input lect-page" type="number" min="0" ${l.paginas ? `max="${l.paginas}"` : ""} data-bind="lecturas.${idx}.pagina" data-type="num" value="${l.pagina || 0}">
+            <input class="input lect-page" type="number" min="0" ${l.paginas ? `max="${l.paginas}"` : ""} data-bind="lecturas.${idx}.pagina" data-type="num" value="${l.pagina || 0}"${l.juntos ? ` onchange="ljAvance('${escapeHtml(l.id)}', this.value)"` : ""}>
             <span class="text-xs muted">/ ${l.paginas || "—"} · ${pct}%</span>
           </div>
+          ${ljAvanceHtml(l)}
         </div>`;
       }).join("")}
     </div>` : "";
@@ -617,7 +618,7 @@ function renderLecturas() {
     : `<div class="mt-16"><div class="card"><div class="empty">Tu biblioteca está vacía.<br>Agrega tu primer libro para empezar 📚</div></div>
        <div class="lect-grid mt-16">${addCard}</div></div>`;
 
-  return header + leyendoAhora + filtros + cuerpo;
+  return header + ljLecturasHtml() + leyendoAhora + filtros + cuerpo;   // ljLecturasHtml: invitaciones a leer con amigos (lecturas-amigos.js)
 }
 
 function openLibroModal(id) {
@@ -653,6 +654,7 @@ function openLibroModal(id) {
       </div>
     </div>
     <div class="field"><label>Color del lomo <span class="text-xs muted">(si no pones portada)</span></label><div class="swatches">${colores}</div></div>
+    ${l ? ljLibroHtml(l) : ""}
     <div class="row" style="margin-top:6px">
       <button class="btn btn--primary" style="flex:1" data-action="libro-save">${id ? "Guardar cambios" : "Agregar a mi biblioteca"}</button>
       ${id ? `<button class="btn btn--soft" data-action="libro-del" data-id="${id}" title="Eliminar">🗑</button>` : ""}
@@ -684,6 +686,7 @@ function saveLibro() {
      "leyendo" y de vuelta a "terminado"), para que las monedas sean coherentes. */
   if (estado === "terminado" && !l.premiado) { l.premiado = true; registrarMovimiento("lectura:" + l.id, 40, 40, "Libro terminado"); }
   saveState(); closeModal();
+  if (l.juntos) ljAvance(l.id, l.pagina);   // lo lees con amigos: en qué página vas (lecturas-amigos.js)
   if (typeof checkBadges === "function") checkBadges();
   rerender();
 }
@@ -855,8 +858,9 @@ function calMonthItems(year, m) {
     gcalEventosDia(`${year}-${mm}-${String(d).padStart(2, "0")}`).forEach(e =>
       push(d, { icon: "📆", label: (e.todoDia ? "" : e.hora + " ") + e.titulo, cls: "gcal", type: "gcal" }));
   }
-  // Planes con amigos (los que vas o tal vez vas: planes.js)
+  // Planes con amigos (los que vas o tal vez vas: planes.js) y los cumpleaños de tus amigos que lo comparten (amigos.js)
   plCalendario(year, m, push);
+  amigosCumplesMes(m, push);
   // Rituales (abierto / cerrado)
   for (let d = 1; d <= nDays; d++) {
     const iso = `${year}-${mm}-${String(d).padStart(2, "0")}`;

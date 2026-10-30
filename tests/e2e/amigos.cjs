@@ -24,7 +24,8 @@ module.exports = async ({ b, ok, errs }) => {
   const codA = (await p.locator(".am-cod").innerText()).trim();
   ok(/^[A-HJKMNP-Z2-9]{6}$/.test(codA), "abrir Amigos crea tu código para invitar: " + codA);
   ok(await p.evaluate(() => STATE.settings.amigos.activo === true) && (await vista()).includes("Todavía no tienes amigos"), "sin amigos, te invita a usar tu enlace o tu código");
-  ok(await p.locator('[data-action="am-muestra"]').count() === 5 && await p.locator('[data-action="am-muestra"]:checked').count() === 5, "Lo que muestras: tu día, tu racha, tu rango, tu casa y tu vitrina, encendidos");
+  ok(await p.locator('[data-action="am-muestra"]').count() === 6 && await p.locator('[data-action="am-muestra"]:checked').count() === 5 && !(await p.locator('[data-action="am-muestra"][data-k="cumple"]').isChecked()),
+    "Lo que muestras: tu día, tu racha, tu rango, tu casa y tu vitrina, encendidos; tu cumpleaños, apagado");
   await shot(p, "amigos-vacio");
 
   // 2) Bruno agrega a Ana con su código (en minúsculas también sirve)

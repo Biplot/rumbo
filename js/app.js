@@ -157,7 +157,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 42;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 43;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -422,6 +422,11 @@ const NOVEDADES = {
     ["📔", "¿Cómo estuvo?", "Después de un plan, ponle estrellas y una frase: queda en tu diario y ganas +10 ⭐. Si quieres, la ven los que fueron."],
     ["🧾", "La cuenta del plan", "Anota quién pagó qué y Rumbo calcula cuánto le debe cada uno. Cuando pagues, márcalo: «Ya le pagué»."],
     ["💰", "Tu parte, a Finanzas", "Con un toque, lo que te tocó se suma al gasto de ese mes en Finanzas."],
+  ],
+  43: [
+    ["🎟️", "¿Quién se suma?", "Al proponer un plan, márcalo abierto a todos tus amigos: «Salgo a correr a las 19:00». El que pueda, se suma solo."],
+    ["🎂", "Cumpleaños de tus amigos", "Si lo comparten, te avisamos el día de su cumpleaños para saludarlos. El tuyo, solo si quieres: Amigos › Lo que muestras."],
+    ["📖", "Leer el mismo libro", "En Lecturas, abre un libro y toca «Leerlo con un amigo». Cada uno a su ritmo: ven en qué página va cada uno."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -979,6 +984,7 @@ function onClick(e) {
   if (a.startsWith("vis-")) { visitaAccion(a, d); return; }        // de visita en la casa de un amigo (visitas.js)
   if (a.startsWith("pl-")) { planesAccion(a, d); return; }         // planes con amigos (planes.js)
   if (a.startsWith("lc-")) { listasCompAccion(a, d); return; }     // listas compartidas (listas-amigos.js)
+  if (a.startsWith("lj-")) { lecturasAmigosAccion(a, d); return; } // leer el mismo libro (lecturas-amigos.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;
@@ -1994,7 +2000,7 @@ function renderInicio() {
   <div data-tour="dia">${renderDayHero()}</div>
   ${renderAtajos()}
   ${renderMisionCard()}
-  ${plHoyHtml()}${plDespuesInicioHtml()}
+  ${plHoyHtml()}${plDespuesInicioHtml()}${amigosCumplesHoyHtml()}
   ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
   <div class="grid grid-${metasMes.length ? 3 : 2} inicio-main">
     ${tareasCard}

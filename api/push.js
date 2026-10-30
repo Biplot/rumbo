@@ -22,6 +22,10 @@
              (supabase/objetivos.sql)
            { accion: "amigos", tipo: "plan-invita" | "plan-responde" | "plan-fecha" | "plan-cambio" | "plan-cancela", plan }
            { accion: "amigos", tipo: "plan-gasto", plan, gasto }  -> la cuenta: anotó un gasto, o te pagó
+           { accion: "amigos", tipo: "plan-abierto", plan }          -> «¿Quién se suma?»: a todos tus amigos (una vez)
+           { accion: "amigos", tipo: "lectura-invita" | "lectura-acepta" | "lectura-termina", lectura }
+             -> leer el mismo libro: te invitan, alguien se sumó, alguien lo terminó (supabase/lecturas.sql)
+           Los cumpleaños de tus amigos (si los comparten) salen con los recordatorios, una vez en el día.
              -> planes con amigos: te invitan, alguien respondió, cambió (o ya tiene fecha), se canceló
              (supabase/planes.sql). El recordatorio del día («Hoy: …») sale con los demás recordatorios.
            { accion: "amigos", tipo: "lista-invita" | "lista-acepta" | "lista-agrega", lista, item? }
@@ -195,10 +199,27 @@ async function recordatoriosPlanesApi(config, host) {
   }
 }
 
+/* Un aviso de leer el mismo libro: notifier/lecturas.mjs revisa en la base que corresponda */
+async function avisoLecturaApi(config, yo, body, host) {
+  const { avisoLectura } = await import("../notifier/lecturas.mjs");
+  return avisoLectura({ sb: admin(), yo, body, enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+}
+
 /* Un aviso de una lista compartida: notifier/listas.mjs revisa en la base que corresponda */
 async function avisoListaApi(config, yo, body, host) {
   const { avisoLista } = await import("../notifier/listas.mjs");
   return avisoLista({ sb: admin(), yo, body, enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+}
+
+/* Los cumpleaños de tus amigos (si lo comparten): una vez en el día. Sin la tabla perfiles todavía, nada. */
+async function recordatoriosCumplesApi(config, host) {
+  try {
+    const { recordatoriosCumples } = await import("../notifier/amigos.mjs");
+    return await recordatoriosCumples({ sb: admin(), enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+  } catch (e) {
+    if (/does not exist|schema cache|Could not find/i.test(String(e && e.message))) return { cumples: 0, enviadas: 0, motivo: "sin-tablas" };
+    throw e;
+  }
 }
 
 /* Un aviso de un hábito en conjunto: notifier/conjunto.mjs revisa en la base que corresponda */
@@ -230,6 +251,7 @@ module.exports = async function handler(req, res) {
       const { enviarRecordatorios } = await import("../notifier/recordatorios.mjs");
       const r = await enviarRecordatorios({ sb: admin(), enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
       r.planes = await recordatoriosPlanesApi(config, host);
+      r.cumples = await recordatoriosCumplesApi(config, host);
       console.log("recordatorios", JSON.stringify(r));
       return res.status(200).json(r);
     }
@@ -244,6 +266,7 @@ module.exports = async function handler(req, res) {
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("objetivo-")) return res.status(200).json(await avisoObjetivoApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("plan-")) return res.status(200).json(await avisoPlanApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("lista-")) return res.status(200).json(await avisoListaApi(config, u.user.id, body, host));
+    if (body.accion === "amigos" && String(body.tipo || "").startsWith("lectura-")) return res.status(200).json(await avisoLecturaApi(config, u.user.id, body, host));
     if (body.accion === "amigos") return res.status(200).json(await avisoAmigos(config, u.user.id, body, host));
     if (body.accion !== "prueba" || typeof body.endpoint !== "string") return res.status(400).json({ error: "Acción no válida" });
     const { data: fila, error: eFila } = await admin().from("suscripciones_push")

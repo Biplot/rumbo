@@ -1,5 +1,5 @@
 -- ============================================================
--- Rumbo · Planes con amigos (etapa 1, y la 3: después del plan).
+-- Rumbo · Planes con amigos (etapa 1; la 3, después del plan; y la 4, «¿Quién se suma?»).
 -- Pegar completo en Supabase → SQL Editor → Run, DESPUÉS de supabase/amigos.sql.
 -- Se puede correr más de una vez.
 --
@@ -27,7 +27,9 @@
 --   plan_recordar(id, estrellas, frase, compartir, hoy)                              cómo estuvo (desde el día del plan)
 --   plan_gasto(id, monto, detalle, para, pago)                                       un gasto de la cuenta, o un pago
 --   plan_gasto_borrar(gasto)                                                         borra un gasto tuyo
---   plan_lista(hoy)                                                                  tus planes (de hace un mes en adelante)
+--   plan_abierto_crear(titulo, tipo, fecha, hora, lugar, enlace, tz, hoy)            «¿Quién se suma?»: abierto a todos tus amigos
+--   plan_sumarme(id, hoy)                                                            te sumas a un plan abierto de un amigo
+--   plan_lista(hoy)                                                                  tus planes (de hace un mes en adelante) y los abiertos de tus amigos
 --
 -- Tus amigos ven el plan, no tu agenda: lo demás sigue en tu documento (estado_usuario).
 -- Bloquear a alguien lo saca de tus planes (y a ti de los suyos). Al borrar una cuenta se
@@ -52,6 +54,10 @@ CREATE TABLE IF NOT EXISTS planes (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS planes_fecha ON planes (fecha);
+-- «¿Quién se suma?»: un plan abierto lo ven todos los amigos de quien lo propuso, y se suman solos
+ALTER TABLE planes ADD COLUMN IF NOT EXISTS abierto boolean NOT NULL DEFAULT false;
+ALTER TABLE planes ADD COLUMN IF NOT EXISTS avisos jsonb NOT NULL DEFAULT '{}';   -- avisos del plan ya enviados: {"abierto": true}
+CREATE INDEX IF NOT EXISTS planes_abiertos ON planes (fecha) WHERE abierto AND NOT cancelado;
 ALTER TABLE planes ENABLE ROW LEVEL SECURITY;
 
 -- ---------- 2. planes_invitados ----------
@@ -336,14 +342,47 @@ END $$;
 
 -- Tus planes: los de hace un mes en adelante y los que se están votando (los cancelados, solo por 7 días),
 -- con quiénes van, las fechas para votar, cómo estuvo (lo tuyo y lo que compartieron) y la cuenta
-CREATE OR REPLACE FUNCTION plan_lista(p_hoy date) RETURNS jsonb
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
-DECLARE yo uuid := auth.uid(); hoy date := rumbo_hoy(p_hoy); r jsonb;
+-- «¿Quién se suma?»: un plan abierto a todos tus amigos, con fecha (sin votar ni invitar a nadie en particular)
+CREATE OR REPLACE FUNCTION plan_abierto_crear(p_titulo text, p_tipo text, p_fecha date, p_hora text, p_lugar text, p_enlace text, p_tz text, p_hoy date) RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE yo uuid := auth.uid(); nuevo uuid;
 BEGIN
   IF yo IS NULL THEN RAISE EXCEPTION 'sin-sesion'; END IF;
-  SELECT coalesce(jsonb_agg(jsonb_build_object(
+  PERFORM rumbo_plan_validar(p_titulo, p_tipo, p_hora, p_lugar, p_enlace);
+  IF NOT rumbo_plan_fecha_ok(p_fecha, rumbo_hoy(p_hoy)) THEN RAISE EXCEPTION 'fecha'; END IF;
+  IF (SELECT count(*) FROM planes WHERE creador = yo AND creado > now() - interval '1 day') >= 20 THEN RAISE EXCEPTION 'limite'; END IF;
+  INSERT INTO planes (titulo, tipo, fecha, hora, lugar, enlace, tz, creador, abierto)
+    VALUES (btrim(p_titulo), p_tipo, p_fecha, p_hora, btrim(coalesce(p_lugar, '')), btrim(coalesce(p_enlace, '')),
+      left(coalesce(nullif(btrim(p_tz), ''), 'America/Santiago'), 60), yo, true)
+    RETURNING id INTO nuevo;
+  INSERT INTO planes_invitados (plan, user_id, respuesta, invita, respondido) VALUES (nuevo, yo, 'voy', NULL, now());
+  RETURN nuevo;
+END $$;
+
+-- Sumarte a un plan abierto de un amigo (si ya estabas, vuelves a ir). Hasta 13 personas por plan.
+CREATE OR REPLACE FUNCTION plan_sumarme(p_id uuid, p_hoy date) RETURNS text
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE yo uuid := auth.uid(); p planes;
+BEGIN
+  IF yo IS NULL THEN RAISE EXCEPTION 'sin-sesion'; END IF;
+  SELECT * INTO p FROM planes WHERE id = p_id;
+  IF p.id IS NULL OR NOT p.abierto OR p.cancelado OR p.fecha < rumbo_hoy(p_hoy) THEN RAISE EXCEPTION 'no-abierto'; END IF;
+  IF p.creador = yo THEN RETURN 'nada'; END IF;
+  IF NOT rumbo_son_amigos(p.creador) THEN RAISE EXCEPTION 'no-amigos'; END IF;
+  UPDATE planes_invitados SET respuesta = 'voy', respondido = now() WHERE plan = p_id AND user_id = yo;
+  IF FOUND THEN RETURN 'voy'; END IF;
+  IF (SELECT count(*) FROM planes_invitados WHERE plan = p_id) >= 13 THEN RAISE EXCEPTION 'limite'; END IF;
+  INSERT INTO planes_invitados (plan, user_id, respuesta, invita, respondido) VALUES (p_id, yo, 'voy', p.creador, now());
+  RETURN 'sumado';
+END $$;
+
+-- Un plan como lo ve quien llama (lo usa plan_lista; no se llama directo).
+-- miembro = false: un plan abierto de un amigo, sin la cuenta ni cómo estuvo
+CREATE OR REPLACE FUNCTION rumbo_plan_json(p planes, yo uuid, p_respuesta text, p_invita uuid, miembro boolean) RETURNS jsonb
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT jsonb_build_object(
       'id', p.id, 'titulo', p.titulo, 'tipo', p.tipo, 'fecha', p.fecha, 'hora', p.hora, 'lugar', p.lugar, 'enlace', p.enlace,
-      'creador', p.creador, 'cancelado', p.cancelado, 'respuesta', mio.respuesta, 'invita', mio.invita,
+      'creador', p.creador, 'cancelado', p.cancelado, 'abierto', p.abierto, 'respuesta', p_respuesta, 'invita', p_invita,
       'miembros', (SELECT coalesce(jsonb_agg(jsonb_build_object(
           'id', i.user_id, 'yo', i.user_id = yo, 'nombre', coalesce(f.nombre, ''), 'avatar', f.avatar, 'respuesta', i.respuesta)
         ORDER BY i.creado), '[]'::jsonb)
@@ -353,16 +392,29 @@ BEGIN
             WHERE v.opcion = o.id AND EXISTS (SELECT 1 FROM planes_invitados i WHERE i.plan = p.id AND i.user_id = v.user_id)))
         ORDER BY o.fecha, o.hora NULLS FIRST, o.id), '[]'::jsonb)
         FROM planes_opciones o WHERE o.plan = p.id AND p.fecha IS NULL),
-      'recuerdos', (SELECT coalesce(jsonb_agg(jsonb_build_object('id', r.user_id, 'estrellas', r.estrellas, 'frase', r.frase, 'compartir', r.compartir)
+      'recuerdos', CASE WHEN miembro THEN (SELECT coalesce(jsonb_agg(jsonb_build_object('id', r.user_id, 'estrellas', r.estrellas, 'frase', r.frase, 'compartir', r.compartir)
         ORDER BY r.creado), '[]'::jsonb)
-        FROM planes_recuerdos r WHERE r.plan = p.id AND (r.user_id = yo OR r.compartir)),
-      'gastos', (SELECT coalesce(jsonb_agg(jsonb_build_object('id', g.id, 'user_id', g.user_id, 'monto', g.monto, 'detalle', g.detalle, 'para', g.para, 'pago', g.pago)
+        FROM planes_recuerdos r WHERE r.plan = p.id AND (r.user_id = yo OR r.compartir)) ELSE '[]'::jsonb END,
+      'gastos', CASE WHEN miembro THEN (SELECT coalesce(jsonb_agg(jsonb_build_object('id', g.id, 'user_id', g.user_id, 'monto', g.monto, 'detalle', g.detalle, 'para', g.para, 'pago', g.pago)
         ORDER BY g.creado, g.id), '[]'::jsonb)
-        FROM planes_gastos g WHERE g.plan = p.id)
-    ) ORDER BY p.fecha NULLS LAST, p.hora NULLS FIRST, p.creado), '[]'::jsonb)
-  INTO r
-  FROM (SELECT * FROM planes_invitados WHERE user_id = yo) mio JOIN planes p ON p.id = mio.plan
-  WHERE (p.fecha IS NULL OR p.fecha >= hoy - 30) AND (NOT p.cancelado OR p.updated_at > now() - interval '7 days');
+        FROM planes_gastos g WHERE g.plan = p.id) ELSE '[]'::jsonb END)
+$$;
+
+CREATE OR REPLACE FUNCTION plan_lista(p_hoy date) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+DECLARE yo uuid := auth.uid(); hoy date := rumbo_hoy(p_hoy); r jsonb;
+BEGIN
+  IF yo IS NULL THEN RAISE EXCEPTION 'sin-sesion'; END IF;
+  SELECT coalesce(jsonb_agg(x.obj ORDER BY x.fecha NULLS LAST, x.hora NULLS FIRST, x.creado), '[]'::jsonb) INTO r FROM (
+    SELECT p.fecha, p.hora, p.creado, rumbo_plan_json(p, yo, mio.respuesta, mio.invita, true) AS obj
+      FROM (SELECT * FROM planes_invitados WHERE user_id = yo) mio JOIN planes p ON p.id = mio.plan
+      WHERE (p.fecha IS NULL OR p.fecha >= hoy - 30) AND (NOT p.cancelado OR p.updated_at > now() - interval '7 days')
+    UNION ALL   -- «¿Quién se suma?»: los abiertos de tus amigos, de hoy en adelante, en los que todavía no estás
+    SELECT p.fecha, p.hora, p.creado, rumbo_plan_json(p, yo, 'abierto', p.creador, false)
+      FROM planes p
+      WHERE p.abierto AND NOT p.cancelado AND p.fecha >= hoy AND p.creador <> yo AND rumbo_son_amigos(p.creador)
+        AND NOT EXISTS (SELECT 1 FROM planes_invitados i WHERE i.plan = p.id AND i.user_id = yo)
+  ) x;
   RETURN r;
 END $$;
 
@@ -370,10 +422,13 @@ END $$;
 REVOKE ALL ON FUNCTION plan_crear(text, text, date, text, jsonb, text, text, text, uuid[], date), plan_editar(uuid, text, text, date, text, text, text, date),
   plan_invitar(uuid, uuid[]), plan_responder(uuid, text), plan_votar(uuid, bigint[]), plan_fijar(uuid, bigint), plan_cancelar(uuid), plan_lista(date),
   plan_recordar(uuid, integer, text, boolean, date), plan_gasto(uuid, numeric, text, uuid[], boolean), plan_gasto_borrar(bigint),
+  plan_abierto_crear(text, text, date, text, text, text, text, date), plan_sumarme(uuid, date),
   rumbo_en_plan(uuid), rumbo_plan_mio(uuid), rumbo_plan_va(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION rumbo_plan_json(planes, uuid, text, uuid, boolean) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION plan_crear(text, text, date, text, jsonb, text, text, text, uuid[], date), plan_editar(uuid, text, text, date, text, text, text, date),
   plan_invitar(uuid, uuid[]), plan_responder(uuid, text), plan_votar(uuid, bigint[]), plan_fijar(uuid, bigint), plan_cancelar(uuid), plan_lista(date),
   plan_recordar(uuid, integer, text, boolean, date), plan_gasto(uuid, numeric, text, uuid[], boolean), plan_gasto_borrar(bigint),
+  plan_abierto_crear(text, text, date, text, text, text, text, date), plan_sumarme(uuid, date),
   rumbo_en_plan(uuid), rumbo_plan_mio(uuid), rumbo_plan_va(uuid) TO authenticated;
 
 COMMIT;

@@ -151,7 +151,7 @@ function resumenAnioHtml(r, enTendencias) {
 let MES_WIZ = null;   // { tipo, y, m, key, paso, draft }
 const MES_PASOS = {
   apertura: ["Mirada atrás", "Foco del mes", "Objetivos", "Hábitos", "Finanzas"],
-  cierre: ["Objetivos", "Números", "Rueda de la vida", "Reflexión", "Nota del mes"],
+  cierre: ["Objetivos", "Números", "Rueda de la vida", "Reflexión", "Álbum del mes", "Nota del mes"],   // el álbum: album.js
 };
 /* Al cerrar diciembre se suma "Tu año en números" */
 function pasosMes(w) { return w.tipo === "cierre" && w.m === 11 ? MES_PASOS.cierre.concat("Tu año") : MES_PASOS[w.tipo]; }
@@ -313,7 +313,8 @@ function mesCierrePaso(w) {
       <div class="field"><label>🛑 Qué dejar de hacer</label><input class="input" id="mc-dejar" value="${escapeAttr(d.dejar)}"></div>
       <div class="field"><label>🌱 Una cosa para el próximo mes</label><input class="input" id="mc-prox" value="${escapeAttr(d.proximo)}" placeholder="Se precargará al abrir el próximo mes"></div>`;
   }
-  if (w.paso === 5) return resumenAnioHtml(resumenAnio(STATE, w.y, d.nota))
+  if (w.paso === 4) return albumPasoHtml(w);   // 📷 las fotos de los mejores momentos (album.js)
+  if (w.paso === 6) return resumenAnioHtml(resumenAnio(STATE, w.y, d.nota))
     + (typeof medallasCierreHtml === "function" ? medallasCierreHtml(medallasDelAnio(STATE, w.y), "🏅 Tus medallas del año", "Todas brillan en tu vitrina.") : "");
   return `<div class="field"><label>Nota de ${MESES[w.m]}: <b id="mc-nl" style="font-size:20px">${d.nota}</b>/10</label>
     <input type="range" min="1" max="10" step="1" id="mc-nota" value="${d.nota}" style="width:100%;accent-color:var(--cian)"
@@ -342,7 +343,7 @@ function mesWizLeer() {
     if (w.paso === 0) Object.keys(d.estados).forEach(id => { if (el("mc-e-" + id)) d.estados[id] = { estado: val("mc-e-" + id), nota: val("mc-n-" + id) }; });
     if (w.paso === 2) d.rueda = d.rueda.map((v, i) => el("mc-r-" + i) ? parseNum(el("mc-r-" + i).value) : v);
     if (w.paso === 3) { d.mejor = val("mc-mejor"); d.aprendizaje = val("mc-apr"); d.dejar = val("mc-dejar"); d.proximo = val("mc-prox"); }
-    if (w.paso === 4 && el("mc-nota")) d.nota = parseNum(el("mc-nota").value) || 7;
+    if (w.paso === 5 && el("mc-nota")) d.nota = parseNum(el("mc-nota").value) || 7;
   }
 }
 function mesWizMover(delta) {
@@ -438,6 +439,7 @@ function guardarMesCierre(w) {
     gratitud: d.mejor, ts: now,
   });
   registrarMovimiento("ritual-mes-cierre:" + w.key, 150, 150, "Cierre de " + MESES[w.m]);
+  if (typeof albumPremio === "function") albumPremio(w.key);   // 📷 +30 ⭐ si el álbum ya tiene 3 fotos con comentario
   saveState(); closeModal(); updateTopbar(); rerender();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
   if (typeof celebrar === "function") celebrar("mes");   // 🎆 fuegos artificiales (Tienda)
@@ -460,7 +462,7 @@ function renderRitualMes() {
 
   const hist = Object.keys(STATE.ritual.meses || {}).sort().reverse().slice(0, 12).map(k => {
     const { y: hy, m: hm } = mesDeKey(k), x = STATE.ritual.meses[k];
-    return `<div class="item-row"><div class="item-row__main"><div class="item-row__title">${nombreMes(hy, hm)}${x.apertura && x.apertura.foco ? ` · <span class="hl-cian">${escapeHtml(x.apertura.foco)}</span>` : ""}</div>
+    return `<div class="item-row">${typeof albumMiniHtml === "function" ? albumMiniHtml(k) : ""}<div class="item-row__main"><div class="item-row__title">${nombreMes(hy, hm)}${x.apertura && x.apertura.foco ? ` · <span class="hl-cian">${escapeHtml(x.apertura.foco)}</span>` : ""}</div>
       <div class="item-row__sub">${x.cierre && x.cierre.mejor ? escapeHtml(x.cierre.mejor) : ""}</div></div>
       ${x.apertura ? '<span class="chip chip--done">Abierto ✓</span>' : ""} ${x.cierre ? `<span class="chip chip--done">Cerrado ✓ ${x.cierre.nota}/10</span>
         <button class="icon-btn" data-action="informe-open" data-key="${k}" title="Compartir este mes" aria-label="Compartir ${nombreMes(hy, hm)}">📤</button>` : ""}</div>`;

@@ -96,7 +96,7 @@ function renderDiario() {
   </div>
   <div class="dbusca"><input class="input" id="diario-busca" placeholder="Buscar en tu diario…" value="${escapeAttr(DIARIO_BUSCA)}" oninput="diarioBuscar(this.value)" aria-label="Buscar en tu diario"></div>`;
 
-  return `<div class="diario-layout"><div class="diario-izq">${mapa}</div>
+  return `<div class="diario-layout"><div class="diario-izq">${mapa}${typeof albumDiarioHtml === "function" ? albumDiarioHtml(DIARIO_MES) : ""}</div>
     <div id="diario-lista">${diarioListaHtml()}</div></div>`;
 }
 function diarioListaHtml() {

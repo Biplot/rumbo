@@ -806,6 +806,11 @@ const LocalBackend = {
           .map(m => Object.assign(this._amFicha(db, m.user_id), { yo: m.user_id === yo, estado: m.estado, pagina: m.pagina, terminado: m.terminado, actualizado: m.actualizado || null })) };
     });
   },
+  /* -------- Álbum del mes: sin servidor, las fotos quedan en este navegador (IndexedDB, ver album.js) -------- */
+  async albumSubir() { return { ok: true, local: true }; },
+  async albumUrls() { return {}; },
+  async albumBorrar() { return { ok: true }; },
+  async albumBorrarTodo() { return { ok: true }; },
   async deleteAccount() {
     const id = localStorage.getItem("rumbo_session"); if (!id) return { error: "No hay sesión." };
     const users = this._users(); delete users[id]; this._saveUsers(users);
@@ -846,6 +851,21 @@ function _traducir(m) {
    Base = local (intención más reciente de ESTE dispositivo);
    se unen aditivamente las colecciones para no perder lo del otro.
    ============================================================ */
+/* El álbum del mes en dos equipos: { meses: { "YYYY-MM": { estilo, portada, ts, fotos: [{ id, …, ts }], borradas: [id] } } } */
+function albumMerge(l, s) {
+  const lm = (l && l.meses) || {}, sm = (s && s.meses) || {}, meses = {}, copia = x => JSON.parse(JSON.stringify(x));
+  new Set([...Object.keys(lm), ...Object.keys(sm)]).forEach(k => {
+    const a = lm[k], b = sm[k];
+    if (!a || !b) { meses[k] = copia(a || b); return; }
+    const nuevo = (a.ts || 0) >= (b.ts || 0) ? a : b, otro = nuevo === a ? b : a;
+    const borradas = Array.from(new Set([...(a.borradas || []), ...(b.borradas || [])])), fuera = new Set(borradas), fotos = new Map();
+    (b.fotos || []).forEach(f => { if (f && f.id) fotos.set(f.id, f); });
+    (a.fotos || []).forEach(f => { if (!f || !f.id) return; const o = fotos.get(f.id); if (!o || (o.ts || 0) <= (f.ts || 0)) fotos.set(f.id, f); });
+    const orden = [...(nuevo.fotos || []), ...(otro.fotos || [])].map(f => f && f.id).filter((id, i, arr) => id && arr.indexOf(id) === i && !fuera.has(id));
+    meses[k] = { estilo: nuevo.estilo, portada: nuevo.portada, ts: nuevo.ts || 0, fotos: orden.map(id => copia(fotos.get(id))), borradas };
+  });
+  return { meses };
+}
 function mergeStates(server, local) {
   if (!server) return local;
   if (!local) return server;
@@ -959,6 +979,9 @@ function mergeStates(server, local) {
     out.agenda = Object.assign({}, out.agenda || {}, { dias,
       recurrentes: byId((local.agenda && local.agenda.recurrentes) || [], (server.agenda && server.agenda.recurrentes) || []) });
   }
+
+  // album (álbum del mes): por mes; las fotos por id (gana ts), las borradas no reviven; estilo y portada, el ts del mes
+  if (local.album || server.album) out.album = albumMerge(local.album, server.album);
 
   // eventos: dict por fecha -> unión de arrays de texto
   out.eventos = {};
@@ -1257,6 +1280,38 @@ const SupabaseBackend = {
   async lecturaResponder(l, acepta) { const r = await this._amRpc("lectura_responder", { p_id: l, p_acepta: !!acepta }); return r.error ? r : { r: r.data }; },
   async lecturaSalir(l) { const r = await this._amRpc("lectura_salir", { p_id: l }); return r.error ? r : { r: r.data }; },
   async lecturaAvance(l, pagina, hoy) { const r = await this._amRpc("lectura_avance", { p_id: l, p_pagina: pagina, p_hoy: hoy }); return r.error ? r : r.data; },
+  /* -------- Álbum del mes (supabase/album.sql): las fotos en Storage, en la carpeta privada de cada uno -------- */
+  _albErr(error) { const m = String((error && error.message) || error || ""); return /bucket not found|not found/i.test(m) ? "sin-servidor" : /fetch|network|failed/i.test(m) ? "red" : m || "error"; },
+  async albumSubir(ruta, blob) {
+    try {
+      const { error } = await this._client().storage.from("album").upload(ruta, blob, { contentType: "image/jpeg", upsert: true, cacheControl: "31536000" });
+      return error ? { error: this._albErr(error) } : { ok: true };
+    } catch (e) { return { error: "red" }; }
+  },
+  /* Direcciones firmadas (una hora) para ver las fotos: { "ruta.jpg": url } */
+  async albumUrls(rutas) {
+    try {
+      const { data, error } = await this._client().storage.from("album").createSignedUrls(rutas, 3600);
+      if (error) return { error: this._albErr(error) };
+      const out = {}; (data || []).forEach(d => { if (d && d.path && d.signedUrl) out[d.path] = d.signedUrl; });
+      return out;
+    } catch (e) { return { error: "red" }; }
+  },
+  async albumBorrar(rutas) {
+    try { const { error } = await this._client().storage.from("album").remove(rutas); return error ? { error: this._albErr(error) } : { ok: true }; }
+    catch (e) { return { error: "red" }; }
+  },
+  /* Al borrar la cuenta: todas tus fotos (carpeta por mes) */
+  async albumBorrarTodo(uid) {
+    try {
+      const b = this._client().storage.from("album"), { data: meses } = await b.list(uid, { limit: 1000 });
+      for (const m of meses || []) {
+        const { data: fotos } = await b.list(`${uid}/${m.name}`, { limit: 1000 });
+        if (fotos && fotos.length) await b.remove(fotos.map(f => `${uid}/${m.name}/${f.name}`));
+      }
+      return { ok: true };
+    } catch (e) { return { error: "red" }; }
+  },
   /* ¿Está activo "Iniciar sesión con Google" en Supabase? (Authentication → Providers → Google).
      Se consulta al mostrar la pantalla de acceso: así el botón aparece solo cuando funciona. */
   async googleDisponible() {
@@ -1359,6 +1414,8 @@ const SupabaseBackend = {
     return error ? { error: _traducir(error.message) } : { ok: true };
   },
   async deleteAccount() {
+    const { data: ses } = await this._client().auth.getSession();
+    if (ses && ses.session) await this.albumBorrarTodo(ses.session.user.id);   // 📷 tus fotos del álbum, antes que la cuenta
     const { error } = await this._client().rpc("delete_user");
     if (error) return { error: _traducir(error.message) };
     this._ver = {};

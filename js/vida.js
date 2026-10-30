@@ -381,6 +381,7 @@ function saveRel() {
 function renderListas() {
   const listas = STATE.vida.listas;
   return `
+  ${lcSeccionListas()}
   <div class="flex-between"><div class="card__title" style="margin:0">Tus listas</div>
     <button class="btn btn--primary" data-action="lista-add">+ Nueva lista</button></div>
   <div class="grid grid-3 mt-16">

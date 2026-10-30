@@ -2622,3 +2622,44 @@ html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-no
 .pl-hoy__k { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: color-mix(in srgb, #E0951F 75%, var(--text)); }
 .pl-hoy__p > b { font: 700 18px/1.25 var(--font-display); letter-spacing: -0.01em; }
 .pl-hoy__p > .text-xs { display: inline-flex; align-items: center; gap: 4px; }
+
+/* ============================================================
+   LISTAS COMPARTIDAS (v103) · listas-amigos.js: agregar, +1, lo hecho y sus estrellas
+   ============================================================ */
+.lc-grid { align-items: start; margin-top: 16px; }
+.lc { display: grid; gap: 2px; }
+.lc__cab { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding-bottom: 8px; }
+.lc__t { display: grid; min-width: 0; gap: 1px; }
+.lc__t b { font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lc-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.lc-item.is-visto { grid-template-columns: auto minmax(0, 1fr) auto; }
+.lc-check { width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid var(--line-strong); background: var(--surface); display: grid; place-items: center; padding: 0; color: #fff; cursor: pointer; }
+.lc-check .ico-n { width: 14px; height: 14px; }
+.lc-check.is-on { background: var(--cian); border-color: var(--cian); }
+.lc-item__t { display: grid; gap: 1px; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.lc-item__t b { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lc-item__t span { font-size: 11.5px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lc-item.is-visto .lc-item__t b { color: var(--text-soft); }
+.lc-mas1 { min-height: 28px; padding: 0 9px; border-radius: 999px; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--text-soft); font: 700 12px var(--font-body); cursor: pointer; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lc-mas1.is-on { background: var(--cian-soft); border-color: var(--cian); color: var(--cian-ink); }
+.lc-plan { width: 32px; height: 32px; }
+.lc-est { display: inline-flex; gap: 1px; color: var(--line-strong); }
+.lc-est .on { color: #F4AE3D; }
+.lc-est .on svg { fill: currentColor; }
+.lc-todas { justify-self: start; margin-top: 4px; }
+.lc-add { gap: 6px; margin-top: 8px; }
+.lc-add .btn { padding: 8px 12px; }
+.lc-vistas { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.lc-vistas summary { cursor: pointer; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); padding: 4px 0; }
+.lc-vistas .lc-item:first-of-type { border-top: 0; }
+.lc-det__visto { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 12px; background: var(--cian-soft); color: var(--cian-ink); font-weight: 600; }
+.lc-det__est { display: flex; gap: 4px; }
+.lc-det__est button { padding: 4px; border: 0; background: none; color: var(--line-strong); cursor: pointer; border-radius: 10px; }
+.lc-det__est button.on { color: #F4AE3D; }
+.lc-det__est button.on svg { fill: currentColor; }
+.lc-det__notas { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--text-soft); }
+.lc-det__notas > span { display: inline-flex; align-items: center; gap: 6px; }
+.lc-det__b { grid-template-columns: minmax(0, 1fr); }
+.lc-det__b .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.pl-desde { display: flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 12.5px; font-weight: 600; color: var(--cian-ink); }
+.pl-desde .ico-n { width: 14px; height: 14px; }

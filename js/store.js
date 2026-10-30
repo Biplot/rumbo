@@ -41,13 +41,13 @@ function _codigoAmigo() {
 }
 /* Errores de Amigos en palabras de la app: sin-servidor (falta correr supabase/amigos.sql o conjunto.sql), red, limite,
    no-amigos y los de los hábitos y objetivos en conjunto (no-miembro, fecha, amigos, nombre, icono, frecuencia, meta, unidad, cantidad)
-   y de los planes (titulo, tipo, hora, lugar, enlace, opciones, respuesta, no-creador, votacion, cancelado) */
+   y de los planes (titulo, tipo, hora, lugar, enlace, opciones, respuesta, no-creador, votacion, cancelado) y las listas (texto, estrellas) */
 function _amigosError(e) {
   const m = String((e && (e.message || e.details)) || e || "");
   if (/limite/.test(m)) return "limite";
   if (/no-amigos/.test(m)) return "no-amigos";
   if (["no-miembro", "fecha", "amigos", "nombre", "icono", "frecuencia", "meta", "unidad", "cantidad",
-    "titulo", "tipo", "hora", "lugar", "enlace", "opciones", "respuesta", "no-creador", "votacion", "cancelado"].includes(m.trim())) return m.trim();
+    "titulo", "tipo", "hora", "lugar", "enlace", "opciones", "respuesta", "no-creador", "votacion", "cancelado", "texto", "estrellas"].includes(m.trim())) return m.trim();
   if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return "red";
   if ((e && ["PGRST202", "PGRST205", "42P01", "42883"].includes(e.code)) || /does not exist|Could not find the (function|table)|schema cache/i.test(m)) return "sin-servidor";
   return m || "error";
@@ -121,7 +121,7 @@ const LocalBackend = {
      Las cuentas locales comparten esta "base", así se prueban dos personas en un mismo equipo. -------- */
   _amDb() {
     const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1, conjuntos: [], cmiembros: [], cmarcas: [], objetivos: [], omiembros: [], oaportes: [],
-      planes: [], pinvitados: [], popciones: [], pvotos: [] };
+      planes: [], pinvitados: [], popciones: [], pvotos: [], listas: [], lmiembros: [], litems: [], lvotos: [] };
     try { return Object.assign(vacia, JSON.parse(localStorage.getItem("rumbo_amigos") || "{}")); } catch { return vacia; }
   },
   _amGuardar(db) { try { localStorage.setItem("rumbo_amigos", JSON.stringify(db)); } catch {} },
@@ -194,6 +194,7 @@ const LocalBackend = {
     // y de los planes: en los tuyos sale el otro; en los suyos (o de un tercero), sales tú (supabase/planes.sql)
     db.planes.filter(p => [yo, otro].every(u => db.pinvitados.some(i => i.plan === p.id && i.user_id === u)))
       .forEach(p => { const sale = p.creador === yo ? otro : yo; db.pinvitados = db.pinvitados.filter(i => !(i.plan === p.id && i.user_id === sale)); });
+    db.lmiembros.filter(m => m.user_id === otro).map(m => m.lista).forEach(l => this._lcSacar(db, l, yo));   // y de las listas compartidas
     this._amGuardar(db); return { r: "bloqueada" };
   },
   async amigosLista() {
@@ -548,6 +549,135 @@ const LocalBackend = {
           .map(o => ({ id: o.id, fecha: o.fecha, hora: o.hora,
             votos: db.pvotos.filter(v => v.opcion === o.id && db.pinvitados.some(i => i.plan === p.id && i.user_id === v.user_id)).map(v => v.user_id) })),
       }));
+  },
+  /* -------- Listas compartidas sin servidor: las reglas de supabase/listas.sql -------- */
+  _lcValida(nombre, tipo) {
+    const n = String(nombre || "").trim();
+    if (!n || n.length > 60) return "nombre";
+    if (!["peliculas", "series", "comida", "viaje", "libros", "otra"].includes(tipo)) return "tipo";
+    return null;
+  },
+  _lcActivo(db, l, yo) { return db.lmiembros.find(m => m.lista === l && m.user_id === yo && m.estado === "activo"); },
+  _lcItem(db, item, yo) { const i = db.litems.find(x => x.id === item); return i && this._lcActivo(db, i.lista, yo) ? i : null; },
+  _lcSacar(db, l, quien) {   // sale (lo que agregó se queda); si no queda nadie activo, se borra con todo
+    db.lmiembros = db.lmiembros.filter(m => !(m.lista === l && m.user_id === quien));
+    if (!db.lmiembros.some(m => m.lista === l && m.estado === "activo")) {
+      const items = db.litems.filter(i => i.lista === l).map(i => i.id);
+      db.listas = db.listas.filter(x => x.id !== l);
+      db.lmiembros = db.lmiembros.filter(m => m.lista !== l);
+      db.litems = db.litems.filter(i => i.lista !== l);
+      db.lvotos = db.lvotos.filter(v => !items.includes(v.item));
+    }
+  },
+  async listaCrear(nombre, tipo, amigos) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), mal = this._lcValida(nombre, tipo); if (mal) return { error: mal };
+    const ids = [...new Set(amigos || [])].filter(x => x && x !== yo);
+    if (!ids.length || ids.length > 7) return { error: "amigos" };
+    if (ids.some(x => { const f = this._amPar(db, yo, x); return !f || f.estado !== "aceptada"; })) return { error: "no-amigos" };
+    if (db.lmiembros.filter(m => m.user_id === yo).length >= 20) return { error: "limite" };
+    const id = "lc" + (db.sig++) + Date.now().toString(36);
+    db.listas.push({ id, nombre: String(nombre).trim(), tipo, creador: yo });
+    db.lmiembros.push({ lista: id, user_id: yo, estado: "activo", invita: null, n: db.sig++ });
+    ids.forEach(x => db.lmiembros.push({ lista: id, user_id: x, estado: "invitado", invita: yo, n: db.sig++ }));
+    this._amGuardar(db);
+    return { id };
+  },
+  async listaInvitar(l, amigos) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._lcActivo(db, l, yo)) return { error: "no-miembro" };
+    const ids = [...new Set(amigos || [])].filter(x => x && x !== yo && !db.lmiembros.some(m => m.lista === l && m.user_id === x));
+    if (ids.some(x => { const f = this._amPar(db, yo, x); return !f || f.estado !== "aceptada"; })) return { error: "no-amigos" };
+    if (db.lmiembros.filter(m => m.lista === l).length + ids.length > 8) return { error: "limite" };
+    ids.forEach(x => db.lmiembros.push({ lista: l, user_id: x, estado: "invitado", invita: yo, n: db.sig++ }));
+    this._amGuardar(db);
+    return { n: ids.length };
+  },
+  async listaResponder(l, acepta) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    const m = db.lmiembros.find(x => x.lista === l && x.user_id === yo && x.estado === "invitado");
+    if (!m) return { r: "nada" };
+    if (!acepta) { this._lcSacar(db, l, yo); this._amGuardar(db); return { r: "rechazado" }; }
+    if (db.lmiembros.filter(x => x.user_id === yo && x.estado === "activo").length >= 20) return { error: "limite" };
+    m.estado = "activo"; this._amGuardar(db);
+    return { r: "unido" };
+  },
+  async listaSalir(l) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!db.lmiembros.some(m => m.lista === l && m.user_id === yo)) return { r: "nada" };
+    this._lcSacar(db, l, yo); this._amGuardar(db);
+    return { r: "salio" };
+  },
+  async listaEditar(l, nombre, tipo) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._lcActivo(db, l, yo)) return { error: "no-miembro" };
+    const mal = this._lcValida(nombre, tipo); if (mal) return { error: mal };
+    Object.assign(db.listas.find(x => x.id === l), { nombre: String(nombre).trim(), tipo });
+    this._amGuardar(db);
+    return { r: "ok" };
+  },
+  async listaAgregar(l, texto, nota) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._lcActivo(db, l, yo)) return { error: "no-miembro" };
+    const t = String(texto || "").trim();
+    if (!t || t.length > 80) return { error: "texto" };
+    if (db.litems.filter(i => i.lista === l).length >= 200 || db.litems.filter(i => i.user_id === yo && Date.now() - i.creado < 864e5).length >= 50) return { error: "limite" };
+    const id = db.sig++;
+    db.litems.push({ id, lista: l, user_id: yo, texto: t, nota: String(nota || "").trim().slice(0, 80), visto: null, visto_por: null, creado: Date.now() });
+    this._amGuardar(db);
+    return { id };
+  },
+  async listaItemBorrar(item) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), i = this._lcItem(db, item, yo);
+    if (!i || (i.user_id && i.user_id !== yo)) return { r: "nada" };
+    db.litems = db.litems.filter(x => x !== i); db.lvotos = db.lvotos.filter(v => v.item !== item);
+    this._amGuardar(db);
+    return { r: "borrado" };
+  },
+  async listaItemNota(item, nota) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), i = this._lcItem(db, item, yo);
+    if (!i) return { error: "no-miembro" };
+    i.nota = String(nota || "").trim().slice(0, 80); this._amGuardar(db);
+    return { r: "ok" };
+  },
+  async listaItemVisto(item, visto, hoy) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), i = this._lcItem(db, item, yo);
+    if (!i) return { error: "no-miembro" };
+    if (visto) { i.visto = i.visto || this._cjHoy(hoy); i.visto_por = i.visto_por || yo; }
+    else {
+      i.visto = null; i.visto_por = null;
+      db.lvotos.forEach(v => { if (v.item === item) v.estrellas = null; });
+      db.lvotos = db.lvotos.filter(v => !(v.item === item && !v.mas_uno));
+    }
+    this._amGuardar(db);
+    return { r: visto ? "visto" : "por-ver" };
+  },
+  async listaItemMarcar(item, masUno, estrellas) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), i = this._lcItem(db, item, yo);
+    if (!i) return { error: "no-miembro" };
+    if (estrellas != null && !(Number.isInteger(estrellas) && estrellas >= 1 && estrellas <= 5)) return { error: "estrellas" };
+    db.lvotos = db.lvotos.filter(v => !(v.item === item && v.user_id === yo));
+    const e = i.visto ? (estrellas == null ? null : estrellas) : null;
+    if (masUno || e != null) db.lvotos.push({ item, user_id: yo, mas_uno: !!masUno, estrellas: e });
+    this._amGuardar(db);
+    return { r: "ok" };
+  },
+  async listaLista() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb();
+    return db.lmiembros.filter(m => m.user_id === yo).sort((a, b) => a.n - b.n).map(mio => {
+      const l = db.listas.find(x => x.id === mio.lista);
+      return {
+        id: l.id, nombre: l.nombre, tipo: l.tipo, estado: mio.estado, invita: mio.invita,
+        miembros: db.lmiembros.filter(m => m.lista === l.id).sort((a, b) => (a.estado > b.estado) - (a.estado < b.estado) || a.n - b.n)
+          .map(m => Object.assign(this._amFicha(db, m.user_id), { yo: m.user_id === yo, estado: m.estado })),
+        items: db.litems.filter(i => i.lista === l.id).sort((a, b) => a.creado - b.creado || a.id - b.id).map(i => ({
+          id: i.id, user_id: i.user_id, nombre: i.user_id ? this._amFicha(db, i.user_id).nombre : "", texto: i.texto, nota: i.nota, visto: i.visto, visto_por: i.visto_por,
+          mas_uno: db.lvotos.filter(v => v.item === i.id && v.mas_uno).map(v => v.user_id),
+          estrellas: db.lvotos.filter(v => v.item === i.id && v.estrellas != null).map(v => ({ id: v.user_id, n: v.estrellas })),
+        })),
+      };
+    });
   },
   async deleteAccount() {
     const id = localStorage.getItem("rumbo_session"); if (!id) return { error: "No hay sesión." };
@@ -961,6 +1091,21 @@ const SupabaseBackend = {
   async planVotar(id, opciones) { const r = await this._amRpc("plan_votar", { p_id: id, p_opciones: opciones }); return r.error ? r : { n: r.data }; },
   async planFijar(id, opcion) { const r = await this._amRpc("plan_fijar", { p_id: id, p_opcion: opcion }); return r.error ? r : { r: r.data }; },
   async planCancelar(id) { const r = await this._amRpc("plan_cancelar", { p_id: id }); return r.error ? r : { r: r.data }; },
+  /* -------- Listas compartidas (supabase/listas.sql) -------- */
+  async listaLista() { const r = await this._amRpc("lista_lista"); return r.error ? r : r.data || []; },
+  async listaCrear(nombre, tipo, amigos) { const r = await this._amRpc("lista_crear", { p_nombre: nombre, p_tipo: tipo, p_amigos: amigos }); return r.error ? r : { id: r.data }; },
+  async listaInvitar(l, amigos) { const r = await this._amRpc("lista_invitar", { p_id: l, p_amigos: amigos }); return r.error ? r : { n: r.data }; },
+  async listaResponder(l, acepta) { const r = await this._amRpc("lista_responder", { p_id: l, p_acepta: !!acepta }); return r.error ? r : { r: r.data }; },
+  async listaSalir(l) { const r = await this._amRpc("lista_salir", { p_id: l }); return r.error ? r : { r: r.data }; },
+  async listaEditar(l, nombre, tipo) { const r = await this._amRpc("lista_editar", { p_id: l, p_nombre: nombre, p_tipo: tipo }); return r.error ? r : { r: r.data }; },
+  async listaAgregar(l, texto, nota) { const r = await this._amRpc("lista_agregar", { p_id: l, p_texto: texto, p_nota: nota || "" }); return r.error ? r : { id: r.data }; },
+  async listaItemBorrar(item) { const r = await this._amRpc("lista_item_borrar", { p_item: item }); return r.error ? r : { r: r.data }; },
+  async listaItemNota(item, nota) { const r = await this._amRpc("lista_item_nota", { p_item: item, p_nota: nota || "" }); return r.error ? r : { r: r.data }; },
+  async listaItemVisto(item, visto, hoy) { const r = await this._amRpc("lista_item_visto", { p_item: item, p_visto: !!visto, p_hoy: hoy }); return r.error ? r : { r: r.data }; },
+  async listaItemMarcar(item, masUno, estrellas) {
+    const r = await this._amRpc("lista_item_marcar", { p_item: item, p_mas_uno: !!masUno, p_estrellas: estrellas == null ? null : estrellas });
+    return r.error ? r : { r: r.data };
+  },
   /* ¿Está activo "Iniciar sesión con Google" en Supabase? (Authentication → Providers → Google).
      Se consulta al mostrar la pantalla de acceso: así el botón aparece solo cuando funciona. */
   async googleDisponible() {

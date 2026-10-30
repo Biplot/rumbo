@@ -347,7 +347,7 @@ const EMOJI_UI = {
   "⏳": "hourglass", "💼": "briefcase", "🌗": "sun-moon", "💬": "message-circle", "🌍": "globe", "🔊": "volume-2", "💻": "laptop", "🛏": "bed",
   "🏛": "landmark", "🎁": "gift", "🏁": "flag", "🔗": "link", "🔑": "key-round", "⏰": "alarm-clock", "🕰": "alarm-clock", "↩": "undo-2",
   "↶": "undo-2", "👋": "hand", "💛": "heart", "❤": "heart", "💗": "heart", "👥": "relaciones", "👤": "cuenta", "🔭": "telescope",
-  "🌌": "telescope", "📥": "download", "🍳": "cooking-pot", "🥗": "salad", "📄": "file-text", "💾": "save", "🚫": "ban", "🎟": "ticket", "🗳": "square-check",
+  "🌌": "telescope", "📥": "download", "🍳": "cooking-pot", "🥗": "salad", "📄": "file-text", "💾": "save", "🚫": "ban", "🎟": "ticket", "🗳": "square-check", "👍": "thumbs-up",
   "🎬": "clapperboard", "🤝": "handshake", "🏃": "footprints", "📞": "phone", "💊": "pill", "🎪": "tent", "🐾": "paw-print", "♟": "chess-knight",
   "🧱": "brick-wall", "🦉": "bird", "🟩": "square-check", "🔖": "bookmark", "💵": "banknote", "💯": "badge-check", "🐠": "fish", "🐈": "cat",
   "🏔": "mountain-snow", "🎸": "guitar", "🌇": "sunset", "💠": "gem", "🧰": "briefcase", "📦": "package", "🌀": "refresh-cw", "❔": "tutoriales",

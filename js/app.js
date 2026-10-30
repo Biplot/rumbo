@@ -157,7 +157,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 40;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 41;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -412,6 +412,11 @@ const NOVEDADES = {
     ["🎟️", "Planes con amigos", "En Amigos › Planes, propón algo para juntarse: ver una película, ir a comer, salir a correr. Eliges cuándo, dónde y a quiénes invitas."],
     ["🗳️", "¿Cuándo pueden?", "Si no saben qué día, propón de 2 a 4 fechas: cada uno marca las que le sirven y tú eliges la que queda."],
     ["📅", "En tu agenda", "Si vas, el plan aparece en tu Semana, tu Calendario y en Inicio ese día. Tus amigos ven el plan, no tu agenda."],
+  ],
+  41: [
+    ["📋", "Listas con amigos", "En Listas, crea una lista con tus amigos: películas por ver, restaurantes por probar o lugares para un viaje. Todos agregan."],
+    ["👍", "Yo también y estrellas", "Dale +1 a lo que también quieres, marca lo que ya hicieron y ponle de 1 a 5 estrellas. Lo que más quieren queda arriba."],
+    ["🎟️", "De la lista a un plan", "Toca el boleto junto a cualquier cosa de la lista: se abre un plan nuevo con eso y con la gente de la lista."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -968,6 +973,7 @@ function onClick(e) {
   if (a.startsWith("oj-")) { objetivosAccion(a, d); return; }     // objetivos en conjunto (objetivos.js)
   if (a.startsWith("vis-")) { visitaAccion(a, d); return; }        // de visita en la casa de un amigo (visitas.js)
   if (a.startsWith("pl-")) { planesAccion(a, d); return; }         // planes con amigos (planes.js)
+  if (a.startsWith("lc-")) { listasCompAccion(a, d); return; }     // listas compartidas (listas-amigos.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;

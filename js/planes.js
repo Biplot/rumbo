@@ -293,17 +293,19 @@ function plCalendario(year, m, push) {
     .forEach(p => push(+p.fecha.slice(8), { icon: "🎟️", label: (p.hora ? p.hora + " " : "") + p.titulo, cls: "plan", type: "plan", id: p.id }));
 }
 
-/* El formulario: nuevo plan (con amigos elegidos) o editar uno (solo quien lo propuso) */
-function openPlanForm(id, pre) {
+/* El formulario: nuevo plan (con amigos elegidos) o editar uno (solo quien lo propuso).
+   desde: cuando se elige de una lista compartida (listas-amigos.js): { titulo, tipo, lista } */
+function openPlanForm(id, pre, desde) {
   const p = id ? (PLAN.lista || []).find(x => x.id === id) : null;
   if (p && !plEsMio(p)) return;
   const amigos = (AMIGOS.lista && AMIGOS.lista.amigos) || [], dentro = new Set(p ? p.miembros.map(m => m.id) : []);
-  const libres = amigos.filter(a => !dentro.has(a.id)), tipo = p ? p.tipo : "pelicula", dist = !!(p && p.enlace && !p.lugar);
+  const libres = amigos.filter(a => !dentro.has(a.id)), tipo = p ? p.tipo : (desde && desde.tipo) || "pelicula", dist = !!(p && p.enlace && !p.lugar);
   const votando = p && !p.fecha;
   const radio = (nombre, v, txt, on) => `<label class="pl-chip"><input type="radio" name="${nombre}" value="${v}" ${on ? "checked" : ""} onchange="plFormModo()"><span>${txt}</span></label>`;
   openModal(p ? "Editar plan" : "🎟️ Nuevo plan", `<div class="pl-form">
     <div class="field"><label>Qué</label><div class="pl-chips">${PL_TIPOS.map(([k, l, ic]) => radio("pl-tipo", k, icoUI(ic) + " " + l, k === tipo)).join("")}</div></div>
-    <div class="field"><label for="pl-titulo">Nombre</label><input class="input" id="pl-titulo" maxlength="60" value="${escapeHtml(p ? p.titulo : "")}" placeholder="Ej: Ver Dune: Parte Dos"></div>
+    <div class="field"><label for="pl-titulo">Nombre</label><input class="input" id="pl-titulo" maxlength="60" value="${escapeHtml(p ? p.titulo : (desde && desde.titulo) || "")}" placeholder="Ej: Ver Dune: Parte Dos">
+      ${desde && desde.lista ? `<div class="pl-desde">${icoUI("listas")} Elegido de «${escapeHtml(desde.lista)}»</div>` : ""}</div>
     <div class="field"><label>Cuándo</label>
       ${p ? "" : `<div class="pl-seg">${radio("pl-cuando", "fija", "Una fecha", true)}${radio("pl-cuando", "votar", "Que voten", false)}</div>`}
       <div id="pl-fija" class="pl-dos">

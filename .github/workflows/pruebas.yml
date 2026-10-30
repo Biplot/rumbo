@@ -9,7 +9,8 @@ jobs:
   pruebas:
     # Fijo en 24.04: desde el 22-10-2026 «ubuntu-latest» es 26.04 y Playwright 1.56.1 no instala Chromium ahí
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # Las pruebas en navegador ya pasan los 15 minutos (unas 1000, con dos personas en planes y listas)
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

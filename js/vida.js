@@ -118,7 +118,7 @@ function diarioListaHtml() {
 function diarioBuscar(v) {
   DIARIO_BUSCA = v || "";
   const el = document.getElementById("diario-lista");
-  if (el) el.innerHTML = diarioListaHtml();
+  if (el) el.innerHTML = iconizar(diarioListaHtml());
 }
 function diarioElegir(iso) {
   DIARIO_SEL = DIARIO_SEL === iso ? null : iso;
@@ -392,7 +392,7 @@ function listaNormalCard(l) {
   const done = l.items.filter(i => i.done).length;
   const inputId = "li-" + l.id;
   return `<div class="card">
-    <div class="card__head"><div class="card__title" style="font-size:15px">${l.icon || "📄"} ${escapeHtml(l.nombre)}</div>
+    <div class="card__head"><div class="card__title" style="font-size:15px">${emoLit(l.icon || "📄")} ${escapeHtml(l.nombre)}</div>
       <div class="row" style="gap:6px"><span class="chip">${done}/${l.items.length}</span>
         <button class="icon-btn" data-action="lista-del" data-id="${l.id}">🗑</button></div></div>
     ${l.items.map(it => `<div class="item-row" style="padding:8px 10px">
@@ -433,7 +433,7 @@ function openListaModal() {
       </div><input type="hidden" id="lst-tipo" value="normal"></div>
     <div class="field"><label>Nombre</label><input class="input" id="lst-nombre" placeholder="Ej: Compras"></div>
     <div class="field" id="lst-icon-field"><label>Ícono</label><div class="row-wrap" id="lst-iconos">${iconos.map(ic =>
-      `<button type="button" class="btn btn--soft" style="padding:8px 12px" data-ic="${ic}" onclick="listaIconPick(this)">${ic}</button>`).join("")}</div>
+      `<button type="button" class="btn btn--soft" style="padding:8px 12px" data-ic="${ic}" onclick="listaIconPick(this)">${emoLit(ic)}</button>`).join("")}</div>
       <input type="hidden" id="lst-icon" value="🛒"></div>
     <p class="text-xs muted" style="margin:-4px 0 12px" id="lst-deseo-hint" hidden>💎 En una lista de deseos cada ítem lleva un monto y verás el total (para cuantificar tus gastos lujosos).</p>
     <button class="btn btn--primary btn-block" data-action="lista-save">Crear lista</button>`);

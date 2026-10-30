@@ -1,8 +1,13 @@
 /* ============================================================
-   RUMBO · Íconos de línea para hábitos y Tendencias (sobrios, como los del menú)
-   Los dibujos son de Lucide (lucide.dev, licencia ISC; Feather, MIT). Los hábitos guardan su
-   emoji de siempre (así no cambia nada en tus datos ni en tus otros equipos): al mostrarlos
-   se dibuja su ícono de línea. Un emoji que no está en la tabla se muestra tal cual.
+   RUMBO · Íconos Norte: un solo juego de íconos de línea para toda la app
+   Los dibujos son de Lucide (lucide.dev, licencia ISC; Feather, MIT), con el trazo del menú
+   (navegacion.js), más tres propios de Rumbo: el bocado del logo, el elefante de perfil y la
+   estrella de las monedas (la única rellena, siempre en ámbar).
+   · Hábitos y Tendencias: cada hábito guarda su emoji de siempre (así no cambia nada en tus datos
+     ni en tus otros equipos) y al mostrarlo se dibuja su ícono (EMOJI_ICONO, icoHab).
+   · La interfaz: los emojis escritos en el código (títulos, pestañas, botones, avisos) se cambian
+     por su ícono al pintar la pantalla (EMOJI_UI, iconizar). Lo que escribes o eliges tú no se
+     toca: escapeHtml lo deja como entidad (&#x…;) y iconizar solo cambia emojis literales.
    ============================================================ */
 const ICONOS_SVG = {
   "dumbbell": "<path d=\"M14.4 14.4 9.6 9.6\"/><path d=\"M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z\"/><path d=\"m21.5 21.5-1.4-1.4\"/><path d=\"M3.9 3.9 2.5 2.5\"/><path d=\"M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z\"/>",
@@ -120,6 +125,71 @@ const ICONOS_SVG = {
   "timer": "<line x1=\"10\" x2=\"14\" y1=\"2\" y2=\"2\"/><line x1=\"12\" x2=\"15\" y1=\"14\" y2=\"11\"/><circle cx=\"12\" cy=\"14\" r=\"8\"/>",
   "cloud-sun": "<path d=\"M12 2v2\"/><path d=\"m4.93 4.93 1.41 1.41\"/><path d=\"M20 12h2\"/><path d=\"m19.07 4.93-1.41 1.41\"/><path d=\"M15.947 12.65a4 4 0 0 0-5.925-4.128\"/><path d=\"M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z\"/>",
   "tree-palm": "<path d=\"M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h2l1-1 1 1h4\"/><path d=\"M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3\"/><path d=\"M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.7-.7.71-.71 2.12-2.12c-1.95-1.96-5.27-1.8-7.42.35\"/><path d=\"M11 15.5c.5 2.5-.17 4.5-1 6.5h4c2-5.5-.5-12-1-14\"/>",
+  /* Íconos Norte: el resto de la interfaz */
+  "badge-check": "<path d=\"M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z\"/><path d=\"m16 9-5.5 5.5L8 12\"/>",
+  "banknote": "<rect width=\"20\" height=\"12\" x=\"2\" y=\"6\" rx=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/><path d=\"M6 12h.01M18 12h.01\"/>",
+  "bookmark": "<path d=\"M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z\"/>",
+  "brick-wall": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M12 9v6\"/><path d=\"M16 15v6\"/><path d=\"M16 3v6\"/><path d=\"M3 15h18\"/><path d=\"M3 9h18\"/><path d=\"M8 15v6\"/><path d=\"M8 3v6\"/>",
+  "cake": "<path d=\"M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8\"/><path d=\"M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1\"/><path d=\"M2 21h20\"/><path d=\"M7 8v3\"/><path d=\"M12 8v3\"/><path d=\"M17 8v3\"/><path d=\"M7 4h.01\"/><path d=\"M12 4h.01\"/><path d=\"M17 4h.01\"/>",
+  "chess-knight": "<path d=\"M5 20a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z\"/><path d=\"M16.5 18c1-2 2.5-5 2.5-9a7 7 0 0 0-7-7H6.635a1 1 0 0 0-.768 1.64L7 5l-2.32 5.802a2 2 0 0 0 .95 2.526l2.87 1.456\"/><path d=\"m15 5 1.425-1.425\"/><path d=\"m17 8 1.53-1.53\"/><path d=\"M9.713 12.185 7 18\"/>",
+  "circle-user-round": "<path d=\"M17.925 20.056a6 6 0 0 0-11.851.001\"/><circle cx=\"12\" cy=\"11\" r=\"4\"/><circle cx=\"12\" cy=\"12\" r=\"10\"/>",
+  "clapperboard": "<path d=\"m12.296 3.464 3.02 3.956\"/><path d=\"M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z\"/><path d=\"M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/><path d=\"m6.18 5.276 3.1 3.899\"/>",
+  "crown": "<path d=\"M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z\"/><path d=\"M5 21h14\"/>",
+  "download": "<path d=\"M12 15V3\"/><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"m7 10 5 5 5-5\"/>",
+  "file-text": "<path d=\"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z\"/><path d=\"M14 2v5a1 1 0 0 0 1 1h5\"/><path d=\"M10 9H8\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/>",
+  "fish": "<path d=\"M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6Z\"/><path d=\"M18 12v.5\"/><path d=\"M16 17.93a9.77 9.77 0 0 1 0-11.86\"/><path d=\"M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 1.5-1 5 .23 6.5-1.24 1.5-1.24 5-.23 6.5C5.58 18.03 7 16 7 13.33\"/><path d=\"M10.46 7.26C10.2 5.88 9.17 4.24 8 3h5.8a2 2 0 0 1 1.98 1.67l.23 1.4\"/><path d=\"m16.01 17.93-.23 1.4A2 2 0 0 1 13.8 21H9.5a5.96 5.96 0 0 0 1.49-3.98\"/>",
+  "folder-open": "<path d=\"m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2\"/>",
+  "gem": "<path d=\"M10.5 3 8 9l4 13 4-13-2.5-6\"/><path d=\"M17 3a2 2 0 0 1 1.6.8l3 4a2 2 0 0 1 .013 2.382l-7.99 10.986a2 2 0 0 1-3.247 0l-7.99-10.986A2 2 0 0 1 2.4 7.8l2.998-3.997A2 2 0 0 1 7 3z\"/><path d=\"M2 9h20\"/>",
+  "gift": "<path d=\"M12 7v14\"/><path d=\"M20 11v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8\"/><path d=\"M7.5 7a1 1 0 0 1 0-5A4.8 8 0 0 1 12 7a4.8 8 0 0 1 4.5-5 1 1 0 0 1 0 5\"/><rect x=\"3\" y=\"7\" width=\"18\" height=\"4\" rx=\"1\"/>",
+  "guitar": "<path d=\"m11.9 12.1 4.514-4.514\"/><path d=\"M20.1 2.3a1 1 0 0 0-1.4 0l-1.114 1.114A2 2 0 0 0 17 4.828v1.344a2 2 0 0 1-.586 1.414A2 2 0 0 1 17.828 7h1.344a2 2 0 0 0 1.414-.586L21.7 5.3a1 1 0 0 0 0-1.4z\"/><path d=\"m6 16 2 2\"/><path d=\"M8.23 9.85A3 3 0 0 1 11 8a5 5 0 0 1 5 5 3 3 0 0 1-1.85 2.77l-.92.38A2 2 0 0 0 12 18a4 4 0 0 1-4 4 6 6 0 0 1-6-6 4 4 0 0 1 4-4 2 2 0 0 0 1.85-1.23z\"/>",
+  "hand": "<path d=\"M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2\"/><path d=\"M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2\"/><path d=\"M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8\"/><path d=\"M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15\"/>",
+  "image": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" ry=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21\"/>",
+  "key-round": "<path d=\"M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z\"/><circle cx=\"16.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\"/>",
+  "landmark": "<path d=\"M10 18v-7\"/><path d=\"M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z\"/><path d=\"M14 18v-7\"/><path d=\"M18 18v-7\"/><path d=\"M3 22h18\"/><path d=\"M6 18v-7\"/>",
+  "link": "<path d=\"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71\"/><path d=\"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71\"/>",
+  "lock": "<rect width=\"18\" height=\"11\" x=\"3\" y=\"11\" rx=\"2\" ry=\"2\"/><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"/>",
+  "lock-open": "<rect width=\"18\" height=\"11\" x=\"3\" y=\"11\" rx=\"2\" ry=\"2\"/><path d=\"M7 11V7a5 5 0 0 1 9.9-1\"/>",
+  "map-pin": "<path d=\"M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/>",
+  "message-circle": "<path d=\"M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719\"/>",
+  "pause": "<rect x=\"14\" y=\"3\" width=\"5\" height=\"18\" rx=\"1\"/><rect x=\"5\" y=\"3\" width=\"5\" height=\"18\" rx=\"1\"/>",
+  "paw-print": "<circle cx=\"11\" cy=\"4\" r=\"2\"/><circle cx=\"18\" cy=\"8\" r=\"2\"/><circle cx=\"20\" cy=\"16\" r=\"2\"/><path d=\"M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z\"/>",
+  "pen-line": "<path d=\"M13 21h8\"/><path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\"/>",
+  "piggy-bank": "<path d=\"M11 17h3v2a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-3a3.16 3.16 0 0 0 2-2h1a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1h-1a5 5 0 0 0-2-4V3a4 4 0 0 0-3.2 1.6l-.3.4H11a6 6 0 0 0-6 6v1a5 5 0 0 0 2 4v3a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1z\"/><path d=\"M16 10h.01\"/><path d=\"M2 8v1a2 2 0 0 0 2 2h1\"/>",
+  "redo-2": "<path d=\"m15 14 5-5-5-5\"/><path d=\"M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13\"/>",
+  "refresh-cw": "<path d=\"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8\"/><path d=\"M21 3v5h-5\"/><path d=\"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16\"/><path d=\"M8 16H3v5\"/>",
+  "repeat": "<path d=\"m17 2 4 4-4 4\"/><path d=\"M3 11v-1a4 4 0 0 1 4-4h14\"/><path d=\"m7 22-4-4 4-4\"/><path d=\"M21 13v1a4 4 0 0 1-4 4H3\"/>",
+  "rocket": "<path d=\"M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5\"/><path d=\"M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09\"/><path d=\"M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z\"/><path d=\"M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05\"/>",
+  "save": "<path d=\"M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z\"/><path d=\"M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7\"/><path d=\"M7 3v4a1 1 0 0 0 1 1h7\"/>",
+  "settings": "<path d=\"M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>",
+  "shopping-bag": "<path d=\"M16 10a4 4 0 0 1-8 0\"/><path d=\"M3.103 6.034h17.794\"/><path d=\"M3.4 5.467a2 2 0 0 0-.4 1.2V20a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.667a2 2 0 0 0-.4-1.2l-2-2.667A2 2 0 0 0 17 2H7a2 2 0 0 0-1.6.8z\"/>",
+  "smartphone": "<rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\" ry=\"2\"/><path d=\"M12 18h.01\"/>",
+  "square-check": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"m16 9-5.5 5.5L8 12\"/>",
+  "sun-moon": "<path d=\"M12 2v2\"/><path d=\"M14.837 16.385a6 6 0 1 1-7.223-7.222c.624-.147.97.66.715 1.248a4 4 0 0 0 5.26 5.259c.589-.255 1.396.09 1.248.715\"/><path d=\"M16 12a4 4 0 0 0-4-4\"/><path d=\"m19 5-1.256 1.256\"/><path d=\"M20 12h2\"/>",
+  "sunset": "<path d=\"M12 10V2\"/><path d=\"m4.93 10.93 1.41 1.41\"/><path d=\"M2 18h2\"/><path d=\"M20 18h2\"/><path d=\"m19.07 10.93-1.41 1.41\"/><path d=\"M22 22H2\"/><path d=\"m16 6-4 4-4-4\"/><path d=\"M16 18a4 4 0 0 0-8 0\"/>",
+  "telescope": "<path d=\"m10.065 12.493-6.18 1.318a.934.934 0 0 1-1.108-.702l-.537-2.15a1.07 1.07 0 0 1 .691-1.265l13.504-4.44\"/><path d=\"m13.56 11.747 4.332-.924\"/><path d=\"m16 21-3.105-6.21\"/><path d=\"M16.485 5.94a2 2 0 0 1 1.455-2.425l1.09-.272a1 1 0 0 1 1.212.727l1.515 6.06a1 1 0 0 1-.727 1.213l-1.09.272a2 2 0 0 1-2.425-1.455z\"/><path d=\"m6.158 8.633 1.114 4.456\"/><path d=\"m8 21 3.105-6.21\"/><circle cx=\"12\" cy=\"13\" r=\"2\"/>",
+  "ticket": "<path d=\"M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z\"/><path d=\"M13 5v2\"/><path d=\"M13 17v2\"/><path d=\"M13 11v2\"/>",
+  "trash": "<path d=\"M10 11v6\"/><path d=\"M14 11v6\"/><path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\"/><path d=\"M3 6h18\"/><path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/>",
+  "triangle-alert": "<path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/>",
+  "undo-2": "<path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11\"/>",
+  "volume-2": "<path d=\"M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z\"/><path d=\"M16 9a5 5 0 0 1 0 6\"/><path d=\"M19.364 18.364a9 9 0 0 0 0-12.728\"/>",
+  "face-grinning": "<path d=\"M15 10V9\"/><path d=\"M7.084 14.302a5.12 5.12 0 009.833 0 .24.24 0 00-.235-.302H7.32a.24.24 0 00-.235.302\"/><path d=\"M9 10V9\"/><circle cx=\"12\" cy=\"12\" r=\"10\"/>",
+  "face-neutral": "<path d=\"M15 10V9\"/><path d=\"M8 16h8\"/><path d=\"M9 10V9\"/><circle cx=\"12\" cy=\"12\" r=\"10\"/>",
+  "pointer": "<path d=\"M22 14a8 8 0 0 1-8 8\"/><path d=\"M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2\"/><path d=\"M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1\"/><path d=\"M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10\"/><path d=\"M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15\"/>",
+  "building": "<path d=\"M12 10h.01\"/><path d=\"M12 14h.01\"/><path d=\"M12 6h.01\"/><path d=\"M16 10h.01\"/><path d=\"M16 14h.01\"/><path d=\"M16 6h.01\"/><path d=\"M8 10h.01\"/><path d=\"M8 14h.01\"/><path d=\"M8 6h.01\"/><path d=\"M9 22v-3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3\"/><rect x=\"4\" y=\"2\" width=\"16\" height=\"20\" rx=\"2\"/>",
+  "tree-pine": "<path d=\"m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.7 1.7H17Z\"/><path d=\"M12 22v-3\"/>",
+  "play": "<path d=\"M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z\"/>",
+  "thumbs-up": "<path d=\"M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z\"/><path d=\"M7 10v12\"/>",
+  "magnet": "<path d=\"m12 15 4 4\"/><path d=\"M2.352 10.648a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.029-6.029a1 1 0 1 1 3 3l-6.029 6.029a1.205 1.205 0 0 0 0 1.704l2.296 2.296a1.205 1.205 0 0 0 1.704 0l6.365-6.367A1 1 0 0 0 8.716 4.282z\"/><path d=\"m5 8 4 4\"/>",
+  "octagon-x": "<path d=\"m15 9-6 6\"/><path d=\"M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z\"/><path d=\"m9 9 6 6\"/>",
+  "archive": "<rect width=\"20\" height=\"5\" x=\"2\" y=\"3\" rx=\"1\"/><path d=\"M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8\"/><path d=\"M10 12h4\"/>",
+  "eye": "<path d=\"M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>",
+  /* Propios de Rumbo */
+  "bocado": "<path d=\"M19.41 9.4A8.5 8.5 0 1 1 14.6 4.59a4 4 0 0 0 4.81 4.81z\"/>",
+  "elefante": "<path d=\"M3.5 18v-6.5A4.5 4.5 0 0 1 8 7h6\"/><path d=\"M14 7a5 5 0 0 1 7 4.6V14c0 1.8.6 3 1.5 3.6\"/><path d=\"M3.5 18H7v-3h7v3h3.5v-4.5\"/><path d=\"M14 7c-1.6 1.2-2 3-1.4 5\"/><circle cx=\"17.6\" cy=\"10.4\" r=\".6\" fill=\"currentColor\" stroke=\"none\"/>",
+  "moneda": "<path d=\"M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z\" fill=\"currentColor\"/>",
+  "punto-ambar": "<circle cx=\"12\" cy=\"12\" r=\"7\" fill=\"#F4AE3D\" stroke=\"none\"/>",
+  "punto-verde": "<circle cx=\"12\" cy=\"12\" r=\"7\" fill=\"#3BB273\" stroke=\"none\"/>",
+  "punto-indigo": "<circle cx=\"12\" cy=\"12\" r=\"7\" fill=\"#3949C9\" stroke=\"none\"/>",
 };
 /* emoji (sin el selector de variante) → [ícono, nombre para lectores de pantalla] */
 const EMOJI_ICONO = {
@@ -238,6 +308,7 @@ const EMOJI_ICONO = {
   "⏳": ["hourglass", "Arrastre"],
   "↪": ["corner-up-right", "Postergación"],
   "🐘": ["utensils", "Primer bocado"],
+  "🍪": ["bocado", "Primer bocado"],
   "📋": ["clipboard-list", "Tareas"],
   "🧭": ["compass", "Rueda de la vida"],
   "💛": ["heart", "Gratitud"],
@@ -254,4 +325,67 @@ function iconoDeEmoji(e) { return e ? EMOJI_ICONO[String(e).replace(/\uFE0F/g, "
 function icoHab(e, tam = 20) {
   const m = iconoDeEmoji(e);
   return m ? iconoSvg(m[0], tam).replace('class="ico-linea"', 'class="ico-linea ico-hab"') : `<span class="ico-emoji" aria-hidden="true">${escapeHtml(String(e || ""))}</span>`;
+}
+
+/* -------- La interfaz: emoji → ícono (de ICONOS_SVG o del menú, ICONOS_LINEA) --------
+   Los de las caritas del diario, recetas y listas no están: esos los eliges tú. */
+const EMOJI_UI = {
+  "⭐": "moneda", "🌟": "estrella", "🎯": "mision", "🧭": "compass", "🌙": "luna", "🐘": "elefante", "🍪": "bocado", "↪": "redo-2",
+  "📊": "chart-column", "📈": "tendencias", "🌅": "ritual", "📅": "semana", "📆": "calendario", "🗓": "calendario", "✅": "circle-check", "⚡": "rayo",
+  "🗑": "trash", "📚": "lecturas", "📖": "book-open", "✨": "sparkles", "⏱": "timer", "🎨": "palette", "📋": "clipboard-list", "💰": "piggy-bank",
+  "🐷": "piggy-bank", "🏆": "recompensas", "🎉": "party-popper", "🔔": "notif", "🔥": "llama", "🔁": "repeat", "🔄": "refresh-cw", "🧠": "brain",
+  "✏": "pencil", "✎": "pencil", "✍": "pen-line", "📝": "notebook-pen", "🏅": "medal", "🎖": "medal", "🔒": "lock", "🔐": "lock",
+  "🔓": "lock-open", "🗂": "folder-open", "📂": "folder-open", "🍽": "utensils", "⚠": "triangle-alert", "🏋": "dumbbell", "💪": "dumbbell", "🎓": "graduation-cap",
+  "📤": "compartir", "📔": "diario", "📓": "notebook", "🎭": "circle-user-round", "💎": "gem", "🔮": "cloud-sun", "🏠": "house", "🏡": "house",
+  "💡": "lightbulb", "🧾": "receipt", "🚀": "rocket", "🎆": "sparkles", "🎇": "sparkles", "⚙": "settings", "🔧": "wrench", "🛠": "wrench",
+  "👕": "shirt", "👑": "crown", "🧘": "flower", "⏸": "pause", "🛒": "shopping-cart", "🛍": "shopping-bag", "⚖": "scale", "🖼": "image",
+  "💧": "droplet", "🌱": "sprout", "🪴": "sprout", "🌿": "leaf", "🙏": "hand-heart", "🙌": "hand-heart", "🎂": "cake", "☀": "sol",
+  "🌞": "sol", "📲": "smartphone", "📱": "smartphone", "🛋": "sofa", "🎵": "music", "🎶": "music", "📌": "map-pin", "📍": "map-pin",
+  "⏳": "hourglass", "💼": "briefcase", "🌗": "sun-moon", "💬": "message-circle", "🌍": "globe", "🔊": "volume-2", "💻": "laptop", "🛏": "bed",
+  "🏛": "landmark", "🎁": "gift", "🏁": "flag", "🔗": "link", "🔑": "key-round", "⏰": "alarm-clock", "🕰": "alarm-clock", "↩": "undo-2",
+  "↶": "undo-2", "👋": "hand", "💛": "heart", "❤": "heart", "💗": "heart", "👥": "relaciones", "👤": "cuenta", "🔭": "telescope",
+  "🌌": "telescope", "📥": "download", "🍳": "cooking-pot", "🥗": "salad", "📄": "file-text", "💾": "save", "🚫": "ban", "🎟": "ticket",
+  "🎬": "clapperboard", "🤝": "handshake", "🏃": "footprints", "📞": "phone", "💊": "pill", "🎪": "tent", "🐾": "paw-print", "♟": "chess-knight",
+  "🧱": "brick-wall", "🦉": "bird", "🟩": "square-check", "🔖": "bookmark", "💵": "banknote", "💯": "badge-check", "🐠": "fish", "🐈": "cat",
+  "🏔": "mountain-snow", "🎸": "guitar", "🌇": "sunset", "💠": "gem", "🧰": "briefcase", "📦": "package", "🌀": "refresh-cw", "❔": "tutoriales",
+  "🟡": "punto-ambar", "🟢": "punto-verde", "🔵": "punto-indigo", "💤": "moon-star", "🪟": "blinds", "👣": "footprints", "😊": "face-grinning", "😴": "moon-star", "👆": "pointer", "🏢": "building", "🖤": "heart", "⤢": "expandir", "🕘": "reloj", "🌲": "tree-pine", "🌴": "tree-palm", "☑": "square-check", "🗄": "archive", "▶": "play", "👌": "thumbs-up", "🧲": "magnet", "🛑": "octagon-x", "🌧": "cloud-rain", "👀": "eye", "🥉": "medal", "🥈": "medal", "🥇": "medal",
+};
+const ER_EMOJI_UI = Object.keys(EMOJI_UI).map(e => e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+const RE_EMOJI_UI = new RegExp(`(?:${ER_EMOJI_UI})\uFE0F?`, "g");
+const RE_EMOJI_UI_HAY = new RegExp(ER_EMOJI_UI);
+/* Un ícono de la interfaz: mide 1,15 em (sigue al texto que acompaña) y toma su color */
+function icoUI(nombre, clase) {
+  const d = ICONOS_SVG[nombre] || (typeof ICONOS_LINEA !== "undefined" && ICONOS_LINEA[nombre]); if (!d) return "";
+  const c = nombre === "moneda" ? " ico-moneda" : nombre === "llama" ? " ico-racha" : "";
+  return `<svg class="ico-n${c}${clase ? " " + clase : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+}
+function icoDeEmojiUI(m) { const n = EMOJI_UI[m.replace(/\uFE0F/g, "")]; return n ? icoUI(n) : m; }
+/* Lo que eliges tú (recetas, listas): como entidad, para que iconizar no lo cambie */
+function emoLit(e) { return escapeHtml(e); }
+/* Texto sin los emojis de la interfaz (atributos, opciones de un select) */
+function sinEmojisUI(t) { return t.replace(new RegExp(`(?:${ER_EMOJI_UI})\uFE0F? ?`, "g"), ""); }
+/* HTML de la app → con íconos. Cambia los emojis literales del texto; en title, aria-label,
+   placeholder y alt los quita; dentro de <option> y <title> los quita; <textarea> y el <text>
+   de un SVG quedan tal cual. */
+const ICO_CRUDO = { textarea: "tal-cual", text: "tal-cual", option: "quitar", title: "quitar", script: "tal-cual", style: "tal-cual" };
+function iconizar(html) {
+  if (typeof html !== "string" || !RE_EMOJI_UI_HAY.test(html)) return html;
+  let out = "", i = 0, crudo = null, crudoTag = "";
+  while (i < html.length) {
+    const lt = html.indexOf("<", i), txt = html.slice(i, lt < 0 ? html.length : lt);
+    out += !crudo ? txt.replace(RE_EMOJI_UI, icoDeEmojiUI) : crudo === "quitar" ? sinEmojisUI(txt) : txt;
+    if (lt < 0) break;
+    let j = lt + 1, q = null;
+    for (; j < html.length; j++) { const c = html[j]; if (q) { if (c === q) q = null; } else if (c === '"' || c === "'") q = c; else if (c === ">") break; }
+    const tag = html.slice(lt, j + 1), m = /^<(\/?)([a-zA-Z][\w-]*)/.exec(tag), nombre = m ? m[2].toLowerCase() : "";
+    out += RE_EMOJI_UI_HAY.test(tag) ? tag.replace(/(\s(?:title|aria-label|placeholder|alt)=)("[^"]*"|'[^']*')/gi, (x, a, v) => a + sinEmojisUI(v)) : tag;
+    if (crudo) { if (m && m[1] && nombre === crudoTag) crudo = null; }
+    else if (m && !m[1] && ICO_CRUDO[nombre] && !/\/>$/.test(tag)) { crudo = ICO_CRUDO[nombre]; crudoTag = nombre; }
+    i = j + 1;
+  }
+  return out;
+}
+/* Texto plano de la app (avisos, títulos de ventanas) → HTML escapado y con íconos */
+function iconizarTexto(t) {
+  return String(t ?? "").split(new RegExp(`((?:${ER_EMOJI_UI})\uFE0F?)`)).map((p, k) => k % 2 ? icoDeEmojiUI(p) : escapeHtml(p)).join("");
 }

@@ -51,7 +51,7 @@ function monedasALaVista() {
 /* -------- Aviso con acción (Deshacer), como en las apps de correo -------- */
 function toastAccion(msg, etiqueta, alTocar) {
   const t = document.getElementById("toast");
-  t.innerHTML = `<span>${escapeHtml(msg)}</span><button type="button" class="toast__acc">${escapeHtml(etiqueta)}</button>`;
+  t.innerHTML = `<span>${iconizarTexto(msg)}</span><button type="button" class="toast__acc">${escapeHtml(etiqueta)}</button>`;
   t.className = "toast toast--accion"; t.hidden = false;
   t.querySelector(".toast__acc").onclick = () => { clearTimeout(toastTimer); t.hidden = true; alTocar(); };
   clearTimeout(toastTimer);

@@ -11,7 +11,8 @@ const DIAS_CORTO = ["D","L","M","M","J","V","S"];
 
 /* Textos del "Primer Bocado" (¿cómo te comes un elefante? Un bocado a la vez).
    Los nombres internos de datos siguen siendo sapo / esSapo / cierre.sapo. */
-const BOCADO = { emoji: "🐘", titulo: "TU PRIMER BOCADO", accion: "Empieza por aquí", corto: "Primer bocado" };
+/* El emoji 🍪 es la marca del primer bocado en el código: en pantalla se dibuja el bocado del logo (iconos.js) */
+const BOCADO = { emoji: "🍪", titulo: "TU PRIMER BOCADO", accion: "Empieza por aquí", corto: "Primer bocado" };
 
 /* Ámbitos de las tareas del día. Tareas antiguas sin ámbito = "per". */
 const AMBITOS = {

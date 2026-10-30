@@ -58,7 +58,7 @@ function eleActividad(id) { return ELE_ACTIVIDADES.find(a => a.id === id) || ELE
 /* El motor avisa cuando cambia de actividad: la hoja de tu casa dice lo que hace */
 function eleHaciendo(id) {
   const el = document.getElementById("cuaAhora"); if (!el) return;
-  const a = eleActividad(id); el.textContent = `${a.ico} Ahora ${a.txt}`;
+  const a = eleActividad(id); el.innerHTML = iconizarTexto(`${a.ico} Ahora ${a.txt}`);
 }
 function casaRango(s) { return rankFor((s.gamif && s.gamif.xp) || 0).idx; }
 function casaCosas(s) { const r = casaRango(s); return CASA_COSAS.filter(c => c.rango <= r).map(c => c.id); }

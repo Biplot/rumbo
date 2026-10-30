@@ -2383,3 +2383,36 @@ html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-no
 }
 .tienda-mas { margin-top: 10px; padding: 6px 12px; }
 .tienda-link > .ico-linea:last-child, .cuenta-apariencia > .ico-linea:last-child { transform: rotate(-90deg); }
+
+/* ============================================================
+   ÍCONOS NORTE (v97) · los emojis de la interfaz pasan a íconos de
+   línea (iconos.js: iconizar). Miden 1,15 em, así siguen al texto que
+   acompañan, y toman su color. El ámbar queda para lo que ganas: la
+   estrella de tus monedas (la única rellena) y la racha.
+   ============================================================ */
+.ico-n { width: 1.15em; height: 1.15em; display: inline-block; vertical-align: -0.2em; flex-shrink: 0; }
+.ico-moneda { color: #F4AE3D; }
+.ico-racha { color: var(--coral); }
+.btn .ico-n, .btn-ghost .ico-n, .chip .ico-n, .seg button .ico-n { vertical-align: -0.18em; }
+/* Las fichas de la Tienda y el rango: el ícono en un cuadro con los fondos de los avatares (índigo, ámbar, salvia, rosa y cielo) */
+.ficha__ico:has(> .ico-n), .rango-card__ico:has(> .ico-n) { --tinte: #5563D6;
+  background: color-mix(in srgb, var(--tinte) 15%, var(--surface)); color: color-mix(in srgb, var(--tinte) 80%, var(--text)); }
+.ficha:nth-child(5n+2) .ficha__ico { --tinte: #E0951F; }
+.ficha:nth-child(5n+3) .ficha__ico { --tinte: #4E9A6B; }
+.ficha:nth-child(5n+4) .ficha__ico { --tinte: #D0607A; }
+.ficha:nth-child(5n+5) .ficha__ico { --tinte: #3F86C8; }
+.ficha__ico > .ico-n, .rango-card__ico > .ico-n { width: 26px; height: 26px; vertical-align: 0; }
+.ficha.is-bloqueado .ficha__ico:has(> .ico-n) { --tinte: #8A90A8; }
+/* Íconos grandes de las novedades, la introducción y el estado de tu elefante */
+.novedad__ico .ico-n, .info-racha__ico .ico-n { color: var(--cian-ink); }
+.onb-ico .ico-n { color: var(--cian-ink); stroke-width: 1.5; }
+.insight-ico .ico-n { color: var(--cian-ink); }
+.stat__ico .ico-n { color: var(--text-soft); vertical-align: 0; }
+/* Medallas en la lista (sobre su metal): el ícono en tinta */
+.med-chip__m .ico-n, .ins-aviso__m .ico-n { color: #241A0C; vertical-align: 0; }
+.med-chip__m--por .ico-n { color: inherit; }
+/* Efectos: la lluvia de estrellas y los corazones de tu elefante */
+.fx-estrella { color: #F4AE3D; }
+.ele-corazon { color: #E5577A; }
+.ele-corazon.is-ambar { color: #F4AE3D; }
+.ele-corazon .ico-n { fill: currentColor; }

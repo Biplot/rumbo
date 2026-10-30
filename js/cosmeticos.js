@@ -88,7 +88,7 @@ function fuegosArtificiales() {
 function lluviaEstrellas() {
   for (let i = 0; i < 26; i++) {
     const e = document.createElement("div");
-    e.className = "fx-estrella"; e.textContent = i % 3 ? "⭐" : "✨";
+    e.className = "fx-estrella"; e.innerHTML = icoUI(i % 3 ? "moneda" : "sparkles");
     e.style.left = Math.random() * 100 + "vw"; e.style.fontSize = 16 + Math.random() * 18 + "px";
     e.style.animationDelay = (Math.random() * 0.8).toFixed(2) + "s";
     document.body.appendChild(e); setTimeout(() => e.remove(), 3200);
@@ -96,7 +96,7 @@ function lluviaEstrellas() {
 }
 function elefanteCruza() {
   const e = document.createElement("div");
-  e.className = "fx-elefante"; e.innerHTML = `<span class="fx-ele">${typeof elefanteSVG === "function" ? elefanteSVG({ animo: "feliz", anim: false }) : "🐘"}</span><b>¡Tarea domada!</b>`;
+  e.className = "fx-elefante"; e.innerHTML = iconizar(`<span class="fx-ele">${typeof elefanteSVG === "function" ? elefanteSVG({ animo: "feliz", anim: false }) : "🐘"}</span><b>¡Tarea domada!</b>`);
   document.body.appendChild(e); setTimeout(() => e.remove(), 3600);
 }
 

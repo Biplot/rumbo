@@ -71,7 +71,7 @@ function comprarConsumibleUI(tipo, silencioso) {
   const c = consumible(tipo); if (!c) return false;
   recalcGamif(STATE);
   if (STATE.gamif.puntos < c.costo) { toast("Te faltan " + (c.costo - STATE.gamif.puntos) + " ⭐", true); return false; }
-  if (!silencioso && !confirm(`¿Comprar ${c.nombre} por ${c.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - c.costo} ⭐.`)) return false;
+  if (!silencioso && !confirm(`¿Comprar ${c.nombre} por ${c.costo} estrellas?\nTe quedarán ${STATE.gamif.puntos - c.costo}.`)) return false;
   const res = comprarConsumible(STATE, tipo);
   if (!res.ok) { toast("Te faltan " + res.falta + " ⭐", true); return false; }
   saveState(); updateTopbar();
@@ -84,7 +84,7 @@ function asegurarConsumible(tipo) {
   const c = consumible(tipo);
   recalcGamif(STATE);
   if (STATE.gamif.puntos < c.costo) { toast(`Necesitas ${c.nombre.toLowerCase()} (${c.costo} ⭐) · te faltan ${c.costo - STATE.gamif.puntos} ⭐`, true); return false; }
-  if (!confirm(`No tienes ${c.nombre.toLowerCase()}. ¿Comprar uno por ${c.costo} ⭐ y usarlo ahora?`)) return false;
+  if (!confirm(`No tienes ${c.nombre.toLowerCase()}. ¿Comprar uno por ${c.costo} estrellas y usarlo ahora?`)) return false;
   return comprarConsumibleUI(tipo, true);
 }
 /* Reabrir un día cerrado de la última semana */

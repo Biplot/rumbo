@@ -36,8 +36,8 @@ module.exports = async ({ b, ok, errs }) => {
     await p.waitForTimeout(600);
     const v0 = await vista(p);
     ok(await p.evaluate(() => CURRENT === "cielo" && document.body.classList.contains("en-lugar")) && v0.modo === "cielo" && v0.libre && v0.enc.arriba > 40 && v0.enc.abajo > 100, "la estrella abre tu vitrina de borde a borde, encuadrada sobre la hoja");
-    ok((await p.locator(".lugar__t b").innerText()) === "Tu vitrina" && (await p.locator(".lugar__t").innerText()).includes("8 de 56"), "la barra dice Tu vitrina y cuenta tus medallas encendidas");
-    ok(await p.locator('#lugarHoja [data-action="cielo-mirar"]').count() === 6 && await p.locator('#lugarHoja .med-chip[data-action="ins-ver"]').count() === 56, "la hoja trae las 6 constelaciones y las 56 medallas por familia");
+    ok((await p.locator(".lugar__t b").innerText()) === "Tu vitrina" && (await p.locator(".lugar__t").innerText()).includes("8 de 57"), "la barra dice Tu vitrina y cuenta tus medallas encendidas");
+    ok(await p.locator('#lugarHoja [data-action="cielo-mirar"]').count() === 6 && await p.locator('#lugarHoja .med-chip[data-action="ins-ver"]').count() === 57, "la hoja trae las 6 constelaciones y las 57 medallas por familia");
     await shot(p, "lugar-cielo-celular");
     await p.click('#lugarHoja [data-action="cielo-mirar"][data-id="foco"]'); await p.waitForTimeout(900);
     ok((await vista(p)).u.yaw < -0.3, "tocar El Elefante gira el cielo hacia esa constelación");
@@ -98,8 +98,8 @@ module.exports = async ({ b, ok, errs }) => {
     const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
     await preparar(p, "lugares-plano@test.cl");
     await p.goto(URL + "#cielo"); await p.waitForTimeout(2500);
-    ok(await p.evaluate(() => CURRENT === "cielo" && !document.body.classList.contains("en-lugar")) && await p.locator('.lugar-plano .med-chip[data-action="ins-ver"]').count() === 56,
-      "sin WebGL, #cielo es una página con la lista de las 56 medallas por constelación");
+    ok(await p.evaluate(() => CURRENT === "cielo" && !document.body.classList.contains("en-lugar")) && await p.locator('.lugar-plano .med-chip[data-action="ins-ver"]').count() === 57,
+      "sin WebGL, #cielo es una página con la lista de las 57 medallas por constelación");
     await p.click('.lugar-plano .med-chip[data-id="buho"]'); await p.waitForTimeout(500);
     ok(await p.locator("#insCerca").isVisible() && (await p.locator("#insCercaT").innerText()) === "Búho", "y cada una se abre de cerca");
     await ctx.close();

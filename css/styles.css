@@ -2501,3 +2501,42 @@ html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-no
 .cj-junto { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--surface-2); border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .cj-junto b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cj-inv { padding-top: 12px; }
+.cj-juntos__b { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.cj-juntos__b .btn { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ============================================================
+   OBJETIVOS EN CONJUNTO (v100) · objetivos.js: la barra de todos, con el color de cada uno
+   ============================================================ */
+.oj-grid { align-items: start; }
+.oj { display: grid; gap: 12px; }
+.oj.is-logrado { background: color-mix(in srgb, #F4AE3D 9%, var(--surface)); }
+.oj__cab { display: flex; align-items: center; gap: 10px; min-width: 0; background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.oj__ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; background: color-mix(in srgb, #E0951F 15%, var(--surface)); color: color-mix(in srgb, #E0951F 80%, var(--text)); font-size: 20px; }
+.oj__ico--xl { width: 72px; height: 72px; border-radius: 20px; font-size: 34px; }
+.oj__t { display: grid; min-width: 0; gap: 1px; }
+.oj__t b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oj__n { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; font-variant-numeric: tabular-nums; }
+.oj__n b { font: 800 26px/1.1 var(--font-display); letter-spacing: -0.02em; color: var(--text); }
+.oj__pct { margin-left: auto; font-weight: 700; color: var(--cian-ink); }
+.oj-barra { display: flex; gap: 2px; height: 12px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.oj-barra i { display: block; height: 100%; min-width: 3px; }
+.oj-ley { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--text-soft); font-variant-numeric: tabular-nums; }
+.oj-ley span { display: inline-flex; align-items: center; gap: 6px; }
+.oj-ley i { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.oj__logro { display: flex; align-items: center; gap: 6px; font-weight: 700; color: color-mix(in srgb, #E0951F 75%, var(--text)); }
+.oj .btn { justify-self: start; }
+.oj-invs { margin-bottom: 16px; }
+.oj-mini { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: center; width: 100%; padding: 12px 0; border: 0; border-bottom: 1px solid var(--line); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.oj-mini:last-of-type { border-bottom: 0; }
+.oj-mini .oj-barra { grid-column: 1 / -1; }
+.oj-form2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+@media (max-width: 420px) { .oj-form2 { grid-template-columns: minmax(0, 1fr); } }
+.oj-det { display: grid; gap: 12px; }
+.oj-det > .btn { justify-self: stretch; }
+.oj-aps { display: grid; }
+.oj-ap { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.oj-ap:last-child { border-bottom: 0; }
+.oj-ap__d { width: 10px; height: 10px; border-radius: 50%; }
+.oj-ap__t { display: grid; min-width: 0; }
+.oj-ap__t b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.oj-ap__t span { color: var(--text-muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

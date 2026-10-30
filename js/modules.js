@@ -178,6 +178,7 @@ function renderMetas() {
   }).join("");
 
   return `
+  ${ojSeccionMetas()}
   ${selectorAnio()}
   <div class="card" style="background:linear-gradient(120deg, var(--surface), var(--surface-2))">
     <div class="flex-between" style="flex-wrap:wrap;gap:12px">

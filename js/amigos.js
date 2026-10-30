@@ -6,7 +6,7 @@
    aparte (supabase/amigos.sql) y la app publica ahí solo lo que elegiste
    mostrar (amigosPublicar). Compañía, no competencia: no hay rankings.
 
-   Los hábitos en conjunto (etapa 2) están en conjunto.js.
+   Los hábitos en conjunto (etapa 2) están en conjunto.js; los objetivos en conjunto (etapa 3), en objetivos.js.
 
    Datos propios: settings.amigos = { activo, muestra: { dia, racha, rango } }
    Invitación: rumbo.biplot.cl/?amigo=CODIGO (se guarda hasta que entras).
@@ -67,19 +67,20 @@ async function amigosCargar(forzar) {
   else { AMIGOS.error = null; AMIGOS.lista = l; AMIGOS.pubFirma = JSON.stringify(p); AMIGOS.codigo = l.codigo || (r && r.codigo) || AMIGOS.codigo; }
   amigosMarcarNav();
   if (CURRENT === "amigos") rerender();
-  if (!AMIGOS.error) conjuntoCargar(forzar);   // y los hábitos en conjunto (conjunto.js)
+  if (!AMIGOS.error) { conjuntoCargar(forzar); objetivosCargar(forzar); }   // y lo que hacen juntos (conjunto.js, objetivos.js)
 }
 /* Al salir de la cuenta: se olvida lo cargado (amigos y hábitos en conjunto) */
 function amigosOlvidar() {
   clearTimeout(AMIGOS.pubT);
   Object.assign(AMIGOS, { lista: null, t: 0, cargando: false, error: null, codigo: "", animosVistos: [], pubFirma: "", pubT: null, msg: "" });
   Object.assign(CONJ, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
+  Object.assign(OBJ, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
 }
-/* Cuántas cosas nuevas hay: solicitudes recibidas, ánimos sin ver e invitaciones a hábitos */
+/* Cuántas cosas nuevas hay: solicitudes recibidas, ánimos sin ver e invitaciones a hábitos y objetivos */
 function amigosNuevos() {
   const l = AMIGOS.lista; if (!l) return 0;
   return (l.recibidas || []).length + (l.animos || []).filter(a => !AMIGOS.animosVistos.includes(a.id)).length
-    + (CONJ.lista || []).filter(c => c.estado === "invitado").length;
+    + (CONJ.lista || []).filter(c => c.estado === "invitado").length + (OBJ.lista || []).filter(o => o.estado === "invitado").length;
 }
 function amigosMarcarNav() {
   const n = amigosNuevos();
@@ -335,5 +336,5 @@ function renderAmigos() {
       ${fila("racha", "Tu racha", "Los días cerrados seguidos.")}
       ${fila("rango", "Tu rango", "Aprendiz, Constante, Enfocado…")}
       ${bloqueados.length ? `<div class="am-env mt-8"><span class="text-xs muted">Bloqueados</span>${bloqueados.map(a => `<span class="chip">${escapeHtml(a.nombre || "Sin nombre")} <button type="button" class="am-x am-x--txt" data-action="am-desbloquear" data-id="${escapeHtml(a.id)}">Desbloquear</button></span>`).join("")}</div>` : ""}</div>`;
-  return `<div class="am">${animosHtml}${recibidasHtml}${cjInvitacionesHtml()}${invitar}${lista}${cjAmigosHtml(amigos)}${muestra}</div>`;
+  return `<div class="am">${animosHtml}${recibidasHtml}${cjInvitacionesHtml()}${ojInvitacionesHtml()}${invitar}${lista}${cjAmigosHtml(amigos)}${ojAmigosHtml(amigos)}${muestra}</div>`;
 }

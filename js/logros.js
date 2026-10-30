@@ -29,6 +29,8 @@ function lg_soltadas(s) { return lg_memo(s, "soltadas", x => lg_tareas(x, t => e
 function lg_domadas(s) { return lg_memo(s, "domadas", x => lg_tareas(x, t => estadoTarea(t) === "hecha" && (t.migraciones || 0) >= CRONICA)); }
 function lg_libros(s) { return (s.lecturas || []).filter(l => l.estado === "terminado").length; }
 function lg_compartidos(s) { return ((s.gamif && s.gamif.ledger) || []).filter(m => m && !m.anulado && String(m.id).startsWith("hito:compartir:")).length; }
+/* Objetivos en conjunto logrados (objetivos.js deja un movimiento "objetivo-juntos:<id>" por cada uno) */
+function lg_juntos(s) { return ((s.gamif && s.gamif.ledger) || []).filter(m => m && !m.anulado && String(m.id).startsWith("objetivo-juntos:")).length; }
 /* Bandeja Cero: una semana pasada con 5+ tareas, todas resueltas y ninguna arrastrada de días anteriores */
 function lg_bandejaCero(s) { return lg_memo(s, "bandeja", lg_bandejaCero_); }
 function lg_bandejaCero_(s) {
@@ -128,6 +130,7 @@ const LOGROS = [
   { id: "meta-anual", icon: "🏆", nombre: "Meta Anual", desc: "Llega al 100% de tu meta de ahorro del año", reward: 500, check: lg_metaAnual },
   { id: "buen-amigo", icon: "🤝", nombre: "Buen Amigo", desc: "Ponte al día con 10 personas de Relaciones en un mes", reward: 100, check: lg_buenAmigo },
   { id: "embajador", icon: "📤", nombre: "Embajador", desc: "Comparte tu mes 3 veces", reward: 100, check: s => lg_compartidos(s) >= 3 },
+  { id: "en-equipo", icon: "🤝", nombre: "En Equipo", desc: "Logra un objetivo en conjunto con tus amigos", reward: 150, check: s => lg_juntos(s) >= 1 },
   // Secretas: se ven como ??? hasta ganarlas
   { id: "buho", icon: "🦉", nombre: "Búho", desc: "Cerraste tu día entre las 23:55 y las 23:59", reward: 77, secreta: true, check: lg_buho },
   { id: "aniversario", icon: "🎂", nombre: "Aniversario", desc: "Cumpliste un año usando Rumbo", reward: 365, secreta: true, check: lg_aniversario },

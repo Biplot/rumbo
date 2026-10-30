@@ -145,7 +145,7 @@ const AVISOS_INFO = {
   habitos: ["✅", "Hábitos pendientes", "A la hora que elijas, solo si te falta alguno de los que tocan hoy."],
   cumpleanos: ["🎂", "Cumpleaños", "En la mañana del día, de las personas que tienes en Relaciones."],
   contactos: ["💬", "Contactos pendientes", "Los domingos en la mañana: a quién hace tiempo que no le escribes (según Relaciones)."],
-  amigos: ["🤝", "Amigos", "Cuando un amigo te manda ánimo, te pide amistad o acepta la tuya, y en los hábitos en conjunto: cuando te invitan, cuando alguien ya cumplió y cuando lo cumplen todos. Nunca de noche (de 22:00 a 8:00)."],
+  amigos: ["🤝", "Amigos", "Cuando un amigo te manda ánimo, te pide amistad o acepta la tuya, y en lo que hacen juntos: cuando te invitan a un hábito u objetivo, cuando alguien ya cumplió o aportó, y cuando lo logran. Nunca de noche (de 22:00 a 8:00)."],
 };
 const AVISOS_GRUPOS = [
   ["Tu día", ["manana", "noche", "insistencia", "pendientes", "mediodia"]],

@@ -2540,3 +2540,14 @@ html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-no
 .oj-ap__t { display: grid; min-width: 0; }
 .oj-ap__t b { font-weight: 600; font-variant-numeric: tabular-nums; }
 .oj-ap__t span { color: var(--text-muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============================================================
+   VISITAS (v101) · visitas.js: la casa y la vitrina de un amigo
+   ============================================================ */
+.am-visitar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.am-visitar .btn { display: inline-flex; align-items: center; gap: 6px; }
+.vis-med { display: grid; justify-items: center; gap: 8px; text-align: center; }
+.vis-med p { margin: 4px 0 0; max-width: 40ch; }
+.vis-med__m { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; font-size: 36px;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--metal) 45%, #fff), var(--metal) 72%); box-shadow: 0 0 24px color-mix(in srgb, var(--metal) 45%, transparent), inset 0 0 0 3px color-mix(in srgb, var(--metal) 70%, #000); color: #1b1f33; }
+.vis-med__e { font-size: 15px; }

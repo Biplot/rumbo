@@ -4,12 +4,12 @@
    abajo una hoja que se arrastra: asomada, a media altura o completa (en pantallas anchas
    es un panel al costado). Al subir la hoja, el 3D se encuadra en lo que queda libre.
    Se entra desde la tarjeta del lugar (crece desde ahí); ‹ o Escape vuelven a donde estabas.
-   Lugares: tu casa (casa.js) y tu vitrina de medallas (cielo.js).
+   Lugares: tu casa (casa.js) y tu vitrina de medallas (cielo.js), y las de un amigo de visita (visitas.js).
    Se llega por las dos puertas de la barra de arriba (la cara de tu elefante y tus medallas) o tocando a tu
    elefante en la tarjeta del día. Sin WebGL, el lugar se ve como una página con su hoja.
    ============================================================ */
 const LUGAR = { volver: null, desde: null, hoja: "asomada" };
-const LUGAR_BASE = { cuarto: "inicio", cielo: "inicio" };   // a dónde vuelve ‹ si llegaste directo
+const LUGAR_BASE = { cuarto: "inicio", cielo: "inicio", "visita-casa": "amigos", "visita-cielo": "amigos" };   // a dónde vuelve ‹ si llegaste directo
 const HOJA_ESTADOS = ["asomada", "media", "completa"];
 function lugarAncho() { return window.matchMedia && matchMedia("(min-width: 900px)").matches; }
 

@@ -29,6 +29,8 @@ const ROUTES = [
   { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus monedas y la Tienda." },
   { id: "cuarto", pie: true, lugar: true, label: "Tu casa", icon: "🏠", render: renderCuarto, subtitle: "Tu elefante en su casa, a pantalla completa." },
   { id: "cielo", pie: true, lugar: true, label: "Tu vitrina", icon: "✨", render: renderCielo, subtitle: "Tus medallas en el cielo, a pantalla completa." },
+  { id: "visita-casa", pie: true, lugar: true, label: "De visita", icon: "🏠", render: renderVisitaCasa, subtitle: "La casa del elefante de tu amigo." },
+  { id: "visita-cielo", pie: true, lugar: true, label: "De visita", icon: "✨", render: renderVisitaCielo, subtitle: "Las medallas de tu amigo en su cielo." },
   { id: "apariencia", pie: true, label: "Apariencia", icon: "🎨", render: renderApariencia, subtitle: "Tu tema, tus títulos, tus marcos y tus efectos." },
   { id: "cuenta", pie: true, label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
   { id: "notif", pie: true, label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
@@ -155,7 +157,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 38;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 39;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -400,6 +402,11 @@ const NOVEDADES = {
     ["🎯", "Objetivos en conjunto", "En Objetivos, crea una meta con tus amigos: juntar para un viaje, correr 100 km en el mes o leer 12 libros entre todos. Cada uno suma sus aportes."],
     ["📊", "La barra de todos", "Ves cuánto llevan, lo que puso cada uno con su color y cuántos días quedan. Te avisamos cuando alguien aporta y cuando lo logran."],
     ["🏅", "Medalla En Equipo", "Al lograr un objetivo juntos, +20 ⭐ para cada uno; la primera vez, además, la medalla En Equipo en el centro de La Medalla de tu vitrina."],
+  ],
+  39: [
+    ["🏠", "De visita en su casa", "En el perfil de un amigo, toca «Visitar su casa»: ves a su elefante en su cuarto, en 3D, con lo que tiene y su repisa. Lo puedes tocar, pero no cambiar nada."],
+    ["✨", "Su vitrina", "«Ver su vitrina» abre sus medallas en su cielo. Toca una para ver cuándo la ganó y si tú también la tienes."],
+    ["👀", "Tú decides", "Tus amigos pueden visitar tu casa y tu vitrina. Si prefieres que no, apágalo en Amigos › Lo que muestras."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -954,6 +961,7 @@ function onClick(e) {
   if (a.startsWith("am-")) { amigosAccion(a, d, el); return; }   // 🤝 Amigos (amigos.js)
   if (a.startsWith("cj-")) { conjuntoAccion(a, d); return; }      // hábitos en conjunto (conjunto.js)
   if (a.startsWith("oj-")) { objetivosAccion(a, d); return; }     // objetivos en conjunto (objetivos.js)
+  if (a.startsWith("vis-")) { visitaAccion(a, d); return; }        // de visita en la casa de un amigo (visitas.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;

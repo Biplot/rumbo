@@ -40,15 +40,19 @@ const ELE_ACTIVIDADES = [
 function franjaCasa(h) { return h >= 20 || h < 6 ? 2 : h >= 18 || h < 8 ? 1 : 0; }   // como la luz del cuarto
 /* Lo que puede hacer ahora, con cuántas ganas (peso) */
 function eleActividades(s, ahora) {
-  const f = franjaCasa((ahora || new Date()).getHours()), cosas = new Set(casaCosas(s).concat(cuartoPuestas(s)));
-  const meds = repisaIds(s).length > 0, sueno = animoElefante(s) === "sueno";
-  return ELE_ACTIVIDADES.filter(a => (!a.cosa || cosas.has(a.cosa)) && (!a.medallas || meds))
-    .map(a => ({ ...a, w: a.peso[f] * (a.id === "siesta" && sueno ? 2 : 1) })).filter(a => a.w > 0);
+  return eleActividadesCon({ cosas: casaCosas(s).concat(cuartoPuestas(s)), medallas: repisaIds(s).length > 0, sueno: animoElefante(s) === "sueno" }, ahora);
+}
+/* Lo mismo, desde lo que hay en un cuarto: { cosas, medallas (hay en la repisa), sueno } (también el de un amigo, visitas.js) */
+function eleActividadesCon(c, ahora) {
+  const f = franjaCasa((ahora || new Date()).getHours()), cosas = new Set(c.cosas || []);
+  return ELE_ACTIVIDADES.filter(a => (!a.cosa || cosas.has(a.cosa)) && (!a.medallas || c.medallas))
+    .map(a => ({ ...a, w: a.peso[f] * (a.id === "siesta" && c.sueno ? 2 : 1) })).filter(a => a.w > 0);
 }
 /* Lo que hace ahora mismo: lo mismo durante 20 minutos (en Inicio y al entrar a tu casa) */
-function eleActividadAhora(s, ahora) {
+function eleActividadAhora(s, ahora) { return eleElegirAhora(eleActividades(s, ahora || new Date()), ahora); }
+function eleElegirAhora(l, ahora) {
   ahora = ahora || new Date();
-  const l = eleActividades(s, ahora), tot = l.reduce((m, a) => m + a.w, 0);
+  const tot = l.reduce((m, a) => m + a.w, 0);
   if (!tot) return ELE_ACTIVIDADES.find(a => a.id === "sentado");
   let x = ((Math.imul(Math.floor(ahora.getTime() / 12e5), 2654435761) >>> 0) % 10007) / 10007 * tot;
   for (const a of l) { x -= a.w; if (x < 0) return a; }

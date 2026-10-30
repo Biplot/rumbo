@@ -12,7 +12,7 @@
    Invitación: rumbo.biplot.cl/?amigo=CODIGO (se guarda hasta que entras).
    ============================================================ */
 
-const AMIGOS_MUESTRA_BASE = { dia: true, racha: true, rango: true };
+const AMIGOS_MUESTRA_BASE = { dia: true, racha: true, rango: true, casa: true, vitrina: true };
 const AMIGOS_FRASES = ["¡Vamos, tú puedes!", "¡Bien hecho!", "Hoy se puede", "Estoy contigo", "Un bocado a la vez"];
 /* Lo que se tiene en memoria: la lista del servidor y cómo va la carga */
 const AMIGOS = { lista: null, t: 0, cargando: false, error: null, codigo: "", animosVistos: [], pubFirma: "", pubT: null, msg: "" };
@@ -30,6 +30,8 @@ function amigosEstadoPublico(datos, muestra) {
   if (m.dia) { e.abrio = !!datos.abrio; e.cerro = !!datos.cerro; }
   if (m.racha) e.racha = datos.racha || 0;
   if (m.rango) { e.rango = datos.rango || 0; e.rangoNombre = datos.rangoNombre || ""; }
+  if (m.casa && datos.casa) e.casa = true;                                                    // se puede visitar (visitas.js)
+  if (m.vitrina && datos.medallas != null) { e.vitrina = true; e.medallas = datos.medallas || 0; }
   return e;
 }
 /* Tu perfil para tus amigos: nombre, avatar, lo que muestras y cómo va tu día */
@@ -39,7 +41,11 @@ function amigosPerfilPropio() {
     nombre: (((STATE.profile && STATE.profile.name) || (CURRENT_USER && CURRENT_USER.name) || "").trim()).slice(0, 60),
     avatar: typeof avatarPublico === "function" ? avatarPublico() : null,
     muestra: cfg.muestra,
-    estado: amigosEstadoPublico({ fecha: hoy, abrio: !!d.hecho, cerro: !!d.cerrado, racha: computeClosedStreak(), rango: r.idx, rangoNombre: r.cur.nombre }, cfg.muestra),
+    estado: amigosEstadoPublico({ fecha: hoy, abrio: !!d.hecho, cerro: !!d.cerrado, racha: computeClosedStreak(), rango: r.idx, rangoNombre: r.cur.nombre,
+      casa: true, medallas: (STATE.gamif.badges || []).filter(id => typeof findBadge === "function" && findBadge(id)).length }, cfg.muestra),
+    // Para que te visiten (visitas.js): la foto de tu casa y tus medallas, solo si eliges mostrarlas
+    casa: cfg.muestra.casa && typeof casaPublica === "function" ? casaPublica() : null,
+    vitrina: cfg.muestra.vitrina && typeof vitrinaPublica === "function" ? vitrinaPublica() : null,
   };
 }
 /* Publica tu perfil cuando cambia (después de guardar); solo si ya usas Amigos */
@@ -265,6 +271,8 @@ function amigosEstadoLimpio(e) {
   if ("cerro" in e || "abrio" in e) { out.abrio = !!e.abrio; out.cerro = !!e.cerro; }
   if ("racha" in e) out.racha = Math.max(0, Math.min(9999, parseInt(e.racha, 10) || 0));
   if ("rango" in e) { out.rango = Math.max(0, Math.min(RANGOS.length - 1, parseInt(e.rango, 10) || 0)); out.rangoNombre = RANGOS[out.rango].nombre; }
+  if ("casa" in e) out.casa = !!e.casa;
+  if ("vitrina" in e) { out.vitrina = !!e.vitrina; out.medallas = Math.max(0, Math.min(999, parseInt(e.medallas, 10) || 0)); }
   return out;
 }
 /* Cómo va su día, con lo que tu amigo muestra */
@@ -294,6 +302,8 @@ function openAmigo(id) {
       ${rango ? `<span class="text-sm muted">${rango}</span>` : ""}
       <div class="am-perfil__dia">${amigosEstadoTxt(e)}</div>
       <button class="btn btn--primary" data-action="am-animo" data-id="${escapeHtml(a.id)}">${icoUI("party-popper")} Mandar ánimo</button>
+      ${e.casa || e.vitrina ? `<div class="am-visitar">${e.casa ? `<button class="btn btn--soft" data-action="vis-casa" data-id="${escapeHtml(a.id)}">${icoUI("house")} Visitar su casa</button>` : ""}
+        ${e.vitrina ? `<button class="btn btn--soft" data-action="vis-cielo" data-id="${escapeHtml(a.id)}">${icoUI("sparkles")} Ver su vitrina${e.medallas ? ` · ${e.medallas}` : ""}</button>` : ""}</div>` : ""}
       ${cjJuntosHtml(a.id)}
       ${desde ? `<span class="text-xs muted">Amigos desde el ${desde}</span>` : ""}
       <div class="am-perfil__mas"><button class="btn-ghost" data-action="am-quitar" data-id="${escapeHtml(a.id)}">Quitar de amigos</button><button class="btn-ghost" data-action="am-bloquear" data-id="${escapeHtml(a.id)}">Bloquear</button></div>
@@ -335,6 +345,8 @@ function renderAmigos() {
       ${fila("dia", "Si abriste y cerraste tu día", "Solo eso: no ven tus tareas ni tu misión.")}
       ${fila("racha", "Tu racha", "Los días cerrados seguidos.")}
       ${fila("rango", "Tu rango", "Aprendiz, Constante, Enfocado…")}
+      ${fila("casa", "Tu casa", "Pueden visitar a tu elefante en su cuarto. Miran, pero no cambian nada.")}
+      ${fila("vitrina", "Tu vitrina", "Tus medallas y el día en que ganaste cada una.")}
       ${bloqueados.length ? `<div class="am-env mt-8"><span class="text-xs muted">Bloqueados</span>${bloqueados.map(a => `<span class="chip">${escapeHtml(a.nombre || "Sin nombre")} <button type="button" class="am-x am-x--txt" data-action="am-desbloquear" data-id="${escapeHtml(a.id)}">Desbloquear</button></span>`).join("")}</div>` : ""}</div>`;
   return `<div class="am">${animosHtml}${recibidasHtml}${cjInvitacionesHtml()}${ojInvitacionesHtml()}${invitar}${lista}${cjAmigosHtml(amigos)}${ojAmigosHtml(amigos)}${muestra}</div>`;
 }

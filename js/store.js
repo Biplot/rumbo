@@ -129,9 +129,16 @@ const LocalBackend = {
     const db = this._amDb(), prev = db.perfiles[yo];
     let codigo = prev && prev.codigo;
     if (!codigo) { const usados = new Set(Object.values(db.perfiles).map(x => x.codigo)); do codigo = _codigoAmigo(); while (usados.has(codigo)); }
-    db.perfiles[yo] = { user_id: yo, codigo, nombre: String(p.nombre || "").slice(0, 60), avatar: p.avatar || null, muestra: p.muestra || {}, estado: p.estado || {} };
+    db.perfiles[yo] = { user_id: yo, codigo, nombre: String(p.nombre || "").slice(0, 60), avatar: p.avatar || null, muestra: p.muestra || {}, estado: p.estado || {},
+      casa: p.casa || null, vitrina: p.vitrina || null };
     this._amGuardar(db);
     return { codigo };
+  },
+  /* La casa y la vitrina de un amigo (solo de amigos, como las reglas de perfiles) */
+  async amigosVisita(otro) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), f = this._amPar(db, yo, otro), p = db.perfiles[otro];
+    if (!f || f.estado !== "aceptada" || !p) return { error: "no-amigos" };
+    return { nombre: p.nombre, avatar: p.avatar, casa: p.casa || null, vitrina: p.vitrina || null };
   },
   async amigosBuscar(codigo) {
     const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), c = String(codigo || "").trim().toUpperCase();
@@ -749,13 +756,25 @@ const SupabaseBackend = {
   async amigosPerfil(p) {
     const { data: ses } = await this._client().auth.getSession();
     const uid = ses && ses.session && ses.session.user.id; if (!uid) return { error: "sesion" };
-    const fila = { user_id: uid, nombre: String(p.nombre || "").slice(0, 60), avatar: p.avatar || null, muestra: p.muestra || {}, estado: p.estado || {}, updated_at: new Date().toISOString() };
-    for (let i = 0; i < 3; i++) {   // el código lo pone la base; si chocara con otro (muy raro), se intenta de nuevo
+    const fila = { user_id: uid, nombre: String(p.nombre || "").slice(0, 60), avatar: p.avatar || null, muestra: p.muestra || {}, estado: p.estado || {},
+      casa: p.casa || null, vitrina: p.vitrina || null, updated_at: new Date().toISOString() };
+    if (this._sinVisitas) { delete fila.casa; delete fila.vitrina; }
+    for (let i = 0; i < 4; i++) {   // el código lo pone la base; si chocara con otro (muy raro), se intenta de nuevo
       const { data, error } = await this._client().from("perfiles").upsert(fila, { onConflict: "user_id" }).select("codigo").single();
       if (!error) return { codigo: data.codigo };
+      // Mientras no se corra supabase/visitas.sql, el perfil se publica sin la casa ni la vitrina
+      if (!this._sinVisitas && /casa|vitrina/.test(error.message || "") && /column|schema/i.test(error.message || "")) { this._sinVisitas = true; delete fila.casa; delete fila.vitrina; continue; }
       if (!/codigo/.test(error.message || "")) return { error: _amigosError(error) };
     }
     return { error: "codigo" };
+  },
+  /* La casa y la vitrina de un amigo: las reglas de perfiles dejan leer solo a sus amigos */
+  async amigosVisita(otro) {
+    try {
+      const { data, error } = await this._client().from("perfiles").select("nombre, avatar, casa, vitrina").eq("user_id", otro).maybeSingle();
+      if (error) return { error: _amigosError(error) };
+      return data || { error: "no-amigos" };
+    } catch (e) { return { error: _amigosError(e) }; }
   },
   async _amRpc(fn, args) {
     try { const { data, error } = await this._client().rpc(fn, args || {}); return error ? { error: _amigosError(error) } : { data }; }

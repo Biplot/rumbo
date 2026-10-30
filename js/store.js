@@ -40,12 +40,14 @@ function _codigoAmigo() {
   return c;
 }
 /* Errores de Amigos en palabras de la app: sin-servidor (falta correr supabase/amigos.sql o conjunto.sql), red, limite,
-   no-amigos y los de los hábitos y objetivos en conjunto (no-miembro, fecha, amigos, nombre, icono, frecuencia, meta, unidad, cantidad) */
+   no-amigos y los de los hábitos y objetivos en conjunto (no-miembro, fecha, amigos, nombre, icono, frecuencia, meta, unidad, cantidad)
+   y de los planes (titulo, tipo, hora, lugar, enlace, opciones, respuesta, no-creador, votacion, cancelado) */
 function _amigosError(e) {
   const m = String((e && (e.message || e.details)) || e || "");
   if (/limite/.test(m)) return "limite";
   if (/no-amigos/.test(m)) return "no-amigos";
-  if (["no-miembro", "fecha", "amigos", "nombre", "icono", "frecuencia", "meta", "unidad", "cantidad"].includes(m.trim())) return m.trim();
+  if (["no-miembro", "fecha", "amigos", "nombre", "icono", "frecuencia", "meta", "unidad", "cantidad",
+    "titulo", "tipo", "hora", "lugar", "enlace", "opciones", "respuesta", "no-creador", "votacion", "cancelado"].includes(m.trim())) return m.trim();
   if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return "red";
   if ((e && ["PGRST202", "PGRST205", "42P01", "42883"].includes(e.code)) || /does not exist|Could not find the (function|table)|schema cache/i.test(m)) return "sin-servidor";
   return m || "error";
@@ -118,7 +120,8 @@ const LocalBackend = {
   /* -------- Amigos sin servidor: las mismas reglas que supabase/amigos.sql, guardadas en este navegador.
      Las cuentas locales comparten esta "base", así se prueban dos personas en un mismo equipo. -------- */
   _amDb() {
-    const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1, conjuntos: [], cmiembros: [], cmarcas: [], objetivos: [], omiembros: [], oaportes: [] };
+    const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1, conjuntos: [], cmiembros: [], cmarcas: [], objetivos: [], omiembros: [], oaportes: [],
+      planes: [], pinvitados: [], popciones: [], pvotos: [] };
     try { return Object.assign(vacia, JSON.parse(localStorage.getItem("rumbo_amigos") || "{}")); } catch { return vacia; }
   },
   _amGuardar(db) { try { localStorage.setItem("rumbo_amigos", JSON.stringify(db)); } catch {} },
@@ -188,6 +191,9 @@ const LocalBackend = {
     const juntos = db.cmiembros.filter(m => m.user_id === otro).map(m => m.habito);
     juntos.forEach(h => this._cjSacar(db, h, yo));
     db.omiembros.filter(m => m.user_id === otro).map(m => m.objetivo).forEach(o => this._ojSacar(db, o, yo));   // y de los objetivos
+    // y de los planes: en los tuyos sale el otro; en los suyos (o de un tercero), sales tú (supabase/planes.sql)
+    db.planes.filter(p => [yo, otro].every(u => db.pinvitados.some(i => i.plan === p.id && i.user_id === u)))
+      .forEach(p => { const sale = p.creador === yo ? otro : yo; db.pinvitados = db.pinvitados.filter(i => !(i.plan === p.id && i.user_id === sale)); });
     this._amGuardar(db); return { r: "bloqueada" };
   },
   async amigosLista() {
@@ -424,6 +430,124 @@ const LocalBackend = {
         aportes: aps.slice().sort((a, b) => b.creado - a.creado || b.id - a.id).slice(0, 30).map(a => ({ id: a.id, user_id: a.user_id, cantidad: a.cantidad, nota: a.nota, fecha: a.fecha })),
       };
     });
+  },
+  /* -------- Planes con amigos sin servidor: las reglas de supabase/planes.sql -------- */
+  _plHora(h) { return h == null || h === "" ? null : /^([01]\d|2[0-3]):[0-5]\d$/.test(h) ? h : false; },
+  _plValida(p) {
+    const t = String(p.titulo || "").trim(), lugar = String(p.lugar || "").trim(), enlace = String(p.enlace || "").trim();
+    if (!t || t.length > 60) return "titulo";
+    if (!["pelicula", "comer", "cafe", "deporte", "viaje", "otro"].includes(p.tipo)) return "tipo";
+    if (this._plHora(p.hora) === false) return "hora";
+    if (lugar.length > 80) return "lugar";
+    if (enlace.length > 300 || (enlace && !/^https?:\/\/\S+$/i.test(enlace))) return "enlace";
+    return null;
+  },
+  _plFechaOk(f, hoy) { return /^\d{4}-\d{2}-\d{2}$/.test(String(f || "")) && f >= hoy && f <= agSumar(hoy, 366); },
+  _plMio(db, id, yo) { return db.planes.find(p => p.id === id && p.creador === yo && !p.cancelado); },
+  async planCrear(p, amigos, hoy) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), mal = this._plValida(p || {}); if (mal) return { error: mal };
+    const d = this._cjHoy(hoy);
+    let ops = [];
+    if (p.fecha) { if (!this._plFechaOk(p.fecha, d)) return { error: "fecha" }; }
+    else {
+      if (!Array.isArray(p.opciones) || p.opciones.length < 2 || p.opciones.length > 4) return { error: "opciones" };
+      for (const o of p.opciones) {
+        if (!o || !/^\d{4}-\d{2}-\d{2}$/.test(String(o.fecha || ""))) return { error: "opciones" };
+        if (!this._plFechaOk(o.fecha, d)) return { error: "fecha" };
+        if (this._plHora(o.hora) === false) return { error: "hora" };
+      }
+      ops = p.opciones.map(o => ({ fecha: o.fecha, hora: this._plHora(o.hora) })).filter((o, i, a) => a.findIndex(x => x.fecha === o.fecha && x.hora === o.hora) === i);
+    }
+    const ids = [...new Set(amigos || [])].filter(x => x && x !== yo);
+    if (!ids.length || ids.length > 12) return { error: "amigos" };
+    if (ids.some(x => { const f = this._amPar(db, yo, x); return !f || f.estado !== "aceptada"; })) return { error: "no-amigos" };
+    if (db.planes.filter(x => x.creador === yo && Date.now() - x.creado < 864e5).length >= 20) return { error: "limite" };
+    const id = "pl" + (db.sig++) + Date.now().toString(36), t = Date.now();
+    db.planes.push({ id, titulo: String(p.titulo).trim(), tipo: p.tipo, fecha: p.fecha || null, hora: p.fecha ? this._plHora(p.hora) : null,
+      lugar: String(p.lugar || "").trim(), enlace: String(p.enlace || "").trim(), tz: p.tz || "America/Santiago", creador: yo, cancelado: false, creado: t, updated: t });
+    db.pinvitados.push({ plan: id, user_id: yo, respuesta: "voy", invita: null, n: db.sig++ });
+    ids.forEach(x => db.pinvitados.push({ plan: id, user_id: x, respuesta: "pendiente", invita: yo, n: db.sig++ }));
+    ops.forEach(o => db.popciones.push({ id: db.sig++, plan: id, fecha: o.fecha, hora: o.hora }));
+    this._amGuardar(db);
+    return { id };
+  },
+  async planEditar(id, p, hoy) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), x = this._plMio(db, id, yo);
+    if (!x) return { error: "no-creador" };
+    const mal = this._plValida(p || {}); if (mal) return { error: mal };
+    if (p.fecha && p.fecha !== x.fecha && !this._plFechaOk(p.fecha, this._cjHoy(hoy))) return { error: "fecha" };
+    const antes = [x.fecha, x.hora, x.lugar, x.enlace].join("|");
+    const fecha = p.fecha || x.fecha;
+    Object.assign(x, { titulo: String(p.titulo).trim(), tipo: p.tipo, lugar: String(p.lugar || "").trim(), enlace: String(p.enlace || "").trim(),
+      fecha, hora: fecha ? this._plHora(p.hora) : null, updated: Date.now() });
+    this._amGuardar(db);
+    return { cambio: antes !== [x.fecha, x.hora, x.lugar, x.enlace].join("|") };
+  },
+  async planInvitar(id, amigos) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._plMio(db, id, yo)) return { error: "no-creador" };
+    const ids = [...new Set(amigos || [])].filter(x => x && x !== yo && !db.pinvitados.some(i => i.plan === id && i.user_id === x));
+    if (ids.some(x => { const f = this._amPar(db, yo, x); return !f || f.estado !== "aceptada"; })) return { error: "no-amigos" };
+    if (db.pinvitados.filter(i => i.plan === id).length + ids.length > 13) return { error: "limite" };
+    ids.forEach(x => db.pinvitados.push({ plan: id, user_id: x, respuesta: "pendiente", invita: yo, n: db.sig++ }));
+    this._amGuardar(db);
+    return { n: ids.length };
+  },
+  async planResponder(id, respuesta) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!["voy", "quizas", "no"].includes(respuesta)) return { error: "respuesta" };
+    const p = db.planes.find(x => x.id === id);
+    if (p && p.cancelado) return { error: "cancelado" };
+    const i = p && p.creador !== yo && db.pinvitados.find(x => x.plan === id && x.user_id === yo);
+    if (!i) return { r: "nada" };
+    i.respuesta = respuesta; this._amGuardar(db);
+    return { r: respuesta };
+  },
+  async planVotar(id, opciones) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!db.pinvitados.some(i => i.plan === id && i.user_id === yo)) return { error: "no-miembro" };
+    const p = db.planes.find(x => x.id === id);
+    if (!p || p.fecha || p.cancelado) return { error: "votacion" };
+    const mias = db.popciones.filter(o => o.plan === id).map(o => o.id);
+    db.pvotos = db.pvotos.filter(v => !(v.user_id === yo && mias.includes(v.opcion)));
+    const nuevas = [...new Set(opciones || [])].filter(o => mias.includes(o));
+    nuevas.forEach(o => db.pvotos.push({ opcion: o, user_id: yo }));
+    this._amGuardar(db);
+    return { n: nuevas.length };
+  },
+  async planFijar(id, opcion) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), p = this._plMio(db, id, yo);
+    if (!p) return { error: "no-creador" };
+    const o = db.popciones.find(x => x.id === opcion && x.plan === id);
+    if (!o) return { error: "opciones" };
+    Object.assign(p, { fecha: o.fecha, hora: o.hora, updated: Date.now() });
+    this._amGuardar(db);
+    return { r: "fijado" };
+  },
+  async planCancelar(id) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), p = this._plMio(db, id, yo);
+    if (!p) return { r: "nada" };
+    Object.assign(p, { cancelado: true, updated: Date.now() });
+    this._amGuardar(db);
+    return { r: "cancelado" };
+  },
+  async planLista(hoy) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), d = this._cjHoy(hoy), desde = agSumar(d, -1);
+    const orden = (a, b) => (a.fecha == null) - (b.fecha == null) || String(a.fecha || "").localeCompare(String(b.fecha || "")) || String(a.hora || "").localeCompare(String(b.hora || "")) || a.creado - b.creado;
+    return db.pinvitados.filter(i => i.user_id === yo).map(mio => ({ mio, p: db.planes.find(x => x.id === mio.plan) }))
+      .filter(({ p }) => p && (!p.fecha || p.fecha >= desde) && (!p.cancelado || Date.now() - p.updated < 7 * 864e5))
+      .sort((a, b) => orden(a.p, b.p)).map(({ mio, p }) => ({
+        id: p.id, titulo: p.titulo, tipo: p.tipo, fecha: p.fecha, hora: p.hora, lugar: p.lugar, enlace: p.enlace, creador: p.creador, cancelado: p.cancelado,
+        respuesta: mio.respuesta, invita: mio.invita,
+        miembros: db.pinvitados.filter(i => i.plan === p.id).sort((a, b) => a.n - b.n)
+          .map(i => Object.assign(this._amFicha(db, i.user_id), { yo: i.user_id === yo, respuesta: i.respuesta })),
+        opciones: p.fecha ? [] : db.popciones.filter(o => o.plan === p.id)
+          .sort((a, b) => a.fecha.localeCompare(b.fecha) || String(a.hora || "").localeCompare(String(b.hora || "")) || a.id - b.id)
+          .map(o => ({ id: o.id, fecha: o.fecha, hora: o.hora,
+            votos: db.pvotos.filter(v => v.opcion === o.id && db.pinvitados.some(i => i.plan === p.id && i.user_id === v.user_id)).map(v => v.user_id) })),
+      }));
   },
   async deleteAccount() {
     const id = localStorage.getItem("rumbo_session"); if (!id) return { error: "No hay sesión." };
@@ -819,6 +943,24 @@ const SupabaseBackend = {
   },
   async objetivoAportar(o, cantidad, nota, hoy) { const r = await this._amRpc("objetivo_aportar", { p_id: o, p_cantidad: cantidad, p_nota: nota || "", p_hoy: hoy }); return r.error ? r : r.data; },
   async objetivoBorrarAporte(aporte) { const r = await this._amRpc("objetivo_borrar_aporte", { p_aporte: aporte }); return r.error ? r : r.data; },
+  /* -------- Planes con amigos (supabase/planes.sql) -------- */
+  async planLista(hoy) { const r = await this._amRpc("plan_lista", { p_hoy: hoy }); return r.error ? r : r.data || []; },
+  async planCrear(p, amigos, hoy) {
+    const r = await this._amRpc("plan_crear", { p_titulo: p.titulo, p_tipo: p.tipo, p_fecha: p.fecha || null, p_hora: p.hora || null,
+      p_opciones: p.fecha ? null : (p.opciones || []).map(o => ({ fecha: o.fecha, hora: o.hora || "" })), p_lugar: p.lugar || "", p_enlace: p.enlace || "",
+      p_tz: p.tz || "", p_amigos: amigos, p_hoy: hoy });
+    return r.error ? r : { id: r.data };
+  },
+  async planEditar(id, p, hoy) {
+    const r = await this._amRpc("plan_editar", { p_id: id, p_titulo: p.titulo, p_tipo: p.tipo, p_fecha: p.fecha || null, p_hora: p.hora || null,
+      p_lugar: p.lugar || "", p_enlace: p.enlace || "", p_hoy: hoy });
+    return r.error ? r : r.data;
+  },
+  async planInvitar(id, amigos) { const r = await this._amRpc("plan_invitar", { p_id: id, p_amigos: amigos }); return r.error ? r : { n: r.data }; },
+  async planResponder(id, respuesta) { const r = await this._amRpc("plan_responder", { p_id: id, p_respuesta: respuesta }); return r.error ? r : { r: r.data }; },
+  async planVotar(id, opciones) { const r = await this._amRpc("plan_votar", { p_id: id, p_opciones: opciones }); return r.error ? r : { n: r.data }; },
+  async planFijar(id, opcion) { const r = await this._amRpc("plan_fijar", { p_id: id, p_opcion: opcion }); return r.error ? r : { r: r.data }; },
+  async planCancelar(id) { const r = await this._amRpc("plan_cancelar", { p_id: id }); return r.error ? r : { r: r.data }; },
   /* ¿Está activo "Iniciar sesión con Google" en Supabase? (Authentication → Providers → Google).
      Se consulta al mostrar la pantalla de acceso: así el botón aparece solo cuando funciona. */
   async googleDisponible() {

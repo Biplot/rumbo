@@ -594,7 +594,7 @@ function renderSemana() {
         <span class="row" style="gap:6px"><span class="dia-badge">${d.getDate()}/${MESES_CORTO[d.getMonth()]}</span>
         ${iso === hoy ? "" : `<button class="icon-btn week-col__mas" data-action="sem-col-add" aria-label="Agregar tarea el ${DIAS_SEMANA[i]}">＋</button>`}</span></div>
       ${PRONO[iso] ? `<div class="mt-8">${chipPronostico(PRONO[iso])}</div>` : ""}
-      ${gcalDiaHtml(iso)}
+      ${gcalDiaHtml(iso)}${plDiaHtml(iso)}
       <div class="mt-8">${tareas.length ? tareas.map(t => tareaRowHtml(t, iso, { compacto: true })).join("") : '<div class="text-xs muted week-col__vacio" style="padding:6px">Sin tareas.</div>'}</div>
       <div class="row mt-8 week-col__add">${ambitoPicker(inputId + "-amb", "per", true)}<input class="input" id="${inputId}" placeholder="Nueva tarea..." style="padding:8px 10px">
         <button class="btn btn--cian" data-action="tarea-add" data-fecha="${iso}" data-input="${inputId}" data-amb="${inputId}-amb" style="padding:8px 12px">+</button></div>

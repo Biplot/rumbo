@@ -128,7 +128,7 @@ function openRitualModal(op) {
   const bocadoAmb = r.sapoAmbito || (bocadoPrev ? ambitoDe(bocadoPrev) : sugerido ? ambitoDe(sugerido) : "pro");
   const ambSeg = (v) => `<button type="button" class="${bocadoAmb === v ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'r-sapo-amb')">${AMBITOS[v].icon} ${AMBITOS[v].corto}</button>`;
   openModal("Ritual de apertura", `
-    ${gcalAperturaHtml()}
+    ${gcalAperturaHtml()}${plAperturaHtml()}
     <div class="field"><label>Misión de hoy</label><input class="input" id="r-mision" value="${escapeAttr(misionDefault)}" placeholder="¿Qué hará hoy un gran día?"></div>
 
     ${prioridadesSemanaMini()}

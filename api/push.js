@@ -23,6 +23,8 @@
            { accion: "amigos", tipo: "plan-invita" | "plan-responde" | "plan-fecha" | "plan-cambio" | "plan-cancela", plan }
              -> planes con amigos: te invitan, alguien respondió, cambió (o ya tiene fecha), se canceló
              (supabase/planes.sql). El recordatorio del día («Hoy: …») sale con los demás recordatorios.
+           { accion: "amigos", tipo: "lista-invita" | "lista-acepta" | "lista-agrega", lista, item? }
+             -> listas compartidas: te invitan, alguien se sumó, alguien agregó algo (supabase/listas.sql)
 
    Variables de entorno (Vercel → Settings → Environment Variables):
      SUPABASE_SERVICE_ROLE_KEY   clave secreta de Supabase (service_role o sb_secret_…)
@@ -192,6 +194,12 @@ async function recordatoriosPlanesApi(config, host) {
   }
 }
 
+/* Un aviso de una lista compartida: notifier/listas.mjs revisa en la base que corresponda */
+async function avisoListaApi(config, yo, body, host) {
+  const { avisoLista } = await import("../notifier/listas.mjs");
+  return avisoLista({ sb: admin(), yo, body, enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+}
+
 /* Un aviso de un hábito en conjunto: notifier/conjunto.mjs revisa en la base que corresponda */
 async function avisoConjuntoApi(config, yo, body, host) {
   const { avisoConjunto } = await import("../notifier/conjunto.mjs");
@@ -234,6 +242,7 @@ module.exports = async function handler(req, res) {
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("conjunto-")) return res.status(200).json(await avisoConjuntoApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("objetivo-")) return res.status(200).json(await avisoObjetivoApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("plan-")) return res.status(200).json(await avisoPlanApi(config, u.user.id, body, host));
+    if (body.accion === "amigos" && String(body.tipo || "").startsWith("lista-")) return res.status(200).json(await avisoListaApi(config, u.user.id, body, host));
     if (body.accion === "amigos") return res.status(200).json(await avisoAmigos(config, u.user.id, body, host));
     if (body.accion !== "prueba" || typeof body.endpoint !== "string") return res.status(400).json({ error: "Acción no válida" });
     const { data: fila, error: eFila } = await admin().from("suscripciones_push")

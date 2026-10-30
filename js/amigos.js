@@ -7,7 +7,7 @@
    mostrar (amigosPublicar). Compañía, no competencia: no hay rankings.
 
    Los hábitos en conjunto (etapa 2) están en conjunto.js; los objetivos en conjunto (etapa 3), en objetivos.js;
-   los planes (juntarse: una película, comer, salir), en planes.js.
+   los planes (juntarse: una película, comer, salir), en planes.js; las listas compartidas, en listas-amigos.js.
 
    Datos propios: settings.amigos = { activo, muestra: { dia, racha, rango } }
    Invitación: rumbo.biplot.cl/?amigo=CODIGO (se guarda hasta que entras).
@@ -74,22 +74,23 @@ async function amigosCargar(forzar) {
   else { AMIGOS.error = null; AMIGOS.lista = l; AMIGOS.pubFirma = JSON.stringify(p); AMIGOS.codigo = l.codigo || (r && r.codigo) || AMIGOS.codigo; }
   amigosMarcarNav();
   if (CURRENT === "amigos") rerender();
-  if (!AMIGOS.error) { conjuntoCargar(forzar); objetivosCargar(forzar); planesCargar(forzar); }   // y lo que hacen juntos (conjunto.js, objetivos.js, planes.js)
+  if (!AMIGOS.error) { conjuntoCargar(forzar); objetivosCargar(forzar); planesCargar(forzar); listasCargar(forzar); }   // y lo que hacen juntos (conjunto.js, objetivos.js, planes.js, listas-amigos.js)
 }
-/* Al salir de la cuenta: se olvida lo cargado (amigos, hábitos y objetivos en conjunto, y planes) */
+/* Al salir de la cuenta: se olvida lo cargado (amigos, hábitos y objetivos en conjunto, planes y listas) */
 function amigosOlvidar() {
   clearTimeout(AMIGOS.pubT);
   Object.assign(AMIGOS, { lista: null, t: 0, cargando: false, error: null, codigo: "", animosVistos: [], pubFirma: "", pubT: null, msg: "" });
   Object.assign(CONJ, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
   Object.assign(OBJ, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
   Object.assign(PLAN, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
+  Object.assign(LCOM, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [], abiertas: {} });
 }
-/* Cuántas cosas nuevas hay: solicitudes recibidas, ánimos sin ver, invitaciones a hábitos y objetivos y planes sin responder */
+/* Cuántas cosas nuevas hay: solicitudes recibidas, ánimos sin ver, invitaciones a hábitos, objetivos y listas, y planes sin responder */
 function amigosNuevos() {
   const l = AMIGOS.lista; if (!l) return 0;
   return (l.recibidas || []).length + (l.animos || []).filter(a => !AMIGOS.animosVistos.includes(a.id)).length
     + (CONJ.lista || []).filter(c => c.estado === "invitado").length + (OBJ.lista || []).filter(o => o.estado === "invitado").length
-    + (PLAN.lista || []).filter(p => p.respuesta === "pendiente" && !p.cancelado).length;
+    + (PLAN.lista || []).filter(p => p.respuesta === "pendiente" && !p.cancelado).length + (LCOM.lista || []).filter(l => l.estado === "invitado").length;
 }
 function amigosMarcarNav() {
   const n = amigosNuevos();
@@ -351,5 +352,5 @@ function renderAmigos() {
       ${fila("casa", "Tu casa", "Pueden visitar a tu elefante en su cuarto. Miran, pero no cambian nada.")}
       ${fila("vitrina", "Tu vitrina", "Tus medallas y el día en que ganaste cada una.")}
       ${bloqueados.length ? `<div class="am-env mt-8"><span class="text-xs muted">Bloqueados</span>${bloqueados.map(a => `<span class="chip">${escapeHtml(a.nombre || "Sin nombre")} <button type="button" class="am-x am-x--txt" data-action="am-desbloquear" data-id="${escapeHtml(a.id)}">Desbloquear</button></span>`).join("")}</div>` : ""}</div>`;
-  return `<div class="am">${animosHtml}${recibidasHtml}${cjInvitacionesHtml()}${ojInvitacionesHtml()}${plAmigosHtml(amigos)}${invitar}${lista}${cjAmigosHtml(amigos)}${ojAmigosHtml(amigos)}${muestra}</div>`;
+  return `<div class="am">${animosHtml}${recibidasHtml}${cjInvitacionesHtml()}${ojInvitacionesHtml()}${lcInvitacionesHtml()}${plAmigosHtml(amigos)}${invitar}${lista}${cjAmigosHtml(amigos)}${ojAmigosHtml(amigos)}${lcAmigosHtml(amigos)}${muestra}</div>`;
 }

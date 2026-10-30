@@ -56,6 +56,11 @@ Juntarse (`js/planes.js`): ver una película, ir a comer, salir a correr, un via
 - **Activar:** Supabase → SQL Editor: correr `supabase/planes.sql` **después** de `amigos.sql` (se puede repetir). Crea `planes`, `planes_invitados`, `planes_opciones` y `planes_votos` (sin acceso directo: todo pasa por las funciones `plan_*`). Mientras no se corra, Amigos no muestra los planes.
 - **Avisos al celular** (te invitan, alguien respondió, ya hay fecha, cambió cuándo o dónde, se canceló): `notifier/planes.mjs`, desde `api/push.js`. El recordatorio del día («Hoy: …», unas 3 horas antes, o en la mañana si no tiene hora) sale junto con los demás recordatorios, cada 5 minutos. Todos con el aviso «Amigos» y el mismo horario.
 
+### Listas compartidas
+«Películas por ver con Ana», «Restaurantes por probar», «El viaje al sur» (`js/listas-amigos.js`): una lista que arman entre varios, en el módulo Listas (sección «Con amigos», arriba de tus listas personales) y en Amigos. Cada uno agrega, le da +1 a lo que también quiere (lo que más quieren queda arriba), marca lo que ya vieron (o probaron) y le pone de 1 a 5 estrellas; cualquiera le pone una nota («en Netflix»). El boleto junto a cada cosa la elige para un plan: abre un plan nuevo con eso, el tipo que corresponde y la gente de la lista. Si alguien sale, lo que agregó se queda.
+- **Activar:** Supabase → SQL Editor: correr `supabase/listas.sql` **después** de `amigos.sql` (se puede repetir). Crea `listas_compartidas`, `listas_compartidas_miembros`, `listas_compartidas_items` y `listas_compartidas_votos` (sin acceso directo: todo pasa por las funciones `lista_*`). Mientras no se corra, Listas queda como siempre.
+- **Avisos al celular** (te invitan, alguien se sumó, alguien agregó algo —uno al día por lista—): `notifier/listas.mjs`, desde `api/push.js`, con el aviso «Amigos».
+
 ## Configuración de Supabase
 Las claves públicas van en `js/store.js` (`SUPABASE_URL`, `SUPABASE_KEY`). La `publishable key` es pública por diseño; los datos están protegidos por RLS. Esquema:
 

@@ -19,6 +19,10 @@ const COSMETICOS = [
   { id: "pla-cuaderno", grupo: "plantilla", icon: "📓", nombre: "Plantilla Cuaderno", costo: 300, key: "plantilla", value: "cuaderno" },
   { id: "pla-atardecer", grupo: "plantilla", icon: "🌇", nombre: "Plantilla Atardecer", costo: 300, key: "plantilla", value: "atardecer" },
   { id: "pla-terminal", grupo: "plantilla", icon: "💻", nombre: "Plantilla Terminal", costo: 300, key: "plantilla", value: "terminal" },
+  // Estilos del álbum del mes (album.js; Clásico viene incluido): se eligen en cada álbum
+  { id: "alb-bujo", grupo: "album", icon: "📓", nombre: "Álbum Bullet journal", costo: 300, key: "album", value: "bujo", cuando: "papel punteado, cinta washi y letra a mano" },
+  { id: "alb-polaroid", grupo: "album", icon: "🖼", nombre: "Álbum Polaroid", costo: 300, key: "album", value: "polaroid", cuando: "fotos instantáneas, con el comentario en el borde" },
+  { id: "alb-pelicula", grupo: "album", icon: "🎬", nombre: "Álbum Película", costo: 400, key: "album", value: "pelicula", cuando: "un rollo de 35 mm, con el comentario como subtítulo" },
   // Marcos de avatar (uno a la vez). Diamante no se compra: llega con el rango Élite.
   { id: "mar-cian", grupo: "marco", icon: "🔵", nombre: "Marco Índigo", costo: 200, key: "marco", value: "cian" },
   { id: "mar-oro", grupo: "marco", icon: "🟡", nombre: "Marco Oro", costo: 400, key: "marco", value: "oro" },
@@ -32,7 +36,7 @@ function cosActivo(id) {
   const eq = eqCos();
   if (it.key === "celebra") return !eq.celebraOff.includes(id);
   if (it.key === "sonidos") return eq.sonidos !== false;
-  if (it.key === "plantilla") return true;
+  if (it.key === "plantilla" || it.key === "album") return true;
   return eq[it.key] === it.value;
 }
 /* Equipar / quitar (lo llama equipItem de recompensas.js) */
@@ -144,11 +148,13 @@ function cosmeticoCard(it) {
   if (it.rango && !owned) pie = `<div class="chip mt-8" style="display:inline-block">💎 Se gana en rango Élite</div>`;
   else if (!owned) pie = botonCompra(it.costo, `data-action="cos-buy" data-id="${it.id}"`);
   else if (it.key === "plantilla") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígela al compartir tu mes</div>`;
+  else if (it.key === "album") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígelo en tu álbum del mes</div>`;
   else pie = `<button class="btn ${activo ? "btn--soft" : "btn--cian"} btn-block" data-action="cos-equip" data-id="${it.id}">${activo ? (it.key === "celebra" || it.key === "sonidos" ? "✓ Activo — apagar" : "✓ Equipado — quitar") : (it.key === "celebra" || it.key === "sonidos" ? "Activar" : "Equipar")}</button>`;
   const vista = it.key === "marco" ? `<div class="account__avatar marco marco--${it.value}" style="margin:0 auto 8px">${typeof avatarActualHtml === "function" ? avatarActualHtml((((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()) : escapeHtml(((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()}</div>`
     : `<span style="font-size:24px">${it.icon}</span>`;
   return `<div class="card cos-card" data-cos="${it.id}">
     ${it.key === "marco" ? `<div style="text-align:center">${vista}</div>` : ""}
+    ${it.key === "album" && typeof albumMuestraHtml === "function" ? `<div class="alb-muestra">${albumMuestraHtml(it.value)}</div>` : ""}
     <div class="row" style="gap:10px">${it.key === "marco" ? "" : vista}
       <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${it.nombre}${it.animado ? ' <span class="chip">animado</span>' : ""}</div>
         <div class="text-xs muted">${owned ? "Desbloqueado" : it.rango ? "Por rango" : it.costo + " ⭐"}${it.cuando ? " · " + it.cuando : ""}</div></div></div>
@@ -165,5 +171,7 @@ function renderCosmeticosTienda() {
   <div class="section-title">🖼️ Marcos para tu avatar</div>
   <div class="grid grid-auto">${grupo("marco")}</div>
   <div class="section-title">📤 Plantillas para compartir tu mes <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· Navy viene incluida</span></div>
-  <div class="grid grid-3">${grupo("plantilla")}</div>`;
+  <div class="grid grid-3">${grupo("plantilla")}</div>
+  <div class="section-title">📷 Estilos para tu álbum del mes <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· Clásico viene incluido</span></div>
+  <div class="grid grid-3">${grupo("album")}</div>`;
 }

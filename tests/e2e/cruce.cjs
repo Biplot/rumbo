@@ -16,9 +16,9 @@ module.exports = async ({ b, ok, errs }) => {
     saveState(); rerender();
   });
   await p.evaluate(() => openMesCierre("2026-12"));
-  for (let i = 0; i < 5; i++) { await p.click('[data-action="mes-next"]'); await p.waitForTimeout(120); }
+  for (let i = 0; i < 6; i++) { await p.click('[data-action="mes-next"]'); await p.waitForTimeout(120); }
   const txt = await p.locator("#modalBody").innerText();
-  ok(/Paso 6 de 6/i.test(txt) && txt.includes("Tu 2026 en números") && /noviembre/i.test(txt), "el cierre de diciembre termina con 'Tu 2026 en números' (mejor mes: noviembre)");
+  ok(/Paso 7 de 7/i.test(txt) && txt.includes("Tu 2026 en números") && /noviembre/i.test(txt), "el cierre de diciembre termina con 'Tu 2026 en números' (mejor mes: noviembre)");
   await shot(p, "cruce-tu-anio");
   await p.click('[data-action="mes-finish"]'); await p.waitForTimeout(300);
   let s = await p.evaluate(() => STATE);

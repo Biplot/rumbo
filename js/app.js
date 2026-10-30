@@ -129,6 +129,7 @@ async function enterApp(user) {
   else if (debeElegirElefante()) setTimeout(openElegirElefante, 600);
   procesarAtajo();
   amigosAlEntrar();                      // 🤝 la invitación que traías (?amigo=) y lo nuevo de tus amigos
+  setTimeout(albumSubirPendientes, 1500); // 📷 las fotos del álbum que quedaron sin subir
 }
 /* La pantalla de carga (index.html) se va cuando ya se ve la app o el acceso */
 function quitarSplash() {
@@ -157,7 +158,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 44;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 45;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -433,6 +434,11 @@ const NOVEDADES = {
     ["📅", "Tu semana con amigos", "Tus planes y los cumpleaños de tus amigos de los próximos días, en una línea. Más abajo, una baldosa por cada cosa que hacen juntos: tócala y se abre."],
     ["⚙️", "Un solo «+ Nuevo»", "Para crear un plan, un hábito, un objetivo, una lista o una lectura con amigos. Invitar, tu código y lo que muestras están en el engranaje."],
   ],
+  45: [
+    ["📷", "Tu álbum del mes", "Al cerrar el mes, un paso nuevo: hasta 9 fotos de los mejores momentos, con una línea para cada una. La primera vez con 3 fotos comentadas, +30 ⭐."],
+    ["📔", "Tus álbumes, en el Diario", "Cada mes muestra su álbum bajo el mapa del ánimo, y «Tus álbumes» arma la estantería del año con la portada de cada mes."],
+    ["🖼️", "Estilos de álbum", "En la Tienda, «Tu álbum»: Bullet journal, Polaroid y Película. Se compran una vez y cada mes elige el suyo. Clásico viene incluido."],
+  ],
 };
 let NOVEDADES_ABIERTAS = false;
 function openNovedades() {
@@ -604,6 +610,7 @@ async function doLogout() {
   await BACKEND.logout();
   CURRENT_USER = null; STATE = null; location.hash = "";
   amigosOlvidar();   // lo de tus amigos en memoria no queda para quien entre después
+  albumOlvidar();    // ni las direcciones de las fotos del álbum
   authError(""); showAuth();
 }
 
@@ -990,6 +997,7 @@ function onClick(e) {
   if (a.startsWith("pl-")) { planesAccion(a, d); return; }         // planes con amigos (planes.js)
   if (a.startsWith("lc-")) { listasCompAccion(a, d); return; }     // listas compartidas (listas-amigos.js)
   if (a.startsWith("lj-")) { lecturasAmigosAccion(a, d); return; } // leer el mismo libro (lecturas-amigos.js)
+  if (a.startsWith("alb-")) { albumAccion(a, d); return; }         // 📷 álbum del mes (album.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;

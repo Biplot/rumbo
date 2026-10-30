@@ -131,6 +131,10 @@ function defaultState() {
     // registro diario (bullet journal): tareas por fecha, con su historia (ver agenda.js)
     agenda: { dias: {}, recurrentes: [] },
 
+    // álbum del mes (album.js): "2026-10": { estilo, portada, ts, fotos: [{ id, ruta, comentario, fecha, w, h, ts }], borradas: [id] }.
+    // Aquí van los comentarios y dónde está cada foto; las fotos, en Storage (supabase/album.sql) y en este equipo.
+    album: { meses: {} },
+
     // metas, finanzas, salud y rueda de los años distintos al año base (ver anios.js)
     anios: {},
 
@@ -236,6 +240,7 @@ function migrate(s) {
   // recetario una sola vez (id fijo por año y mes: idempotente y sin duplicados entre equipos).
   // v70 · Notas estilo post-it: las notas por categoría pasan con su categoría como etiqueta y la
   // captura rápida como notas sueltas (las procesadas, archivadas). Ids fijos: idempotente; lo de antes no se borra.
+  if (!s.album || typeof s.album !== "object" || !s.album.meses || typeof s.album.meses !== "object") s.album = { meses: {} };   // v107 · álbum del mes
   if (!Array.isArray(s.postits)) s.postits = [];
   const yaNota = new Set(s.postits.map(n => n.id));
   const slugCat = t => String(t || "").trim().toLowerCase().replace(/^#/, "").replace(/\s+/g, "-").slice(0, 30);

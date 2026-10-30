@@ -275,7 +275,7 @@ function lcTarjeta(l) {
       <button class="btn btn--cian" data-action="lc-agregar" data-id="${escapeHtml(l.id)}" aria-label="Agregar">${icoUI("plus")}</button></div>
     ${vistas.length ? `<details class="lc-vistas"><summary>${escapeHtml(lcTipo(l).seccion)} · ${vistas.length}</summary>${vistas.map(it => lcFilaVista(l, it)).join("")}</details>` : ""}</div>`;
 }
-/* Invitaciones a listas (en Listas y en Amigos) */
+/* Invitaciones a listas, en Listas (en Amigos están en «Para responder») */
 function lcInvitacionesHtml() {
   const inv = (LCOM.lista || []).filter(l => l.estado === "invitado");
   if (!inv.length) return "";
@@ -297,18 +297,6 @@ function lcSeccionListas() {
     ${act.length ? `<div class="grid grid-2 lc-grid">${act.map(lcTarjeta).join("")}</div>`
       : `<div class="card"><p class="text-sm muted" style="margin:0 0 14px">Películas por ver, restaurantes por probar, lugares para un viaje: una lista que arman entre varios. Cada uno agrega, dice «yo también» y marca lo que ya hicieron. Y de ahí, a un plan.</p>${boton}</div>`}
     <div class="divider"></div>`;
-}
-/* Amigos: las listas compartidas, en corto */
-function lcAmigosHtml(amigos) {
-  if (LCOM.error === "sin-servidor") return "";
-  const act = (LCOM.lista || []).filter(l => l.estado === "activo");
-  if (!act.length && !amigos.length) return "";
-  return `<div class="card"><div class="card__title">${icoUI("listas")} Listas con amigos</div>
-    ${act.length ? act.map(l => `<button type="button" class="oj-mini" data-action="lc-ir"><span class="pl-ico pl-ico--${lcTipo(l).plan}">${lcIcono(l)}</span>
-      <span class="oj__t"><b>${escapeHtml(l.nombre)}</b><span class="text-xs muted">${lcPorTxt(l, lcPorVer(l).length)}${lcCon(l) ? " · con " + escapeHtml(lcCon(l)) : ""}</span></span></button>`).join("")
-      : `<p class="text-sm muted mt-8">Películas por ver, restaurantes por probar o lugares para un viaje, armadas entre varios.</p>`}
-    <div class="mt-16 row-wrap" style="gap:8px"><button class="btn btn--soft" data-action="lc-nueva">${icoUI("handshake")} Lista con amigos</button>
-      ${act.length ? `<button class="btn-ghost" data-action="lc-ir">Ir a Listas</button>` : ""}</div></div>`;
 }
 /* El perfil de un amigo: las listas que comparten (para «Lo que hacen juntos») */
 function lcJuntos(amigoId) {

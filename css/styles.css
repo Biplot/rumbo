@@ -2727,3 +2727,103 @@ html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-no
 .lj-libro .btn-link { margin-left: auto; font-size: 12.5px; }
 .lj-libro__b { display: inline-flex; align-items: center; gap: 6px; margin: 2px 0 12px; }
 .pl-form [hidden] { display: none !important; }   /* .pl-seg y .field tienen su display: lo oculto se oculta igual */
+
+/* ============================================================
+   AMIGOS EN UNA PANTALLA (v106) · amigos-tablero.js: para responder, esta semana y juntos
+   ============================================================ */
+.at { gap: 18px; }
+.at-cab { display: flex; align-items: center; gap: 8px; margin-bottom: -8px; }
+.at-cab__b { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.at-nuevo { display: inline-flex; align-items: center; gap: 6px; }
+.at-eng { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: var(--surface-2); color: var(--text); }
+.at-eng .ico-n { width: 20px; height: 20px; }
+.at__cols { display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+.at__col { display: grid; gap: 18px; min-width: 0; }
+@media (min-width: 1000px) { .at__cols { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); } }
+.at-sec { display: grid; gap: 10px; min-width: 0; }
+.at-h { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+.at-h span { color: var(--text-muted); font-weight: 600; }
+/* Para responder */
+.at-bandeja { display: grid; gap: 0; padding-block: 6px; }
+.at-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.at-bandeja > .at-fila:last-of-type { border-bottom: 0; }
+.at-fila__t { flex: 1 1 180px; min-width: 0; display: grid; gap: 2px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; }
+button.at-fila__t { cursor: pointer; }
+.at-fila__t b { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.at-fila__t span { font-size: 12.5px; color: var(--text-muted); }
+.at-fila__b { margin-left: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.at-fila__b .btn, .at-fila__b .btn-ghost { min-height: 38px; padding: 7px 14px; font-size: 13.5px; }
+.at-caras { display: inline-flex; flex-shrink: 0; }
+.at-caras .am-av + .am-av { margin-left: -14px; box-shadow: 0 0 0 2px var(--surface); }
+.at-todo { justify-self: center; margin-top: 4px; }
+.at-al-dia { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); color: var(--text-soft); font-size: 14px; font-weight: 600; }
+.at-al-dia .ico-n { color: var(--cian-ink); }
+/* Esta semana: una fila que se desliza */
+.at-semana { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 4px; scrollbar-width: thin; }
+.at-dia { flex: 0 0 auto; min-width: 128px; max-width: 200px; display: grid; gap: 3px; align-content: start; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; scroll-snap-align: start; }
+.at-dia b { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+.at-dia span { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 14px; font-weight: 700; }
+.at-dia span .ico-n { flex-shrink: 0; width: 16px; height: 16px; }
+.at-dia small { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.at-dia--cumple, .at-dia--abierto { border-color: transparent; background: color-mix(in srgb, #E0951F 13%, var(--surface)); }
+.at-dia--cumple b, .at-dia--abierto small { color: color-mix(in srgb, #E0951F 75%, var(--text)); }
+.at-dia--vacio { border-style: dashed; background: none; }
+.at-dia--vacio span { color: var(--text-soft); font-weight: 600; }
+/* Juntos: las baldosas */
+.at-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 359px) { .at-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.at-tile { display: grid; gap: 4px; align-content: start; min-width: 0; min-height: 104px; padding: 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, transform .15s; }
+.at-tile:hover, .at-tile:focus-visible { border-color: var(--cian); }
+.at-tile:active { transform: scale(.98); }
+.at-tile__n { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 13px; font-weight: 700; color: var(--text-soft); }
+.at-tile__i { flex-shrink: 0; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: var(--cian-soft); color: var(--cian-ink); }
+.at-tile__i .ico-n { width: 16px; height: 16px; }
+.at-tile--ambar .at-tile__i { background: color-mix(in srgb, #E0951F 16%, var(--surface)); color: color-mix(in srgb, #E0951F 80%, var(--text)); }
+.at-tile--verde .at-tile__i { background: color-mix(in srgb, #2F9E74 15%, var(--surface)); color: color-mix(in srgb, #2F9E74 80%, var(--text)); }
+.at-tile__d { display: flex; align-items: center; gap: 3px; margin-top: 4px; font-size: 22px; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.at-tile__d .ico-n { width: 20px; height: 20px; }
+.at-tile small { font-size: 12px; line-height: 1.3; color: var(--text-muted); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+.at-tile__n + small { margin-top: 6px; color: var(--text-soft); }
+/* Sin amigos: lo que pueden hacer juntos */
+.at-que { display: grid; gap: 10px; margin-top: 12px; }
+.at-que__f { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; }
+.at-que__f > span:last-child { display: grid; gap: 1px; }
+.at-que .pl-ico { width: 34px; height: 34px; border-radius: 10px; }
+/* Las hojas */
+.at-hoja { display: grid; gap: 10px; }
+.at-hoja__cab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.at-hoja__cab .btn { display: inline-flex; align-items: center; gap: 6px; }
+.at-hoja__pie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.at-hoja__pie .btn { display: inline-flex; align-items: center; gap: 6px; }
+.at-tabs { flex: 1 1 260px; }
+.at-tabs button { flex: 1; padding-inline: 8px; }
+.at-tabs em { font-style: normal; margin-left: 3px; padding: 0 6px; border-radius: 999px; background: var(--surface); color: var(--text-soft); font-size: 11px; font-weight: 700; }
+.at-vacio { margin: 4px 0; }
+.at-bloque + .at-bloque { margin-top: 10px; padding-top: 18px; border-top: 1px solid var(--line); }
+.at-bloque.am-invita { padding: 0; background: none; }
+.at-listas { display: grid; gap: 12px; }
+.at-listas .lc { box-shadow: none; }
+.at-libro { padding: 12px; border-radius: 14px; background: var(--surface-2); }
+.at-libro__cab { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: center; }
+.at-libro__cab > span:last-child { display: grid; gap: 1px; min-width: 0; }
+.at-libro .lj-otros { border-top-color: var(--line-strong); }
+.at-ops { display: grid; gap: 6px; }
+.at-op { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.at-op:hover, .at-op:focus-visible { border-color: var(--cian); }
+.at-op__t { display: grid; gap: 1px; min-width: 0; }
+.at-op__t b { font-size: 15px; }
+.at-op > .ico-n:last-child { color: var(--text-muted); }
+.am-lista { display: grid; }
+/* El punto de Amigos: cuántas cosas esperan tu respuesta */
+.nav__item.tiene-nuevo .nav__ico::after, .mas-mod.tiene-nuevo::after, .bottombar__item.tiene-nuevo::after {
+  content: attr(data-n); width: auto; height: 16px; min-width: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 999px;
+  color: #fff; font-size: 10px; font-weight: 800; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; }
+.nav__item.tiene-nuevo .nav__ico::after { top: -6px; right: -10px; }
+.bottombar__item.tiene-nuevo { position: relative; }
+.bottombar__item.tiene-nuevo::after { position: absolute; top: 4px; left: calc(50% + 4px); background: var(--coral-btn); box-shadow: 0 0 0 2px var(--surface); }
+@media (min-width: 700px) { .at-semana { flex-wrap: wrap; overflow: visible; } }
+.at-op > .ico-n:last-child { transform: rotate(-90deg); }
+.at-enviadas .am-env { margin-top: 0; }

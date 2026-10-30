@@ -1,6 +1,6 @@
 /* Pruebas en navegador · Visitas: Bruno visita la casa y la vitrina de Ana (en 3D, de solo mirar), sin que
    se mezcle con lo suyo; Ana decide si se puede. Las cuentas locales comparten la "base" de amigos (LocalBackend). */
-const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
+const { URL, nuevoContexto, registrar, shot, hojaAmigos } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { fecha: "2026-11-04T11:00:00", w: 1280, h: 900 });
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
@@ -12,8 +12,8 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('[data-action="auth-login"]'); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(900);
     await p.evaluate(() => closeModal());
   };
-  const ir = async r => { await p.goto(URL + "#" + r); await p.waitForTimeout(700); };
-  const perfilAna = async () => { await ir("amigos"); await p.click('.am-fila [data-action="am-ver"]'); await p.waitForTimeout(300); return p.locator("#modal").innerText(); };
+  const ir = async r => { await p.evaluate(() => closeModal()); await p.goto(URL + "#" + r); await p.waitForTimeout(700); };   // sin hojas abiertas
+  const perfilAna = async () => { await ir("amigos"); await hojaAmigos(p, "amigos"); await p.click('.am-fila [data-action="am-ver"]'); await p.waitForTimeout(300); return p.locator("#modal").innerText(); };
 
   // 0) Ana tiene su casa arreglada (un gato, la pared salvia) y dos medallas; Bruno es su amigo
   await registrar(p, "ana@vis.cl");
@@ -67,7 +67,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok((await p.locator(".lugar__t, .lugar-plano").first().innerText()).includes("0 de 57"), "en su propia vitrina, Bruno ve las suyas (0 de 57)");
 
   // 5) Ana apaga «Tu casa»: ya no se puede visitar (la vitrina sí)
-  await entrar("ana@vis.cl"); await ir("amigos");
+  await entrar("ana@vis.cl"); await ir("amigos"); await hojaAmigos(p, "ajustes");
   await p.click('[data-action="am-muestra"][data-k="casa"]'); await p.waitForTimeout(600);
   ok(await p.evaluate(() => { const db = JSON.parse(localStorage.getItem("rumbo_amigos")); const a = Object.values(db.perfiles).find(x => x.nombre === "Ana"); return a.casa === null && !a.estado.casa && a.vitrina; }),
     "al apagar «Tu casa», la foto de su casa deja de publicarse");

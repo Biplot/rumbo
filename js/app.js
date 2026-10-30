@@ -157,7 +157,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 43;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 44;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -427,6 +427,11 @@ const NOVEDADES = {
     ["🎟️", "¿Quién se suma?", "Al proponer un plan, márcalo abierto a todos tus amigos: «Salgo a correr a las 19:00». El que pueda, se suma solo."],
     ["🎂", "Cumpleaños de tus amigos", "Si lo comparten, te avisamos el día de su cumpleaños para saludarlos. El tuyo, solo si quieres: Amigos › Lo que muestras."],
     ["📖", "Leer el mismo libro", "En Lecturas, abre un libro y toca «Leerlo con un amigo». Cada uno a su ritmo: ven en qué página va cada uno."],
+  ],
+  44: [
+    ["🤝", "Amigos, en una pantalla", "Arriba, lo que espera tu respuesta: invitaciones, votar una fecha, solicitudes y lo que debes. Se responde ahí mismo, y el punto de Amigos dice cuántas cosas son."],
+    ["📅", "Tu semana con amigos", "Tus planes y los cumpleaños de tus amigos de los próximos días, en una línea. Más abajo, una baldosa por cada cosa que hacen juntos: tócala y se abre."],
+    ["⚙️", "Un solo «+ Nuevo»", "Para crear un plan, un hábito, un objetivo, una lista o una lectura con amigos. Invitar, tu código y lo que muestras están en el engranaje."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

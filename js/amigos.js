@@ -8,7 +8,8 @@
 
    Los hábitos en conjunto (etapa 2) están en conjunto.js; los objetivos en conjunto (etapa 3), en objetivos.js;
    los planes (juntarse: una película, comer, salir), en planes.js; las listas compartidas, en listas-amigos.js;
-   leer el mismo libro, en lecturas-amigos.js.
+   leer el mismo libro, en lecturas-amigos.js. La pantalla (todo en una: lo que espera tu respuesta, tu
+   semana y una baldosa por cada cosa que hacen juntos) está en amigos-tablero.js.
 
    Datos propios: settings.amigos = { activo, muestra: { dia, racha, rango, casa, vitrina, cumple } }
    Tu cumpleaños (solo el día y el mes de profile.birthDate) se muestra si lo eliges: viene apagado.
@@ -90,18 +91,17 @@ function amigosOlvidar() {
   Object.assign(PLAN, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
   Object.assign(LCOM, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [], abiertas: {} });
   Object.assign(LJ, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
+  Object.assign(AT, { hoja: null, toda: false, pestana: "proximos" });
 }
-/* Cuántas cosas nuevas hay: solicitudes recibidas, ánimos sin ver, invitaciones a hábitos, objetivos y listas, y planes sin responder */
-function amigosNuevos() {
-  const l = AMIGOS.lista; if (!l) return 0;
-  return (l.recibidas || []).length + (l.animos || []).filter(a => !AMIGOS.animosVistos.includes(a.id)).length
-    + (CONJ.lista || []).filter(c => c.estado === "invitado").length + (OBJ.lista || []).filter(o => o.estado === "invitado").length
-    + (PLAN.lista || []).filter(plInvitacion).length + (LCOM.lista || []).filter(l => l.estado === "invitado").length
-    + (LJ.lista || []).filter(l => l.estado === "invitado").length;
-}
+/* Cuántas cosas esperan tu respuesta: lo de «Para responder» (amPendientes, en amigos-tablero.js) */
+function amigosNuevos() { return amPendientes().length; }
+/* El punto de Amigos (y el de «Más» en el celular) con ese número */
 function amigosMarcarNav() {
-  const n = amigosNuevos();
-  document.querySelectorAll('[data-route="amigos"]').forEach(el => el.classList.toggle("tiene-nuevo", n > 0));
+  const n = amigosNuevos(), txt = n > 9 ? "9+" : String(n);
+  document.querySelectorAll('[data-route="amigos"], #bbMas').forEach(el => {
+    el.classList.toggle("tiene-nuevo", n > 0);
+    [el, el.querySelector(".nav__ico")].forEach(x => { if (x) x.dataset.n = txt; });
+  });
 }
 
 /* -------- Al entrar a la app: la invitación pendiente y lo nuevo -------- */
@@ -277,6 +277,10 @@ function amigosAccion(a, d, el) {
   if (a === "am-desbloquear") return amigosDesbloquear(d.id);
   if (a === "am-muestra") return amigosMuestra(d.k, el.checked);
   if (a === "am-actualizar") return amigosCargar(true);
+  if (a === "am-hoja") return openAmigosHoja(d.v);   // las hojas del tablero (amigos-tablero.js)
+  if (a === "am-bandeja") { AT.toda = !AT.toda; return rerender(); }
+  if (a === "am-pestana") { AT.pestana = d.v; return atRefrescarHoja(); }
+  if (a === "am-ir") { closeModal(); return go(d.v); }
 }
 
 /* -------- Dibujo -------- */
@@ -357,17 +361,9 @@ function openAmigo(id) {
     </div>`);
 }
 
-function renderAmigos() {
-  amigosCargar(false);
-  const l = AMIGOS.lista, cfg = amigosCfg();
-  if (!l && AMIGOS.error) {
-    return `<div class="card"><div class="empty">${AMIGOS.error === "sin-servidor"
-      ? "Amigos todavía no está activo en el servidor. Apenas esté listo, aquí podrás invitar a tus amigos."
-      : escapeHtml(amigosTextoError(AMIGOS.error))}<div class="mt-16"><button class="btn btn--soft" data-action="am-actualizar">Intentar de nuevo</button></div></div></div>`;
-  }
-  if (!l) return `<div class="card"><div class="empty">Cargando a tus amigos…</div></div>`;
-  const animos = l.animos || [], recibidas = l.recibidas || [], enviadas = l.enviadas || [], amigos = l.amigos || [], bloqueados = l.bloqueados || [];
-  const invitar = `<div class="card am-invita">
+/* Invitar (tu enlace y tu código, o el código que te pasaron): en la pantalla mientras no tengas amigos; después, en el engranaje */
+function amigosInvitarHtml(enHoja) {
+  return `<div class="${enHoja ? "at-bloque" : "card"} am-invita">
       <div class="am-invita__t"><div class="card__title">${icoUI("user-plus")} Invita a un amigo</div>
         <p class="text-sm muted">Mándale tu enlace por WhatsApp. Cuando entre a Rumbo te llega su solicitud, y cada uno elige qué le muestra al otro.</p></div>
       <div class="am-invita__acc"><button class="btn btn--primary" data-action="am-invitar">${icoUI("compartir")} Invitar</button>
@@ -377,17 +373,13 @@ function renderAmigos() {
         <div class="am-codigos__otro"><label class="text-xs muted" for="am-cod">¿Te pasaron un código?</label>
           <div class="row" style="gap:6px"><input class="input" id="am-cod" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC234"><button class="btn btn--soft" data-action="am-codigo">Agregar</button></div></div>
       </div></div>`;
-  const animosHtml = animos.length ? `<div class="card am-animos"><div class="flex-between"><div class="card__title">${icoUI("party-popper")} Ánimo para ti</div><button class="btn-ghost" data-action="am-gracias">Gracias</button></div>
-      ${animos.map(a => `<div class="am-animo-r">${amigosAvatar(a, 34)}<div><b>${escapeHtml(a.nombre || "Un amigo")}</b><span class="text-sm">${a.mensaje ? "«" + escapeHtml(a.mensaje) + "»" : "Te mandó ánimo"}</span></div></div>`).join("")}</div>` : "";
-  const recibidasHtml = recibidas.length ? `<div class="card"><div class="card__title">Quieren ser tus amigos</div>
-      ${recibidas.map(a => `<div class="am-sol">${amigosAvatar(a, 38)}<span class="am-sol__t"><b>${escapeHtml(a.nombre || "Sin nombre")}</b><span class="text-xs muted">te mandó una solicitud</span></span>
-        <span class="am-sol__b"><button class="btn-ghost" data-action="am-rechazar" data-id="${escapeHtml(a.id)}">Ahora no</button><button class="btn btn--primary" data-action="am-aceptar" data-id="${escapeHtml(a.id)}">Aceptar</button></span></div>`).join("")}</div>` : "";
-  const lista = `<div class="card"><div class="flex-between"><div class="card__title">Hoy</div><button class="btn-ghost" data-action="am-actualizar" aria-label="Actualizar" title="Actualizar">${icoUI("refresh-cw")}</button></div>
-      ${amigos.length ? amigos.map(amigoFila).join("") : `<div class="empty">Todavía no tienes amigos en Rumbo. Invita a alguien con tu enlace o tu código.</div>`}
-      ${enviadas.length ? `<div class="am-env"><span class="text-xs muted">Esperando respuesta</span>${enviadas.map(a => `<span class="chip">${escapeHtml(a.nombre || "Sin nombre")} <button type="button" class="am-x" data-action="am-rechazar" data-id="${escapeHtml(a.id)}" aria-label="Cancelar solicitud">${icoUI("x")}</button></span>`).join("")}</div>` : ""}</div>`;
+}
+/* Lo que muestras de ti y a quiénes bloqueaste (en el engranaje) */
+function amigosMuestraHtml(l, enHoja) {
+  const cfg = amigosCfg(), bloqueados = (l && l.bloqueados) || [];
   const fila = (k, t, s) => `<div class="aviso"><div class="aviso__txt"><span class="aviso__t">${t}</span><span class="text-xs muted">${s}</span></div>
       <label class="sw"><input type="checkbox" role="switch" data-action="am-muestra" data-k="${k}" ${cfg.muestra[k] ? "checked" : ""} aria-label="${t}"><span></span></label></div>`;
-  const muestra = `<div class="card"><div class="card__title">${icoUI("eye")} Lo que muestras</div>
+  return `<div class="${enHoja ? "at-bloque" : "card"} am-muestras"><div class="card__title">${icoUI("eye")} Lo que muestras</div>
       <p class="text-sm muted mt-8">Tus amigos siempre ven tu nombre y tu avatar. Tus tareas, tu diario, tus notas, tus finanzas y tu salud nunca se muestran.</p>
       ${fila("dia", "Si abriste y cerraste tu día", "Solo eso: no ven tus tareas ni tu misión.")}
       ${fila("racha", "Tu racha", "Los días cerrados seguidos.")}
@@ -396,5 +388,31 @@ function renderAmigos() {
       ${fila("vitrina", "Tu vitrina", "Tus medallas y el día en que ganaste cada una.")}
       ${fila("cumple", "Tu cumpleaños", STATE.profile.birthDate ? "Solo el día y el mes, no tu edad. Ese día te pueden saludar." : "Agrega tu fecha de nacimiento en tu perfil para compartirlo (solo el día y el mes).")}
       ${bloqueados.length ? `<div class="am-env mt-8"><span class="text-xs muted">Bloqueados</span>${bloqueados.map(a => `<span class="chip">${escapeHtml(a.nombre || "Sin nombre")} <button type="button" class="am-x am-x--txt" data-action="am-desbloquear" data-id="${escapeHtml(a.id)}">Desbloquear</button></span>`).join("")}</div>` : ""}</div>`;
-  return `<div class="am">${animosHtml}${recibidasHtml}${cjInvitacionesHtml()}${ojInvitacionesHtml()}${lcInvitacionesHtml()}${ljInvitacionesHtml()}${plAmigosHtml(amigos)}${invitar}${lista}${cjAmigosHtml(amigos)}${ojAmigosHtml(amigos)}${lcAmigosHtml(amigos)}${muestra}</div>`;
+}
+/* Tus amigos: cómo va el día de cada uno (y mandarle ánimo), y las solicitudes que mandaste */
+function amigosHoyHtml(l) {
+  const amigos = l.amigos || [], enviadas = l.enviadas || [];
+  return `<div class="at-hoja__cab"><span class="text-sm muted">${amigos.length === 1 ? "1 amigo" : amigos.length + " amigos"} · toca uno para ver lo que hacen juntos</span>
+      <span class="row" style="gap:6px"><button class="btn-ghost" data-action="am-actualizar" aria-label="Actualizar" title="Actualizar">${icoUI("refresh-cw")}</button>
+        <button class="btn btn--soft" data-action="am-hoja" data-v="ajustes">${icoUI("user-plus")} Invitar</button></span></div>
+    <div class="am-lista">${amigos.length ? amigos.map(amigoFila).join("") : `<div class="empty">Todavía no tienes amigos en Rumbo. Invita a alguien con tu enlace o tu código.</div>`}</div>
+    ${amigosEnviadasHtml(enviadas)}`;
+}
+/* Las solicitudes que mandaste y todavía no responden (se pueden cancelar) */
+function amigosEnviadasHtml(enviadas) {
+  return enviadas.length ? `<div class="am-env"><span class="text-xs muted">Esperando respuesta</span>${enviadas.map(a => `<span class="chip">${escapeHtml(a.nombre || "Sin nombre")} <button type="button" class="am-x" data-action="am-rechazar" data-id="${escapeHtml(a.id)}" aria-label="Cancelar solicitud">${icoUI("x")}</button></span>`).join("")}</div>` : "";
+}
+
+/* La pantalla: el tablero (amigos-tablero.js) */
+function renderAmigos() {
+  amigosCargar(false);
+  const l = AMIGOS.lista;
+  if (!l && AMIGOS.error) {
+    return `<div class="card"><div class="empty">${AMIGOS.error === "sin-servidor"
+      ? "Amigos todavía no está activo en el servidor. Apenas esté listo, aquí podrás invitar a tus amigos."
+      : escapeHtml(amigosTextoError(AMIGOS.error))}<div class="mt-16"><button class="btn btn--soft" data-action="am-actualizar">Intentar de nuevo</button></div></div></div>`;
+  }
+  if (!l) return `<div class="card"><div class="empty">Cargando a tus amigos…</div></div>`;
+  conjuntoCargar(false); objetivosCargar(false); planesCargar(false); listasCargar(false); lecturasCargar(false);   // lo de juntos, al día (a lo más una vez por minuto)
+  return atTableroHtml(l);
 }

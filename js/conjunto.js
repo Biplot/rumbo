@@ -310,25 +310,6 @@ function cjResumenHtml(h) {
   const r = cjRachaTxt(c);
   return `<div class="hb-today__cj">${icoUI("handshake")} ${c.miembros.length > 1 ? "con " + escapeHtml(cjCon(c)) : "esperando a tus amigos"}${r ? " · " + r : ""}</div>`;
 }
-/* Amigos: las invitaciones a hábitos */
-function cjInvitacionesHtml() {
-  const inv = (CONJ.lista || []).filter(c => c.estado === "invitado");
-  if (!inv.length) return "";
-  return `<div class="card"><div class="card__title">${icoUI("handshake")} Te invitan a un hábito</div>
-    ${inv.map(c => `<div class="am-sol cj-inv"><span class="cj-fila__ico">${icoHab(c.icon, 22)}</span><span class="am-sol__t"><b>${escapeHtml(c.nombre)}</b>
-      <span class="text-xs muted">${escapeHtml(cjQuienInvita(c))} te invita · ${escapeHtml(hmFreqLabel(c))}${c.miembros.filter(m => !m.yo && m.estado === "activo").length > 1 ? " · con " + escapeHtml(cjNombres(c.miembros.filter(m => !m.yo && m.estado === "activo").map(m => m.nombre || "Sin nombre"))) : ""}</span></span>
-      <span class="am-sol__b"><button class="btn-ghost" data-action="cj-rechazar" data-id="${escapeHtml(c.id)}">Ahora no</button><button class="btn btn--primary" data-action="cj-unirme" data-id="${escapeHtml(c.id)}">Unirme</button></span></div>`).join("")}</div>`;
-}
-/* Amigos: la tarjeta «Hábitos en conjunto» */
-function cjAmigosHtml(amigos) {
-  if (CONJ.error === "sin-servidor") return `<div class="card"><div class="card__title">${icoUI("handshake")} Hábitos en conjunto</div><p class="text-sm muted mt-8">Todavía no están activos en el servidor. Apenas lo estén, aquí podrás hacer hábitos con tus amigos.</p></div>`;
-  const act = (CONJ.lista || []).filter(c => c.estado === "activo");
-  const boton = amigos.length ? `<button class="btn btn--soft" data-action="cj-nuevo">${icoUI("handshake")} Hábito con amigos</button>` : "";
-  return `<div class="card"><div class="card__title">${icoUI("handshake")} Hábitos en conjunto</div>
-    ${act.length ? act.map(c => cjFila(c, true)).join("")
-      : `<p class="text-sm muted mt-8">${amigos.length ? "Elige un hábito y hazlo con tus amigos: cada uno lo marca en su Rumbo, ven quién ya cumplió y suman una racha juntos. El día que cumplen todos, +5 ⭐ para cada uno." : "Cuando tengas amigos en Rumbo, aquí podrán hacer hábitos juntos."}</p>`}
-    ${boton ? `<div class="mt-16">${boton}</div>` : ""}</div>`;
-}
 /* El perfil de un amigo: lo que hacen juntos (hábitos y objetivos, de objetivos.js) */
 function cjJuntosHtml(amigoId) {
   const conHab = CONJ.error !== "sin-servidor", conObj = OBJ.error !== "sin-servidor", conPlan = PLAN.error !== "sin-servidor", conLista = LCOM.error !== "sin-servidor", conLee = LJ.error !== "sin-servidor";

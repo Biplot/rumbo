@@ -26,11 +26,22 @@ async function registrar(page, email) {
   await page.fill("#reg-name", "Prueba"); await page.fill("#reg-email", email); await page.fill("#reg-pass", "secreto123");
   await page.click('[data-action="auth-register"]');
   await page.waitForSelector("#app:not([hidden])"); await page.waitForTimeout(500);
-  await page.evaluate(() => { try { localStorage.setItem("rumbo-sin-escenas", "1"); } catch (e) {} STATE.settings.onboarded = true; STATE.settings.introVersion = 43; STATE.gamif.equipped.ele = { tipo: "clasico", ropa: {}, ts: 1 }; STATE.settings.tutorial = { vistos: {}, mision: "oculta", auto: false, ts: 0 }; ONB_ACTIVE = false; closeModal(); saveState(); });
+  await page.evaluate(() => { try { localStorage.setItem("rumbo-sin-escenas", "1"); } catch (e) {} STATE.settings.onboarded = true; STATE.settings.introVersion = 44; STATE.gamif.equipped.ele = { tipo: "clasico", ropa: {}, ts: 1 }; STATE.settings.tutorial = { vistos: {}, mision: "oculta", auto: false, ts: 0 }; ONB_ACTIVE = false; closeModal(); saveState(); });
   await page.addStyleTag({ content: ".toast{display:none!important}" });
 }
 async function shot(page, nombre, op = {}) {
   if (!SHOTS) return;
   await page.screenshot({ path: path.join(SHOTS, nombre + ".png"), ...op });
 }
-module.exports = { chromium: pw.chromium, URL, nuevoContexto, registrar, shot };
+/* Amigos es un tablero (amigos-tablero.js): cada cosa se abre en su hoja. Abre la hoja k (planes, habitos,
+   objetivos, listas, lecturas, amigos, ajustes, nuevo), si no está abierta, y en planes la pestaña; devuelve su texto */
+async function hojaAmigos(page, k, tab) {
+  if (!(await page.locator(`#modalOverlay:not([hidden]) #at-hoja[data-hoja="${k}"]`).count())) {
+    await page.evaluate(() => closeModal());
+    if (await page.evaluate(() => CURRENT) !== "amigos") { await page.goto(URL + "#amigos"); await page.waitForTimeout(700); }
+    await page.click(`[data-action="am-hoja"][data-v="${k}"]`); await page.waitForTimeout(300);
+  }
+  if (tab) { await page.click(`[data-action="am-pestana"][data-v="${tab}"]`); await page.waitForTimeout(200); }
+  return page.locator("#modal").innerText();
+}
+module.exports = { chromium: pw.chromium, URL, nuevoContexto, registrar, shot, hojaAmigos };

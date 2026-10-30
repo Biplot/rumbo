@@ -1,7 +1,7 @@
 /* Pruebas en navegador · Después del plan: la cuenta de un asado (quién pagó, quién debe, «Ya le pagué» y tu parte
    en Finanzas) y, al día siguiente, «¿Cómo estuvo?» desde Inicio: al diario, +10 ⭐ y lo ven los que fueron.
    Las cuentas locales comparten la "base" de amigos (LocalBackend), con las reglas de supabase/planes.sql. */
-const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
+const { URL, nuevoContexto, registrar, shot, hojaAmigos } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { fecha: "2026-11-06T10:00:00", w: 1280, h: 900 });
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
@@ -14,9 +14,12 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('[data-action="auth-login"]'); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(900);
     await p.evaluate(() => closeModal());
   };
-  const ir = async r => { await p.goto(URL + "#" + r); await p.waitForTimeout(700); };
+  const ir = async r => { await p.evaluate(() => closeModal()); await p.goto(URL + "#" + r); await p.waitForTimeout(700); };   // sin hojas abiertas
   const modal = () => p.locator("#modal").innerText();
-  const abrirPlan = async () => { await ir("amigos"); await p.click('.pl-card .pl-fila:has-text("Asado")'); await p.waitForTimeout(300); };
+  const abrirPlan = async () => {   // en Amigos › Planes: en Próximos o, si ya pasó, en Pasaron
+    if (!(await hojaAmigos(p, "planes", "proximos")).includes("Asado")) await hojaAmigos(p, "planes", "pasaron");
+    await p.click('#modal .pl-fila:has-text("Asado")'); await p.waitForTimeout(300);
+  };
 
   // 0) Ana, Bruno y Cami son amigos; Ana propone un asado hoy a las 13:00 y los dos van
   await registrar(p, "ana@pd.cl"); await p.evaluate(() => { STATE.profile.name = "Ana"; saveState(); });
@@ -78,9 +81,16 @@ module.exports = async ({ b, ok, errs }) => {
   ok(c2.includes("Bruno te pagó") && c2.includes("Cami te debe $6.000") && c2.includes("«Buenísimo, repetimos en diciembre»"), "Ana ve el pago de Bruno, lo que debe Cami y lo que contó Bruno");
   ok(c2.includes("¿Cómo estuvo? · +10"), "y puede contar lo suyo");
   await p.evaluate(() => closeModal());
-  ok((await p.locator(".pl-card").innerText()).match(/ya pasaron/i) && (await p.locator(".pl-card").innerText()).includes("¿Cómo estuvo?"), "en Amigos › Planes, «Ya pasaron» con «¿Cómo estuvo?»");
+  const pasaron = await hojaAmigos(p, "planes", "pasaron");
+  ok(pasaron.includes("Asado") && pasaron.includes("¿Cómo estuvo?"), "en Amigos › Planes › Pasaron, el asado con «¿Cómo estuvo?»");
   await entrar("cami@pd.cl"); await ir("inicio"); await p.waitForTimeout(500);
   const ci = await p.locator(".pl-despues").innerText().catch(() => "");
   ok(ci.includes("¿Cómo estuvo «Asado»?") && ci.includes("debes $6.000"), "a Cami, Inicio le pregunta cómo estuvo y le recuerda que debe $6.000");
+  await ir("amigos");
+  const deuda = await p.locator(".at-fila", { hasText: "Le debes" }).innerText().catch(() => "");
+  ok(deuda.includes("Le debes $6.000 a Ana") && deuda.includes("La cuenta de «Asado»") && deuda.includes("Ya le pagué"), "y en Amigos, «Para responder»: le debes $6.000 a Ana, con «Ya le pagué»");
+  await p.click('.at-fila [data-action="pl-pague"]'); await p.waitForTimeout(900);
+  await p.evaluate(() => closeModal()); await p.waitForTimeout(200);
+  ok(await p.locator(".at-fila", { hasText: "Le debes" }).count() === 0, "«Ya le pagué» ahí mismo: la deuda sale de la bandeja");
   await ctx.close();
 };

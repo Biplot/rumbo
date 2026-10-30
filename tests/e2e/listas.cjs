@@ -1,7 +1,7 @@
 /* Pruebas en navegador · Listas compartidas: Ana arma «Películas por ver» con Bruno; los dos agregan, Bruno le da +1
    y marca una como vista con estrellas, y de la lista sale un plan. Las cuentas locales comparten la "base" de amigos
    (LocalBackend), con las reglas de supabase/listas.sql. */
-const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
+const { URL, nuevoContexto, registrar, shot, hojaAmigos } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { fecha: "2026-11-04T11:00:00", w: 1280, h: 900 });
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
@@ -14,13 +14,13 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('[data-action="auth-login"]'); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(900);
     await p.evaluate(() => closeModal());
   };
-  const ir = async r => { await p.goto(URL + "#" + r); await p.waitForTimeout(700); };
+  const ir = async r => { await p.evaluate(() => closeModal()); await p.goto(URL + "#" + r); await p.waitForTimeout(700); };   // sin hojas abiertas
   const vista = () => p.locator("#view").innerText();
   const modal = () => p.locator("#modal").innerText();
-  const tarjeta = () => p.locator(".lc").first().innerText();
-  const filas = () => p.locator(".lc .lc-item:not(.is-visto) .lc-item__t b").allInnerTexts();
-  const agregar = async txt => { const i = p.locator(".lc .lc-add input"); await i.fill(txt); await i.press("Enter"); await p.waitForTimeout(700); };
-  const fila = txt => p.locator(`.lc .lc-item:has(.lc-item__t b:text-is("${txt}"))`);
+  const tarjeta = () => p.locator("#view .lc").first().innerText();   // en Listas (la hoja de Amigos queda aparte)
+  const filas = () => p.locator("#view .lc .lc-item:not(.is-visto) .lc-item__t b").allInnerTexts();
+  const agregar = async txt => { const i = p.locator("#view .lc .lc-add input"); await i.fill(txt); await i.press("Enter"); await p.waitForTimeout(700); };
+  const fila = txt => p.locator(`#view .lc .lc-item:has(.lc-item__t b:text-is("${txt}"))`);
 
   // 0) Ana y Bruno son amigos; Ana tiene una lista personal
   await registrar(p, "ana@lc.cl"); await p.evaluate(() => { STATE.profile.name = "Ana"; STATE.vida.listas.push({ id: "x1", nombre: "Compras", tipo: "normal", icon: "🛒", items: [] }); saveState(); });
@@ -40,15 +40,20 @@ module.exports = async ({ b, ok, errs }) => {
   ok((await tarjeta()).includes("Películas por ver") && (await tarjeta()).includes("0 por ver"), "aparece la tarjeta de la lista");
   await agregar("Perfect Days"); await agregar("Dune: Parte Dos");
   ok(JSON.stringify(await filas()) === JSON.stringify(["Perfect Days", "Dune: Parte Dos"]) && (await tarjeta()).includes("agregaste tú") && (await tarjeta()).includes("2 por ver"), "Ana agrega dos (con Enter): «agregaste tú»");
-  ok(await p.locator(".lc .lc-mas1").count() === 0, "a lo suyo no le da +1");
+  ok(await p.locator("#view .lc .lc-mas1").count() === 0, "a lo suyo no le da +1");
 
   // 2) Bruno se une, da +1 y agrega
   await entrar("bruno@lc.cl");
   ok(await p.locator('#nav [data-route="amigos"].tiene-nuevo').count() === 1, "a Bruno le aparece el punto en Amigos");
   await ir("amigos");
-  ok((await vista()).includes("Te invitan a una lista") && (await vista()).includes("Películas por ver"), "y la invitación a la lista");
-  await p.click('[data-action="lc-unirme"]'); await p.waitForTimeout(900);
-  ok((await vista()).includes("Listas con amigos") && (await vista()).includes("2 por ver"), "al unirse, la ve en Amigos › Listas con amigos");
+  ok((await p.locator(".at-fila", { hasText: "Películas por ver" }).innerText()).includes("Ana te invita a una lista · 2 cosas"), "y la invitación a la lista, en «Para responder»");
+  await p.click('.at-fila [data-action="lc-unirme"]'); await p.waitForTimeout(900);
+  const baldosa = await p.locator('.at-tile[data-v="listas"]').innerText();
+  ok(baldosa.includes("2") && baldosa.includes("por ver") && (await hojaAmigos(p, "listas")).includes("Dune: Parte Dos"), "al unirse, la baldosa Listas: 2 por ver, y la lista en su hoja");
+  const enHoja = p.locator("#modal .lc-add input"); await enHoja.fill("Oppenheimer"); await enHoja.press("Enter"); await p.waitForTimeout(900);
+  ok((await p.locator("#modal .lc").innerText()).includes("Oppenheimer") && (await p.locator("#modal .lc").innerText()).includes("3 por ver") && await p.evaluate(() => document.activeElement && document.activeElement.closest("#modal .lc-add") !== null),
+    "se gestiona desde Amigos: agrega «Oppenheimer» en la hoja, que se pone al día (y sigue lista para escribir)");
+  await p.evaluate(() => closeModal());
   await ir("listas");
   ok((await tarjeta()).includes("agregó Ana"), "en Listas ve lo que agregó Ana");
   await fila("Dune: Parte Dos").locator('[data-action="lc-mas1"]').click(); await p.waitForTimeout(700);
@@ -60,7 +65,7 @@ module.exports = async ({ b, ok, errs }) => {
   // 3) Bruno marca Perfect Days como vista y le pone 5 estrellas
   await fila("Perfect Days").locator('[data-action="lc-visto"]').click(); await p.waitForTimeout(700);
   ok(!(await filas()).includes("Perfect Days") && /vistas · 1/i.test(await tarjeta()), "Perfect Days pasa a «Vistas · 1»");
-  await p.click(".lc-vistas summary"); await p.click('.lc-vistas [data-action="lc-item"]'); await p.waitForTimeout(300);
+  await p.click("#view .lc-vistas summary"); await p.click('#view .lc-vistas [data-action="lc-item"]'); await p.waitForTimeout(300);
   ok(/ya la vimos · hoy \(lo marcaste tú\)/i.test(await modal()) && /tus estrellas/i.test(await modal()), "el detalle: ya la vimos hoy (lo marcaste tú), y tus estrellas");
   await p.click('#modal [data-action="lc-estrellas"][data-n="5"]'); await p.waitForTimeout(800);
   ok(await p.locator("#modal .lc-det__est button.on").count() === 5, "Bruno le pone 5 estrellas");
@@ -81,8 +86,7 @@ module.exports = async ({ b, ok, errs }) => {
     "«Elegir para un plan»: el plan nuevo viene con «Ver Dune: Parte Dos», película y Bruno");
   await shot(p, "listas-plan");
   await p.fill("#pl-fecha", "2026-11-07"); await p.fill("#pl-hora", "21:00"); await p.click('[data-action="pl-guardar"]'); await p.waitForTimeout(900);
-  await ir("amigos");
-  ok((await p.locator(".pl-card").innerText()).includes("Ver Dune: Parte Dos"), "y queda el plan en Amigos › Planes");
+  ok((await hojaAmigos(p, "planes")).includes("Ver Dune: Parte Dos"), "y queda el plan en Amigos › Planes");
 
   // 5) Borrar: solo lo tuyo
   await ir("listas"); await fila("Past Lives").locator('[data-action="lc-item"]').click(); await p.waitForTimeout(300);
@@ -93,7 +97,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(!(await filas()).includes("Dune: Parte Dos"), "lo suyo sí");
 
   // 6) En el perfil de Bruno, la lista que comparten
-  await ir("amigos"); await p.click('.am-fila [data-action="am-ver"]'); await p.waitForTimeout(300);
+  await ir("amigos"); await hojaAmigos(p, "amigos"); await p.click('.am-fila [data-action="am-ver"]'); await p.waitForTimeout(300);
   ok((await modal()).includes("Películas por ver"), "en el perfil de Bruno, «Lo que hacen juntos» incluye la lista");
   await p.evaluate(() => closeModal());
 

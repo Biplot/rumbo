@@ -1,5 +1,6 @@
 /* Pruebas en navegador · 🤝 Amigos: invitar con código y con enlace, aceptar, la lista de hoy,
-   ánimos y lo que muestras. Las cuentas locales comparten la "base" de amigos (LocalBackend). */
+   ánimos y lo que muestras. Las cuentas locales comparten la "base" de amigos (LocalBackend).
+   La pantalla es un tablero (amigos-tablero.js): lo de responder arriba; tus amigos y los ajustes, en hojas. */
 const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { fecha: "2026-10-30T11:00:00", w: 1280, h: 900 });
@@ -15,6 +16,8 @@ module.exports = async ({ b, ok, errs }) => {
   const nombre = n => p.evaluate(n => { STATE.profile.name = n; saveState(); }, n);
   const amigos = async () => { await p.goto(URL + "#amigos"); await p.waitForTimeout(700); };
   const vista = () => p.locator("#view").innerText();
+  const modal = () => p.locator("#modal").innerText();
+  const hoja = async k => { await p.click(`[data-action="am-hoja"][data-v="${k}"]`); await p.waitForTimeout(300); };   // amigos, ajustes, planes…
 
   // 1) Ana abre Amigos: se activa y se crea su código
   await registrar(p, "ana@test.cl"); await nombre("Ana");
@@ -23,9 +26,13 @@ module.exports = async ({ b, ok, errs }) => {
   await amigos();
   const codA = (await p.locator(".am-cod").innerText()).trim();
   ok(/^[A-HJKMNP-Z2-9]{6}$/.test(codA), "abrir Amigos crea tu código para invitar: " + codA);
-  ok(await p.evaluate(() => STATE.settings.amigos.activo === true) && (await vista()).includes("Todavía no tienes amigos"), "sin amigos, te invita a usar tu enlace o tu código");
-  ok(await p.locator('[data-action="am-muestra"]').count() === 6 && await p.locator('[data-action="am-muestra"]:checked').count() === 5 && !(await p.locator('[data-action="am-muestra"][data-k="cumple"]').isChecked()),
-    "Lo que muestras: tu día, tu racha, tu rango, tu casa y tu vitrina, encendidos; tu cumpleaños, apagado");
+  ok(await p.evaluate(() => STATE.settings.amigos.activo === true) && (await vista()).includes("Invita a un amigo") && (await vista()).includes("Lo que pueden hacer juntos"),
+    "sin amigos, te invita a usar tu enlace o tu código y cuenta lo que podrán hacer juntos");
+  ok(await p.locator('[data-action="am-hoja"][data-v="nuevo"]').count() === 0 && await p.locator(".at-tile").count() === 0, "sin amigos, ni «+ Nuevo» ni baldosas");
+  await hoja("ajustes");
+  ok((await modal()).includes("Lo que muestras") && await p.locator('#modal [data-action="am-muestra"]').count() === 6 && await p.locator('[data-action="am-muestra"]:checked').count() === 5 && !(await p.locator('[data-action="am-muestra"][data-k="cumple"]').isChecked()),
+    "en el engranaje, Lo que muestras: tu día, tu racha, tu rango, tu casa y tu vitrina, encendidos; tu cumpleaños, apagado");
+  await p.evaluate(() => closeModal());
   await shot(p, "amigos-vacio");
 
   // 2) Bruno agrega a Ana con su código (en minúsculas también sirve)
@@ -45,43 +52,51 @@ module.exports = async ({ b, ok, errs }) => {
   await entrar("ana@test.cl"); await p.waitForTimeout(300);
   ok(await p.locator('#nav [data-route="amigos"].tiene-nuevo').count() === 1, "un punto en Amigos avisa que hay algo nuevo");
   await amigos();
-  ok((await vista()).includes("Quieren ser tus amigos") && (await vista()).includes("Bruno"), "Ana ve que Bruno quiere ser su amigo");
+  const sol = await p.locator(".at-bandeja .at-fila").innerText();
+  ok(/para responder · 1/i.test(await vista()) && sol.includes("Bruno") && sol.includes("quiere sumarte a sus amigos"), "en «Para responder»: Bruno quiere sumarla a sus amigos");
+  ok(await p.locator('#nav [data-route="amigos"] .nav__ico').getAttribute("data-n") === "1", "y el punto de Amigos dice 1");
   await p.click('[data-action="am-aceptar"]'); await p.waitForTimeout(700);
-  ok(await p.locator(".am-fila").count() === 1 && (await p.locator(".am-fila").innerText()).includes("Bruno"), "al aceptar, Bruno aparece en Hoy");
+  ok((await vista()).includes("Nada por responder") && await p.locator(".at-tile").count() === 6, "al aceptar: nada por responder, y las baldosas de lo que hacen juntos");
+  await hoja("amigos");
+  ok(await p.locator(".am-fila").count() === 1 && (await p.locator(".am-fila").innerText()).includes("Bruno"), "en la baldosa Amigos, Bruno aparece con cómo va su día");
+  await p.evaluate(() => closeModal());
   ok(await p.locator('#nav [data-route="amigos"].tiene-nuevo').count() === 0, "y el punto se va");
 
   // 4) Ana le manda ánimo (hasta 3 al día)
   for (let i = 0; i < 3; i++) {
-    await p.click('.am-fila [data-action="am-animo"]'); await p.waitForTimeout(300);
+    await hoja("amigos"); await p.click('.am-fila [data-action="am-animo"]'); await p.waitForTimeout(300);
     if (i === 0) await p.click('[data-action="am-frase"][data-v="¡Bien hecho!"]');
     if (i === 1) await p.fill("#am-msg", "Mañana corremos");
     await p.click('[data-action="am-animo-enviar"]'); await p.waitForTimeout(400);
   }
-  await p.click('.am-fila [data-action="am-animo"]'); await p.waitForTimeout(300);
+  await hoja("amigos"); await p.click('.am-fila [data-action="am-animo"]'); await p.waitForTimeout(300);
   await p.click('[data-action="am-animo-enviar"]'); await p.waitForTimeout(400);
   ok(await p.locator("#modalOverlay").isVisible(), "el cuarto ánimo del día no sale (máximo 3)");
   await p.evaluate(() => closeModal());
 
   // 5) Bruno ve cómo va el día de Ana y sus ánimos
   await entrar("bruno@test.cl"); await amigos();
-  const filaAna = await p.locator(".am-fila").innerText();
-  ok(filaAna.includes("Ana") && filaAna.includes("Cerró su día"), "Bruno ve que Ana cerró su día: " + filaAna.replace(/\n/g, " "));
-  const an = await p.locator(".am-animos").innerText();
-  ok(an.includes("¡Bien hecho!") && an.includes("«Mañana corremos»") && an.includes("Ana"), "Bruno ve los ánimos de Ana, con su mensaje");
+  const an = await p.locator(".at-fila", { hasText: "ánimo" }).innerText();
+  ok(an.includes("Ana te mandó ánimo") && an.includes("«¡Bien hecho!»") && an.includes("«Mañana corremos»"), "Bruno ve los ánimos de Ana en una fila, con sus mensajes: " + an.replace(/\n/g, " "));
   await shot(p, "amigos-lista");
   await p.click('[data-action="am-gracias"]'); await p.waitForTimeout(400);
-  ok(await p.locator(".am-animos").count() === 0, "con «Gracias» los ánimos quedan vistos");
+  ok(await p.locator(".at-fila", { hasText: "ánimo" }).count() === 0, "con «Gracias» los ánimos quedan vistos");
+  ok((await p.locator('.at-tile[data-v="amigos"]').innerText()).includes("1"), "la baldosa Amigos: 1 amigo");
+  await hoja("amigos");
+  const filaAna = await p.locator(".am-fila").innerText();
+  ok(filaAna.includes("Ana") && filaAna.includes("Cerró su día"), "Bruno ve que Ana cerró su día: " + filaAna.replace(/\n/g, " "));
   await p.click('.am-fila [data-action="am-ver"]'); await p.waitForTimeout(300);
   const perfil = await p.locator("#modal").innerText();
   ok(perfil.includes("Aprendiz") && perfil.includes("rango 1 de 7") && perfil.includes("Mandar ánimo"), "el perfil de Ana muestra su rango y el botón para mandarle ánimo");
   await p.evaluate(() => closeModal());
 
   // 6) Lo que muestras: Ana deja de mostrar su día y su rango
-  await entrar("ana@test.cl"); await amigos();
+  await entrar("ana@test.cl"); await amigos(); await hoja("ajustes");
   await p.click('[data-action="am-muestra"][data-k="dia"]'); await p.waitForTimeout(200);
   await p.click('[data-action="am-muestra"][data-k="rango"]'); await p.waitForTimeout(400);
   ok(await p.evaluate(() => !STATE.settings.amigos.muestra.dia && !STATE.settings.amigos.muestra.rango && STATE.settings.amigos.muestra.racha), "apagar el día y el rango queda guardado");
-  await entrar("bruno@test.cl"); await amigos();
+  await p.evaluate(() => closeModal());
+  await entrar("bruno@test.cl"); await amigos(); await hoja("amigos");
   ok(!(await p.locator(".am-fila").innerText()).includes("Cerró su día"), "Bruno ya no ve si Ana cerró su día");
   await p.click('.am-fila [data-action="am-ver"]'); await p.waitForTimeout(300);
   ok(!(await p.locator("#modal").innerText()).includes("rango"), "ni su rango");
@@ -106,11 +121,15 @@ module.exports = async ({ b, ok, errs }) => {
   // 8) Ana la acepta; quitar y bloquear
   await entrar("ana@test.cl"); await amigos();
   await p.click('[data-action="am-aceptar"]'); await p.waitForTimeout(700);
+  await hoja("amigos");
   ok(await p.locator(".am-fila").count() === 2, "Ana ya tiene a Bruno y a Cami");
   p.once("dialog", d => d.accept());
   await p.locator('.am-fila', { hasText: "Cami" }).locator('[data-action="am-ver"]').click(); await p.waitForTimeout(300);
   await p.click('[data-action="am-bloquear"]'); await p.waitForTimeout(700);
-  ok(await p.locator(".am-fila").count() === 1 && (await vista()).includes("Bloqueados"), "bloquear a Cami la saca de la lista y queda en Bloqueados");
+  await hoja("amigos"); const quedan = await p.locator(".am-fila").count();
+  await p.evaluate(() => closeModal()); await hoja("ajustes");
+  ok(quedan === 1 && (await modal()).includes("Bloqueados") && (await modal()).includes("Cami"), "bloquear a Cami la saca de la lista y queda en Bloqueados (en el engranaje)");
+  await p.evaluate(() => closeModal());
   await entrar("cami@test.cl"); await amigos();
   await p.fill("#am-cod", codA); await p.click('[data-action="am-codigo"]'); await p.waitForTimeout(400);
   ok(await p.locator("#modalOverlay").isHidden() && await p.locator(".am-fila").count() === 0, "Cami no encuentra a Ana ni la tiene como amiga");

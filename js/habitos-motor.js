@@ -34,7 +34,7 @@ function hmFreq(h) {
   const f = (h && h.frecuencia) || {};
   if (f.tipo === "semanal") return { tipo: "semanal", veces: Math.min(6, Math.max(1, +f.veces || 1)) };
   if (f.tipo === "mensual") return { tipo: "mensual", veces: Math.min(25, Math.max(1, +f.veces || 1)) };
-  if (f.tipo === "dias") { const dias = (f.dias || []).map(Number).filter(x => x >= 0 && x <= 6); return dias.length ? { tipo: "dias", dias } : { tipo: "diario" }; }
+  if (f.tipo === "dias") { const dias = [...new Set((Array.isArray(f.dias) ? f.dias : []).map(Number).filter(x => Number.isInteger(x) && x >= 0 && x <= 6))]; return dias.length ? { tipo: "dias", dias } : { tipo: "diario" }; }
   return { tipo: "diario" };
 }
 function hmFreqLabel(h) {
@@ -229,4 +229,35 @@ function rachaGlobalHabitos(S) {
     else break;
   }
   return s;
+}
+
+/* ============================================================
+   Hábitos en conjunto (Amigos): la racha de a dos (o del grupo)
+   def: { frecuencia, creado } del hábito compartido.
+   miembros: los activos, [{ desde: "YYYY-MM-DD", marcas: ["YYYY-MM-DD", …] }].
+   Un período cuenta si cumplieron TODOS los que ya estaban al empezar ese período
+   (y eran al menos dos). Como rachaPeriodos: el período en curso suma solo si ya
+   cumplieron, y no corta mientras sigue abierto. Sin días libres ni pases: es de varios.
+   La usan la app (js/conjunto.js) y el servidor (notifier/habitos.mjs).
+   ============================================================ */
+function hmRachaConjunto(def, miembros) {
+  const f = hmFreq(def), hoy = hmHoy(), S0 = { habitos: { defs: [], log: {} }, gamif: { usos: [] } };
+  const unidad = f.tipo === "semanal" ? "sem" : f.tipo === "mensual" ? "meses" : "días";
+  const ms = (miembros || []).map(m => ({ desde: m.desde || hmCreado(def), marcas: new Set(m.marcas || []) }));
+  const desde = hmMax(hmCreado(def), hmAdd(hoy, f.tipo === "mensual" ? -1100 : f.tipo === "semanal" ? -800 : -400));
+  const ps = hmPeriodos(def, desde, f.tipo === "semanal" ? hmAdd(hmLunes(hoy), 3) : hoy, S0).filter(p => p.desde <= hoy);
+  const cuenta = (m, p) => { let n = 0; for (let d = p.desde; d <= p.hasta; d = hmAdd(d, 1)) if (m.marcas.has(d)) n++; return n; };
+  let n = 0;
+  for (let i = ps.length - 1; i >= 0; i--) {
+    const p = ps[i], req = ms.filter(m => m.desde <= p.desde);
+    if (req.length >= 2 && req.every(m => cuenta(m, p) >= p.esperado)) n++;
+    else if (p.hasta >= hoy) continue;   // en curso: no corta
+    else break;
+  }
+  return { n, unidad };
+}
+/* ¿Ese día lo hicieron todos? (los activos que ya estaban, al menos dos) */
+function hmTodosConjunto(miembros, iso) {
+  const req = (miembros || []).filter(m => (m.desde || "") <= iso);
+  return req.length >= 2 && req.every(m => (m.marcas || []).includes(iso));
 }

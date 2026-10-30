@@ -25,3 +25,12 @@ export function motorHabitos(data, hoy) {
     pendientesHoy: () => S.habitos.defs.filter(h => h && ctx.tocaHoy(h, S) && !ctx.hmDone(h, hoy, S)),
   };
 }
+
+/* La racha de un hábito en conjunto (hmRachaConjunto de la app), contada hasta `hoy` */
+export function rachaConjunto(def, miembros, hoy) {
+  const ctx = vm.createContext({ isoLocal, todayISO: () => hoy, STATE: { habitos: { defs: [], log: {} }, gamif: { usos: [] } } });
+  CODIGO.runInContext(ctx);
+  vm.runInContext(`HM_HOY = ${JSON.stringify(hoy)};`, ctx);
+  const r = ctx.hmRachaConjunto(def, miembros);
+  return { n: r.n, unidad: r.unidad };
+}

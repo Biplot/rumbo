@@ -39,11 +39,13 @@ function _codigoAmigo() {
   let c = ""; for (let i = 0; i < 6; i++) c += L[Math.floor(Math.random() * L.length)];
   return c;
 }
-/* Errores de Amigos en palabras de la app: sin-servidor (falta correr supabase/amigos.sql), red, limite, no-amigos */
+/* Errores de Amigos en palabras de la app: sin-servidor (falta correr supabase/amigos.sql o conjunto.sql), red, limite,
+   no-amigos y los de los hábitos en conjunto (no-miembro, fecha, amigos, nombre, icono, frecuencia) */
 function _amigosError(e) {
   const m = String((e && (e.message || e.details)) || e || "");
   if (/limite/.test(m)) return "limite";
   if (/no-amigos/.test(m)) return "no-amigos";
+  if (["no-miembro", "fecha", "amigos", "nombre", "icono", "frecuencia"].includes(m.trim())) return m.trim();
   if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return "red";
   if ((e && ["PGRST202", "PGRST205", "42P01", "42883"].includes(e.code)) || /does not exist|Could not find the (function|table)|schema cache/i.test(m)) return "sin-servidor";
   return m || "error";
@@ -116,7 +118,7 @@ const LocalBackend = {
   /* -------- Amigos sin servidor: las mismas reglas que supabase/amigos.sql, guardadas en este navegador.
      Las cuentas locales comparten esta "base", así se prueban dos personas en un mismo equipo. -------- */
   _amDb() {
-    const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1 };
+    const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1, conjuntos: [], cmiembros: [], cmarcas: [] };
     try { return Object.assign(vacia, JSON.parse(localStorage.getItem("rumbo_amigos") || "{}")); } catch { return vacia; }
   },
   _amGuardar(db) { try { localStorage.setItem("rumbo_amigos", JSON.stringify(db)); } catch {} },
@@ -175,6 +177,9 @@ const LocalBackend = {
     const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), f = this._amPar(db, yo, otro);
     if (f && f.estado === "bloqueada" && f.bloquea !== yo) return { r: "bloqueada" };
     db.amistades = db.amistades.filter(x => x !== f).concat([{ a: yo, b: otro, estado: "bloqueada", pide: yo, bloquea: yo }]);
+    // Bloquear te saca de los hábitos en conjunto que compartían (como el trigger de supabase/conjunto.sql)
+    const juntos = db.cmiembros.filter(m => m.user_id === otro).map(m => m.habito);
+    juntos.forEach(h => this._cjSacar(db, h, yo));
     this._amGuardar(db); return { r: "bloqueada" };
   },
   async amigosLista() {
@@ -207,6 +212,102 @@ const LocalBackend = {
     this._amGuardar(db); return { n };
   },
   async amigosAvisar() { return { ok: true }; },   // sin servidor no hay avisos al celular
+
+  /* -------- Hábitos en conjunto sin servidor: las reglas de supabase/conjunto.sql -------- */
+  _cjHoy(hoy) {   // el día del teléfono, si no se aleja más de un día
+    const t = todayISO(), d = Math.round((new Date(hoy + "T12:00:00") - new Date(t + "T12:00:00")) / 864e5);
+    return Math.abs(d) <= 1 ? hoy : t;
+  },
+  _cjValida(nombre, icono, frecuencia) {
+    const n = String(nombre || "").trim();
+    if (!n || n.length > 60) return "nombre";
+    if (String(icono || "").length > 16) return "icono";
+    if (!frecuencia || typeof frecuencia !== "object" || Array.isArray(frecuencia) || JSON.stringify(frecuencia).length > 200) return "frecuencia";
+    return null;
+  },
+  _cjActivo(db, h, yo) { return db.cmiembros.find(m => m.habito === h && m.user_id === yo && m.estado === "activo"); },
+  _cjSacar(db, h, quien) {   // sale con sus marcas; si no queda nadie activo, se borra el hábito
+    db.cmarcas = db.cmarcas.filter(x => !(x.habito === h && x.user_id === quien));
+    db.cmiembros = db.cmiembros.filter(m => !(m.habito === h && m.user_id === quien));
+    if (!db.cmiembros.some(m => m.habito === h && m.estado === "activo")) {
+      db.conjuntos = db.conjuntos.filter(x => x.id !== h);
+      db.cmiembros = db.cmiembros.filter(m => m.habito !== h);
+      db.cmarcas = db.cmarcas.filter(x => x.habito !== h);
+    }
+  },
+  async conjuntoCrear(nombre, icono, frecuencia, amigos, hoy) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), mal = this._cjValida(nombre, icono, frecuencia); if (mal) return { error: mal };
+    const ids = [...new Set(amigos || [])].filter(x => x && x !== yo);
+    if (!ids.length || ids.length > 7) return { error: "amigos" };
+    if (ids.some(x => { const f = this._amPar(db, yo, x); return !f || f.estado !== "aceptada"; })) return { error: "no-amigos" };
+    if (db.cmiembros.filter(m => m.user_id === yo).length >= 30) return { error: "limite" };
+    const id = "cj" + (db.sig++) + Date.now().toString(36), d = this._cjHoy(hoy), t = Date.now();
+    db.conjuntos.push({ id, nombre: String(nombre).trim(), icono: icono || "", frecuencia, creador: yo, creado: d });
+    db.cmiembros.push({ habito: id, user_id: yo, estado: "activo", invita: null, desde: d, creado: t });
+    ids.forEach((x, i) => db.cmiembros.push({ habito: id, user_id: x, estado: "invitado", invita: yo, desde: null, creado: t + 1 + i }));
+    this._amGuardar(db);
+    return { id };
+  },
+  async conjuntoInvitar(h, amigos) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._cjActivo(db, h, yo)) return { error: "no-miembro" };
+    const ids = [...new Set(amigos || [])].filter(x => x && x !== yo && !db.cmiembros.some(m => m.habito === h && m.user_id === x));
+    if (ids.some(x => { const f = this._amPar(db, yo, x); return !f || f.estado !== "aceptada"; })) return { error: "no-amigos" };
+    if (db.cmiembros.filter(m => m.habito === h).length + ids.length > 8) return { error: "limite" };
+    ids.forEach(x => db.cmiembros.push({ habito: h, user_id: x, estado: "invitado", invita: yo, desde: null, creado: Date.now() }));
+    this._amGuardar(db);
+    return { n: ids.length };
+  },
+  async conjuntoResponder(h, acepta, hoy) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    const m = db.cmiembros.find(x => x.habito === h && x.user_id === yo && x.estado === "invitado");
+    if (!m) return { habito: null };
+    if (!acepta) { this._cjSacar(db, h, yo); this._amGuardar(db); return { habito: null }; }
+    if (db.cmiembros.filter(x => x.user_id === yo && x.estado === "activo").length >= 30) return { error: "limite" };
+    m.estado = "activo"; m.desde = this._cjHoy(hoy);
+    const c = db.conjuntos.find(x => x.id === h);
+    this._amGuardar(db);
+    return { habito: { id: c.id, nombre: c.nombre, icono: c.icono, frecuencia: c.frecuencia, creado: c.creado, desde: m.desde } };
+  },
+  async conjuntoSalir(h) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!db.cmiembros.some(m => m.habito === h && m.user_id === yo)) return { r: "nada" };
+    this._cjSacar(db, h, yo); this._amGuardar(db);
+    return { r: "salio" };
+  },
+  async conjuntoEditar(h, nombre, icono, frecuencia) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._cjActivo(db, h, yo)) return { error: "no-miembro" };
+    const mal = this._cjValida(nombre, icono, frecuencia); if (mal) return { error: mal };
+    Object.assign(db.conjuntos.find(x => x.id === h), { nombre: String(nombre).trim(), icono: icono || "", frecuencia });
+    this._amGuardar(db);
+    return { r: "editado" };
+  },
+  async conjuntoMarcar(h, fecha, hecho) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), m = this._cjActivo(db, h, yo);
+    if (!m) return { error: "no-miembro" };
+    const t = todayISO(), dias = Math.round((new Date(fecha + "T12:00:00") - new Date(t + "T12:00:00")) / 864e5);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || "") || dias < -8 || dias > 1 || fecha < m.desde) return { error: "fecha" };
+    db.cmarcas = db.cmarcas.filter(x => !(x.habito === h && x.user_id === yo && x.fecha === fecha));
+    if (hecho) db.cmarcas.push({ habito: h, user_id: yo, fecha });
+    this._amGuardar(db);
+    const req = db.cmiembros.filter(x => x.habito === h && x.estado === "activo" && x.desde <= fecha);
+    return { todos: req.length >= 2 && req.every(x => db.cmarcas.some(k => k.habito === h && k.user_id === x.user_id && k.fecha === fecha)) };
+  },
+  async conjuntoLista() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb();
+    return db.cmiembros.filter(m => m.user_id === yo).sort((a, b) => a.creado - b.creado).map(mio => {
+      const c = db.conjuntos.find(x => x.id === mio.habito);
+      return {
+        id: c.id, nombre: c.nombre, icono: c.icono, frecuencia: c.frecuencia, creado: c.creado, estado: mio.estado, invita: mio.invita,
+        miembros: db.cmiembros.filter(m => m.habito === c.id).sort((a, b) => (a.estado > b.estado) - (a.estado < b.estado) || a.creado - b.creado)
+          .map(m => Object.assign(this._amFicha(db, m.user_id), { yo: m.user_id === yo, estado: m.estado, desde: m.desde,
+            marcas: db.cmarcas.filter(k => k.habito === c.id && k.user_id === m.user_id).map(k => k.fecha).sort() })),
+      };
+    });
+  },
   async deleteAccount() {
     const id = localStorage.getItem("rumbo_session"); if (!id) return { error: "No hay sesión." };
     const users = this._users(); delete users[id]; this._saveUsers(users);
@@ -560,6 +661,20 @@ const SupabaseBackend = {
   async amigosAnimosVistos() { const r = await this._amRpc("amigos_animos_vistos"); return r.error ? r : { n: r.data }; },
   /* El aviso al celular del otro (api/push.js revisa en la base que corresponda) */
   async amigosAvisar(tipo, datos) { return this.pushApi("POST", Object.assign({ accion: "amigos", tipo }, datos || {})); },
+  /* -------- Hábitos en conjunto (supabase/conjunto.sql) -------- */
+  async conjuntoLista() { const r = await this._amRpc("conjunto_lista"); return r.error ? r : r.data || []; },
+  async conjuntoCrear(nombre, icono, frecuencia, amigos, hoy) {
+    const r = await this._amRpc("conjunto_crear", { p_nombre: nombre, p_icono: icono || "", p_frecuencia: frecuencia, p_amigos: amigos, p_hoy: hoy });
+    return r.error ? r : { id: r.data };
+  },
+  async conjuntoInvitar(h, amigos) { const r = await this._amRpc("conjunto_invitar", { p_id: h, p_amigos: amigos }); return r.error ? r : { n: r.data }; },
+  async conjuntoResponder(h, acepta, hoy) { const r = await this._amRpc("conjunto_responder", { p_id: h, p_acepta: !!acepta, p_hoy: hoy }); return r.error ? r : { habito: r.data }; },
+  async conjuntoSalir(h) { const r = await this._amRpc("conjunto_salir", { p_id: h }); return r.error ? r : { r: r.data }; },
+  async conjuntoEditar(h, nombre, icono, frecuencia) {
+    const r = await this._amRpc("conjunto_editar", { p_id: h, p_nombre: nombre, p_icono: icono || "", p_frecuencia: frecuencia });
+    return r.error ? r : { r: r.data };
+  },
+  async conjuntoMarcar(h, fecha, hecho) { const r = await this._amRpc("conjunto_marcar", { p_id: h, p_fecha: fecha, p_hecho: !!hecho }); return r.error ? r : r.data; },
   /* ¿Está activo "Iniciar sesión con Google" en Supabase? (Authentication → Providers → Google).
      Se consulta al mostrar la pantalla de acceso: así el botón aparece solo cuando funciona. */
   async googleDisponible() {

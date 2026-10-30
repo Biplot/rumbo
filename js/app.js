@@ -374,7 +374,7 @@ const NOVEDADES = {
   ],
   34: [
     ["🐾", "La manada", "Los avatares ahora son los amigos de tu elefante. Zorra, Castor, Hormiga, Abeja, Camaleón, Tortuga, Tamandúa, Llama y Ardilla se ganan con los mismos logros de antes, y el Cóndor y el Pudú vienen de regalo. Si ya ganaste uno, lo conservas."],
-    ["🎭", "Avatares con el estilo de Rumbo", "Todos son planos y con los colores de Norte. Al que armas tú ahora le eliges el fondo, y «Tu elefante» muestra su cara completa."],
+    ["🎭", "Tus avatares, al estilo de Rumbo", "Todos son planos y con los colores de Norte. Al que armas tú ahora le eliges el fondo, y «Tu elefante» muestra su cara completa."],
     ["🔵", "Marcos al día", "El marco Cian ahora es Índigo, y Aurora toma los colores de Norte."],
   ],
 };

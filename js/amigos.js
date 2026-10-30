@@ -90,7 +90,7 @@ function amigosNuevos() {
   const l = AMIGOS.lista; if (!l) return 0;
   return (l.recibidas || []).length + (l.animos || []).filter(a => !AMIGOS.animosVistos.includes(a.id)).length
     + (CONJ.lista || []).filter(c => c.estado === "invitado").length + (OBJ.lista || []).filter(o => o.estado === "invitado").length
-    + (PLAN.lista || []).filter(p => p.respuesta === "pendiente" && !p.cancelado).length + (LCOM.lista || []).filter(l => l.estado === "invitado").length;
+    + (PLAN.lista || []).filter(plInvitacion).length + (LCOM.lista || []).filter(l => l.estado === "invitado").length;
 }
 function amigosMarcarNav() {
   const n = amigosNuevos();

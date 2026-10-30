@@ -5,6 +5,8 @@
      respondió, ya tiene fecha (se eligió la que votaban), cambió cuándo o dónde y se canceló.
    · El recordatorio del día («Hoy: …»), que manda la base cada 5 minutos (recordatoriosPlanes):
      unas 3 horas antes (o en la mañana, si el plan no tiene hora) a quienes van o tal vez van.
+   · Después del plan: alguien anotó un gasto (o te pagó), y al día siguiente «¿Cómo estuvo?»
+     a quienes fueron y todavía no lo cuentan.
    Todos con el aviso «Amigos» y nunca de noche (puedeAvisarAmigo).
    Recibe el cliente de Supabase (`sb`, con la clave de servicio) y la forma de enviar
    (`enviar`), así se prueba sin red en tests/planes.test.mjs.
@@ -14,8 +16,12 @@ import { puedeAvisarAmigo } from "./amigos.mjs";
 const TZ_DEFECTO = "America/Santiago";
 const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-/* El recordatorio: desde 3 horas antes hasta 10 minutos antes; sin hora, de 9:00 a 20:00 de ese día */
-export const RECUERDA = { antes: 3 * 60, hasta: 10, sinHora: ["09:00", "20:00"] };
+/* El recordatorio: desde 3 horas antes hasta 10 minutos antes; sin hora, de 9:00 a 20:00 de ese día.
+   «¿Cómo estuvo?»: al día siguiente, de 10:00 a 20:00. */
+export const RECUERDA = { antes: 3 * 60, hasta: 10, sinHora: ["09:00", "20:00"], como: ["10:00", "20:00"] };
+/* "$18.000" (pesos, como fmtCLP de la app) */
+export function fmtPesos(n) { return "$" + Math.round(Number(n) || 0).toLocaleString("es-CL"); }
+function diaSiguiente(fecha) { const [y, m, d] = fecha.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10); }
 
 /* "el vie 7 nov a las 21:00" (el día de la semana de la fecha, sin zona horaria) */
 export function fechaPlan(fecha, hora) {
@@ -30,7 +36,7 @@ function nombres(ns) { return ns.length <= 1 ? ns.join("") : ns.slice(0, -1).joi
 function donde(p) { return p.lugar ? `, en ${p.lugar}` : p.enlace ? ", a distancia" : ""; }
 
 /* El aviso de cada tipo. nombre: quien lo provoca; p: el plan; van: cuántos van; con: con quiénes (recordatorio) */
-export function mensajePlan(tipo, { nombre, p, respuesta, van, con } = {}) {
+export function mensajePlan(tipo, { nombre, p, respuesta, van, con, monto, parte } = {}) {
   const quien = String(nombre || "").trim() || "Un amigo";
   const t = "«" + (String((p && p.titulo) || "").trim() || "el plan") + "»";
   const url = "./#amigos";
@@ -47,6 +53,9 @@ export function mensajePlan(tipo, { nombre, p, respuesta, van, con } = {}) {
   if (tipo === "plan-fecha") return { title: `Ya hay fecha: ${t}`, body: `Quedó ${fechaPlan(p.fecha, p.hora)}${donde(p)}. ¿Vas?`, url, tag: "rumbo-plan-cambio" };
   if (tipo === "plan-cambio") return { title: `Cambió el plan ${t}`, body: `Ahora es ${fechaPlan(p.fecha, p.hora)}${donde(p)}.`, url, tag: "rumbo-plan-cambio" };
   if (tipo === "plan-cancela") return { title: `${quien} canceló ${t}`, body: "Ya no va: lo sacamos de tu agenda.", url, tag: "rumbo-plan-cancela" };
+  if (tipo === "plan-gasto") return { title: `${quien} anotó ${fmtPesos(monto)} en la cuenta de ${t}`, body: `Te toca ${fmtPesos(parte)}. La cuenta está en el plan.`, url, tag: "rumbo-plan-gasto" };
+  if (tipo === "plan-pago") return { title: `${quien} te pagó ${fmtPesos(monto)}`, body: `Por la cuenta de ${t}. Ya está anotado.`, url, tag: "rumbo-plan-pago" };
+  if (tipo === "plan-como") return { title: `¿Cómo estuvo ${t}?`, body: "Cuéntalo en tu diario: +10 de estrellas.", url: "./#inicio", tag: "rumbo-plan-como" };
   if (tipo === "plan-hoy") {
     const c = String(con || "").trim(), d = p.lugar ? `en ${p.lugar}` : p.enlace ? "a distancia" : "";
     const body = c ? `Con ${c}${d ? ", " + d : ""}.` : d ? d.charAt(0).toUpperCase() + d.slice(1) + "." : "¡Que lo pasen bien!";
@@ -73,6 +82,13 @@ export function tocaRecordar(p, ahora = new Date()) {
     ? [instantePlan(p.fecha, p.hora, p.tz) - RECUERDA.antes * 60000, instantePlan(p.fecha, p.hora, p.tz) - RECUERDA.hasta * 60000]
     : [+instantePlan(p.fecha, RECUERDA.sinHora[0], p.tz), +instantePlan(p.fecha, RECUERDA.sinHora[1], p.tz)];
   return +ahora >= desde && +ahora < hasta;
+}
+
+/* ¿Es hora de preguntar cómo estuvo? Al día siguiente del plan, de 10:00 a 20:00 en su zona */
+export function tocaComo(p, ahora = new Date()) {
+  if (!p || !p.fecha || p.cancelado) return false;
+  const dia = diaSiguiente(p.fecha);
+  return +ahora >= +instantePlan(dia, RECUERDA.como[0], p.tz) && +ahora < +instantePlan(dia, RECUERDA.como[1], p.tz);
 }
 
 /* A quién le llega cada aviso que pide la app (yo: quien llama), y lo que se anota para no repetirlo */
@@ -121,8 +137,24 @@ export async function avisoPlan({ sb, yo, body, enviar, ahora = new Date() }) {
     const { error } = await sb.from("planes_invitados").update({ avisos: Object.assign({}, i.avisos, cambio) }).eq("plan", id).eq("user_id", uid);
     if (error) throw new Error(error.message);
   };
-  let para;
-  if (body.tipo === "plan-responde") {
+  let para, extra = {};
+  if (body.tipo === "plan-gasto") {
+    // Un gasto (o un pago) de quien llama, de los últimos minutos: a los demás que lo comparten,
+    // uno al día por plan (avisos.gasto); un pago, a quien lo recibe (avisos.pago guarda cuál)
+    const gid = parseInt(body.gasto, 10);
+    const { data: g, error: e3 } = await sb.from("planes_gastos").select("monto, para, pago, creado").eq("id", gid).eq("plan", id).eq("user_id", yo).maybeSingle();
+    if (e3) throw new Error(e3.message);
+    if (!g || p.cancelado || ahora - new Date(g.creado) > 15 * 60000) return { enviadas: 0, motivo: "no-corresponde" };
+    const monto = Number(g.monto), quienes = Array.isArray(g.para) ? g.para : [];
+    const av = i => (i.avisos && typeof i.avisos === "object" ? i.avisos : {});
+    if (g.pago) {
+      para = invitados.filter(i => i.user_id === quienes[0] && i.user_id !== yo && av(i).pago !== gid).map(i => ({ uid: i.user_id, tipo: "plan-pago", cambio: { pago: gid } }));
+    } else {
+      const fecha = new Date(g.creado).toISOString().slice(0, 10);
+      para = invitados.filter(i => quienes.includes(i.user_id) && i.user_id !== yo && av(i).gasto !== fecha).map(i => ({ uid: i.user_id, tipo: "plan-gasto", cambio: { gasto: fecha } }));
+    }
+    extra = { monto, parte: quienes.length ? monto / quienes.length : monto };
+  } else if (body.tipo === "plan-responde") {
     const r = mio.respuesta, av = mio.avisos && typeof mio.avisos === "object" ? mio.avisos : {};
     if (yo === p.creador || p.cancelado || !["voy", "quizas", "no"].includes(r)) return { enviadas: 0, motivo: "no-corresponde" };
     if (av.responde === r) return { enviadas: 0, motivo: "ya-avisado" };
@@ -140,38 +172,46 @@ export async function avisoPlan({ sb, yo, body, enviar, ahora = new Date() }) {
     const { notif, dispositivos } = await dispositivosDe(sb, x.uid);
     if (!dispositivos.length || !puedeAvisarAmigo(notif, ahora)) continue;
     if (x.cambio) await anotar(x.uid, x.cambio);
-    const msg = mensajePlan(x.tipo, { nombre: perfil && perfil.nombre, p, respuesta: mio.respuesta, van });
+    const msg = mensajePlan(x.tipo, Object.assign({ nombre: perfil && perfil.nombre, p, respuesta: mio.respuesta, van }, extra));
     enviadas += ((await enviar(dispositivos, msg)) || {}).enviadas || 0;
   }
   return { enviadas };
 }
 
-/* El recordatorio del día: lo llama api/push.js cada vez que la base pide los recordatorios.
-   A quienes van o tal vez van, una vez por fecha y hora del plan (avisos.recuerda). */
+/* Los recordatorios de los planes: lo llama api/push.js cada vez que la base pide los recordatorios.
+   · «Hoy: …», a quienes van o tal vez van, una vez por fecha y hora del plan (avisos.recuerda).
+   · Al día siguiente, «¿Cómo estuvo?», a quienes fueron y no lo han contado (avisos.como guarda la fecha). */
 export async function recordatoriosPlanes({ sb, enviar, ahora = new Date() }) {
   const dia = n => new Date(+ahora + n * 864e5).toISOString().slice(0, 10);
   const { data: planes, error } = await sb.from("planes").select("id, titulo, fecha, hora, lugar, enlace, tz, creador, cancelado")
-    .eq("cancelado", false).gte("fecha", dia(-1)).lte("fecha", dia(1));
+    .eq("cancelado", false).gte("fecha", dia(-2)).lte("fecha", dia(1));
   if (error) throw new Error(error.message);
   const r = { planes: 0, enviadas: 0 };
   for (const p of planes || []) {
-    if (!tocaRecordar(p, ahora)) continue;
+    const hoy = tocaRecordar(p, ahora), como = !hoy && tocaComo(p, ahora);
+    if (!hoy && !como) continue;
     r.planes++;
-    const clave = p.fecha + "|" + (p.hora || "");
+    const clave = hoy ? p.fecha + "|" + (p.hora || "") : p.fecha, campo = hoy ? "recuerda" : "como";
     const { data: invitados, error: e2 } = await sb.from("planes_invitados").select("user_id, respuesta, avisos").eq("plan", p.id);
     if (e2) throw new Error(e2.message);
     const van = (invitados || []).filter(i => i.respuesta === "voy" || i.respuesta === "quizas");
-    const para = van.filter(i => !(i.avisos && i.avisos.recuerda === clave));
+    let ya = [];
+    if (como) {   // los que ya contaron cómo estuvo no necesitan que se lo pregunten
+      const { data: rs, error: e4 } = await sb.from("planes_recuerdos").select("user_id").eq("plan", p.id);
+      if (e4) throw new Error(e4.message);
+      ya = (rs || []).map(x => x.user_id);
+    }
+    const para = van.filter(i => !(i.avisos && i.avisos[campo] === clave) && !ya.includes(i.user_id));
     if (!para.length) continue;
     const { data: perfiles } = await sb.from("perfiles").select("user_id, nombre").in("user_id", van.map(i => i.user_id));
     const nombre = uid => ((perfiles || []).find(x => x.user_id === uid) || {}).nombre || "un amigo";
     for (const i of para) {
       const { notif, dispositivos } = await dispositivosDe(sb, i.user_id);
       if (!dispositivos.length || !puedeAvisarAmigo(notif, ahora)) continue;
-      const { error: e3 } = await sb.from("planes_invitados").update({ avisos: Object.assign({}, i.avisos, { recuerda: clave }) }).eq("plan", p.id).eq("user_id", i.user_id);
+      const { error: e3 } = await sb.from("planes_invitados").update({ avisos: Object.assign({}, i.avisos, { [campo]: clave }) }).eq("plan", p.id).eq("user_id", i.user_id);
       if (e3) throw new Error(e3.message);
       const con = nombres(van.filter(x => x.user_id !== i.user_id && x.respuesta === "voy").map(x => nombre(x.user_id)));
-      r.enviadas += ((await enviar(dispositivos, mensajePlan("plan-hoy", { p, con }))) || {}).enviadas || 0;
+      r.enviadas += ((await enviar(dispositivos, mensajePlan(hoy ? "plan-hoy" : "plan-como", { p, con }))) || {}).enviadas || 0;
     }
   }
   return r;

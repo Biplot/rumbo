@@ -331,13 +331,14 @@ function cjAmigosHtml(amigos) {
 }
 /* El perfil de un amigo: lo que hacen juntos (hábitos y objetivos, de objetivos.js) */
 function cjJuntosHtml(amigoId) {
-  const conHab = CONJ.error !== "sin-servidor", conObj = OBJ.error !== "sin-servidor";
-  if (!conHab && !conObj) return "";
+  const conHab = CONJ.error !== "sin-servidor", conObj = OBJ.error !== "sin-servidor", conPlan = PLAN.error !== "sin-servidor";
+  if (!conHab && !conObj && !conPlan) return "";
   const habitos = !conHab ? [] : (CONJ.lista || []).filter(c => c.estado === "activo" && c.miembros.some(m => m.id === amigoId && m.estado === "activo"))
     .map(c => { const r = cjRachaTxt(c); return `<button type="button" class="cj-junto" data-action="cj-ver" data-id="${escapeHtml(c.id)}">${icoHab(c.icon, 18)}<b>${escapeHtml(c.nombre)}</b><span class="text-xs muted">${r || escapeHtml(hmFreqLabel(c))}</span></button>`; });
-  const objetivos = conObj ? ojJuntos(amigoId) : [];
+  const objetivos = conObj ? ojJuntos(amigoId) : [], planes = conPlan ? plJuntos(amigoId) : [];
   return `<div class="cj-juntos"><div class="cj-sub">Lo que hacen juntos</div>
-    ${habitos.concat(objetivos).join("") || `<p class="text-xs muted">Todavía no tienen hábitos ni objetivos juntos.</p>`}
-    <div class="cj-juntos__b">${conHab ? `<button class="btn btn--soft" data-action="cj-nuevo" data-amigo="${escapeHtml(amigoId)}">${icoUI("handshake")} Proponer un hábito</button>` : ""}
+    ${planes.concat(habitos, objetivos).join("") || `<p class="text-xs muted">Todavía no tienen planes, hábitos ni objetivos juntos.</p>`}
+    <div class="cj-juntos__b">${conPlan ? `<button class="btn btn--soft" data-action="pl-nuevo" data-amigo="${escapeHtml(amigoId)}">${icoUI("ticket")} Proponer un plan</button>` : ""}
+      ${conHab ? `<button class="btn btn--soft" data-action="cj-nuevo" data-amigo="${escapeHtml(amigoId)}">${icoUI("handshake")} Proponer un hábito</button>` : ""}
       ${conObj ? `<button class="btn btn--soft" data-action="oj-nuevo" data-amigo="${escapeHtml(amigoId)}">${icoUI("mision")} Proponer un objetivo</button>` : ""}</div></div>`;
 }

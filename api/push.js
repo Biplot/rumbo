@@ -20,6 +20,9 @@
            { accion: "amigos", tipo: "objetivo-invita" | "objetivo-acepta", objetivo }    -> objetivos en conjunto: la invitación
            { accion: "amigos", tipo: "objetivo-aporte", objetivo, aporte }               y al aportar: "sumó" o "¡lo lograron!"
              (supabase/objetivos.sql)
+           { accion: "amigos", tipo: "plan-invita" | "plan-responde" | "plan-fecha" | "plan-cambio" | "plan-cancela", plan }
+             -> planes con amigos: te invitan, alguien respondió, cambió (o ya tiene fecha), se canceló
+             (supabase/planes.sql). El recordatorio del día («Hoy: …») sale con los demás recordatorios.
 
    Variables de entorno (Vercel → Settings → Environment Variables):
      SUPABASE_SERVICE_ROLE_KEY   clave secreta de Supabase (service_role o sb_secret_…)
@@ -173,6 +176,22 @@ async function avisoObjetivoApi(config, yo, body, host) {
   return avisoObjetivo({ sb: admin(), yo, body, enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
 }
 
+/* Un aviso de un plan con amigos: notifier/planes.mjs revisa en la base que corresponda */
+async function avisoPlanApi(config, yo, body, host) {
+  const { avisoPlan } = await import("../notifier/planes.mjs");
+  return avisoPlan({ sb: admin(), yo, body, enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+}
+/* El recordatorio de los planes de hoy. Si todavía no se corre supabase/planes.sql, no hay planes que recordar. */
+async function recordatoriosPlanesApi(config, host) {
+  try {
+    const { recordatoriosPlanes } = await import("../notifier/planes.mjs");
+    return await recordatoriosPlanes({ sb: admin(), enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+  } catch (e) {
+    if (/does not exist|schema cache|Could not find/i.test(String(e && e.message))) return { planes: 0, enviadas: 0, motivo: "sin-tablas" };
+    throw e;
+  }
+}
+
 /* Un aviso de un hábito en conjunto: notifier/conjunto.mjs revisa en la base que corresponda */
 async function avisoConjuntoApi(config, yo, body, host) {
   const { avisoConjunto } = await import("../notifier/conjunto.mjs");
@@ -201,6 +220,7 @@ module.exports = async function handler(req, res) {
       if (!secretoValido(req.headers["x-push-secreto"], config.secreto)) return res.status(401).json({ error: "No autorizado" });
       const { enviarRecordatorios } = await import("../notifier/recordatorios.mjs");
       const r = await enviarRecordatorios({ sb: admin(), enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+      r.planes = await recordatoriosPlanesApi(config, host);
       console.log("recordatorios", JSON.stringify(r));
       return res.status(200).json(r);
     }
@@ -213,6 +233,7 @@ module.exports = async function handler(req, res) {
     const body = cuerpoJSON(req);
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("conjunto-")) return res.status(200).json(await avisoConjuntoApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("objetivo-")) return res.status(200).json(await avisoObjetivoApi(config, u.user.id, body, host));
+    if (body.accion === "amigos" && String(body.tipo || "").startsWith("plan-")) return res.status(200).json(await avisoPlanApi(config, u.user.id, body, host));
     if (body.accion === "amigos") return res.status(200).json(await avisoAmigos(config, u.user.id, body, host));
     if (body.accion !== "prueba" || typeof body.endpoint !== "string") return res.status(400).json({ error: "Acción no válida" });
     const { data: fila, error: eFila } = await admin().from("suscripciones_push")

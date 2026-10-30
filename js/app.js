@@ -157,7 +157,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 39;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 40;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -407,6 +407,11 @@ const NOVEDADES = {
     ["🏠", "De visita en su casa", "En el perfil de un amigo, toca «Visitar su casa»: ves a su elefante en su cuarto, en 3D, con lo que tiene y su repisa. Lo puedes tocar, pero no cambiar nada."],
     ["✨", "Su vitrina", "«Ver su vitrina» abre sus medallas en su cielo. Toca una para ver cuándo la ganó y si tú también la tienes."],
     ["👀", "Tú decides", "Tus amigos pueden visitar tu casa y tu vitrina. Si prefieres que no, apágalo en Amigos › Lo que muestras."],
+  ],
+  40: [
+    ["🎟️", "Planes con amigos", "En Amigos › Planes, propón algo para juntarse: ver una película, ir a comer, salir a correr. Eliges cuándo, dónde y a quiénes invitas."],
+    ["🗳️", "¿Cuándo pueden?", "Si no saben qué día, propón de 2 a 4 fechas: cada uno marca las que le sirven y tú eliges la que queda."],
+    ["📅", "En tu agenda", "Si vas, el plan aparece en tu Semana, tu Calendario y en Inicio ese día. Tus amigos ven el plan, no tu agenda."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -962,6 +967,7 @@ function onClick(e) {
   if (a.startsWith("cj-")) { conjuntoAccion(a, d); return; }      // hábitos en conjunto (conjunto.js)
   if (a.startsWith("oj-")) { objetivosAccion(a, d); return; }     // objetivos en conjunto (objetivos.js)
   if (a.startsWith("vis-")) { visitaAccion(a, d); return; }        // de visita en la casa de un amigo (visitas.js)
+  if (a.startsWith("pl-")) { planesAccion(a, d); return; }         // planes con amigos (planes.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;
@@ -1977,6 +1983,7 @@ function renderInicio() {
   <div data-tour="dia">${renderDayHero()}</div>
   ${renderAtajos()}
   ${renderMisionCard()}
+  ${plHoyHtml()}
   ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
   <div class="grid grid-${metasMes.length ? 3 : 2} inicio-main">
     ${tareasCard}

@@ -152,7 +152,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 34;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 35;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -377,6 +377,12 @@ const NOVEDADES = {
     ["🎭", "Tus avatares, al estilo de Rumbo", "Todos son planos y con los colores de Norte. Al que armas tú ahora le eliges el fondo, y «Tu elefante» muestra su cara completa."],
     ["🔵", "Marcos al día", "El marco Cian ahora es Índigo, y Aurora toma los colores de Norte."],
   ],
+  35: [
+    ["🧭", "Íconos Norte", "Toda la app habla un solo idioma: los emojis de los títulos, las pestañas, los botones y los avisos pasan a íconos de línea, con el mismo trazo del menú y los colores de Norte."],
+    ["⭐", "La estrella de tus monedas", "Tus estrellas ahora son una estrella ámbar dibujada, igual en todos los teléfonos."],
+    ["🍪", "El bocado del logo", "Tu primer bocado lleva la galleta mordida de Rumbo, y todo lo de tu elefante, su silueta de perfil."],
+    ["✏️", "Lo tuyo no cambia", "Lo que escribes o eliges tú (tus recetas, tus listas, tus notas y tu diario) sigue con sus emojis."],
+  ],
 };
 let NOVEDADES_ABIERTAS = false;
 function openNovedades() {
@@ -499,9 +505,9 @@ function renderAccountBox() {
   const initial = (CURRENT_USER.name || CURRENT_USER.email || "?").trim()[0].toUpperCase();
   const avatar = typeof avatarActualHtml === "function" ? avatarActualHtml(initial) : initial;
   const marco = typeof marcoClase === "function" ? marcoClase() : "";
-  box.innerHTML = `<div class="account__avatar${marco}" data-action="av-abrir" title="Tu avatar">${avatar}</div>
+  box.innerHTML = iconizar(`<div class="account__avatar${marco}" data-action="av-abrir" title="Tu avatar">${avatar}</div>
     <div class="account__info" data-action="cuenta-menu" style="min-width:0;flex:1"><div class="account__name">${escapeHtml(CURRENT_USER.name || "")}</div>
-    <div class="account__email">Cuenta, avisos y ayuda</div></div>`;
+    <div class="account__email">Cuenta, avisos y ayuda</div></div>`);
 }
 
 /* -------- Handlers del portal -------- */
@@ -728,7 +734,7 @@ function rerender() {
   if (typeof checkBadges === "function") checkBadges();
   const route = ROUTE_MAP[CURRENT];
   const view = document.getElementById("view");
-  view.innerHTML = route.render();
+  view.innerHTML = iconizar(route.render());
   unSoloCoral(view);
   mountAfterRender();
   updateFab();
@@ -755,7 +761,7 @@ function updateTopbar() {
   document.getElementById("pageSubtitle").textContent = route.subtitle || "";
   const ayuda = document.getElementById("helpBtn");
   if (ayuda) ayuda.hidden = !tourDePantalla(CURRENT);
-  document.getElementById("todayPill").textContent = "📅 " + fechaLarga();
+  document.getElementById("todayPill").innerHTML = icoUI("semana") + " " + escapeHtml(fechaLarga());
   document.getElementById("streakVal").textContent = computeClosedStreak();
   pintarMonedas(STATE.gamif.puntos);
   if (typeof pintarPuertas === "function") pintarPuertas();
@@ -1258,7 +1264,7 @@ function onClick(e) {
       if (!f || familiaTuya(f)) break;
       recalcGamif(STATE);
       if (STATE.gamif.puntos < f.costo) { toast("Te faltan " + (f.costo - STATE.gamif.puntos) + " ⭐", true); break; }
-      if (!confirm(`¿Desbloquear ${f.nombre} por ${f.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - f.costo} ⭐.`)) break;
+      if (!confirm(`¿Desbloquear ${f.nombre} por ${f.costo} estrellas?\nTe quedarán ${STATE.gamif.puntos - f.costo}.`)) break;
       const res = ledgerComprar(STATE, "tema-" + f.id, f.costo);
       if (!res.ok && !res.yaTenia) { toast("Te faltan " + (res.falta || f.costo) + " ⭐", true); break; }
       const aplicar = f.solo || f.auto;   // los de día y noche quedan en automático
@@ -1824,7 +1830,7 @@ function ambitoPicker(hiddenId, cur, compacto) {
 function ambFlip(btn, hiddenId) {
   const el = document.getElementById(hiddenId);
   el.value = el.value === "pro" ? "per" : "pro";
-  btn.textContent = AMBITOS[el.value].icon + (btn.dataset.compacto ? "" : " " + AMBITOS[el.value].corto);
+  btn.innerHTML = iconizarTexto(AMBITOS[el.value].icon + (btn.dataset.compacto ? "" : " " + AMBITOS[el.value].corto));
   btn.title = "Ámbito de la nueva tarea: " + AMBITOS[el.value].label;
 }
 function segPick(btn, hiddenId) {
@@ -2028,11 +2034,11 @@ async function cargarVinculoGoogle() {
   const ids = await BACKEND.identidades();
   const g = ids.find(i => i.provider === "google");
   if (!document.body.contains(caja)) return;
-  caja.innerHTML = `<div class="card mt-16"><div class="flex-between" style="flex-wrap:wrap;gap:10px">
+  caja.innerHTML = iconizar(`<div class="card mt-16"><div class="flex-between" style="flex-wrap:wrap;gap:10px">
     <div style="min-width:0"><div class="card__title" style="font-size:15px">🔗 Entrar con Google</div>
       <div class="text-sm muted mt-8">${g ? `✅ Vinculada con <b>${escapeHtml(g.email || "tu Google")}</b>: puedes entrar con tu correo o con Google, es la misma cuenta.`
         : "Agrega tu Google como otra forma de entrar a esta misma cuenta (aunque sea otro correo). Tus datos no cambian."}</div></div>
-    ${g ? "" : `<button class="btn btn--soft" data-action="acc-vincular-google">Vincular con Google</button>`}</div></div>`;
+    ${g ? "" : `<button class="btn btn--soft" data-action="acc-vincular-google">Vincular con Google</button>`}</div></div>`);
 }
 async function vincularGoogle() {
   const res = await BACKEND.vincularGoogle();   // si todo va bien, la página se va a Google y vuelve a Cuenta
@@ -2135,13 +2141,14 @@ async function doDeleteAccount() {
 /* ============================================================
    Utilidades UI compartidas (modal, toast, escape)
    ============================================================ */
+/* title es texto (sus emojis pasan a íconos); con op.tituloHtml es HTML ya escapado (para un ícono que eligió la persona) */
 function openModal(title, bodyHtml, op) {
   // La ventana se reutiliza: al abrirse de nuevo parte desde arriba (si ya estaba abierta, conserva su posición)
   if (document.getElementById("modalOverlay").hidden) document.getElementById("modal").scrollTop = 0;
   document.getElementById("modal").classList.toggle("modal--ancho", !!(op && op.ancho));
   document.getElementById("modal").classList.remove("modal--hoja");
-  document.getElementById("modalTitle").textContent = title;
-  document.getElementById("modalBody").innerHTML = bodyHtml;
+  document.getElementById("modalTitle").innerHTML = op && op.tituloHtml ? iconizar(title) : iconizarTexto(title);
+  document.getElementById("modalBody").innerHTML = iconizar(bodyHtml);
   document.getElementById("modalOverlay").hidden = false;
 }
 function closeModal() { ONB_ACTIVE = false; document.getElementById("modalOverlay").hidden = true; }
@@ -2150,13 +2157,14 @@ document.addEventListener("click", e => { if (e.target.id === "modalOverlay") cl
 let toastTimer = null;
 function toast(msg, coral = false) {
   const t = document.getElementById("toast");
-  t.textContent = msg; t.className = "toast" + (coral ? " toast--coral" : ""); t.hidden = false;
+  t.innerHTML = iconizarTexto(msg); t.className = "toast" + (coral ? " toast--coral" : ""); t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (t.hidden = true), 2200);
 }
 
 function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ""; }
-function escapeHtml(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+/* Los emojis van como entidad (&#x…;): se ven igual, pero iconizar (iconos.js) no los cambia por un ícono, así lo que escribes tú queda como lo escribiste */
+function escapeHtml(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])).replace(/\p{Extended_Pictographic}/gu, c => "&#x" + c.codePointAt(0).toString(16) + ";"); }
 function escapeAttr(s) { return escapeHtml(s); }
 
 function exportData() {

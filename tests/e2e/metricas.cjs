@@ -79,7 +79,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(/en promedio completas/.test(cap0), "apertura muestra la capacidad real: " + cap0);
   await p.fill("#r-tareas-pro", "a\nb\nc\nd\ne\nf\ng");
   const cap1 = await p.locator("#r-cap").innerText();
-  ok(cap1.includes("⚠"), "con muchas tareas avisa: " + cap1);
+  ok(await p.locator("#r-cap .ico-n").count() > 0 && cap1.includes("¿Cuáles pueden esperar?"), "con muchas tareas avisa (con el ícono de atención): " + cap1);
   await shot(p, "f3-apertura");
   await p.evaluate(() => closeModal());
 
@@ -104,7 +104,7 @@ module.exports = async ({ b, ok, errs }) => {
   await shot(p, "f3-inicio", { fullPage: true });
   const cierreTxt = await p.locator(".card", { hasText: "Día cerrado" }).first().innerText().catch(() => "");
   console.log("    " + cierreTxt.replace(/\n+/g, " | ").slice(0, 300));
-  ok(/↪ \d+ a otro día/.test(cierreTxt) && /✕ 1 soltada/.test(cierreTxt), "el resumen del día cerrado muestra ↪ y ✕");
+  ok(/\d+ a otro día/.test(cierreTxt) && /✕ 1 soltada/.test(cierreTxt), "el resumen del día cerrado muestra lo que pasó a otro día y lo soltado");
 
   // Móvil
   const m = await nuevoContexto(b, { w: 390, h: 844, fecha: "2026-09-25T10:00:00", dpr: 2 });

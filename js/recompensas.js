@@ -41,7 +41,7 @@ const BADGES = [
   { id: "semana-fuego", icon: "🔥", nombre: "Semana de Fuego", desc: "7 días cerrados seguidos", reward: 50, check: () => computeClosedStreak() >= 7 },
   { id: "inquebrantable", icon: "💠", nombre: "Inquebrantable", desc: "30 días cerrados seguidos", reward: 150, check: () => computeClosedStreak() >= 30 },
   { id: "madrugador", icon: "🌅", nombre: "Madrugador", desc: "Completa 10 rituales de apertura", reward: 40, check: s => g_ritualesHechos(s) >= 10 },
-  { id: "cazador-sapos", icon: "🐘", nombre: "Bocado a Bocado", desc: "Completa 10 primeros bocados", reward: 50, check: s => g_sapos(s) >= 10 },
+  { id: "cazador-sapos", icon: "🍪", nombre: "Bocado a Bocado", desc: "Completa 10 primeros bocados", reward: 50, check: s => g_sapos(s) >= 10 },
   { id: "semana-perfecta", icon: "📊", nombre: "Semana Perfecta", desc: "Todos tus hábitos cumplen su objetivo en una semana", reward: 60, check: s => g_semanaPerfecta(s) },
   { id: "centurion", icon: "🎖️", nombre: "Centurión", desc: "Marca 100 hábitos", reward: 40, check: s => g_habitMarks(s) >= 100 },
   { id: "primer-peso", icon: "💰", nombre: "Primer Peso", desc: "Registra tu primer ahorro mensual", reward: 20, check: s => aniosConDatos(s).some(y => datosAnio(s, y).finanzas.meses.some(m => (m.ingreso || 0) - (m.gasto || 0) > 0)) },
@@ -110,7 +110,7 @@ function buyItem(id) {
   if (typeof requisitoTitulo === "function" && !requisitoTitulo(it)) return toast("Primero gana la insignia que pide este título", true);
   recalcGamif(STATE);   // valida contra el saldo derivado del ledger
   if (STATE.gamif.puntos < it.costo) return toast("Te faltan " + (it.costo - STATE.gamif.puntos) + " ⭐", true);
-  if (!confirm(`¿Comprar "${it.nombre}" por ${it.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - it.costo} ⭐.`)) return;
+  if (!confirm(`¿Comprar "${it.nombre}" por ${it.costo} estrellas?\nTe quedarán ${STATE.gamif.puntos - it.costo}.`)) return;
   const res = ledgerComprar(STATE, id, it.costo);
   if (!res.ok) return res.yaTenia ? rerender() : toast("Te faltan " + res.falta + " ⭐", true);
   if (esDelCuarto(it)) cuartoComprado(it);

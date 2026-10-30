@@ -34,7 +34,7 @@
   <!-- Las fuentes no frenan el primer dibujo: se ve la letra del sistema y luego la de Rumbo -->
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" /></noscript>
-  <link rel="stylesheet" href="css/styles.css?v=96" />
+  <link rel="stylesheet" href="css/styles.css?v=97" />
   <style>
     /* Pantalla de carga: se dibuja al tiro (antes que el código) y se va al aparecer la app o el acceso */
     .splash { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -93,7 +93,7 @@
         <button class="btn btn--primary btn-block" data-action="auth-register">Crear mi cuenta</button>
       </div>
 
-      <p class="auth__note">🔒 Tus datos se guardan de forma segura y privada en la nube.<br><a href="privacidad.html">Privacidad</a> · <a href="terminos.html">Términos</a></p>
+      <p class="auth__note"><svg class="ico-n" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Tus datos se guardan de forma segura y privada en la nube.<br><a href="privacidad.html">Privacidad</a> · <a href="terminos.html">Términos</a></p>
     </div>
   </div>
 
@@ -122,10 +122,10 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
         </div>
         <div class="cuenta-menu" id="cuentaMenu" role="menu" hidden>
-          <button role="menuitem" data-route="cuenta">👤 Cuenta y avatar</button>
-          <button role="menuitem" data-route="apariencia">🎨 Apariencia</button>
-          <button role="menuitem" data-route="notif">🔔 Notificaciones</button>
-          <button role="menuitem" data-route="tutoriales">🎓 Tutoriales y ayuda</button>
+          <button role="menuitem" data-route="cuenta"><svg class="ico-n" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg> Cuenta y avatar</button>
+          <button role="menuitem" data-route="apariencia"><svg class="ico-n" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg> Apariencia</button>
+          <button role="menuitem" data-route="notif"><svg class="ico-n" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg> Notificaciones</button>
+          <button role="menuitem" data-route="tutoriales"><svg class="ico-n" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg> Tutoriales y ayuda</button>
           <button role="menuitem" data-action="export">⭳ Respaldar datos</button>
           <button role="menuitem" data-action="logout" class="cuenta-menu__salir">↩ Cerrar sesión</button>
         </div>
@@ -183,43 +183,43 @@
 
   <!-- supabase-js 2.117.2 guardada en el repositorio: una versión nueva del CDN ya no puede romper el inicio de sesión -->
   <script src="js/vendor/supabase-2.117.2.js"></script>
-  <script src="js/store.js?v=96"></script>
-  <script src="js/state.js?v=96"></script>
-  <script src="js/anios.js?v=96"></script>
-  <script src="js/agenda.js?v=96"></script>
-  <script src="js/tareas-motor.js?v=96"></script>
-  <script src="js/habitos-motor.js?v=96"></script>
-  <script src="js/modules.js?v=96"></script>
-  <script src="js/modules2.js?v=96"></script>
-  <script src="js/salud.js?v=96"></script>
-  <script src="js/notas.js?v=96"></script>
-  <script src="js/tienda.js?v=96"></script>
-  <script src="js/ritual-mes.js?v=96"></script>
-  <script src="js/ritual-semana.js?v=96"></script>
-  <script src="js/ritual-trimestre.js?v=96"></script>
-  <script src="js/informe-mes.js?v=96"></script>
-  <script src="js/tutorial.js?v=96"></script>
-  <script src="js/gcal.js?v=96"></script>
-  <script src="js/ritual-express.js?v=96"></script>
-  <script src="js/tendencias.js?v=96"></script>
-  <script src="js/recompensas.js?v=96"></script>
+  <script src="js/store.js?v=97"></script>
+  <script src="js/state.js?v=97"></script>
+  <script src="js/anios.js?v=97"></script>
+  <script src="js/agenda.js?v=97"></script>
+  <script src="js/tareas-motor.js?v=97"></script>
+  <script src="js/habitos-motor.js?v=97"></script>
+  <script src="js/modules.js?v=97"></script>
+  <script src="js/modules2.js?v=97"></script>
+  <script src="js/salud.js?v=97"></script>
+  <script src="js/notas.js?v=97"></script>
+  <script src="js/tienda.js?v=97"></script>
+  <script src="js/ritual-mes.js?v=97"></script>
+  <script src="js/ritual-semana.js?v=97"></script>
+  <script src="js/ritual-trimestre.js?v=97"></script>
+  <script src="js/informe-mes.js?v=97"></script>
+  <script src="js/tutorial.js?v=97"></script>
+  <script src="js/gcal.js?v=97"></script>
+  <script src="js/ritual-express.js?v=97"></script>
+  <script src="js/tendencias.js?v=97"></script>
+  <script src="js/recompensas.js?v=97"></script>
   <!-- Tienda: útiles, funciones, cosméticos y logros (después de recompensas.js) -->
-  <script src="js/consumibles.js?v=96"></script>
-  <script src="js/funciones.js?v=96"></script>
-  <script src="js/cosmeticos.js?v=96"></script>
-  <script src="js/logros.js?v=96"></script>
-  <script src="js/cielo.js?v=96"></script>
-  <script src="js/lugar.js?v=96"></script>
-  <script src="js/casa.js?v=96"></script>
-  <script src="js/elefante.js?v=96"></script>
-  <script src="js/consultorio.js?v=96"></script>
-  <script src="js/avatares.js?v=96"></script>
-  <script src="js/vida.js?v=96"></script>
-  <script src="js/notifs.js?v=96"></script>
-  <script src="js/iconos.js?v=96"></script>
-  <script src="js/navegacion.js?v=96"></script>
-  <script src="js/detalles.js?v=96"></script>
-  <script src="js/app.js?v=96"></script>
+  <script src="js/consumibles.js?v=97"></script>
+  <script src="js/funciones.js?v=97"></script>
+  <script src="js/cosmeticos.js?v=97"></script>
+  <script src="js/logros.js?v=97"></script>
+  <script src="js/cielo.js?v=97"></script>
+  <script src="js/lugar.js?v=97"></script>
+  <script src="js/casa.js?v=97"></script>
+  <script src="js/elefante.js?v=97"></script>
+  <script src="js/consultorio.js?v=97"></script>
+  <script src="js/avatares.js?v=97"></script>
+  <script src="js/vida.js?v=97"></script>
+  <script src="js/notifs.js?v=97"></script>
+  <script src="js/iconos.js?v=97"></script>
+  <script src="js/navegacion.js?v=97"></script>
+  <script src="js/detalles.js?v=97"></script>
+  <script src="js/app.js?v=97"></script>
   <script>
     /* Versión nueva: el service worker nuevo se activa solo y toma la página. Si la app recién se abrió
        (o volvió del fondo), se recarga al tiro para mostrar lo nuevo; si la estás usando, un aviso ofrece

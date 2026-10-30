@@ -371,7 +371,7 @@ function tocarElefante(el) {
   svg.classList.remove("re-salta", "re-saluda", "re-corazones"); void svg.getBoundingClientRect();
   svg.classList.add("re-" + r);
   if (r === "corazones") for (let k = 0; k < 4; k++) {
-    const h = document.createElement("span"); h.className = "ele-corazon"; h.textContent = k % 2 ? "💛" : "❤️";
+    const h = document.createElement("span"); h.className = "ele-corazon" + (k % 2 ? " is-ambar" : ""); h.innerHTML = icoUI("heart");
     h.style.left = (42 + Math.random() * 30) + "%"; h.style.animationDelay = (k * .12) + "s";
     caja.appendChild(h); setTimeout(() => h.remove(), 1600);
   }
@@ -383,9 +383,9 @@ function escenaElefante({ svg, titulo, texto, botones, dura, clase }) {
   const prev = document.getElementById("eleEscena"); if (prev) prev.remove();
   const el = document.createElement("div");
   el.id = "eleEscena"; el.className = "ele-escena " + (clase || ""); el.setAttribute("role", "status");
-  el.innerHTML = `<div class="ele-escena__caja"><div class="ele-escena__ele">${svg}</div>
+  el.innerHTML = iconizar(`<div class="ele-escena__caja"><div class="ele-escena__ele">${svg}</div>
     <div class="ele-escena__txt"><b>${titulo}</b>${texto ? `<span>${texto}</span>` : ""}</div>
-    ${botones ? `<div class="ele-escena__btns">${botones}</div>` : ""}</div>`;
+    ${botones ? `<div class="ele-escena__btns">${botones}</div>` : ""}</div>`);
   el.addEventListener("click", ev => { if (!ev.target.closest("button") || ev.target.closest("[data-cerrar]")) el.remove(); });
   document.body.appendChild(el);
   if (dura) setTimeout(() => el.remove(), dura);
@@ -472,7 +472,7 @@ function openElefante(tab) {
   const T = TIPOS_ELEFANTE[tipoElefante()], animo = animoElefante();
   const tabs = `<div class="seg vest-tabs"><button class="${tab === "ropa" ? "is-active" : ""}" data-action="elefante-open" data-v="ropa">👕 Ropa</button><button class="${tab === "tipo" ? "is-active" : ""}" data-action="elefante-open" data-v="tipo">🐘 Tipos</button></div>`;
   const escenario = `<div class="vest-escena ele-toca ${T.papel ? "papel" : ""}" data-action="ele-toca" title="Tócalo">${elefanteSVG({ ropa })}</div>
-    <div class="vest-nombre"><b>${nombreElefante()}</b><span class="chip">${animo === "feliz" ? "😊 Feliz" : animo === "sueno" ? "😴 Con sueño" : "🙂 Normal"}</span></div>`;
+    <div class="vest-nombre"><b>${nombreElefante()}</b><span class="chip">${animo === "feliz" ? "😊 Feliz" : animo === "sueno" ? "😴 Con sueño" : icoUI("face-neutral") + " Normal"}</span></div>`;
   let panel;
   if (tab === "ropa") {
     const slot = ESPACIOS_ELEFANTE[ELE_ESPACIO] ? ELE_ESPACIO : "cabeza";

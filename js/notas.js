@@ -51,7 +51,7 @@ function notasListaHtml() {
 function notaBuscar(v) {
   NOTA_BUSCA = v || "";
   const el = document.getElementById("notas-lista");
-  if (el) el.innerHTML = notasListaHtml();
+  if (el) el.innerHTML = iconizar(notasListaHtml());
 }
 function notaCrear() {
   const el = document.getElementById("nota-nueva");

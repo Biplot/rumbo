@@ -65,7 +65,7 @@ function saludResumen() {
   </div>
   <div class="card mt-16">
     <div class="flex-between"><b>Receta de la semana</b><button class="card__hint btn-texto" data-action="salud-tab" data-v="recetas">Ver recetas ›</button></div>
-    ${receta ? `<button class="receta-mini mt-8" data-action="receta-ver" data-id="${receta.id}"><span class="receta-ico">${receta.icon || "🍽️"}</span>
+    ${receta ? `<button class="receta-mini mt-8" data-action="receta-ver" data-id="${receta.id}"><span class="receta-ico">${emoLit(receta.icon || "🍽️")}</span>
       <span><b>${escapeHtml(receta.nombre)}</b><span class="text-sm muted" style="display:block">${recetaMeta(receta)}</span></span></button>`
       : `<div class="text-sm muted mt-8">Agrega tus recetas favoritas y aquí te sugiero una cada semana.</div>`}
   </div>
@@ -108,14 +108,14 @@ function recetasHtml(lista, total) {
   if (!total) return `<div class="card mt-16"><div class="empty">Tu recetario está vacío. Agrega tu primera receta con <b>+ Nueva</b>: ingredientes, pasos y cuánto se demora.</div></div>`;
   if (!lista.length) return `<div class="card mt-16"><div class="empty">No encontré recetas con ese filtro.</div></div>`;
   return `<div class="recetas mt-16">${lista.map(r => `<button class="card receta" data-action="receta-ver" data-id="${r.id}">
-    <span class="receta-ico receta-ico--big">${r.icon || "🍽️"}</span>
+    <span class="receta-ico receta-ico--big">${emoLit(r.icon || "🍽️")}</span>
     <b>${escapeHtml(r.nombre)}</b><span class="text-sm muted">${recetaMeta(r) || "&nbsp;"}${r.favorita ? ' · <span style="color:#F5C451">★</span>' : ""}</span></button>`).join("")}</div>`;
 }
 function recetaBuscar(v) {
   RECETA_BUSCA = v || "";
   const el = document.getElementById("recetas-lista");
   if (!el) return;
-  const box = document.createElement("div"); box.innerHTML = saludRecetas();
+  const box = document.createElement("div"); box.innerHTML = iconizar(saludRecetas());
   const nuevo = box.querySelector("#recetas-lista");
   if (nuevo) el.innerHTML = nuevo.innerHTML;
 }
@@ -124,14 +124,14 @@ function openReceta(id) {
   const r = (STATE.recetas || []).find(x => x.id === id);
   if (!r) return;
   const lineas = t => (t || "").split("\n").map(x => x.trim()).filter(Boolean);
-  openModal(`${r.icon || "🍽️"} ${r.nombre}`, `
+  openModal(`${emoLit(r.icon || "🍽️")} ${escapeHtml(r.nombre)}`, `
     <div class="text-sm muted">${recetaMeta(r) || "Sin tiempo ni porciones"}${(r.etiquetas || []).length ? " · " + r.etiquetas.map(escapeHtml).join(", ") : ""}</div>
     ${lineas(r.ingredientes).length ? `<div class="section-title" style="margin:16px 0 8px">Ingredientes</div><ul class="receta-lista">${lineas(r.ingredientes).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}
     ${lineas(r.pasos).length ? `<div class="section-title" style="margin:16px 0 8px">Preparación</div><ol class="receta-lista">${lineas(r.pasos).map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ol>` : ""}
     <div class="row mt-16" style="gap:8px;flex-wrap:wrap">
       <button class="btn btn--soft" data-action="receta-fav" data-id="${r.id}">${r.favorita ? "★ Quitar de favoritas" : "☆ Favorita"}</button>
       <button class="btn-ghost" data-action="receta-editar" data-id="${r.id}">✎ Editar</button>
-      <button class="btn-ghost" data-action="receta-borrar" data-id="${r.id}" style="color:var(--coral)">🗑 Borrar</button></div>`);
+      <button class="btn-ghost" data-action="receta-borrar" data-id="${r.id}" style="color:var(--coral)">🗑 Borrar</button></div>`, { tituloHtml: true });
 }
 let RECETA_EDIT = null;
 function openRecetaForm(id) {
@@ -140,7 +140,7 @@ function openRecetaForm(id) {
   const ico = (r && r.icon) || "🍽️";
   openModal(r ? "Editar receta" : "Nueva receta", `
     <div class="field"><label>Nombre</label><input class="input" id="rc-nombre" value="${escapeAttr(r ? r.nombre : "")}" placeholder="Ej: Ensalada de quinoa"></div>
-    <div class="field"><label>Ícono</label><div class="row-wrap" style="gap:6px" id="rc-iconos">${ICONOS_RECETA.map(i => `<button type="button" class="mood-btn ${i === ico ? "is-on" : ""}" onclick="recetaIcono(this)">${i}</button>`).join("")}</div>
+    <div class="field"><label>Ícono</label><div class="row-wrap" style="gap:6px" id="rc-iconos">${ICONOS_RECETA.map(i => `<button type="button" class="mood-btn ${i === ico ? "is-on" : ""}" onclick="recetaIcono(this)">${emoLit(i)}</button>`).join("")}</div>
       <input type="hidden" id="rc-icon" value="${ico}"></div>
     <div class="row" style="gap:10px"><div class="field" style="flex:1"><label>Minutos</label><input class="input" id="rc-min" inputmode="numeric" value="${r && r.minutos ? r.minutos : ""}" placeholder="20"></div>
       <div class="field" style="flex:1"><label>Porciones</label><input class="input" id="rc-por" inputmode="numeric" value="${r && r.porciones ? r.porciones : ""}" placeholder="2"></div></div>

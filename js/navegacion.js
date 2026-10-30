@@ -119,12 +119,12 @@ function openMas() {
   const ayuda = typeof tourDePantalla === "function" && tourDePantalla(CURRENT)
     ? `<button class="mas-fila" data-action="tour-pantalla">${iconoLinea("tutoriales", 22)}<span>Ayuda de esta pantalla</span></button>` : "";
   const pie = ayuda + PIE_MAS.map(p => `<button class="mas-fila" data-route="${p.ruta}">${iconoLinea(p.ruta, 22)}<span>${p.label}</span>${p.ruta === "recompensas" ? `<b class="mas-pts">${STATE.gamif.puntos} ⭐</b>` : ""}</button>`).join("");
-  ov.querySelector(".sheet").innerHTML = `
+  ov.querySelector(".sheet").innerHTML = iconizar(`
     <div class="sheet__asa" aria-hidden="true"></div>
     <div class="sheet__head"><h2>Más</h2><button class="sheet__x" data-action="mas-cerrar" aria-label="Cerrar">${iconoLinea("cerrar", 22)}</button></div>
     <div class="mas-grid">${mods}<button class="mas-mod mas-mod--sutil" data-action="menu-personalizar">${iconoLinea("personalizar", 26)}<span>Personalizar</span></button></div>
     <div class="sheet__sep"></div>
-    ${pie}`;
+    ${pie}`);
   ov.hidden = false;
   requestAnimationFrame(() => ov.classList.add("is-open"));
   document.body.classList.add("nav-open");
@@ -170,7 +170,7 @@ document.addEventListener("click", e => {
 });
 function pintarPieNav() {
   const pts = document.getElementById("navPts");
-  if (pts && STATE) pts.textContent = STATE.gamif.puntos + " ⭐";
+  if (pts && STATE) pts.innerHTML = STATE.gamif.puntos + " " + icoUI("moneda");
 }
 
 /* -------- Rachas y monedas: qué significa cada una -------- */

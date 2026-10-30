@@ -63,7 +63,7 @@ function comprarFuncion(fid) {
   if (funcion(clave)) return true;
   recalcGamif(STATE);
   if (STATE.gamif.puntos < it.costo) { toast("Te faltan " + (it.costo - STATE.gamif.puntos) + " ⭐", true); return false; }
-  if (!confirm(`¿Desbloquear "${it.nombre}" por ${it.costo} ⭐?\nTe quedarán ${STATE.gamif.puntos - it.costo} ⭐.`)) return false;
+  if (!confirm(`¿Desbloquear "${it.nombre}" por ${it.costo} estrellas?\nTe quedarán ${STATE.gamif.puntos - it.costo}.`)) return false;
   const res = ledgerComprar(STATE, "fun-" + clave, it.costo);
   if (!res.ok && !res.yaTenia) { toast("Te faltan " + res.falta + " ⭐", true); return false; }
   saveState(); updateTopbar(); rerender();
@@ -125,7 +125,7 @@ function mostrarEnfoque() {
   const a = enfoqueActiva(); if (!a) return cerrarOverlayEnfoque();
   let el = document.getElementById("enfoque");
   if (!el) { el = document.createElement("div"); el.id = "enfoque"; el.className = "enfoque"; document.body.appendChild(el); }
-  el.innerHTML = `<div class="enfoque__in">
+  el.innerHTML = iconizar(`<div class="enfoque__in">
     <div class="enfoque__k">${a.bocado ? BOCADO.emoji + " Tu primer bocado" : "⏱️ En foco"}</div>
     <div class="enfoque__t">${escapeHtml(a.titulo)}</div>
     <div class="enfoque__reloj" id="enf-reloj">--:--</div>
@@ -133,7 +133,7 @@ function mostrarEnfoque() {
     <div class="row-wrap" style="gap:10px;justify-content:center">
       <button class="btn btn--soft" data-action="enfoque-pausa">${a.pausa ? "▶ Seguir" : "⏸ Pausar"}</button>
       <button class="btn-ghost" data-action="enfoque-terminar">Terminar antes</button></div>
-    <p class="text-xs muted mt-16">Puedes bloquear la pantalla: al volver, el tiempo sigue donde corresponde.</p></div>`;
+    <p class="text-xs muted mt-16">Puedes bloquear la pantalla: al volver, el tiempo sigue donde corresponde.</p></div>`);
   el.hidden = false;
   tickEnfoque();
   clearInterval(ENFOQUE_TIMER); ENFOQUE_TIMER = setInterval(tickEnfoque, 1000);
@@ -144,7 +144,7 @@ function tickEnfoque() {
   const reloj = document.getElementById("enf-reloj"), barra = document.getElementById("enf-barra");
   if (reloj) reloj.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   if (barra) barra.style.width = (100 - (r / (a.min * 60000)) * 100).toFixed(1) + "%";
-  document.title = a.pausa ? "⏸ Rumbo" : `${reloj ? reloj.textContent : ""} · ${a.titulo}`;
+  document.title = a.pausa ? "En pausa · Rumbo" : `${reloj ? reloj.textContent : ""} · ${a.titulo}`;
   if (!a.pausa && r <= 0) terminarEnfoque(true);
 }
 function pausarEnfoque() {

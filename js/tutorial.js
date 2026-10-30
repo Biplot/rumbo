@@ -234,7 +234,7 @@ function tourPintar(p, el) {
   const { n, total } = tourPasoVisible();
   const ultimo = TOUR.i === t.pasos.length - 1;
   const texto = typeof p.texto === "function" ? p.texto(movil) : p.texto;
-  capa.querySelector(".tour-pop").innerHTML = `
+  capa.querySelector(".tour-pop").innerHTML = iconizar(`
     <div class="flex-between"><span class="text-xs muted">${escapeHtml(t.titulo)} · ${n} de ${total}</span>
       <button class="icon-btn" data-action="tour-salir" aria-label="Salir del recorrido">✕</button></div>
     <div class="tour-pop__t">${p.titulo}</div>
@@ -242,7 +242,7 @@ function tourPintar(p, el) {
     <div class="tour-barra"><div style="width:${Math.round((n / total) * 100)}%"></div></div>
     <div class="row" style="gap:8px;justify-content:flex-end">
       ${TOUR.i ? `<button class="btn-ghost" data-action="tour-prev">Atrás</button>` : ""}
-      <button class="btn btn--primary" data-action="tour-next">${ultimo ? "Listo ✓" : "Siguiente"}</button></div>`;
+      <button class="btn btn--primary" data-action="tour-next">${ultimo ? "Listo ✓" : "Siguiente"}</button></div>`);
   capa.dataset.el = el ? "1" : "";
   TOUR.el = el;
   tourReubicar();

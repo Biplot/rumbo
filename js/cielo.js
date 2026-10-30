@@ -249,7 +249,7 @@ function cercaEl() {
   el = document.createElement("div");
   el.id = "insCerca"; el.className = "ins-cerca"; el.hidden = true;
   el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-labelledby", "insCercaT");
-  el.innerHTML = `<div class="ins-cerca__escena">
+  el.innerHTML = iconizar(`<div class="ins-cerca__escena">
       <div class="ins-cerca__lienzo" id="insCercaLienzo"></div>
       <div class="ins-cerca__plano" id="insCercaPlano" hidden></div>
       <button class="ins-cerca__x" data-c="cerrar" aria-label="Cerrar">✕</button>
@@ -257,7 +257,7 @@ function cercaEl() {
       <button class="ins-cerca__nav ins-cerca__nav--sig" data-c="sig" aria-label="Insignia siguiente">›</button>
       <div class="ins-cerca__pista" id="insCercaPista"></div>
     </div>
-    <div class="ins-cerca__ficha" id="insCercaFicha"></div>`;
+    <div class="ins-cerca__ficha" id="insCercaFicha"></div>`);
   document.body.appendChild(el);
   el.addEventListener("click", e => {
     const b = e.target.closest("[data-c]"); if (!b) return;
@@ -338,11 +338,11 @@ function planoCercaHtml(I, gana) {
 function pintarCerca(conservar) {
   const el = cercaEl(), I = cieloInfo(CERCA.id); if (!I) return;
   const gana = CERCA.modo === "ganar";
-  document.getElementById("insCercaFicha").innerHTML = gana ? fichaGanarHtml(I) : fichaCercaHtml(I);
+  document.getElementById("insCercaFicha").innerHTML = iconizar(gana ? fichaGanarHtml(I) : fichaCercaHtml(I));
   const plano = document.getElementById("insCercaPlano"), con3d = !!CIELO_ESTADO.motor && !CIELO_ESTADO.sin3d;
   const antes = plano.dataset.id;
   plano.hidden = con3d || (!CIELO_ESTADO.sin3d && !!CIELO_ESTADO.carga);
-  if (!plano.hidden && antes !== CERCA.id + CERCA.modo) { plano.innerHTML = planoCercaHtml(I, gana); plano.dataset.id = CERCA.id + CERCA.modo; }
+  if (!plano.hidden && antes !== CERCA.id + CERCA.modo) { plano.innerHTML = iconizar(planoCercaHtml(I, gana)); plano.dataset.id = CERCA.id + CERCA.modo; }
   el.classList.toggle("is-plano", !con3d);
   el.classList.toggle("is-ganar", gana);
   document.getElementById("insCercaPista").textContent = !con3d || gana ? "" : cieloTactil() ? "Arrastra para girarla" : "Arrastra para girarla · ← → para cambiar";
@@ -431,9 +431,9 @@ function avisoInsignias() {
     document.body.appendChild(el);
   }
   const b = findBadge(ids[ids.length - 1]), tot = ids.reduce((a, id) => a + (findBadge(id).reward || 0), 0);
-  el.innerHTML = `<span class="ins-aviso__m" style="--metal:${CIELO_METALES[cieloMetal(b)].css}">${b.icon}</span>
+  el.innerHTML = iconizar(`<span class="ins-aviso__m" style="--metal:${CIELO_METALES[cieloMetal(b)].css}">${b.icon}</span>
     <span class="ins-aviso__t"><b>${ids.length === 1 ? "¡Medalla nueva!" : `¡${ids.length} medallas nuevas!`}</b><span>${escapeHtml(b.nombre)}${ids.length > 1 ? " y más" : ""} · +${tot} ⭐</span></span>
-    <span class="ins-aviso__ver">Verla ›</span>`;
+    <span class="ins-aviso__ver">Verla ›</span>`);
   el.hidden = false; el.classList.remove("is-entra"); void el.offsetWidth; el.classList.add("is-entra");
   clearTimeout(INS_NUEVAS.timer);
   INS_NUEVAS.timer = setTimeout(() => { el.hidden = true; INS_NUEVAS.cola = []; }, 7000);   // sin tocarlo, igual llegan a tu cielo

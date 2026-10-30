@@ -183,7 +183,7 @@ function contarTareasRitual(sapo, pro, per, vienen) {
 function ritualCapHint() {
   const el = document.getElementById("r-cap"); if (!el) return;
   const n = contarTareasRitual(val("r-sapo"), document.getElementById("r-tareas-pro").value, document.getElementById("r-tareas-per").value, RITUAL_VIENEN);
-  el.innerHTML = capacidadHint(n, tmCapacidad(STATE, todayISO()));
+  el.innerHTML = iconizar(capacidadHint(n, tmCapacidad(STATE, todayISO())));
 }
 function saveRitual() {
   const iso = todayISO();

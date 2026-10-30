@@ -98,7 +98,7 @@ function dibujarInforme(d, op) {
   const tarjetas = d.tarjetas ? d.tarjetas.map(t => ({ v: t.v, l: t.l, color: COL[t.c] || CIAN })).filter(t => t.v !== "—") : [
     { v: pct(d.habitos), l: "hábitos cumplidos", color: CIAN },
     { v: `${d.cerrados}/${d.dias}`, l: "días cerrados", color: CIAN },
-    { v: String(d.bocados), l: "primeros bocados 🐘", color: CORAL },
+    { v: String(d.bocados), l: "primeros bocados", color: CORAL },
     { v: d.objetivos[1] ? `${d.objetivos[0]}/${d.objetivos[1]}` : "—", l: "objetivos del mes", color: CORAL },
     { v: pct(d.tareas), l: "tareas completadas", color: CIAN },
     { v: pct(d.postergacion), l: "postergación", color: SUAVE },

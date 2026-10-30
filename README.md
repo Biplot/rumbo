@@ -47,6 +47,10 @@ Una meta con avance sumado entre varios (`js/objetivos.js`): juntar para un viaj
 - **Activar:** Supabase → SQL Editor: correr `supabase/objetivos.sql` **después** de `amigos.sql` (se puede repetir). Crea `objetivos_conjunto`, `objetivos_conjunto_miembros` y `objetivos_conjunto_aportes` (sin acceso directo: todo pasa por las funciones `objetivo_*`). Mientras no se corra, Objetivos queda como siempre.
 - **Avisos al celular** (te invitan, alguien se sumó, alguien aportó —uno al día—, «¡lo lograron!»): `notifier/objetivos.mjs`, desde `api/push.js`, con el aviso «Amigos».
 
+### Visitas
+La casa y la vitrina de un amigo (`js/visitas.js`), desde su perfil: «Visitar su casa» y «Ver su vitrina». Se ven a pantalla completa, en 3D como las tuyas (rutas `#visita-casa` y `#visita-cielo`), pero de visita: se mira y se toca al elefante, nada más. Tu perfil público lleva una foto de tu casa (tu elefante, lo puesto, la pared, la repisa y los libros) y tus medallas con su fecha, solo si eliges mostrarlas en Amigos › Lo que muestras («Tu casa», «Tu vitrina»). El motor 3D lee los datos con los mismos ganchos (`cielo.js`): de visita le llegan los de tu amigo, sin tocar los tuyos.
+- **Activar:** Supabase → SQL Editor: correr `supabase/visitas.sql` **después** de `amigos.sql` (se puede repetir). Agrega las columnas `casa` y `vitrina` a `perfiles` (las mismas reglas: las leen su dueño y sus amigos). Mientras no se corra, el perfil se publica sin ellas y las visitas dicen que todavía no están activas.
+
 ## Configuración de Supabase
 Las claves públicas van en `js/store.js` (`SUPABASE_URL`, `SUPABASE_KEY`). La `publishable key` es pública por diseño; los datos están protegidos por RLS. Esquema:
 

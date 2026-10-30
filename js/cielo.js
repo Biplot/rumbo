@@ -171,22 +171,29 @@ function cieloMotor() {
     CIELO_ESTADO.carga = cieloScripts()
       .then(() => (document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1200))]) : null))
       .then(() => {
+        // De visita (visitas.js) los mismos ganchos entregan la casa y las medallas de tu amigo, sin tocar las tuyas
+        const vis = () => typeof enVisita === "function" && enVisita(), VC = () => VISITA.casa || null;
         CIELO_ESTADO.motor = crearMotorCielo(window.THREE, {
-          orden: cieloOrden, info: id => cieloInfo(id), ganadas: () => new Set(STATE.gamif.badges || []), familias: CIELO_FAMILIAS,
-          tocar: id => abrirInsignia(id), perdido: cieloSin3d, visto: cieloVisto, guardarVisto: cieloGuardarVisto,
+          orden: cieloOrden, info: id => (vis() ? visitaInfo(id) : cieloInfo(id)), familias: CIELO_FAMILIAS,
+          ganadas: () => new Set(vis() ? ((VISITA.vitrina && VISITA.vitrina.medallas) || []) : STATE.gamif.badges || []),
+          tocar: id => (vis() ? visitaMedalla(id) : abrirInsignia(id)), perdido: cieloSin3d,
+          visto: () => (vis() ? null : cieloVisto()), guardarVisto: ids => { if (!vis()) cieloGuardarVisto(ids); },
           // La casa del elefante (casa.js)
-          repisa: () => (typeof repisaIds === "function" ? repisaIds(STATE) : []), cosas: () => (typeof casaCosas === "function" ? casaCosas(STATE).concat(cuartoPuestas(STATE)) : []),
-          pared: () => (typeof cuartoPared === "function" ? cuartoPared(STATE) : null),
-          libros: () => (typeof lg_libros === "function" ? lg_libros(STATE) : 0), vacio: () => { if (typeof openRepisa === "function") { REPISA_SEL = null; openRepisa(); } },
+          repisa: () => (vis() ? (VC() ? VC().repisa : []) : typeof repisaIds === "function" ? repisaIds(STATE) : []),
+          cosas: () => (vis() ? (VC() ? VC().cosas : []) : typeof casaCosas === "function" ? casaCosas(STATE).concat(cuartoPuestas(STATE)) : []),
+          pared: () => (vis() ? (VC() ? VC().colores : null) : typeof cuartoPared === "function" ? cuartoPared(STATE) : null),
+          libros: () => (vis() ? (VC() ? VC().libros : 0) : typeof lg_libros === "function" ? lg_libros(STATE) : 0),
+          vacio: () => { if (!vis() && typeof openRepisa === "function") { REPISA_SEL = null; openRepisa(); } },
           // Tu elefante en 3D (elefante-3d.js): el mismo del dibujo, con su tipo, etapa, ropa y ánimo
-          elefante: () => (typeof tipoElefante === "function" ? { tipo: tipoElefante(), etapa: etapaElefante(STATE.gamif.xp || 0).idx, ropa: ropaPuesta(), animo: animoElefante() } : null),
+          elefante: () => (vis() ? (VC() ? Object.assign({}, VC().ele) : null)
+            : typeof tipoElefante === "function" ? { tipo: tipoElefante(), etapa: etapaElefante(STATE.gamif.xp || 0).idx, ropa: ropaPuesta(), animo: animoElefante() } : null),
           tocoEle: () => { if (typeof vibrar === "function") vibrar(12); },
           // lo que hace en su cuarto (casa.js): ahora mismo, lo que puede hacer y el aviso cuando cambia
-          ahora: () => (typeof eleActividadAhora === "function" ? eleActividadAhora(STATE).id : "sentado"),
-          actividades: () => (typeof eleActividades === "function" ? eleActividades(STATE).map(a => [a.id, a.w]) : []),
+          ahora: () => (vis() ? eleElegirAhora(visitaActividades()).id : typeof eleActividadAhora === "function" ? eleActividadAhora(STATE).id : "sentado"),
+          actividades: () => (vis() ? visitaActividades() : typeof eleActividades === "function" ? eleActividades(STATE) : []).map(a => [a.id, a.w]),
           haciendo: id => { if (typeof eleHaciendo === "function") eleHaciendo(id); },
           entrar: l => { if (typeof lugarDesdeTarjeta === "function") lugarDesdeTarjeta(l); },
-          cerrados: () => Object.keys(STATE.ritual.dias || {}).filter(k => STATE.ritual.dias[k] && STATE.ritual.dias[k].cerrado),
+          cerrados: () => (vis() ? [] : Object.keys(STATE.ritual.dias || {}).filter(k => STATE.ritual.dias[k] && STATE.ritual.dias[k].cerrado)),
         });
         return CIELO_ESTADO.motor;
       })
@@ -210,6 +217,8 @@ function cieloSin3d() {
 const CIELO_LUGARES = {
   cuarto: { lugar: "casa", lienzo: "lugarLienzo", marco: ".lugar", libre: true },
   cielo: { lugar: "cielo", lienzo: "lugarLienzo", marco: ".lugar", libre: true },
+  "visita-casa": { lugar: "casa", lienzo: "lugarLienzo", marco: ".lugar", libre: true },     // la casa y la vitrina de un amigo (visitas.js)
+  "visita-cielo": { lugar: "cielo", lienzo: "lugarLienzo", marco: ".lugar", libre: true },
 };
 /* Tras cada render se monta (o se vuelve a colgar) el 3D de la pantalla; fuera de ellas, se pausa.
    Una ficha abierta manda: sigue abierta mientras no cambies de pantalla */

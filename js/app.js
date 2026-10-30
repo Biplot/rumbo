@@ -13,6 +13,7 @@ const ROUTES = [
   { id: "metas", label: "Objetivos", icon: "🎯", render: renderMetas, subtitle: "Tus metas trimestrales y mensuales." },
   { id: "ritual", label: "Ritual", icon: "🌅", render: renderRitual, subtitle: "Abre y cierra tu día, tu semana y tu mes." },
   { id: "diario", label: "Diario", icon: "📔", render: renderDiario, subtitle: "Tu día a día: ánimo, reflexión e historial del ritual." },
+  { id: "amigos", label: "Amigos", icon: "🤝", render: renderAmigos, subtitle: "Invita, acompaña y manda ánimo. Tú eliges qué ven." },
   { grupo: "Módulos" },
   { id: "tendencias", mas: true, label: "Tendencias", icon: "📈", render: renderTendencias, subtitle: "Tu evolución del año en gráficos." },
   { id: "calendario", mas: true, label: "Calendario", icon: "🗓️", render: renderCalendario, subtitle: "Tu mes de un vistazo." },
@@ -121,9 +122,11 @@ async function enterApp(user) {
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
   revisarDispositivoPush();              // 🔔 ¿este dispositivo sigue activado para esta cuenta?
   if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
+  else if (amigosHayInvitacion()) { /* la invitación de un amigo va primero; las novedades, la próxima vez */ }
   else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
   else if (debeElegirElefante()) setTimeout(openElegirElefante, 600);
   procesarAtajo();
+  amigosAlEntrar();                      // 🤝 la invitación que traías (?amigo=) y lo nuevo de tus amigos
 }
 /* La pantalla de carga (index.html) se va cuando ya se ve la app o el acceso */
 function quitarSplash() {
@@ -152,7 +155,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 35;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 36;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -383,6 +386,11 @@ const NOVEDADES = {
     ["🍪", "El bocado del logo", "Tu primer bocado lleva la galleta mordida de Rumbo, y todo lo de tu elefante, su silueta de perfil."],
     ["✏️", "Lo tuyo no cambia", "Lo que escribes o eliges tú (tus recetas, tus listas, tus notas y tu diario) sigue con sus emojis."],
   ],
+  36: [
+    ["🤝", "Amigos", "Invita a tus amigos con tu enlace o tu código, mira cómo va su día y mándales ánimo. Está en el menú, debajo de Diario."],
+    ["👀", "Tú eliges qué ven", "Siempre tu nombre y tu avatar; si quieres, también si abriste y cerraste tu día, tu racha y tu rango. Tus tareas, tu diario y tus finanzas nunca se muestran."],
+    ["🔔", "Avisos de tus amigos", "Te llega un aviso cuando te mandan ánimo, te piden amistad o aceptan la tuya. Nunca de noche, y se apaga en Notificaciones."],
+  ],
 };
 let NOVEDADES_ABIERTAS = false;
 function openNovedades() {
@@ -411,7 +419,8 @@ function saveOnboarding() {
   STATE.settings.introVersion = INTRO_VERSION;
   ONB_ACTIVE = false;
   saveState(); closeModal(); updateTopbar(); rerender();
-  setTimeout(() => tourIniciar("general"), 400);   // recorrido guiado sobre la app real
+  if (amigosHayInvitacion()) setTimeout(amigosAlEntrar, 400);   // 🤝 llegó con la invitación de un amigo: va primero
+  else setTimeout(() => tourIniciar("general"), 400);   // recorrido guiado sobre la app real
   toast("¡Listo! Bienvenido a Rumbo 🎉");
   if (typeof maybePromptNotif === "function") setTimeout(maybePromptNotif, 500);
 }
@@ -570,6 +579,7 @@ function buildNav() {
     + `<details class="nav-mods" id="navMods"${abierto ? " open" : ""}><summary class="nav__label nav-mods__sum">Módulos (${mods.length})${iconoLinea("chevron", 16)}</summary>
       ${mods.map(item).join("")}
       <button class="nav__item nav__item--sub" data-action="menu-personalizar"><span class="nav__ico">${iconoLinea("personalizar", 20)}</span><span>Personalizar menú</span></button></details>`;
+  if (typeof amigosMarcarNav === "function") amigosMarcarNav();
   const det = document.getElementById("navMods");
   det.addEventListener("toggle", () => { try { localStorage.setItem("rumbo-nav-modulos", det.open ? "1" : "0"); } catch (e) {} });
   document.getElementById("brandName").innerHTML = `${STATE.settings.appName.replace("i","<em>i</em>")}`;
@@ -930,6 +940,7 @@ function onClick(e) {
   if (!el) return;
   const a = el.dataset.action;
   const d = el.dataset;
+  if (a.startsWith("am-")) { amigosAccion(a, d, el); return; }   // 🤝 Amigos (amigos.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;

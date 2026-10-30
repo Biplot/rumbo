@@ -2416,3 +2416,52 @@ html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-no
 .ele-corazon { color: #E5577A; }
 .ele-corazon.is-ambar { color: #F4AE3D; }
 .ele-corazon .ico-n { fill: currentColor; }
+
+/* ============================================================
+   AMIGOS (v98) · amigos.js: invitar, la lista de hoy, ánimos y lo que muestras
+   ============================================================ */
+.am { display: grid; gap: 16px; }
+.am .card__title { display: flex; align-items: center; gap: 8px; }
+.am-av { display: inline-grid; place-items: center; flex-shrink: 0; border-radius: 50%; overflow: hidden; background: var(--cian-soft); color: var(--cian-ink); font-weight: 800; line-height: 1; }
+.am-av svg { width: 100%; height: 100%; display: block; }
+.am-invita { display: grid; gap: 14px; background: color-mix(in srgb, var(--cian) 7%, var(--surface)); }
+.am-invita p { margin: 6px 0 0; max-width: 60ch; }
+.am-invita__acc { display: flex; gap: 8px; flex-wrap: wrap; }
+.am-invita__acc .btn { display: inline-flex; align-items: center; gap: 6px; }
+.am-codigos { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: flex-end; padding-top: 14px; border-top: 1px solid var(--line); }
+.am-codigos > div { display: grid; gap: 4px; }
+.am-cod { font: 800 24px/1.1 ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .16em; color: var(--text); background: none; border: 0; padding: 2px 0 0; cursor: pointer; text-align: left; }
+.am-codigos__otro .input { width: 130px; text-transform: uppercase; letter-spacing: .12em; font-weight: 700; }
+.am-fila { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.am-fila:last-of-type { border-bottom: 0; }
+.am-fila__q { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; background: none; border: 0; padding: 0; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.am-fila__t { min-width: 0; display: grid; gap: 3px; }
+.am-fila__t b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.am-fila__t > span, .am-perfil__dia { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 12.5px; color: var(--text-muted); }
+.am-est { display: inline-flex; align-items: center; gap: 4px; }
+.am-est.is-ok { color: var(--cian-ink); font-weight: 600; }
+.am-est.is-va { color: var(--coral); font-weight: 600; }
+.am-animo-b { width: 42px; height: 42px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--text); display: grid; place-items: center; cursor: pointer; flex-shrink: 0; font-size: 18px; }
+.am-animo-b:hover, .am-animo-b:focus-visible { background: var(--cian-soft); color: var(--cian-ink); }
+.am-sol { display: flex; align-items: center; gap: 10px; padding: 10px 0 0; flex-wrap: wrap; }
+.am-sol__t { flex: 1; min-width: 120px; display: grid; }
+.am-sol__b { display: flex; gap: 6px; }
+.am-env { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; }
+.am-x { border: 0; background: none; padding: 0 0 0 2px; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; font: inherit; }
+.am-x--txt { font-size: 12px; text-decoration: underline; }
+.am-animos { background: color-mix(in srgb, #F4AE3D 11%, var(--surface)); }
+.am-animo-r { display: flex; gap: 10px; align-items: center; padding-top: 12px; }
+.am-animo-r > div { display: grid; min-width: 0; }
+.am-confirma, .am-perfil { display: grid; justify-items: center; gap: 10px; text-align: center; }
+.am-confirma b { font-size: 18px; }
+.am-confirma p { max-width: 42ch; margin: 0; }
+.am-perfil__dia { justify-content: center; font-size: 13px; }
+.am-perfil .btn { display: inline-flex; align-items: center; gap: 6px; }
+.am-perfil__mas { display: flex; gap: 8px; margin-top: 4px; }
+.am-animo-m { display: grid; gap: 10px; }
+.am-frase { border: 1px solid var(--line-strong); cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; }
+/* Un punto ámbar en el menú cuando hay solicitudes o ánimos nuevos */
+.nav__item.tiene-nuevo .nav__ico, .mas-mod.tiene-nuevo { position: relative; }
+.nav__item.tiene-nuevo .nav__ico::after, .mas-mod.tiene-nuevo::after { content: ""; position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--coral-btn); box-shadow: 0 0 0 2px var(--surface); }
+.nav__item.tiene-nuevo .nav__ico::after { top: -2px; right: -3px; }
+.mas-mod.tiene-nuevo::after { top: 10px; right: 14px; }

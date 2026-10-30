@@ -11,6 +11,9 @@
      POST  x-push-secreto: <secreto>         -> { usuarios, en_hora, enviados, ... }  (solo la base)
      POST  Authorization: Bearer <sesión>
            { accion: "prueba", endpoint }    -> { enviadas, fallidas, borradas }  prueba a ESTE dispositivo
+           { accion: "amigos", tipo: "animo", id }              -> aviso del ánimo a quien lo recibe
+           { accion: "amigos", tipo: "solicitud" | "aceptada", otro } -> aviso de la solicitud o de la amistad aceptada
+             (se revisa en la base que corresponda y que no se haya avisado antes: supabase/amigos.sql)
 
    Variables de entorno (Vercel → Settings → Environment Variables):
      SUPABASE_SERVICE_ROLE_KEY   clave secreta de Supabase (service_role o sb_secret_…)
@@ -119,6 +122,45 @@ async function enviarPush(config, dispositivos, mensaje, host) {
   return { enviadas, fallidas, borradas: muertas.length };
 }
 
+/**
+ * Un aviso de amigos (notifier/amigos.mjs). Solo si de verdad corresponde: el ánimo es de quien
+ * llama y no se avisó; la solicitud la pidió quien llama; la amistad la aceptó quien llama.
+ * Se marca como avisado antes de mandar, así nunca llega dos veces.
+ */
+async function avisoAmigos(config, yo, body, host) {
+  const sb = admin();
+  const { mensajeAmigo, puedeAvisarAmigo, parAmistad } = await import("../notifier/amigos.mjs");
+  let para = null, mensaje = "";
+  if (body.tipo === "animo") {
+    const { data, error } = await sb.from("animos").update({ avisado: true })
+      .eq("id", Number(body.id)).eq("de", yo).eq("avisado", false).select("para, mensaje").maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return { enviadas: 0, motivo: "ya-avisado" };
+    para = data.para; mensaje = data.mensaje;
+  } else if (body.tipo === "solicitud" || body.tipo === "aceptada") {
+    const otro = String(body.otro || "").toLowerCase();
+    if (!/^[0-9a-f-]{36}$/.test(otro) || otro === yo) return { enviadas: 0, motivo: "no-valido" };
+    const [a, b] = parAmistad(yo, otro);
+    const { data: fila, error } = await sb.from("amistades").select("estado, pide, avisos").eq("a", a).eq("b", b).maybeSingle();
+    if (error) throw new Error(error.message);
+    const corresponde = fila && (body.tipo === "solicitud" ? fila.estado === "pendiente" && fila.pide === yo : fila.estado === "aceptada" && fila.pide === otro);
+    if (!corresponde) return { enviadas: 0, motivo: "no-corresponde" };
+    if (fila.avisos && fila.avisos[body.tipo]) return { enviadas: 0, motivo: "ya-avisado" };
+    const { error: e2 } = await sb.from("amistades").update({ avisos: Object.assign({}, fila.avisos, { [body.tipo]: true }) }).eq("a", a).eq("b", b);
+    if (e2) throw new Error(e2.message);
+    para = otro;
+  } else return { enviadas: 0, motivo: "tipo" };
+  const [{ data: perfil }, { data: est }, { data: dispositivos, error: e3 }] = await Promise.all([
+    sb.from("perfiles").select("nombre").eq("user_id", yo).maybeSingle(),
+    sb.from("estado_usuario").select("notif:data->settings->notif").eq("user_id", para).maybeSingle(),
+    sb.from("suscripciones_push").select("id, endpoint, p256dh, auth").eq("user_id", para),
+  ]);
+  if (e3) throw new Error(e3.message);
+  if (!dispositivos || !dispositivos.length) return { enviadas: 0, motivo: "sin-dispositivos" };
+  if (!puedeAvisarAmigo(est && est.notif, new Date())) return { enviadas: 0, motivo: "silencio" };
+  return enviarPush(config, dispositivos, mensajeAmigo(body.tipo, { nombre: perfil && perfil.nombre, mensaje }), host);
+}
+
 function cuerpoJSON(req) {
   if (req.body && typeof req.body === "object") return req.body;
   try { return JSON.parse(req.body || "{}"); } catch (e) { return {}; }
@@ -151,6 +193,7 @@ module.exports = async function handler(req, res) {
     const { data: u, error: eUsuario } = await admin().auth.getUser(jwt);
     if (eUsuario || !u || !u.user) return res.status(401).json({ error: "sesion" });
     const body = cuerpoJSON(req);
+    if (body.accion === "amigos") return res.status(200).json(await avisoAmigos(config, u.user.id, body, host));
     if (body.accion !== "prueba" || typeof body.endpoint !== "string") return res.status(400).json({ error: "Acción no válida" });
     const { data: fila, error: eFila } = await admin().from("suscripciones_push")
       .select("id, endpoint, p256dh, auth").eq("endpoint", body.endpoint).eq("user_id", u.user.id).maybeSingle();

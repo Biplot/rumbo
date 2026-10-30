@@ -476,10 +476,10 @@ function devolverCompras(s, ids, nota) {
    antes de la Tienda, sigue encendido para quien ya tenía su hora.
    El servidor usa la misma regla (notifier/reglas.mjs): si cambias una, cambia la otra.
    ============================================================ */
-const AVISOS_TIPOS = ["manana", "noche", "insistencia", "pendientes", "mediodia", "semana", "mes", "trimestre", "habitos", "cumpleanos", "contactos"];
+const AVISOS_TIPOS = ["manana", "noche", "insistencia", "pendientes", "mediodia", "semana", "mes", "trimestre", "habitos", "cumpleanos", "contactos", "amigos"];
 const AVISOS_NIVELES = {
   esencial: ["manana", "noche"],
-  recomendado: ["manana", "noche", "semana", "mes", "trimestre"],
+  recomendado: ["manana", "noche", "semana", "mes", "trimestre", "amigos"],
   todo: AVISOS_TIPOS,
 };
 const AVISOS_HORAS = { manana: "08:00", noche: "21:00", mediodia: "13:00", habitos: "20:00" };
@@ -607,6 +607,7 @@ function saveState() {
     localStorage.setItem("rumbo_pending_" + CURRENT_USER.id, "1");   // hay cambios sin subir
   } catch (e) {}
   if (typeof scheduleCloudSave === "function") scheduleCloudSave();
+  if (typeof amigosPublicar === "function") amigosPublicar();   // 🤝 lo que ven tus amigos, si cambió
 }
 
 /* Registra ids de tareas del planificador borradas, para que la fusión con otro

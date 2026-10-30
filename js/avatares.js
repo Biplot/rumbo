@@ -273,6 +273,30 @@ function avatarSVG(id, S) {
   const d = avatarDef(id); if (!d) return null;
   return d.svg();
 }
+/* -------- Para tus amigos (amigos.js) -------- */
+/* Lo que publicas de tu avatar: cuál es (y cómo armaste el tuyo); null si usas tu inicial */
+function avatarPublico() {
+  const a = avEstado();
+  if (!a.id || !avatarTiene(a.id)) return null;
+  return a.id === "propio" ? { id: "propio", propio: avPropio() } : { id: a.id };
+}
+/* El avatar de otra persona según lo que publicó. Viene de afuera: solo se aceptan avatares
+   del catálogo y piezas de la paleta (nada de texto libre dentro del SVG).
+   «Tu elefante» de otro se ve con la cara de reserva: el suyo vive en su casa. */
+function avatarDeOtro(av) {
+  if (!av || typeof av.id !== "string") return null;
+  if (av.id === "propio") {
+    const A = AVATAR_ARTE, o = A.alDia(Object.assign({}, AV_PROPIO_BASE, av.propio && typeof av.propio === "object" ? av.propio : {}));
+    const de = (v, lista, base) => lista.includes(v) ? v : base;
+    return A.persona({
+      piel: de(o.piel, A.PIELES, AV_PROPIO_BASE.piel), colPelo: de(o.colPelo, A.COL_PELO, AV_PROPIO_BASE.colPelo), ropa: de(o.ropa, A.ROPA, AV_PROPIO_BASE.ropa),
+      pelo: de(o.pelo, Object.keys(A.PELOS).filter(k => k !== "largoAtras"), "corto"), lentes: de(o.lentes, ["no", "redondos", "cuadrados", "sol"], "no"),
+      barba: de(o.barba, ["no", "si", "bigote"], "no"), animo: de(o.animo, ["feliz", "normal"], "feliz"), fondo: de(o.fondo, A.FONDOS, "indigo"),
+    });
+  }
+  const d = avatarDef(av.id);
+  return d ? d.svg() : null;
+}
 /* Lo que va dentro del círculo del menú e Inicio: el avatar elegido, o la inicial como antes */
 function avatarActualHtml(inicial) {
   const a = avEstado();

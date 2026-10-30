@@ -33,6 +33,22 @@ async function _pushFetch(metodo, body, jwt) {
   } catch (e) { return { error: "red" }; }
 }
 
+/* Amigos: código para invitar (6 letras y números sin los que se confunden, como rumbo_codigo_amigo en supabase/amigos.sql) */
+function _codigoAmigo() {
+  const L = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let c = ""; for (let i = 0; i < 6; i++) c += L[Math.floor(Math.random() * L.length)];
+  return c;
+}
+/* Errores de Amigos en palabras de la app: sin-servidor (falta correr supabase/amigos.sql), red, limite, no-amigos */
+function _amigosError(e) {
+  const m = String((e && (e.message || e.details)) || e || "");
+  if (/limite/.test(m)) return "limite";
+  if (/no-amigos/.test(m)) return "no-amigos";
+  if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return "red";
+  if ((e && ["PGRST202", "PGRST205", "42P01", "42883"].includes(e.code)) || /does not exist|Could not find the (function|table)|schema cache/i.test(m)) return "sin-servidor";
+  return m || "error";
+}
+
 const LocalBackend = {
   /* Sin servidor: la función no existe (las pruebas la simulan en /functions/v1/…) */
   async llamarFuncion(nombre, body) {
@@ -97,6 +113,100 @@ const LocalBackend = {
     const users = this._users(); if (users[id]) { users[id].pass = _hash(newPass); this._saveUsers(users); }
     return { ok: true };
   },
+  /* -------- Amigos sin servidor: las mismas reglas que supabase/amigos.sql, guardadas en este navegador.
+     Las cuentas locales comparten esta "base", así se prueban dos personas en un mismo equipo. -------- */
+  _amDb() {
+    const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1 };
+    try { return Object.assign(vacia, JSON.parse(localStorage.getItem("rumbo_amigos") || "{}")); } catch { return vacia; }
+  },
+  _amGuardar(db) { try { localStorage.setItem("rumbo_amigos", JSON.stringify(db)); } catch {} },
+  _amPar(db, x, y) { return db.amistades.find(f => (f.a === x && f.b === y) || (f.a === y && f.b === x)); },
+  _amFicha(db, id) { const p = db.perfiles[id] || {}; return { id, nombre: p.nombre || "", avatar: p.avatar || null }; },
+  async amigosPerfil(p) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), prev = db.perfiles[yo];
+    let codigo = prev && prev.codigo;
+    if (!codigo) { const usados = new Set(Object.values(db.perfiles).map(x => x.codigo)); do codigo = _codigoAmigo(); while (usados.has(codigo)); }
+    db.perfiles[yo] = { user_id: yo, codigo, nombre: String(p.nombre || "").slice(0, 60), avatar: p.avatar || null, muestra: p.muestra || {}, estado: p.estado || {} };
+    this._amGuardar(db);
+    return { codigo };
+  },
+  async amigosBuscar(codigo) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), c = String(codigo || "").trim().toUpperCase();
+    const p = Object.values(db.perfiles).find(x => x.codigo === c && x.user_id !== yo);
+    if (!p) return null;
+    const f = this._amPar(db, yo, p.user_id);
+    return f && f.estado === "bloqueada" ? null : { user_id: p.user_id, nombre: p.nombre, avatar: p.avatar };
+  },
+  async amigosPedir(codigo) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), c = String(codigo || "").trim().toUpperCase();
+    const p = Object.values(db.perfiles).find(x => x.codigo === c);
+    if (!p) return { estado: "no-existe" };
+    const otro = p.user_id;
+    if (otro === yo) return { estado: "tu-codigo" };
+    const f = this._amPar(db, yo, otro);
+    if (f) {
+      if (f.estado === "bloqueada") return { estado: "no-existe" };
+      if (f.estado === "aceptada") return { estado: "ya", otro };
+      if (f.pide === otro) { f.estado = "aceptada"; f.aceptada_at = new Date().toISOString(); this._amGuardar(db); return { estado: "aceptada", otro }; }
+      return { estado: "pedida", otro };
+    }
+    if (db.amistades.filter(x => x.pide === yo && x.estado === "pendiente").length >= 20) return { estado: "limite" };
+    db.amistades.push({ a: yo, b: otro, estado: "pendiente", pide: yo, creada: new Date().toISOString() });
+    this._amGuardar(db);
+    return { estado: "pedida", otro };
+  },
+  async amigosResponder(otro, acepta) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), f = this._amPar(db, yo, otro);
+    if (!f || f.estado !== "pendiente") return { r: "nada" };
+    if (acepta) {
+      if (f.pide !== otro) return { r: "nada" };
+      f.estado = "aceptada"; f.aceptada_at = new Date().toISOString(); this._amGuardar(db); return { r: "aceptada" };
+    }
+    db.amistades = db.amistades.filter(x => x !== f); this._amGuardar(db); return { r: "rechazada" };
+  },
+  async amigosQuitar(otro) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), f = this._amPar(db, yo, otro);
+    if (!f || (f.estado === "bloqueada" && f.bloquea !== yo)) return { r: "nada" };
+    db.amistades = db.amistades.filter(x => x !== f); this._amGuardar(db); return { r: "quitada" };
+  },
+  async amigosBloquear(otro) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), f = this._amPar(db, yo, otro);
+    if (f && f.estado === "bloqueada" && f.bloquea !== yo) return { r: "bloqueada" };
+    db.amistades = db.amistades.filter(x => x !== f).concat([{ a: yo, b: otro, estado: "bloqueada", pide: yo, bloquea: yo }]);
+    this._amGuardar(db); return { r: "bloqueada" };
+  },
+  async amigosLista() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), mis = db.amistades.filter(f => f.a === yo || f.b === yo).map(f => Object.assign({ otro: f.a === yo ? f.b : f.a }, f));
+    return {
+      codigo: (db.perfiles[yo] || {}).codigo || "",
+      amigos: mis.filter(m => m.estado === "aceptada").map(m => Object.assign(this._amFicha(db, m.otro), { estado: (db.perfiles[m.otro] || {}).estado || {}, desde: m.aceptada_at || null }))
+        .sort((x, y) => x.nombre.toLowerCase().localeCompare(y.nombre.toLowerCase())),
+      recibidas: mis.filter(m => m.estado === "pendiente" && m.pide === m.otro).map(m => this._amFicha(db, m.otro)),
+      enviadas: mis.filter(m => m.estado === "pendiente" && m.pide === yo).map(m => this._amFicha(db, m.otro)),
+      bloqueados: mis.filter(m => m.estado === "bloqueada" && m.bloquea === yo).map(m => this._amFicha(db, m.otro)),
+      animos: db.animos.filter(x => x.para === yo && !x.visto).sort((x, y) => y.id - x.id)
+        .map(x => Object.assign(this._amFicha(db, x.de), { id: x.id, de: x.de, mensaje: x.mensaje, creado: x.creado })),
+    };
+  },
+  async amigosAnimo(para, mensaje) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), f = this._amPar(db, yo, para);
+    if (!f || f.estado !== "aceptada") return { error: "no-amigos" };
+    const dia = Date.now() - 864e5;
+    if (db.animos.filter(x => x.de === yo && x.para === para && new Date(x.creado).getTime() > dia).length >= 3) return { error: "limite" };
+    const id = db.sig++;
+    db.animos.push({ id, de: yo, para, mensaje: String(mensaje || "").trim().slice(0, 120), creado: new Date().toISOString(), visto: false });
+    this._amGuardar(db);
+    return { id };
+  },
+  async amigosAnimosVistos() {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(); let n = 0;
+    db.animos.forEach(x => { if (x.para === yo && !x.visto) { x.visto = true; n++; } });
+    this._amGuardar(db); return { n };
+  },
+  async amigosAvisar() { return { ok: true }; },   // sin servidor no hay avisos al celular
   async deleteAccount() {
     const id = localStorage.getItem("rumbo_session"); if (!id) return { error: "No hay sesión." };
     const users = this._users(); delete users[id]; this._saveUsers(users);
@@ -424,6 +534,32 @@ const SupabaseBackend = {
     const { data } = await this._client().auth.getSession();
     return _pushFetch(metodo, body, data && data.session && data.session.access_token);
   },
+  /* -------- Amigos (supabase/amigos.sql): lo compartido vive en tablas aparte, con reglas de acceso -------- */
+  async amigosPerfil(p) {
+    const { data: ses } = await this._client().auth.getSession();
+    const uid = ses && ses.session && ses.session.user.id; if (!uid) return { error: "sesion" };
+    const fila = { user_id: uid, nombre: String(p.nombre || "").slice(0, 60), avatar: p.avatar || null, muestra: p.muestra || {}, estado: p.estado || {}, updated_at: new Date().toISOString() };
+    for (let i = 0; i < 3; i++) {   // el código lo pone la base; si chocara con otro (muy raro), se intenta de nuevo
+      const { data, error } = await this._client().from("perfiles").upsert(fila, { onConflict: "user_id" }).select("codigo").single();
+      if (!error) return { codigo: data.codigo };
+      if (!/codigo/.test(error.message || "")) return { error: _amigosError(error) };
+    }
+    return { error: "codigo" };
+  },
+  async _amRpc(fn, args) {
+    try { const { data, error } = await this._client().rpc(fn, args || {}); return error ? { error: _amigosError(error) } : { data }; }
+    catch (e) { return { error: _amigosError(e) }; }
+  },
+  async amigosLista() { const r = await this._amRpc("amigos_lista"); return r.error ? r : r.data; },
+  async amigosBuscar(codigo) { const r = await this._amRpc("amigos_buscar", { p_codigo: codigo }); return r.error ? r : (r.data && r.data[0]) || null; },
+  async amigosPedir(codigo) { const r = await this._amRpc("amigos_pedir", { p_codigo: codigo }); return r.error ? r : r.data; },
+  async amigosResponder(otro, acepta) { const r = await this._amRpc("amigos_responder", { p_otro: otro, p_acepta: !!acepta }); return r.error ? r : { r: r.data }; },
+  async amigosQuitar(otro) { const r = await this._amRpc("amigos_quitar", { p_otro: otro }); return r.error ? r : { r: r.data }; },
+  async amigosBloquear(otro) { const r = await this._amRpc("amigos_bloquear", { p_otro: otro }); return r.error ? r : { r: r.data }; },
+  async amigosAnimo(para, mensaje) { const r = await this._amRpc("amigos_animo", { p_para: para, p_mensaje: mensaje || "" }); return r.error ? r : { id: r.data }; },
+  async amigosAnimosVistos() { const r = await this._amRpc("amigos_animos_vistos"); return r.error ? r : { n: r.data }; },
+  /* El aviso al celular del otro (api/push.js revisa en la base que corresponda) */
+  async amigosAvisar(tipo, datos) { return this.pushApi("POST", Object.assign({ accion: "amigos", tipo }, datos || {})); },
   /* ¿Está activo "Iniciar sesión con Google" en Supabase? (Authentication → Providers → Google).
      Se consulta al mostrar la pantalla de acceso: así el botón aparece solo cuando funciona. */
   async googleDisponible() {

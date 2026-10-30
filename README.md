@@ -32,6 +32,11 @@ Pruebas en navegador (requieren Playwright, solo para desarrollo): `node tests/e
   2. Supabase → SQL Editor: correr `supabase/notificaciones.sql` (se puede repetir).
   3. Abrir Rumbo en `rumbo.biplot.cl` y activar las notificaciones: eso anota la dirección a la que llama la base. En cada dispositivo, «Enviar una notificación de prueba» manda un push real desde el servidor.
 
+## Amigos
+Invitar con enlace o código, la lista de hoy, ánimos y lo que cada uno muestra (`js/amigos.js`). Tu documento privado (`estado_usuario`) no cambia: lo compartido vive en tablas aparte, con reglas de acceso.
+- **Activar:** Supabase → SQL Editor: correr `supabase/amigos.sql` (se puede repetir). Crea `perfiles`, `amistades` y `animos`, sus reglas (RLS) y las funciones `amigos_*`. Mientras no se corra, la pantalla Amigos dice que todavía no está activo.
+- **Avisos al celular** (ánimo, solicitud, amistad aceptada): los manda `api/push.js` (`accion: "amigos"`) después de revisar en la base que corresponden. Se apagan con el aviso «Amigos» en Notificaciones y nunca llegan de 22:00 a 8:00.
+
 ## Configuración de Supabase
 Las claves públicas van en `js/store.js` (`SUPABASE_URL`, `SUPABASE_KEY`). La `publishable key` es pública por diseño; los datos están protegidos por RLS. Esquema:
 

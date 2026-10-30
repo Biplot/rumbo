@@ -11,10 +11,10 @@ function aHora(min) { return String(Math.floor(min / 60)).padStart(2, "0") + ":"
 /* ---------- Qué avisos recibe cada persona: la misma regla que la app (avisosActivos en js/state.js) ----------
    settings.notif.avisos guarda solo lo que la persona eligió; lo demás vale como en "Recomendado".
    El de mediodía (antes se compraba en la Tienda) sigue encendido para quien ya tenía su hora. */
-export const AVISOS_TIPOS = ["manana", "noche", "insistencia", "pendientes", "mediodia", "semana", "mes", "trimestre", "habitos", "cumpleanos", "contactos"];
+export const AVISOS_TIPOS = ["manana", "noche", "insistencia", "pendientes", "mediodia", "semana", "mes", "trimestre", "habitos", "cumpleanos", "contactos", "amigos"];
 export const AVISOS_NIVELES = {
   esencial: ["manana", "noche"],
-  recomendado: ["manana", "noche", "semana", "mes", "trimestre"],
+  recomendado: ["manana", "noche", "semana", "mes", "trimestre", "amigos"],
   todo: AVISOS_TIPOS,
 };
 export const AVISOS_HORAS = { manana: "08:00", noche: "21:00", mediodia: "13:00", habitos: "20:00" };

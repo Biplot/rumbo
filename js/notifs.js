@@ -145,15 +145,17 @@ const AVISOS_INFO = {
   habitos: ["✅", "Hábitos pendientes", "A la hora que elijas, solo si te falta alguno de los que tocan hoy."],
   cumpleanos: ["🎂", "Cumpleaños", "En la mañana del día, de las personas que tienes en Relaciones."],
   contactos: ["💬", "Contactos pendientes", "Los domingos en la mañana: a quién hace tiempo que no le escribes (según Relaciones)."],
+  amigos: ["🤝", "Amigos", "Cuando un amigo te manda ánimo, te pide amistad o acepta la tuya. Nunca de noche (de 22:00 a 8:00)."],
 };
 const AVISOS_GRUPOS = [
   ["Tu día", ["manana", "noche", "insistencia", "pendientes", "mediodia"]],
   ["Semana, mes y trimestre · solo si aún no lo haces", ["semana", "mes", "trimestre"]],
   ["Hábitos y relaciones", ["habitos", "cumpleanos", "contactos"]],
+  ["Amigos", ["amigos"]],
 ];
 const AVISOS_NIVEL_TXT = {
   esencial: "Abrir y cerrar el día.",
-  recomendado: "Abrir y cerrar el día, más semana, mes y trimestre.",
+  recomendado: "Abrir y cerrar el día, más semana, mes, trimestre y tus amigos.",
   todo: "Todos los avisos.",
   personalizado: "Elegiste tus propios avisos.",
 };

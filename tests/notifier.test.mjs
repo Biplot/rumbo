@@ -24,7 +24,7 @@ export default async function ({ G, test, assert }) {
       { avisos: { habitos: true, cumpleanos: true, contactos: true } }, { avisos: Object.fromEntries(AVISOS_TIPOS.map(k => [k, false])) }, { avisos: "roto" }];
     for (const n of casos) assert.deepEqual(avisosActivos(n), JSON.parse(JSON.stringify(G("avisosActivos")(n))));
     assert.deepEqual(AVISOS_NIVELES, JSON.parse(JSON.stringify(G("AVISOS_NIVELES"))));
-    assert.deepEqual(avisosActivos({}), { manana: true, noche: true, insistencia: false, pendientes: false, mediodia: false, semana: true, mes: true, trimestre: true, habitos: false, cumpleanos: false, contactos: false });
+    assert.deepEqual(avisosActivos({}), { manana: true, noche: true, insistencia: false, pendientes: false, mediodia: false, semana: true, mes: true, trimestre: true, habitos: false, cumpleanos: false, contactos: false, amigos: true });
     assert.equal(G("nivelAvisos")({}), "recomendado");
     assert.equal(G("nivelAvisos")({ avisos: { semana: false } }), "personalizado");
   });

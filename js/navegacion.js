@@ -7,6 +7,7 @@
 /* Íconos de línea (24×24, trazo = currentColor) */
 const ICONOS_LINEA = {
   inicio: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  amigos: '<path d="M19.414 14.414C21 12.828 22 11.5 22 9.5a5.5 5.5 0 0 0-9.591-3.676.6.6 0 0 1-.818.001A5.5 5.5 0 0 0 2 9.5c0 2.3 1.5 4 3 5.5l5.535 5.362a2 2 0 0 0 2.879.052 2.12 2.12 0 0 0-.004-3 2.124 2.124 0 1 0 3-3 2.124 2.124 0 0 0 3.004 0 2 2 0 0 0 0-2.828l-1.881-1.882a2.41 2.41 0 0 0-3.409 0l-1.71 1.71a2 2 0 0 1-2.828 0 2 2 0 0 1 0-2.828l2.823-2.762"/>',
   atras: '<path d="M15 5l-7 7 7 7"/>',
   expandir: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
   semana: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
@@ -126,6 +127,7 @@ function openMas() {
     <div class="sheet__sep"></div>
     ${pie}`);
   ov.hidden = false;
+  if (typeof amigosMarcarNav === "function") amigosMarcarNav();
   requestAnimationFrame(() => ov.classList.add("is-open"));
   document.body.classList.add("nav-open");
 }

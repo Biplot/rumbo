@@ -76,7 +76,7 @@ function checkBadges() {
     }
   });
   if (typeof avisarElefantes === "function") avisarElefantes();   // 🐘 tipos de elefante que se ganan
-  if (typeof avisarAvatares === "function") avisarAvatares();     // 🎭 avatares del elenco que se ganan
+  if (typeof avisarAvatares === "function") avisarAvatares();     // 🎭 avatares de la manada que se ganan
   if (count > 0) {
     saveState(); refreshPts();
     // El momento de ganar (cielo.js): al cerrar el día, o un aviso que se toca para ver la medalla

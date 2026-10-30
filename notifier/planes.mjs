@@ -7,6 +7,7 @@
      unas 3 horas antes (o en la mañana, si el plan no tiene hora) a quienes van o tal vez van.
    · Después del plan: alguien anotó un gasto (o te pagó), y al día siguiente «¿Cómo estuvo?»
      a quienes fueron y todavía no lo cuentan.
+   · «¿Quién se suma?»: un plan abierto, a todos los amigos de quien lo propuso (una vez).
    Todos con el aviso «Amigos» y nunca de noche (puedeAvisarAmigo).
    Recibe el cliente de Supabase (`sb`, con la clave de servicio) y la forma de enviar
    (`enviar`), así se prueba sin red en tests/planes.test.mjs.
@@ -53,6 +54,7 @@ export function mensajePlan(tipo, { nombre, p, respuesta, van, con, monto, parte
   if (tipo === "plan-fecha") return { title: `Ya hay fecha: ${t}`, body: `Quedó ${fechaPlan(p.fecha, p.hora)}${donde(p)}. ¿Vas?`, url, tag: "rumbo-plan-cambio" };
   if (tipo === "plan-cambio") return { title: `Cambió el plan ${t}`, body: `Ahora es ${fechaPlan(p.fecha, p.hora)}${donde(p)}.`, url, tag: "rumbo-plan-cambio" };
   if (tipo === "plan-cancela") return { title: `${quien} canceló ${t}`, body: "Ya no va: lo sacamos de tu agenda.", url, tag: "rumbo-plan-cancela" };
+  if (tipo === "plan-abierto") return { title: `${quien} pregunta quién se suma`, body: `${t}, ${fechaPlan(p.fecha, p.hora)}${donde(p)}. Ábrelo en Amigos para sumarte.`, url, tag: "rumbo-plan-abierto" };
   if (tipo === "plan-gasto") return { title: `${quien} anotó ${fmtPesos(monto)} en la cuenta de ${t}`, body: `Te toca ${fmtPesos(parte)}. La cuenta está en el plan.`, url, tag: "rumbo-plan-gasto" };
   if (tipo === "plan-pago") return { title: `${quien} te pagó ${fmtPesos(monto)}`, body: `Por la cuenta de ${t}. Ya está anotado.`, url, tag: "rumbo-plan-pago" };
   if (tipo === "plan-como") return { title: `¿Cómo estuvo ${t}?`, body: "Cuéntalo en tu diario: +10 de estrellas.", url: "./#inicio", tag: "rumbo-plan-como" };
@@ -126,7 +128,7 @@ export async function avisoPlan({ sb, yo, body, enviar, ahora = new Date() }) {
   const id = String((body && body.plan) || "").toLowerCase();
   if (!/^[0-9a-f-]{36}$/.test(id)) return { enviadas: 0, motivo: "no-valido" };
   const [{ data: p, error: e1 }, { data: invitados, error: e2 }] = await Promise.all([
-    sb.from("planes").select("titulo, tipo, fecha, hora, lugar, enlace, creador, cancelado").eq("id", id).maybeSingle(),
+    sb.from("planes").select("titulo, tipo, fecha, hora, lugar, enlace, creador, cancelado, abierto, avisos").eq("id", id).maybeSingle(),
     sb.from("planes_invitados").select("user_id, respuesta, invita, avisos").eq("plan", id),
   ]);
   if (e1 || e2) throw new Error((e1 || e2).message);
@@ -138,7 +140,19 @@ export async function avisoPlan({ sb, yo, body, enviar, ahora = new Date() }) {
     if (error) throw new Error(error.message);
   };
   let para, extra = {};
-  if (body.tipo === "plan-gasto") {
+  if (body.tipo === "plan-abierto") {
+    // A todos tus amigos que todavía no están en el plan, una sola vez por plan (planes.avisos.abierto)
+    if (p.creador !== yo || !p.abierto || p.cancelado || (p.avisos && p.avisos.abierto)) return { enviadas: 0, motivo: "no-corresponde" };
+    const { error: e0 } = await sb.from("planes").update({ avisos: Object.assign({}, p.avisos, { abierto: true }) }).eq("id", id);
+    if (e0) throw new Error(e0.message);
+    const [{ data: f1, error: e1b }, { data: f2, error: e2b }] = await Promise.all([
+      sb.from("amistades").select("a, b").eq("a", yo).eq("estado", "aceptada"),
+      sb.from("amistades").select("a, b").eq("b", yo).eq("estado", "aceptada"),
+    ]);
+    if (e1b || e2b) throw new Error((e1b || e2b).message);
+    const amigos = [...(f1 || []).map(x => x.b), ...(f2 || []).map(x => x.a)];
+    para = amigos.filter(u => !invitados.some(i => i.user_id === u)).slice(0, 100).map(u => ({ uid: u, tipo: "plan-abierto", cambio: null }));
+  } else if (body.tipo === "plan-gasto") {
     // Un gasto (o un pago) de quien llama, de los últimos minutos: a los demás que lo comparten,
     // uno al día por plan (avisos.gasto); un pago, a quien lo recibe (avisos.pago guarda cuál)
     const gid = parseInt(body.gasto, 10);

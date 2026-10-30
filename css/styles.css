@@ -2576,6 +2576,7 @@ html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-no
 .pl-inv { border-bottom: 1px solid var(--line); padding-bottom: 10px; }
 .pl-inv .pl-fila { border-bottom: 0; padding-bottom: 6px; }
 .pl-inv__b { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.pl-inv__b .btn { display: inline-flex; align-items: center; gap: 6px; }
 /* El formulario */
 .pl-form { display: grid; gap: 2px; }
 .pl-chips, .pl-seg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
@@ -2699,3 +2700,30 @@ html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-no
 .pl-despues__est button:hover, .pl-despues__est button:focus-visible { color: #F4AE3D; }
 .pl-despues__d { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; padding: 10px 12px; border: 0; border-radius: 12px;
   background: color-mix(in srgb, #E0951F 12%, var(--surface)); color: var(--text); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+
+/* ============================================================
+   ETAPA 4 (v105) · «¿Quién se suma?», cumpleaños de amigos y leer juntos
+   ============================================================ */
+.pl-abierto { margin: 2px 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.pl-abierto b { color: var(--text); }
+/* Cumpleaños de tus amigos */
+.am-est.is-cumple { color: color-mix(in srgb, #E0951F 80%, var(--text)); font-weight: 700; }
+.am-perfil__cumple { display: inline-flex; align-items: center; gap: 6px; }
+.am-cumples { display: grid; gap: 10px; margin-bottom: 20px; background: color-mix(in srgb, #E0951F 9%, var(--surface)); }
+.am-cumple { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; }
+.am-cumple > span { display: grid; gap: 2px; min-width: 0; }
+.am-cumple b { font-size: 15px; }
+.am-cumple .btn { display: inline-flex; align-items: center; gap: 6px; }
+/* Leer el mismo libro */
+.lj-otros { display: grid; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.lj-otro { display: grid; grid-template-columns: auto minmax(0, 1fr) 72px; gap: 8px; align-items: center; }
+.lj-otro.is-inv { opacity: .6; }
+.lj-otro__t { display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 12.5px; }
+.lj-otro__t b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lj-otro__t span { color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lj-otro__bar { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.lj-otro__bar i { display: block; height: 100%; background: var(--cian); border-radius: inherit; }
+.lj-libro { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin: 2px 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--cian-soft); color: var(--cian-ink); font-size: 13.5px; font-weight: 600; }
+.lj-libro .btn-link { margin-left: auto; font-size: 12.5px; }
+.lj-libro__b { display: inline-flex; align-items: center; gap: 6px; margin: 2px 0 12px; }
+.pl-form [hidden] { display: none !important; }   /* .pl-seg y .field tienen su display: lo oculto se oculta igual */

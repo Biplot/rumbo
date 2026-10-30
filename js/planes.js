@@ -7,6 +7,8 @@
      en tu Calendario y en Inicio el día que toca (si vas o tal vez vas), como un evento.
    · Los avisos al celular los manda api/push.js (notifier/planes.mjs), con el aviso «Amigos».
    · Después del plan (cómo estuvo y la cuenta): planes-despues.js.
+   · «¿Quién se suma?»: un plan abierto lo ven todos tus amigos y se suman solos (respuesta
+     "abierto" = lo ves sin estar en él).
    ============================================================ */
 
 const PLAN = { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] };
@@ -25,7 +27,8 @@ function plLimpio(x) {
     id: String(x.id || "").slice(0, 64), titulo: String(x.titulo || "").trim().slice(0, 60) || "Plan",
     tipo: PL_TIPOS.some(([k]) => k === x.tipo) ? x.tipo : "otro",
     fecha: cjFecha(x.fecha), hora: plHoraLimpia(x.hora), lugar: String(x.lugar || "").trim().slice(0, 80), enlace: plEnlaceLimpio(x.enlace),
-    creador: String(x.creador || ""), cancelado: !!x.cancelado, respuesta: resp(String(x.respuesta || "")), invita: String(x.invita || ""),
+    creador: String(x.creador || ""), cancelado: !!x.cancelado, abierto: !!x.abierto,
+    respuesta: x.respuesta === "abierto" ? "abierto" : resp(String(x.respuesta || "")), invita: String(x.invita || ""),
     miembros: lista(x.miembros).slice(0, 13).map(m => ({ id: String((m && m.id) || ""), yo: !!(m && m.yo), nombre: String((m && m.nombre) || "").slice(0, 60),
       avatar: (m && m.avatar) || null, respuesta: resp(String((m && m.respuesta) || "")) })),
     opciones: lista(x.opciones).slice(0, 4).map(o => ({ id: parseInt(o && o.id, 10) || 0, fecha: cjFecha(o && o.fecha), hora: plHoraLimpia(o && o.hora),
@@ -76,10 +79,10 @@ async function planesCargar(forzar) {
   if (!STATE) return;
   if (r && r.error) { PLAN.error = r.error; plRepintar(); return; }
   PLAN.error = null;
-  PLAN.lista = (Array.isArray(r) ? r : []).map(plLimpio).filter(p => p.id && plYo(p));
-  const nueva = PLAN.lista.find(p => plInvitacion(p) && !PLAN.vistas.includes(p.id));
+  PLAN.lista = (Array.isArray(r) ? r : []).map(plLimpio).filter(p => p.id && (plYo(p) || p.respuesta === "abierto"));
+  const nueva = PLAN.lista.find(p => (plInvitacion(p) || p.respuesta === "abierto") && !PLAN.vistas.includes(p.id));
   PLAN.lista.forEach(p => { if (!PLAN.vistas.includes(p.id)) PLAN.vistas.push(p.id); });
-  if (nueva && CURRENT !== "amigos") toast(`🎟️ ${plQuienPropone(nueva)} te invita: «${nueva.titulo}»${nueva.fecha ? ", " + plFechaTxt(nueva.fecha, nueva.hora) : ""}`);
+  if (nueva && CURRENT !== "amigos") toast(`🎟️ ${plQuienPropone(nueva)} ${nueva.respuesta === "abierto" ? "pregunta quién se suma" : "te invita"}: «${nueva.titulo}»${nueva.fecha ? ", " + plFechaTxt(nueva.fecha, nueva.hora) : ""}`);
   if (typeof amigosMarcarNav === "function") amigosMarcarNav();
   plRepintar();
 }
@@ -98,15 +101,16 @@ function plZona() {
   try { return (n && n.tz) || Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Santiago"; } catch (e) { return "America/Santiago"; }
 }
 function plRadio(nombre) { const r = document.querySelector(`input[name="${nombre}"]:checked`); return r ? r.value : ""; }
-/* Lo que dice el formulario: { titulo, tipo, fecha, hora, opciones, lugar, enlace } */
+/* Lo que dice el formulario: { titulo, tipo, fecha, hora, opciones, lugar, enlace } (y si es abierto: «¿Quién se suma?») */
+function plAbiertoForm() { const c = document.getElementById("pl-abierto"); return !!(c && c.checked); }
 function plLeerForm() {
-  const cuando = plRadio("pl-cuando") || "fija", distancia = plRadio("pl-donde") === "distancia";
+  const abierto = plAbiertoForm(), cuando = abierto ? "fija" : plRadio("pl-cuando") || "fija", distancia = plRadio("pl-donde") === "distancia";
   return {
     titulo: val("pl-titulo"), tipo: plRadio("pl-tipo") || "otro",
     fecha: cuando === "fija" ? val("pl-fecha") || null : null, hora: cuando === "fija" ? val("pl-hora").slice(0, 5) || null : null,
     opciones: cuando === "votar" ? [...document.querySelectorAll("#pl-ops .pl-op")].map(f => ({ fecha: f.querySelector("[data-k=fecha]").value, hora: f.querySelector("[data-k=hora]").value.slice(0, 5) }))
       .filter(o => o.fecha) : [],
-    lugar: distancia ? "" : val("pl-lugar"), enlace: distancia ? val("pl-enlace") : "", tz: plZona(), votar: cuando === "votar",
+    lugar: distancia ? "" : val("pl-lugar"), enlace: distancia ? val("pl-enlace") : "", tz: plZona(), votar: cuando === "votar", abierto,
   };
 }
 async function planGuardar(id) {
@@ -114,10 +118,10 @@ async function planGuardar(id) {
   const p = id ? (PLAN.lista || []).find(x => x.id === id) : null, f = plLeerForm();
   const amigos = [...document.querySelectorAll("#pl-amigos input:checked")].map(i => i.value);
   if (!f.titulo) return toast("¿Qué van a hacer? Ponle un nombre al plan", true);
-  if (!p && !f.votar && !f.fecha) return toast("Elige el día (o que voten la fecha)", true);
+  if (!p && !f.votar && !f.fecha) return toast(f.abierto ? "Elige el día" : "Elige el día (o que voten la fecha)", true);
   if (!p && f.votar && f.opciones.length < 2) return toast("Para votar, propón al menos 2 fechas", true);
   if (f.enlace && !/^https?:\/\//i.test(f.enlace)) f.enlace = "https://" + f.enlace;
-  if (!p && !amigos.length) return toast("Elige al menos un amigo", true);
+  if (!p && !f.abierto && !amigos.length) return toast("Elige al menos un amigo", true);
   PLAN.guardando = true;
   try {
     if (p) {
@@ -130,6 +134,12 @@ async function planGuardar(id) {
         BACKEND.amigosAvisar("plan-invita", { plan: p.id });
       }
       closeModal(); toast(r.cambio ? "Plan actualizado: les avisamos del cambio" : "Plan actualizado");
+    } else if (f.abierto) {   // «¿Quién se suma?»: a todos tus amigos
+      const r = await BACKEND.planAbiertoCrear(f, todayISO());
+      if (r && r.error) return toast(plTextoError(r.error), true);
+      BACKEND.amigosAvisar("plan-abierto", { plan: r.id });
+      closeModal(); vibrar(10);
+      toast("🎟️ Les avisamos a tus amigos: el que pueda, se suma.");
     } else {
       const r = await BACKEND.planCrear(f, amigos, todayISO());
       if (r && r.error) return toast(plTextoError(r.error), true);
@@ -138,6 +148,16 @@ async function planGuardar(id) {
       toast(`🎟️ Invitaste a ${cjNombres(amigos.map(x => { const a = amigoPorId(x); return (a && a.nombre) || "tu amigo"; }))}. Te avisamos cuando respondan.`);
     }
   } finally { PLAN.guardando = false; }
+  await planesCargar(true);
+}
+async function planSumarme(id) {
+  const r = await BACKEND.planSumarme(id, todayISO());
+  if (r && r.error) return toast(plTextoError(r.error), true);
+  if (r.r === "sumado" || r.r === "voy") {
+    BACKEND.amigosAvisar("plan-responde", { plan: id });
+    toast("🎟️ ¡Te sumaste! Queda en tu Semana y tu Calendario."); vibrar(10);
+  }
+  closeModal();
   await planesCargar(true);
 }
 async function planResponder(id, respuesta) {
@@ -192,6 +212,7 @@ function plTextoError(e) {
     enlace: "Revisa el enlace: tiene que ser una dirección web.",
     votacion: "Ya no se está votando la fecha.",
     cancelado: "Este plan se canceló.",
+    "no-abierto": "Este plan ya no está abierto.",
   }[e] || amigosTextoError(e);
 }
 
@@ -205,14 +226,17 @@ function planesAccion(a, d) {
   if (a === "pl-votar") return planVotar(d.id);
   if (a === "pl-fijar") return planFijar(d.id, parseInt(d.op, 10));
   if (a === "pl-cancelar") return planCancelar(d.id);
+  if (a === "pl-sumarme") return planSumarme(d.id);
   if (a === "pl-op-mas") return plOpMas();
   return planesDespuesAccion(a, d);   // cómo estuvo y la cuenta (planes-despues.js)
 }
 /* Al cambiar «una fecha / que voten» y «un lugar / a distancia», se ve lo que corresponde */
 function plFormModo() {
-  const votar = plRadio("pl-cuando") === "votar", dist = plRadio("pl-donde") === "distancia";
+  const abierto = plAbiertoForm(), votar = !abierto && plRadio("pl-cuando") === "votar", dist = plRadio("pl-donde") === "distancia";
   const ver = (id, si) => { const e = document.getElementById(id); if (e) e.hidden = !si; };
   ver("pl-fija", !votar); ver("pl-votar", votar); ver("pl-lugar-box", !dist); ver("pl-enlace-box", dist);
+  ver("pl-cuando-seg", !abierto); ver("pl-con-quien", !abierto);   // abierto: con fecha y a todos tus amigos
+  const b = document.querySelector('[data-action="pl-guardar"]'); if (b && !b.dataset.id) b.textContent = abierto ? "Avisar a mis amigos" : "Invitar";
 }
 function plOpFila(o) {
   return `<div class="pl-op"><input class="input" type="date" data-k="fecha" min="${todayISO()}" value="${escapeHtml((o && o.fecha) || "")}" aria-label="Fecha">
@@ -231,6 +255,7 @@ function plCaras(p, t) {
 }
 function plMarca(p) {
   if (p.cancelado) return `<span class="pl-tag pl-tag--no">Cancelado</span>`;
+  if (p.respuesta === "abierto") return `<span class="pl-tag pl-tag--ambar">¿Te sumas?</span>`;
   if (plVa(p) && plPaso(p)) {   // ya pasó: falta contar cómo estuvo, o lo que debes
     const debo = plDebo(p);
     if (debo) return `<span class="pl-tag pl-tag--ambar">Debes ${fmtCLP(debo)}</span>`;
@@ -241,6 +266,7 @@ function plMarca(p) {
   if (!p.fecha && !plVoto(p)) return `<span class="pl-tag pl-tag--ambar">Vota</span>`;
   if (p.respuesta === "quizas") return `<span class="pl-tag">Tal vez</span>`;
   if (p.respuesta === "no") return `<span class="pl-tag pl-tag--no">No vas</span>`;
+  if (p.abierto && plEsMio(p)) return `<span class="pl-tag">Abierto</span>`;
   return "";
 }
 function plFila(p) {
@@ -252,11 +278,13 @@ function plFila(p) {
 }
 /* Amigos: la tarjeta de planes (invitaciones primero, después los próximos y los que se votan) */
 function plAmigosHtml(amigos) {
+  planesCargar(false);   // a lo más una vez por minuto
   if (PLAN.error === "sin-servidor") return "";
   const l = PLAN.lista || [], hoy = todayISO();
   if (!l.length && !amigos.length) return "";
   const inv = l.filter(plInvitacion);
-  const prox = l.filter(p => !inv.includes(p) && p.fecha && p.fecha >= hoy), votar = l.filter(p => !inv.includes(p) && !p.fecha);
+  const abiertos = l.filter(p => p.respuesta === "abierto"), mios = l.filter(p => p.respuesta !== "abierto");
+  const prox = mios.filter(p => !inv.includes(p) && p.fecha && p.fecha >= hoy), votar = mios.filter(p => !inv.includes(p) && !p.fecha);
   const pasados = l.filter(p => plVa(p) && p.fecha < hoy).sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 5);
   const invHtml = inv.map(p => `<div class="pl-inv">${plFila(p)}
       <div class="pl-inv__b"><button class="btn-ghost" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="no">No puedo</button>
@@ -266,6 +294,8 @@ function plAmigosHtml(amigos) {
   return `<div class="card pl-card"><div class="flex-between"><div class="card__title">${icoUI("ticket")} Planes</div>
       ${amigos.length ? `<button class="btn btn--soft pl-card__nuevo" data-action="pl-nuevo">${icoUI("plus")} Nuevo plan</button>` : ""}</div>
     ${inv.length ? `<div class="cj-sub mt-8">Te invitan</div>${invHtml}` : ""}
+    ${abiertos.length ? `<div class="cj-sub mt-8">¿Quién se suma?</div>${abiertos.map(p => `<div class="pl-inv">${plFila(p)}
+      <div class="pl-inv__b"><button class="btn btn--soft" data-action="pl-sumarme" data-id="${escapeHtml(p.id)}">${icoUI("plus")} Me sumo</button></div></div>`).join("")}` : ""}
     ${seccion("Próximos", prox)}${seccion("Por definir", votar)}${seccion("Ya pasaron", pasados)}
     ${!l.length ? `<p class="text-sm muted mt-8">Una película el viernes, un asado o salir a correr: propón un plan, invita a tus amigos y cada uno responde si va. Queda en la Semana y el Calendario de cada uno.</p>` : ""}</div>`;
 }
@@ -323,7 +353,7 @@ function openPlanForm(id, pre, desde) {
     <div class="field"><label for="pl-titulo">Nombre</label><input class="input" id="pl-titulo" maxlength="60" value="${escapeHtml(p ? p.titulo : (desde && desde.titulo) || "")}" placeholder="Ej: Ver Dune: Parte Dos">
       ${desde && desde.lista ? `<div class="pl-desde">${icoUI("listas")} Elegido de «${escapeHtml(desde.lista)}»</div>` : ""}</div>
     <div class="field"><label>Cuándo</label>
-      ${p ? "" : `<div class="pl-seg">${radio("pl-cuando", "fija", "Una fecha", true)}${radio("pl-cuando", "votar", "Que voten", false)}</div>`}
+      ${p ? "" : `<div class="pl-seg" id="pl-cuando-seg">${radio("pl-cuando", "fija", "Una fecha", true)}${radio("pl-cuando", "votar", "Que voten", false)}</div>`}
       <div id="pl-fija" class="pl-dos">
         <input class="input" type="date" id="pl-fecha" min="${todayISO()}" value="${escapeHtml(p ? p.fecha : "")}" aria-label="Día">
         <input class="input" type="time" id="pl-hora" value="${escapeHtml(p ? p.hora : "")}" aria-label="Hora (opcional)"></div>
@@ -335,7 +365,8 @@ function openPlanForm(id, pre, desde) {
       <div class="pl-seg">${radio("pl-donde", "lugar", icoUI("map-pin") + " Un lugar", !dist)}${radio("pl-donde", "distancia", icoUI("link") + " A distancia", dist)}</div>
       <div id="pl-lugar-box" ${dist ? "hidden" : ""}><input class="input" id="pl-lugar" maxlength="80" value="${escapeHtml(p ? p.lugar : "")}" placeholder="Ej: Casa de Ana"></div>
       <div id="pl-enlace-box" ${dist ? "" : "hidden"}><input class="input" id="pl-enlace" maxlength="300" inputmode="url" value="${escapeHtml(p ? p.enlace : "")}" placeholder="El enlace de la videollamada"></div></div>
-    ${(p ? libres : amigos).length && (!p || p.miembros.length < 13) ? `<div class="field cj-modal"><label>${p ? "Invitar a alguien más" : "Con quién"}</label>
+    ${!p && amigos.length ? `<label class="pl-comp pl-abierto"><input type="checkbox" id="pl-abierto" onchange="plFormModo()"><span><b>¿Quién se suma?</b> Abierto a todos tus amigos: el que pueda, se suma solo.</span></label>` : ""}
+    ${(p ? libres : amigos).length && (!p || p.miembros.length < 13) && !(p && p.abierto) ? `<div class="field cj-modal" id="pl-con-quien"><label>${p ? "Invitar a alguien más" : "Con quién"}</label>
       <div class="cj-amigos" id="pl-amigos">${(p ? libres : amigos).map(a => `<label class="cj-amigo"><input type="checkbox" value="${escapeHtml(a.id)}" ${(pre || []).includes(a.id) ? "checked" : ""}>${amigosAvatar(a, 30)}<span>${escapeHtml(a.nombre || "Sin nombre")}</span></label>`).join("")}</div></div>` : ""}
     <p class="text-xs muted">${p ? "Si cambias cuándo o dónde, les avisamos a los invitados." : "Ven el plan, no tu agenda. Cada uno responde voy, tal vez o no puedo, y queda en su Semana y su Calendario."}</p>
     <button class="btn btn--primary btn-block" data-action="pl-guardar" data-id="${p ? escapeHtml(p.id) : ""}">${p ? "Guardar cambios" : "Invitar"}</button>
@@ -358,10 +389,12 @@ function openPlan(id) {
         ${mio ? `<button class="btn-ghost" data-action="pl-fijar" data-id="${escapeHtml(p.id)}" data-op="${o.id}">Elegir</button>` : ""}</div>`).join("")}</div>
     <button class="btn btn--soft" data-action="pl-votar" data-id="${escapeHtml(p.id)}">Guardar mis fechas</button>
     ${mio ? `<p class="text-xs muted" style="margin:0">Cuando quieras, toca «Elegir» en la fecha que quede: el plan pasa a la agenda de todos.</p>` : ""}` : "";
-  const responder = !mio && !p.cancelado && !plPaso(p) ? `<div class="pl-rsvp">${["voy", "quizas", "no"].map(v => `<button class="${p.respuesta === v ? "btn btn--primary" : "btn btn--soft"}" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="${v}">${PL_RESPUESTAS[v]}</button>`).join("")}</div>` : "";
+  const abierto = p.respuesta === "abierto";
+  const responder = abierto ? `<button class="btn btn--primary" data-action="pl-sumarme" data-id="${escapeHtml(p.id)}">${icoUI("plus")} Me sumo</button>`
+    : !mio && !p.cancelado && !plPaso(p) ? `<div class="pl-rsvp">${["voy", "quizas", "no"].map(v => `<button class="${p.respuesta === v ? "btn btn--primary" : "btn btn--soft"}" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="${v}">${PL_RESPUESTAS[v]}</button>`).join("")}</div>` : "";
   openModal(p.titulo, `<div class="pl-det">
     <div class="pl-det__cab"><span class="pl-ico pl-ico--${p.tipo} pl-ico--xl">${plIcono(p)}</span>
-      <span><b>${escapeHtml(plCuando(p)).replace(/^./, c => c.toUpperCase())}</b><span class="text-sm muted">${mio ? "Lo propusiste tú" : escapeHtml(plQuienPropone(p)) + " te invita"}</span></span></div>
+      <span><b>${escapeHtml(plCuando(p)).replace(/^./, c => c.toUpperCase())}</b><span class="text-sm muted">${mio ? "Lo propusiste tú" + (p.abierto ? " · abierto a tus amigos" : "") : escapeHtml(plQuienPropone(p)) + (p.abierto ? " pregunta quién se suma" : " te invita")}</span></span></div>
     ${p.cancelado ? `<div class="pl-cancelado">${icoUI("x")} Este plan se canceló.</div>` : ""}
     ${donde ? `<div class="pl-det__donde">${donde}</div>` : ""}
     ${responder}

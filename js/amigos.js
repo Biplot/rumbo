@@ -7,13 +7,16 @@
    mostrar (amigosPublicar). Compañía, no competencia: no hay rankings.
 
    Los hábitos en conjunto (etapa 2) están en conjunto.js; los objetivos en conjunto (etapa 3), en objetivos.js;
-   los planes (juntarse: una película, comer, salir), en planes.js; las listas compartidas, en listas-amigos.js.
+   los planes (juntarse: una película, comer, salir), en planes.js; las listas compartidas, en listas-amigos.js;
+   leer el mismo libro, en lecturas-amigos.js.
 
-   Datos propios: settings.amigos = { activo, muestra: { dia, racha, rango } }
+   Datos propios: settings.amigos = { activo, muestra: { dia, racha, rango, casa, vitrina, cumple } }
+   Tu cumpleaños (solo el día y el mes de profile.birthDate) se muestra si lo eliges: viene apagado.
    Invitación: rumbo.biplot.cl/?amigo=CODIGO (se guarda hasta que entras).
    ============================================================ */
 
-const AMIGOS_MUESTRA_BASE = { dia: true, racha: true, rango: true, casa: true, vitrina: true };
+const AMIGOS_MUESTRA_BASE = { dia: true, racha: true, rango: true, casa: true, vitrina: true, cumple: false };
+const AM_CUMPLE = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;   // "MM-DD": el día y el mes, nunca el año
 const AMIGOS_FRASES = ["¡Vamos, tú puedes!", "¡Bien hecho!", "Hoy se puede", "Estoy contigo", "Un bocado a la vez"];
 /* Lo que se tiene en memoria: la lista del servidor y cómo va la carga */
 const AMIGOS = { lista: null, t: 0, cargando: false, error: null, codigo: "", animosVistos: [], pubFirma: "", pubT: null, msg: "" };
@@ -33,6 +36,7 @@ function amigosEstadoPublico(datos, muestra) {
   if (m.rango) { e.rango = datos.rango || 0; e.rangoNombre = datos.rangoNombre || ""; }
   if (m.casa && datos.casa) e.casa = true;                                                    // se puede visitar (visitas.js)
   if (m.vitrina && datos.medallas != null) { e.vitrina = true; e.medallas = datos.medallas || 0; }
+  if (m.cumple && AM_CUMPLE.test(datos.cumple || "")) e.cumple = datos.cumple;                // tu cumpleaños, sin el año
   return e;
 }
 /* Tu perfil para tus amigos: nombre, avatar, lo que muestras y cómo va tu día */
@@ -43,6 +47,7 @@ function amigosPerfilPropio() {
     avatar: typeof avatarPublico === "function" ? avatarPublico() : null,
     muestra: cfg.muestra,
     estado: amigosEstadoPublico({ fecha: hoy, abrio: !!d.hecho, cerro: !!d.cerrado, racha: computeClosedStreak(), rango: r.idx, rangoNombre: r.cur.nombre,
+      cumple: String((STATE.profile && STATE.profile.birthDate) || "").slice(5, 10),
       casa: true, medallas: (STATE.gamif.badges || []).filter(id => typeof findBadge === "function" && findBadge(id)).length }, cfg.muestra),
     // Para que te visiten (visitas.js): la foto de tu casa y tus medallas, solo si eliges mostrarlas
     casa: cfg.muestra.casa && typeof casaPublica === "function" ? casaPublica() : null,
@@ -74,9 +79,9 @@ async function amigosCargar(forzar) {
   else { AMIGOS.error = null; AMIGOS.lista = l; AMIGOS.pubFirma = JSON.stringify(p); AMIGOS.codigo = l.codigo || (r && r.codigo) || AMIGOS.codigo; }
   amigosMarcarNav();
   if (CURRENT === "amigos") rerender();
-  if (!AMIGOS.error) { conjuntoCargar(forzar); objetivosCargar(forzar); planesCargar(forzar); listasCargar(forzar); }   // y lo que hacen juntos (conjunto.js, objetivos.js, planes.js, listas-amigos.js)
+  if (!AMIGOS.error) { conjuntoCargar(forzar); objetivosCargar(forzar); planesCargar(forzar); listasCargar(forzar); lecturasCargar(forzar); }   // y lo que hacen juntos
 }
-/* Al salir de la cuenta: se olvida lo cargado (amigos, hábitos y objetivos en conjunto, planes y listas) */
+/* Al salir de la cuenta: se olvida lo cargado (amigos, hábitos y objetivos en conjunto, planes, listas y lecturas) */
 function amigosOlvidar() {
   clearTimeout(AMIGOS.pubT);
   Object.assign(AMIGOS, { lista: null, t: 0, cargando: false, error: null, codigo: "", animosVistos: [], pubFirma: "", pubT: null, msg: "" });
@@ -84,13 +89,15 @@ function amigosOlvidar() {
   Object.assign(OBJ, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
   Object.assign(PLAN, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
   Object.assign(LCOM, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [], abiertas: {} });
+  Object.assign(LJ, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
 }
 /* Cuántas cosas nuevas hay: solicitudes recibidas, ánimos sin ver, invitaciones a hábitos, objetivos y listas, y planes sin responder */
 function amigosNuevos() {
   const l = AMIGOS.lista; if (!l) return 0;
   return (l.recibidas || []).length + (l.animos || []).filter(a => !AMIGOS.animosVistos.includes(a.id)).length
     + (CONJ.lista || []).filter(c => c.estado === "invitado").length + (OBJ.lista || []).filter(o => o.estado === "invitado").length
-    + (PLAN.lista || []).filter(plInvitacion).length + (LCOM.lista || []).filter(l => l.estado === "invitado").length;
+    + (PLAN.lista || []).filter(plInvitacion).length + (LCOM.lista || []).filter(l => l.estado === "invitado").length
+    + (LJ.lista || []).filter(l => l.estado === "invitado").length;
 }
 function amigosMarcarNav() {
   const n = amigosNuevos();
@@ -198,9 +205,10 @@ async function amigosDesbloquear(id) {
 /* -------- Ánimo -------- */
 function openAnimo(id) {
   const a = amigoPorId(id); if (!a) return;
-  AMIGOS.msg = AMIGOS_FRASES[0];
-  openModal(`🎉 Ánimo para ${a.nombre || "tu amigo"}`, `<div class="am-animo-m">
-      <div class="row-wrap" style="gap:6px">${AMIGOS_FRASES.map((f, i) => `<button type="button" class="chip am-frase ${i === 0 ? "chip--cian" : ""}" data-action="am-frase" data-v="${escapeHtml(f)}">${escapeHtml(f)}</button>`).join("")}</div>
+  const cumple = amigoCumpleEn(a) === 0, frases = cumple ? ["¡Feliz cumpleaños!"].concat(AMIGOS_FRASES) : AMIGOS_FRASES;   // hoy está de cumpleaños: el saludo primero
+  AMIGOS.msg = frases[0];
+  openModal(cumple ? `🎂 Un saludo para ${a.nombre || "tu amigo"}` : `🎉 Ánimo para ${a.nombre || "tu amigo"}`, `<div class="am-animo-m">
+      <div class="row-wrap" style="gap:6px">${frases.map((f, i) => `<button type="button" class="chip am-frase ${i === 0 ? "chip--cian" : ""}" data-action="am-frase" data-v="${escapeHtml(f)}">${escapeHtml(f)}</button>`).join("")}</div>
       <div class="field mt-16"><label for="am-msg">O escribe el tuyo</label><input class="input" id="am-msg" maxlength="120" placeholder="Máximo 120 letras"></div>
       <button class="btn btn--primary" data-action="am-animo-enviar" data-id="${escapeHtml(id)}">Mandar ánimo</button>
       <p class="text-xs muted mt-8">Le llega como aviso a su celular (nunca de noche). Puedes mandarle hasta 3 al día.</p></div>`);
@@ -229,6 +237,26 @@ function amigosMuestra(k, on) {
   cfg.muestra[k] = !!on;
   saveState(); amigosPublicar(true);
   toast(on ? "Tus amigos lo verán" : "Tus amigos ya no lo verán");
+}
+
+/* -------- Los cumpleaños de tus amigos (los que lo comparten) -------- */
+/* Inicio: quién está de cumpleaños hoy, para saludar */
+function amigosCumplesHoyHtml() {
+  if (!STATE || !amigosCfg().activo) return "";
+  amigosCargar(false);
+  const hoy = ((AMIGOS.lista && AMIGOS.lista.amigos) || []).filter(a => amigoCumpleEn(a) === 0);
+  if (!hoy.length) return "";
+  return `<div class="card am-cumples">${hoy.map(a => `<div class="am-cumple">${amigosAvatar(a, 40)}<span><b>Hoy está de cumpleaños ${escapeHtml(a.nombre || "tu amigo")}</b>
+      <span class="text-xs muted">Mándale un saludo: le llega al celular.</span></span>
+    <button class="btn btn--soft" data-action="am-animo" data-id="${escapeHtml(a.id)}">${icoUI("cake")} Saludar</button></div>`).join("")}</div>`;
+}
+/* Calendario: los cumpleaños de tus amigos del mes (m: 0-11) */
+function amigosCumplesMes(m, push) {
+  const mm = String(m + 1).padStart(2, "0");
+  ((AMIGOS.lista && AMIGOS.lista.amigos) || []).forEach(a => {
+    const c = amigosEstadoLimpio(a.estado).cumple;
+    if (c && c.slice(0, 2) === mm) push(+c.slice(3), { icon: "🎂", label: `Cumpleaños de ${a.nombre || "tu amigo"}`, cls: "coral", type: "cumple" });
+  });
 }
 
 /* -------- Acciones (data-action="am-…", ver onClick en app.js) -------- */
@@ -277,12 +305,26 @@ function amigosEstadoLimpio(e) {
   if ("rango" in e) { out.rango = Math.max(0, Math.min(RANGOS.length - 1, parseInt(e.rango, 10) || 0)); out.rangoNombre = RANGOS[out.rango].nombre; }
   if ("casa" in e) out.casa = !!e.casa;
   if ("vitrina" in e) { out.vitrina = !!e.vitrina; out.medallas = Math.max(0, Math.min(999, parseInt(e.medallas, 10) || 0)); }
+  if (AM_CUMPLE.test(String(e.cumple || ""))) out.cumple = e.cumple;
   return out;
 }
 /* Cómo va su día, con lo que tu amigo muestra */
+/* Su cumpleaños (si lo comparte): en cuántos días es (0 = hoy), o null */
+function amigoCumpleEn(a, desde) {
+  const c = amigosEstadoLimpio(a && a.estado).cumple; if (!c) return null;
+  const hoy = desde || todayISO(), y = +hoy.slice(0, 4);
+  let f = `${y}-${c}`;
+  if (c === "02-29" && !(new Date(y, 1, 29).getMonth() === 1)) f = `${y}-02-28`;   // sin 29 de febrero, el 28
+  if (f < hoy) f = `${y + 1}-${c === "02-29" && !(new Date(y + 1, 1, 29).getMonth() === 1) ? "02-28" : c}`;
+  return agDiff(hoy, f);
+}
+function amigoCumpleTxt(c) { const [m, d] = c.split("-").map(Number); return `${d} de ${MESES[m - 1].toLowerCase()}`; }
 function amigosEstadoTxt(e) {
   e = amigosEstadoLimpio(e);
   const hoy = e.fecha === todayISO(), partes = [];
+  const en = e.cumple ? amigoCumpleEn({ estado: e }) : null;
+  if (en === 0) partes.push(`<span class="am-est is-cumple">${icoUI("cake")} ¡Hoy está de cumpleaños!</span>`);
+  else if (en === 1) partes.push(`<span class="am-est is-cumple">${icoUI("cake")} Mañana está de cumpleaños</span>`);
   if ("cerro" in e || "abrio" in e) {
     if (hoy && e.cerro) partes.push(`<span class="am-est is-ok">${icoUI("hecho")} Cerró su día</span>`);
     else if (hoy && e.abrio) partes.push(`<span class="am-est is-va">${icoUI("ritual")} Abrió su día</span>`);
@@ -305,7 +347,8 @@ function openAmigo(id) {
       ${amigosAvatar(a, 96)}
       ${rango ? `<span class="text-sm muted">${rango}</span>` : ""}
       <div class="am-perfil__dia">${amigosEstadoTxt(e)}</div>
-      <button class="btn btn--primary" data-action="am-animo" data-id="${escapeHtml(a.id)}">${icoUI("party-popper")} Mandar ánimo</button>
+      ${e.cumple ? `<span class="text-sm muted am-perfil__cumple">${icoUI("cake")} Cumpleaños: ${amigoCumpleTxt(e.cumple)}</span>` : ""}
+      <button class="btn btn--primary" data-action="am-animo" data-id="${escapeHtml(a.id)}">${amigoCumpleEn(a) === 0 ? `${icoUI("cake")} Saludar por su cumpleaños` : `${icoUI("party-popper")} Mandar ánimo`}</button>
       ${e.casa || e.vitrina ? `<div class="am-visitar">${e.casa ? `<button class="btn btn--soft" data-action="vis-casa" data-id="${escapeHtml(a.id)}">${icoUI("house")} Visitar su casa</button>` : ""}
         ${e.vitrina ? `<button class="btn btn--soft" data-action="vis-cielo" data-id="${escapeHtml(a.id)}">${icoUI("sparkles")} Ver su vitrina${e.medallas ? ` · ${e.medallas}` : ""}</button>` : ""}</div>` : ""}
       ${cjJuntosHtml(a.id)}
@@ -351,6 +394,7 @@ function renderAmigos() {
       ${fila("rango", "Tu rango", "Aprendiz, Constante, Enfocado…")}
       ${fila("casa", "Tu casa", "Pueden visitar a tu elefante en su cuarto. Miran, pero no cambian nada.")}
       ${fila("vitrina", "Tu vitrina", "Tus medallas y el día en que ganaste cada una.")}
+      ${fila("cumple", "Tu cumpleaños", STATE.profile.birthDate ? "Solo el día y el mes, no tu edad. Ese día te pueden saludar." : "Agrega tu fecha de nacimiento en tu perfil para compartirlo (solo el día y el mes).")}
       ${bloqueados.length ? `<div class="am-env mt-8"><span class="text-xs muted">Bloqueados</span>${bloqueados.map(a => `<span class="chip">${escapeHtml(a.nombre || "Sin nombre")} <button type="button" class="am-x am-x--txt" data-action="am-desbloquear" data-id="${escapeHtml(a.id)}">Desbloquear</button></span>`).join("")}</div>` : ""}</div>`;
-  return `<div class="am">${animosHtml}${recibidasHtml}${cjInvitacionesHtml()}${ojInvitacionesHtml()}${lcInvitacionesHtml()}${plAmigosHtml(amigos)}${invitar}${lista}${cjAmigosHtml(amigos)}${ojAmigosHtml(amigos)}${lcAmigosHtml(amigos)}${muestra}</div>`;
+  return `<div class="am">${animosHtml}${recibidasHtml}${cjInvitacionesHtml()}${ojInvitacionesHtml()}${lcInvitacionesHtml()}${ljInvitacionesHtml()}${plAmigosHtml(amigos)}${invitar}${lista}${cjAmigosHtml(amigos)}${ojAmigosHtml(amigos)}${lcAmigosHtml(amigos)}${muestra}</div>`;
 }

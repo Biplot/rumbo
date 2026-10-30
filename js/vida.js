@@ -47,11 +47,12 @@ function diarioAnimo(fecha) {
 function diarioResumen(fecha) {
   const r = STATE.ritual.dias[fecha], c = (r && r.cierre) || {};
   const es = (STATE.vida.diario || []).filter(e => e.fecha === fecha);
-  const manual = es.find(e => !e.fromRitual && !e.fromRitualMes && !e.fromRitualSemana && !e.fromRitualTri);
+  const manual = es.find(e => !e.fromRitual && !e.fromRitualMes && !e.fromRitualSemana && !e.fromRitualTri && !e.fromPlan);
+  const plan = es.find(e => e.fromPlan);   // cómo estuvo un plan con amigos (planes-despues.js)
   const sem = es.find(e => e.fromRitualSemana), mes = es.find(e => e.fromRitualMes), tri = es.find(e => e.fromRitualTri);
-  const titulo = (r && (r.mision || r.sapo)) || (manual && (manual.titulo || manual.texto)) || (tri ? "Cierre de trimestre" : mes ? "Cierre de mes" : sem ? "Cierre de semana" : "Tu día");
+  const titulo = (r && (r.mision || r.sapo)) || (manual && (manual.titulo || manual.texto)) || (plan && plan.titulo) || (tri ? "Cierre de trimestre" : mes ? "Cierre de mes" : sem ? "Cierre de semana" : "Tu día");
   const gratitud = c.mejor || (es.find(e => e.gratitud) || {}).gratitud || "";
-  const sub = gratitud || c.nota || (r ? (r.cerrado ? "Día cerrado" : "Día abierto") : "");
+  const sub = gratitud || c.nota || (plan && plan.texto) || (r ? (r.cerrado ? "Día cerrado" : "Día abierto") : "");
   return { titulo, sub, r, es, manual };
 }
 function diarioTexto(fecha) {
@@ -152,6 +153,7 @@ function diarioDetalle(fecha) {
   out.push(cierre(es.find(e => e.fromRitualSemana), "Cierre de semana", "lo mejor"));
   out.push(cierre(es.find(e => e.fromRitualMes), "Cierre de mes", "lo mejor"));
   out.push(cierre(es.find(e => e.fromRitualTri), "Cierre de trimestre", "logro"));
+  es.filter(e => e.fromPlan).forEach(e => out.push(kv("Plan", `${escapeHtml(e.titulo || "Con amigos")} ${"★".repeat(e.estrellas || 0)}${e.con ? ` <span class='muted'>· con ${escapeHtml(e.con)}</span>` : ""}${e.texto ? "<br>«" + escapeHtml(e.texto) + "»" : ""}`)));
   const acciones = [];
   if (r && r.cerrado && fecha >= agSumar(todayISO(), -7) && typeof reabrible === "function") acciones.push(`<a class="card__hint" href="#ritual">Editar desde el Ritual ›</a>`);
   if (!r && manual) acciones.push(`<button class="btn-ghost" data-action="diario-del" data-id="${manual.id}">🗑 Borrar</button>`);
@@ -172,7 +174,7 @@ function diarioDayCard(fecha) {
   const dash = "<span class='muted'>—</span>";
 
   const chip = r ? (r.cerrado ? `<span class="chip chip--done">🌙 Cerrado</span>` : `<span class="chip chip--coral">🌅 Abierto</span>`) : "";
-  const manual = es.find(e => !e.fromRitual && !e.fromRitualMes && !e.fromRitualSemana && !e.fromRitualTri);
+  const manual = es.find(e => !e.fromRitual && !e.fromRitualMes && !e.fromRitualSemana && !e.fromRitualTri && !e.fromPlan);
   const triE = es.find(e => e.fromRitualTri);
   const mesE = es.find(e => e.fromRitualMes);
   const semE = es.find(e => e.fromRitualSemana);

@@ -21,6 +21,7 @@
            { accion: "amigos", tipo: "objetivo-aporte", objetivo, aporte }               y al aportar: "sumó" o "¡lo lograron!"
              (supabase/objetivos.sql)
            { accion: "amigos", tipo: "plan-invita" | "plan-responde" | "plan-fecha" | "plan-cambio" | "plan-cancela", plan }
+           { accion: "amigos", tipo: "plan-gasto", plan, gasto }  -> la cuenta: anotó un gasto, o te pagó
              -> planes con amigos: te invitan, alguien respondió, cambió (o ya tiene fecha), se canceló
              (supabase/planes.sql). El recordatorio del día («Hoy: …») sale con los demás recordatorios.
            { accion: "amigos", tipo: "lista-invita" | "lista-acepta" | "lista-agrega", lista, item? }

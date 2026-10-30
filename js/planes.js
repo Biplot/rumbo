@@ -6,6 +6,7 @@
    · Tus amigos ven el plan, no tu agenda. A ti el plan te aparece en Amigos, en tu Semana,
      en tu Calendario y en Inicio el día que toca (si vas o tal vez vas), como un evento.
    · Los avisos al celular los manda api/push.js (notifier/planes.mjs), con el aviso «Amigos».
+   · Después del plan (cómo estuvo y la cuenta): planes-despues.js.
    ============================================================ */
 
 const PLAN = { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] };
@@ -29,6 +30,11 @@ function plLimpio(x) {
       avatar: (m && m.avatar) || null, respuesta: resp(String((m && m.respuesta) || "")) })),
     opciones: lista(x.opciones).slice(0, 4).map(o => ({ id: parseInt(o && o.id, 10) || 0, fecha: cjFecha(o && o.fecha), hora: plHoraLimpia(o && o.hora),
       votos: lista(o && o.votos).slice(0, 13).map(String) })).filter(o => o.id && o.fecha),
+    recuerdos: lista(x.recuerdos).slice(0, 13).map(r => ({ id: String((r && r.id) || ""), estrellas: Math.max(1, Math.min(5, parseInt(r && r.estrellas, 10) || 1)),
+      frase: String((r && r.frase) || "").trim().slice(0, 140), compartir: !!(r && r.compartir) })).filter(r => r.id),
+    gastos: lista(x.gastos).slice(0, 100).map(g => ({ id: parseInt(g && g.id, 10) || 0, user_id: String((g && g.user_id) || ""),
+      monto: Math.max(0, Math.round((Number(g && g.monto) || 0) * 100) / 100), detalle: String((g && g.detalle) || "").trim().slice(0, 60),
+      para: lista(g && g.para).slice(0, 13).map(String), pago: !!(g && g.pago) })).filter(g => g.id && g.user_id && g.monto > 0 && g.para.length),
   };
 }
 
@@ -56,6 +62,8 @@ function plCon(p) {
   const otros = p.miembros.filter(m => !m.yo && m.respuesta !== "no"), van = otros.filter(m => m.respuesta === "voy");
   return cjNombres((van.length ? van : otros).map(plNombre));
 }
+/* Una invitación que todavía se puede responder (sin cancelar y que no haya pasado) */
+function plInvitacion(p) { return p.respuesta === "pendiente" && !p.cancelado && (!p.fecha || p.fecha >= todayISO()); }
 function plVoto(p) { const yo = plYo(p); return !!yo && p.opciones.some(o => o.votos.includes(yo.id)); }
 
 /* -------- Cargar y mantener al día -------- */
@@ -69,7 +77,7 @@ async function planesCargar(forzar) {
   if (r && r.error) { PLAN.error = r.error; plRepintar(); return; }
   PLAN.error = null;
   PLAN.lista = (Array.isArray(r) ? r : []).map(plLimpio).filter(p => p.id && plYo(p));
-  const nueva = PLAN.lista.find(p => p.respuesta === "pendiente" && !p.cancelado && !PLAN.vistas.includes(p.id));
+  const nueva = PLAN.lista.find(p => plInvitacion(p) && !PLAN.vistas.includes(p.id));
   PLAN.lista.forEach(p => { if (!PLAN.vistas.includes(p.id)) PLAN.vistas.push(p.id); });
   if (nueva && CURRENT !== "amigos") toast(`🎟️ ${plQuienPropone(nueva)} te invita: «${nueva.titulo}»${nueva.fecha ? ", " + plFechaTxt(nueva.fecha, nueva.hora) : ""}`);
   if (typeof amigosMarcarNav === "function") amigosMarcarNav();
@@ -198,6 +206,7 @@ function planesAccion(a, d) {
   if (a === "pl-fijar") return planFijar(d.id, parseInt(d.op, 10));
   if (a === "pl-cancelar") return planCancelar(d.id);
   if (a === "pl-op-mas") return plOpMas();
+  return planesDespuesAccion(a, d);   // cómo estuvo y la cuenta (planes-despues.js)
 }
 /* Al cambiar «una fecha / que voten» y «un lugar / a distancia», se ve lo que corresponde */
 function plFormModo() {
@@ -222,6 +231,12 @@ function plCaras(p, t) {
 }
 function plMarca(p) {
   if (p.cancelado) return `<span class="pl-tag pl-tag--no">Cancelado</span>`;
+  if (plVa(p) && plPaso(p)) {   // ya pasó: falta contar cómo estuvo, o lo que debes
+    const debo = plDebo(p);
+    if (debo) return `<span class="pl-tag pl-tag--ambar">Debes ${fmtCLP(debo)}</span>`;
+    const r = plMiRecuerdo(p);
+    return r ? lcEstrellas(r.estrellas, 12) : `<span class="pl-tag pl-tag--ambar">¿Cómo estuvo?</span>`;
+  }
   if (p.respuesta === "pendiente") return `<span class="pl-tag pl-tag--ambar">¿Vas?</span>`;
   if (!p.fecha && !plVoto(p)) return `<span class="pl-tag pl-tag--ambar">Vota</span>`;
   if (p.respuesta === "quizas") return `<span class="pl-tag">Tal vez</span>`;
@@ -240,8 +255,9 @@ function plAmigosHtml(amigos) {
   if (PLAN.error === "sin-servidor") return "";
   const l = PLAN.lista || [], hoy = todayISO();
   if (!l.length && !amigos.length) return "";
-  const inv = l.filter(p => p.respuesta === "pendiente" && !p.cancelado);
+  const inv = l.filter(plInvitacion);
   const prox = l.filter(p => !inv.includes(p) && p.fecha && p.fecha >= hoy), votar = l.filter(p => !inv.includes(p) && !p.fecha);
+  const pasados = l.filter(p => plVa(p) && p.fecha < hoy).sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 5);
   const invHtml = inv.map(p => `<div class="pl-inv">${plFila(p)}
       <div class="pl-inv__b"><button class="btn-ghost" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="no">No puedo</button>
         <button class="btn btn--soft" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="quizas">Tal vez</button>
@@ -250,7 +266,7 @@ function plAmigosHtml(amigos) {
   return `<div class="card pl-card"><div class="flex-between"><div class="card__title">${icoUI("ticket")} Planes</div>
       ${amigos.length ? `<button class="btn btn--soft pl-card__nuevo" data-action="pl-nuevo">${icoUI("plus")} Nuevo plan</button>` : ""}</div>
     ${inv.length ? `<div class="cj-sub mt-8">Te invitan</div>${invHtml}` : ""}
-    ${seccion("Próximos", prox)}${seccion("Por definir", votar)}
+    ${seccion("Próximos", prox)}${seccion("Por definir", votar)}${seccion("Ya pasaron", pasados)}
     ${!l.length ? `<p class="text-sm muted mt-8">Una película el viernes, un asado o salir a correr: propón un plan, invita a tus amigos y cada uno responde si va. Queda en la Semana y el Calendario de cada uno.</p>` : ""}</div>`;
 }
 /* El perfil de un amigo: los planes que tienen juntos (para «Lo que hacen juntos») */
@@ -342,7 +358,7 @@ function openPlan(id) {
         ${mio ? `<button class="btn-ghost" data-action="pl-fijar" data-id="${escapeHtml(p.id)}" data-op="${o.id}">Elegir</button>` : ""}</div>`).join("")}</div>
     <button class="btn btn--soft" data-action="pl-votar" data-id="${escapeHtml(p.id)}">Guardar mis fechas</button>
     ${mio ? `<p class="text-xs muted" style="margin:0">Cuando quieras, toca «Elegir» en la fecha que quede: el plan pasa a la agenda de todos.</p>` : ""}` : "";
-  const responder = !mio && !p.cancelado ? `<div class="pl-rsvp">${["voy", "quizas", "no"].map(v => `<button class="${p.respuesta === v ? "btn btn--primary" : "btn btn--soft"}" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="${v}">${PL_RESPUESTAS[v]}</button>`).join("")}</div>` : "";
+  const responder = !mio && !p.cancelado && !plPaso(p) ? `<div class="pl-rsvp">${["voy", "quizas", "no"].map(v => `<button class="${p.respuesta === v ? "btn btn--primary" : "btn btn--soft"}" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="${v}">${PL_RESPUESTAS[v]}</button>`).join("")}</div>` : "";
   openModal(p.titulo, `<div class="pl-det">
     <div class="pl-det__cab"><span class="pl-ico pl-ico--${p.tipo} pl-ico--xl">${plIcono(p)}</span>
       <span><b>${escapeHtml(plCuando(p)).replace(/^./, c => c.toUpperCase())}</b><span class="text-sm muted">${mio ? "Lo propusiste tú" : escapeHtml(plQuienPropone(p)) + " te invita"}</span></span></div>
@@ -350,7 +366,8 @@ function openPlan(id) {
     ${donde ? `<div class="pl-det__donde">${donde}</div>` : ""}
     ${responder}
     ${votos}
-    <div class="cj-sub mt-8">${n === 1 ? "Va 1" : "Van " + n} de ${p.miembros.length}</div>
+    <div class="cj-sub mt-8">${plPaso(p) ? (n === 1 ? "Fue 1" : "Fueron " + n) : n === 1 ? "Va 1" : "Van " + n} de ${p.miembros.length}</div>
     <div class="pl-gente">${gente}</div>
-    ${mio && !p.cancelado ? `<div class="row-wrap" style="gap:8px"><button class="btn-ghost" data-action="pl-editar" data-id="${escapeHtml(p.id)}">${icoUI("pencil")} Editar o invitar</button></div>` : ""}</div>`);
+    ${plDespuesHtml(p)}
+    ${mio && !p.cancelado && !plPaso(p) ? `<div class="row-wrap" style="gap:8px"><button class="btn-ghost" data-action="pl-editar" data-id="${escapeHtml(p.id)}">${icoUI("pencil")} Editar o invitar</button></div>` : ""}</div>`);
 }

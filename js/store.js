@@ -41,13 +41,13 @@ function _codigoAmigo() {
 }
 /* Errores de Amigos en palabras de la app: sin-servidor (falta correr supabase/amigos.sql o conjunto.sql), red, limite,
    no-amigos y los de los hábitos y objetivos en conjunto (no-miembro, fecha, amigos, nombre, icono, frecuencia, meta, unidad, cantidad)
-   y de los planes (titulo, tipo, hora, lugar, enlace, opciones, respuesta, no-creador, votacion, cancelado) y las listas (texto, estrellas) */
+   y de los planes (titulo, tipo, hora, lugar, enlace, opciones, respuesta, no-creador, votacion, cancelado, monto, para) y las listas (texto, estrellas) */
 function _amigosError(e) {
   const m = String((e && (e.message || e.details)) || e || "");
   if (/limite/.test(m)) return "limite";
   if (/no-amigos/.test(m)) return "no-amigos";
   if (["no-miembro", "fecha", "amigos", "nombre", "icono", "frecuencia", "meta", "unidad", "cantidad",
-    "titulo", "tipo", "hora", "lugar", "enlace", "opciones", "respuesta", "no-creador", "votacion", "cancelado", "texto", "estrellas"].includes(m.trim())) return m.trim();
+    "titulo", "tipo", "hora", "lugar", "enlace", "opciones", "respuesta", "no-creador", "votacion", "cancelado", "texto", "estrellas", "monto", "para"].includes(m.trim())) return m.trim();
   if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return "red";
   if ((e && ["PGRST202", "PGRST205", "42P01", "42883"].includes(e.code)) || /does not exist|Could not find the (function|table)|schema cache/i.test(m)) return "sin-servidor";
   return m || "error";
@@ -121,7 +121,7 @@ const LocalBackend = {
      Las cuentas locales comparten esta "base", así se prueban dos personas en un mismo equipo. -------- */
   _amDb() {
     const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1, conjuntos: [], cmiembros: [], cmarcas: [], objetivos: [], omiembros: [], oaportes: [],
-      planes: [], pinvitados: [], popciones: [], pvotos: [], listas: [], lmiembros: [], litems: [], lvotos: [] };
+      planes: [], pinvitados: [], popciones: [], pvotos: [], precuerdos: [], pgastos: [], listas: [], lmiembros: [], litems: [], lvotos: [] };
     try { return Object.assign(vacia, JSON.parse(localStorage.getItem("rumbo_amigos") || "{}")); } catch { return vacia; }
   },
   _amGuardar(db) { try { localStorage.setItem("rumbo_amigos", JSON.stringify(db)); } catch {} },
@@ -533,9 +533,42 @@ const LocalBackend = {
     this._amGuardar(db);
     return { r: "cancelado" };
   },
+  /* ¿Va (o fue)? voy o tal vez, y no se canceló */
+  _plVa(db, id, yo) { const p = db.planes.find(x => x.id === id); return !!p && !p.cancelado && db.pinvitados.some(i => i.plan === id && i.user_id === yo && ["voy", "quizas"].includes(i.respuesta)); },
+  async planRecordar(id, estrellas, frase, compartir, hoy) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._plVa(db, id, yo)) return { error: "no-miembro" };
+    const p = db.planes.find(x => x.id === id);
+    if (!p.fecha || p.fecha > this._cjHoy(hoy)) return { error: "fecha" };
+    if (!(Number.isInteger(estrellas) && estrellas >= 1 && estrellas <= 5)) return { error: "estrellas" };
+    const r = db.precuerdos.find(x => x.plan === id && x.user_id === yo), datos = { estrellas, frase: String(frase || "").trim().slice(0, 140), compartir: !!compartir };
+    if (r) Object.assign(r, datos); else db.precuerdos.push(Object.assign({ plan: id, user_id: yo, n: db.sig++ }, datos));
+    this._amGuardar(db);
+    return { r: r ? "cambiado" : "nuevo" };
+  },
+  async planGasto(id, monto, detalle, para, pago) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._plVa(db, id, yo)) return { error: "no-miembro" };
+    const m = Math.round(Number(monto) * 100) / 100;
+    if (!(m > 0) || m > 1e8) return { error: "monto" };
+    const pedidos = [...new Set(para || [])];
+    const ok = pedidos.filter(u => db.pinvitados.some(i => i.plan === id && i.user_id === u && ["voy", "quizas"].includes(i.respuesta)));
+    if (!ok.length || ok.length !== pedidos.length) return { error: "para" };
+    if (pago && (ok.length !== 1 || ok[0] === yo)) return { error: "para" };
+    if (db.pgastos.filter(g => g.plan === id).length >= 100) return { error: "limite" };
+    const g = { id: db.sig++, plan: id, user_id: yo, monto: m, detalle: String(detalle || "").trim().slice(0, 60), para: ok, pago: !!pago };
+    db.pgastos.push(g); this._amGuardar(db);
+    return { id: g.id };
+  },
+  async planGastoBorrar(gasto) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), g = db.pgastos.find(x => x.id === gasto && x.user_id === yo);
+    if (!g) return { r: "nada" };
+    db.pgastos = db.pgastos.filter(x => x !== g); this._amGuardar(db);
+    return { r: "borrado" };
+  },
   async planLista(hoy) {
     const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
-    const db = this._amDb(), d = this._cjHoy(hoy), desde = agSumar(d, -1);
+    const db = this._amDb(), d = this._cjHoy(hoy), desde = agSumar(d, -30);
     const orden = (a, b) => (a.fecha == null) - (b.fecha == null) || String(a.fecha || "").localeCompare(String(b.fecha || "")) || String(a.hora || "").localeCompare(String(b.hora || "")) || a.creado - b.creado;
     return db.pinvitados.filter(i => i.user_id === yo).map(mio => ({ mio, p: db.planes.find(x => x.id === mio.plan) }))
       .filter(({ p }) => p && (!p.fecha || p.fecha >= desde) && (!p.cancelado || Date.now() - p.updated < 7 * 864e5))
@@ -548,6 +581,10 @@ const LocalBackend = {
           .sort((a, b) => a.fecha.localeCompare(b.fecha) || String(a.hora || "").localeCompare(String(b.hora || "")) || a.id - b.id)
           .map(o => ({ id: o.id, fecha: o.fecha, hora: o.hora,
             votos: db.pvotos.filter(v => v.opcion === o.id && db.pinvitados.some(i => i.plan === p.id && i.user_id === v.user_id)).map(v => v.user_id) })),
+        recuerdos: db.precuerdos.filter(r => r.plan === p.id && (r.user_id === yo || r.compartir)).sort((a, b) => a.n - b.n)
+          .map(r => ({ id: r.user_id, estrellas: r.estrellas, frase: r.frase, compartir: r.compartir })),
+        gastos: db.pgastos.filter(g => g.plan === p.id).sort((a, b) => a.id - b.id)
+          .map(g => ({ id: g.id, user_id: g.user_id, monto: g.monto, detalle: g.detalle, para: g.para.slice(), pago: g.pago })),
       }));
   },
   /* -------- Listas compartidas sin servidor: las reglas de supabase/listas.sql -------- */
@@ -1091,6 +1128,15 @@ const SupabaseBackend = {
   async planVotar(id, opciones) { const r = await this._amRpc("plan_votar", { p_id: id, p_opciones: opciones }); return r.error ? r : { n: r.data }; },
   async planFijar(id, opcion) { const r = await this._amRpc("plan_fijar", { p_id: id, p_opcion: opcion }); return r.error ? r : { r: r.data }; },
   async planCancelar(id) { const r = await this._amRpc("plan_cancelar", { p_id: id }); return r.error ? r : { r: r.data }; },
+  async planRecordar(id, estrellas, frase, compartir, hoy) {
+    const r = await this._amRpc("plan_recordar", { p_id: id, p_estrellas: estrellas, p_frase: frase || "", p_compartir: !!compartir, p_hoy: hoy });
+    return r.error ? r : { r: r.data };
+  },
+  async planGasto(id, monto, detalle, para, pago) {
+    const r = await this._amRpc("plan_gasto", { p_id: id, p_monto: monto, p_detalle: detalle || "", p_para: para, p_pago: !!pago });
+    return r.error ? r : { id: r.data };
+  },
+  async planGastoBorrar(gasto) { const r = await this._amRpc("plan_gasto_borrar", { p_gasto: gasto }); return r.error ? r : { r: r.data }; },
   /* -------- Listas compartidas (supabase/listas.sql) -------- */
   async listaLista() { const r = await this._amRpc("lista_lista"); return r.error ? r : r.data || []; },
   async listaCrear(nombre, tipo, amigos) { const r = await this._amRpc("lista_crear", { p_nombre: nombre, p_tipo: tipo, p_amigos: amigos }); return r.error ? r : { id: r.data }; },

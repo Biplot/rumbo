@@ -157,7 +157,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 41;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 42;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -417,6 +417,11 @@ const NOVEDADES = {
     ["📋", "Listas con amigos", "En Listas, crea una lista con tus amigos: películas por ver, restaurantes por probar o lugares para un viaje. Todos agregan."],
     ["👍", "Yo también y estrellas", "Dale +1 a lo que también quieres, marca lo que ya hicieron y ponle de 1 a 5 estrellas. Lo que más quieren queda arriba."],
     ["🎟️", "De la lista a un plan", "Toca el boleto junto a cualquier cosa de la lista: se abre un plan nuevo con eso y con la gente de la lista."],
+  ],
+  42: [
+    ["📔", "¿Cómo estuvo?", "Después de un plan, ponle estrellas y una frase: queda en tu diario y ganas +10 ⭐. Si quieres, la ven los que fueron."],
+    ["🧾", "La cuenta del plan", "Anota quién pagó qué y Rumbo calcula cuánto le debe cada uno. Cuando pagues, márcalo: «Ya le pagué»."],
+    ["💰", "Tu parte, a Finanzas", "Con un toque, lo que te tocó se suma al gasto de ese mes en Finanzas."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1989,7 +1994,7 @@ function renderInicio() {
   <div data-tour="dia">${renderDayHero()}</div>
   ${renderAtajos()}
   ${renderMisionCard()}
-  ${plHoyHtml()}
+  ${plHoyHtml()}${plDespuesInicioHtml()}
   ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
   <div class="grid grid-${metasMes.length ? 3 : 2} inicio-main">
     ${tareasCard}

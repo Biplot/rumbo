@@ -278,6 +278,7 @@ function habitTodayCard(h) {
   return `<div class="card hb-today ${on || pase ? "is-on" : ""}" data-action="habit-today" data-id="${h.id}" role="button" tabindex="0">
       <div class="hb-today__ico">${icoHab(h.icon, 28)}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
       <div class="hb-today__prog">${pase ? "🎟️ Pase usado hoy" : libre ? "🌴 Día libre" : prog.texto}${rachaTxt(h) ? " · " + rachaTxt(h) : ""}</div>
+      ${h.conjunto ? cjResumenHtml(h) : ""}
       <div class="hb-today__check">${on ? "✓" : pase ? "🎟️" : ""}</div>
       <button class="hb-today__edit icon-btn" data-action="habit-edit" data-id="${h.id}" title="Editar hábito" aria-label="Editar">✎</button></div>`;
 }
@@ -398,7 +399,8 @@ function habitViewAnual() {
 
 /* -------- Crear / editar hábito -------- */
 let HABIT_EDIT = null;
-function openHabitModal(id) {
+/* op.amigos: amigos ya elegidos para hacerlo juntos (desde Amigos) */
+function openHabitModal(id, op) {
   const h = id ? STATE.habitos.defs.find(x => x.id === id) : null;
   HABIT_EDIT = h ? h.id : null;
   const f = h ? hmFreq(h) : { tipo: "diario" };
@@ -424,7 +426,8 @@ function openHabitModal(id) {
       <div id="h-dias-box" class="mt-8" ${f.tipo === "dias" ? "" : "hidden"}>
         <div class="row-wrap" id="h-dias">${HM_DIAS.map((d, i) => `<label class="dia-pick"><input type="checkbox" value="${i}" ${dias.includes(i) ? "checked" : ""}> ${["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][i]}</label>`).join("")}</div></div>
       <div class="text-xs muted mt-8">Se mide contra este objetivo, no contra 7 días. La semana va de lunes a domingo.</div></div>
-    ${h ? `<label class="row" style="gap:8px;margin-bottom:14px"><input type="checkbox" id="h-pausado" ${h.pausado ? "checked" : ""}> ⏸ Pausar este hábito (no se mide mientras esté pausado)</label>` : ""}
+    ${cjSeccionModal(h, op && op.amigos)}
+    ${h && !h.conjunto ? `<label class="row" style="gap:8px;margin-bottom:14px"><input type="checkbox" id="h-pausado" ${h.pausado ? "checked" : ""}> ⏸ Pausar este hábito (no se mide mientras esté pausado)</label>` : ""}
     <button class="btn btn--primary btn-block mt-8" data-action="habit-save">${h ? "Guardar cambios" : "Crear hábito"}</button>
     ${h ? `<button class="btn-ghost btn-block mt-8" data-action="habit-del" data-id="${h.id}" style="color:var(--coral);border-color:var(--coral)">🗑 Eliminar hábito</button>` : ""}`);
 }
@@ -455,10 +458,21 @@ function leerFrecuencia() {
   }
   return { tipo: "diario" };
 }
-function saveHabit() {
+async function saveHabit() {
   const nombre = val("h-nombre"); if (!nombre) return toast("Ponle un nombre", true);
   const frecuencia = leerFrecuencia();
   const h = HABIT_EDIT && STATE.habitos.defs.find(x => x.id === HABIT_EDIT);
+  const amigos = cjAmigosElegidos();
+  if ((h && h.conjunto) || amigos.length) {   // en conjunto: primero el servidor (el cambio es para todos)
+    if (CONJ.guardando) return;
+    CONJ.guardando = true;
+    const datos = { nombre, icon: val("h-icon") || "✅", frecuencia };
+    const ok = await (h ? conjuntoGuardar(h, datos, amigos) : conjuntoCrearHabito(datos, amigos)).finally(() => { CONJ.guardando = false; });
+    if (!ok) return;
+    HABIT_EDIT = null;
+    saveState(); closeModal(); rerender(); if (h) toast("Hábito actualizado");
+    return;
+  }
   if (h) {
     h.nombre = nombre; h.icon = val("h-icon") || h.icon; h.frecuencia = frecuencia;
     const p = document.getElementById("h-pausado"); h.pausado = !!(p && p.checked);

@@ -6,6 +6,8 @@
    aparte (supabase/amigos.sql) y la app publica ahí solo lo que elegiste
    mostrar (amigosPublicar). Compañía, no competencia: no hay rankings.
 
+   Los hábitos en conjunto (etapa 2) están en conjunto.js.
+
    Datos propios: settings.amigos = { activo, muestra: { dia, racha, rango } }
    Invitación: rumbo.biplot.cl/?amigo=CODIGO (se guarda hasta que entras).
    ============================================================ */
@@ -65,11 +67,13 @@ async function amigosCargar(forzar) {
   else { AMIGOS.error = null; AMIGOS.lista = l; AMIGOS.pubFirma = JSON.stringify(p); AMIGOS.codigo = l.codigo || (r && r.codigo) || AMIGOS.codigo; }
   amigosMarcarNav();
   if (CURRENT === "amigos") rerender();
+  if (!AMIGOS.error) conjuntoCargar(forzar);   // y los hábitos en conjunto (conjunto.js)
 }
-/* Cuántas cosas nuevas hay: solicitudes recibidas y ánimos sin ver */
+/* Cuántas cosas nuevas hay: solicitudes recibidas, ánimos sin ver e invitaciones a hábitos */
 function amigosNuevos() {
   const l = AMIGOS.lista; if (!l) return 0;
-  return (l.recibidas || []).length + (l.animos || []).filter(a => !AMIGOS.animosVistos.includes(a.id)).length;
+  return (l.recibidas || []).length + (l.animos || []).filter(a => !AMIGOS.animosVistos.includes(a.id)).length
+    + (CONJ.lista || []).filter(c => c.estado === "invitado").length;
 }
 function amigosMarcarNav() {
   const n = amigosNuevos();
@@ -283,6 +287,7 @@ function openAmigo(id) {
       ${rango ? `<span class="text-sm muted">${rango}</span>` : ""}
       <div class="am-perfil__dia">${amigosEstadoTxt(e)}</div>
       <button class="btn btn--primary" data-action="am-animo" data-id="${escapeHtml(a.id)}">${icoUI("party-popper")} Mandar ánimo</button>
+      ${cjJuntosHtml(a.id)}
       ${desde ? `<span class="text-xs muted">Amigos desde el ${desde}</span>` : ""}
       <div class="am-perfil__mas"><button class="btn-ghost" data-action="am-quitar" data-id="${escapeHtml(a.id)}">Quitar de amigos</button><button class="btn-ghost" data-action="am-bloquear" data-id="${escapeHtml(a.id)}">Bloquear</button></div>
     </div>`);
@@ -324,5 +329,5 @@ function renderAmigos() {
       ${fila("racha", "Tu racha", "Los días cerrados seguidos.")}
       ${fila("rango", "Tu rango", "Aprendiz, Constante, Enfocado…")}
       ${bloqueados.length ? `<div class="am-env mt-8"><span class="text-xs muted">Bloqueados</span>${bloqueados.map(a => `<span class="chip">${escapeHtml(a.nombre || "Sin nombre")} <button type="button" class="am-x am-x--txt" data-action="am-desbloquear" data-id="${escapeHtml(a.id)}">Desbloquear</button></span>`).join("")}</div>` : ""}</div>`;
-  return `<div class="am">${animosHtml}${recibidasHtml}${invitar}${lista}${muestra}</div>`;
+  return `<div class="am">${animosHtml}${recibidasHtml}${cjInvitacionesHtml()}${invitar}${lista}${cjAmigosHtml(amigos)}${muestra}</div>`;
 }

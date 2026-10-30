@@ -155,7 +155,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 36;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 37;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -390,6 +390,11 @@ const NOVEDADES = {
     ["🤝", "Amigos", "Invita a tus amigos con tu enlace o tu código, mira cómo va su día y mándales ánimo. Está en el menú, debajo de Diario."],
     ["👀", "Tú eliges qué ven", "Siempre tu nombre y tu avatar; si quieres, también si abriste y cerraste tu día, tu racha y tu rango. Tus tareas, tu diario y tus finanzas nunca se muestran."],
     ["🔔", "Avisos de tus amigos", "Te llega un aviso cuando te mandan ánimo, te piden amistad o aceptan la tuya. Nunca de noche, y se apaga en Notificaciones."],
+  ],
+  37: [
+    ["🤝", "Hábitos en conjunto", "Crea un hábito con uno o más amigos: al hacer uno nuevo, elige con quién. Cada uno lo marca en su Rumbo y ven quién ya cumplió hoy."],
+    ["🔥", "Racha de a dos", "Sube cada vez que cumplen todos, y el día que lo hacen todos, +5 ⭐ para cada uno. Lo ves en Inicio, en Hábitos y en Amigos."],
+    ["🔔", "Avisos para hacerlo juntos", "Te avisamos cuando te invitan, cuando un amigo ya lo hizo hoy y cuando lo cumplen todos. Si sales del hábito, se queda contigo con tu historial."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -941,6 +946,7 @@ function onClick(e) {
   const a = el.dataset.action;
   const d = el.dataset;
   if (a.startsWith("am-")) { amigosAccion(a, d, el); return; }   // 🤝 Amigos (amigos.js)
+  if (a.startsWith("cj-")) { conjuntoAccion(a, d); return; }      // hábitos en conjunto (conjunto.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;
@@ -1004,6 +1010,7 @@ function onClick(e) {
     case "habit-add": openHabitModal(); break;
     case "habit-edit": openHabitModal(d.id); break;
     case "habit-del":
+      if ((STATE.habitos.defs.find(h => h.id === d.id) || {}).conjunto) { conjuntoEliminarHabito(STATE.habitos.defs.find(h => h.id === d.id)); break; }
       if (confirm("¿Eliminar este hábito y su historial?")) {
         STATE.habitos.defs = STATE.habitos.defs.filter(h => h.id !== d.id);
         saveState(); closeModal(); rerender();
@@ -1606,6 +1613,7 @@ function toggleHabitDate(habitId, year, monthIdx, day) {
   saveState();
   updateTopbar();
   rerender();
+  conjuntoAlMarcar(habitId, isoLocal(new Date(year, monthIdx, day)));   // si es en conjunto: tus amigos lo ven
 }
 // Grilla mensual: usa el mes seleccionado
 function toggleHabitCell(habitId, day) { toggleHabitDate(habitId, anioVista(), HABIT_MONTH, day); }
@@ -1898,9 +1906,12 @@ function renderInicio() {
       title="${escapeAttr(h.nombre + " · " + prog.texto)}"><span class="hab-chip__i">${icoHab(h.icon, 20)}</span><span class="hab-chip__n">${escapeHtml(h.nombre)}</span></button>`;
   };
   const { toca: habToca, cumplidos: habCumplidos } = habitosHoy();
-  const habitsToday = (habToca.length ? `<div class="hab-chips">${habToca.map(habBtn).join("")}</div>` : "")
-    + (habCumplidos.length ? `<details class="hb-more"><summary>${icoHab("✅", 15)} Ya cumplidos este período (${habCumplidos.length})</summary>
-      <div class="hab-chips mt-8">${habCumplidos.map(habBtn).join("")}</div></details>` : "");
+  // Los hábitos en conjunto van aparte, con cómo va cada uno (conjunto.js)
+  const propios = l => l.filter(h => !h.conjunto), propiosToca = propios(habToca), propiosCumplidos = propios(habCumplidos);
+  const habitsToday = (propiosToca.length ? `<div class="hab-chips">${propiosToca.map(habBtn).join("")}</div>` : "")
+    + (propiosCumplidos.length ? `<details class="hb-more"><summary>${icoHab("✅", 15)} Ya cumplidos este período (${propiosCumplidos.length})</summary>
+      <div class="hab-chips mt-8">${propiosCumplidos.map(habBtn).join("")}</div></details>` : "")
+    + cjInicioHtml(habToca.concat(habCumplidos).filter(h => h.conjunto));
   const doneToday = habToca.filter(h => habitDone(h.id, mIdx, day)).length;
 
   const metasMes = (anioHoy.metas.mensuales[mIdx] || []).filter(m => !m.done);

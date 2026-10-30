@@ -40,12 +40,12 @@ function _codigoAmigo() {
   return c;
 }
 /* Errores de Amigos en palabras de la app: sin-servidor (falta correr supabase/amigos.sql o conjunto.sql), red, limite,
-   no-amigos y los de los hábitos en conjunto (no-miembro, fecha, amigos, nombre, icono, frecuencia) */
+   no-amigos y los de los hábitos y objetivos en conjunto (no-miembro, fecha, amigos, nombre, icono, frecuencia, meta, unidad, cantidad) */
 function _amigosError(e) {
   const m = String((e && (e.message || e.details)) || e || "");
   if (/limite/.test(m)) return "limite";
   if (/no-amigos/.test(m)) return "no-amigos";
-  if (["no-miembro", "fecha", "amigos", "nombre", "icono", "frecuencia"].includes(m.trim())) return m.trim();
+  if (["no-miembro", "fecha", "amigos", "nombre", "icono", "frecuencia", "meta", "unidad", "cantidad"].includes(m.trim())) return m.trim();
   if (/Failed to fetch|NetworkError|Load failed|network/i.test(m)) return "red";
   if ((e && ["PGRST202", "PGRST205", "42P01", "42883"].includes(e.code)) || /does not exist|Could not find the (function|table)|schema cache/i.test(m)) return "sin-servidor";
   return m || "error";
@@ -118,7 +118,7 @@ const LocalBackend = {
   /* -------- Amigos sin servidor: las mismas reglas que supabase/amigos.sql, guardadas en este navegador.
      Las cuentas locales comparten esta "base", así se prueban dos personas en un mismo equipo. -------- */
   _amDb() {
-    const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1, conjuntos: [], cmiembros: [], cmarcas: [] };
+    const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1, conjuntos: [], cmiembros: [], cmarcas: [], objetivos: [], omiembros: [], oaportes: [] };
     try { return Object.assign(vacia, JSON.parse(localStorage.getItem("rumbo_amigos") || "{}")); } catch { return vacia; }
   },
   _amGuardar(db) { try { localStorage.setItem("rumbo_amigos", JSON.stringify(db)); } catch {} },
@@ -180,6 +180,7 @@ const LocalBackend = {
     // Bloquear te saca de los hábitos en conjunto que compartían (como el trigger de supabase/conjunto.sql)
     const juntos = db.cmiembros.filter(m => m.user_id === otro).map(m => m.habito);
     juntos.forEach(h => this._cjSacar(db, h, yo));
+    db.omiembros.filter(m => m.user_id === otro).map(m => m.objetivo).forEach(o => this._ojSacar(db, o, yo));   // y de los objetivos
     this._amGuardar(db); return { r: "bloqueada" };
   },
   async amigosLista() {
@@ -305,6 +306,115 @@ const LocalBackend = {
         miembros: db.cmiembros.filter(m => m.habito === c.id).sort((a, b) => (a.estado > b.estado) - (a.estado < b.estado) || a.creado - b.creado)
           .map(m => Object.assign(this._amFicha(db, m.user_id), { yo: m.user_id === yo, estado: m.estado, desde: m.desde,
             marcas: db.cmarcas.filter(k => k.habito === c.id && k.user_id === m.user_id).map(k => k.fecha).sort() })),
+      };
+    });
+  },
+
+  /* -------- Objetivos en conjunto sin servidor: las reglas de supabase/objetivos.sql -------- */
+  _ojValida(nombre, unidad, meta) {
+    const n = String(nombre || "").trim();
+    if (!n || n.length > 60) return "nombre";
+    if (String(unidad || "").trim().length > 12) return "unidad";
+    if (!(Number(meta) > 0) || Number(meta) > 1e12) return "meta";
+    return null;
+  },
+  _ojActivo(db, o, yo) { return db.omiembros.find(m => m.objetivo === o && m.user_id === yo && m.estado === "activo"); },
+  _ojSacar(db, o, quien) {   // sale (sus aportes siguen); si no queda nadie activo, se borra con sus aportes
+    db.omiembros = db.omiembros.filter(m => !(m.objetivo === o && m.user_id === quien));
+    if (!db.omiembros.some(m => m.objetivo === o && m.estado === "activo")) {
+      db.objetivos = db.objetivos.filter(x => x.id !== o);
+      db.omiembros = db.omiembros.filter(m => m.objetivo !== o);
+      db.oaportes = db.oaportes.filter(a => a.objetivo !== o);
+    }
+  },
+  _ojRecalcular(db, o, hoy) {
+    const x = db.objetivos.find(y => y.id === o), total = Math.round(db.oaportes.filter(a => a.objetivo === o).reduce((t, a) => t + a.cantidad, 0) * 100) / 100;
+    const antes = x.cumplido;
+    x.cumplido = total >= x.meta ? (x.cumplido || hoy) : null;
+    return { total, cumplido: !!x.cumplido, recien: !antes && !!x.cumplido };
+  },
+  async objetivoCrear(nombre, unidad, meta, fechaLimite, amigos, hoy) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), mal = this._ojValida(nombre, unidad, meta); if (mal) return { error: mal };
+    const ids = [...new Set(amigos || [])].filter(x => x && x !== yo);
+    if (!ids.length || ids.length > 7) return { error: "amigos" };
+    if (ids.some(x => { const f = this._amPar(db, yo, x); return !f || f.estado !== "aceptada"; })) return { error: "no-amigos" };
+    if (db.omiembros.filter(m => m.user_id === yo).length >= 20) return { error: "limite" };
+    const id = "oj" + (db.sig++) + Date.now().toString(36), d = this._cjHoy(hoy), t = Date.now();
+    db.objetivos.push({ id, nombre: String(nombre).trim(), unidad: String(unidad || "").trim(), meta: Math.round(Number(meta) * 100) / 100, fecha_limite: fechaLimite || null, creador: yo, creado: d, cumplido: null });
+    db.omiembros.push({ objetivo: id, user_id: yo, estado: "activo", invita: null, desde: d, creado: t });
+    ids.forEach((x, i) => db.omiembros.push({ objetivo: id, user_id: x, estado: "invitado", invita: yo, desde: null, creado: t + 1 + i }));
+    this._amGuardar(db);
+    return { id };
+  },
+  async objetivoInvitar(o, amigos) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._ojActivo(db, o, yo)) return { error: "no-miembro" };
+    const ids = [...new Set(amigos || [])].filter(x => x && x !== yo && !db.omiembros.some(m => m.objetivo === o && m.user_id === x));
+    if (ids.some(x => { const f = this._amPar(db, yo, x); return !f || f.estado !== "aceptada"; })) return { error: "no-amigos" };
+    if (db.omiembros.filter(m => m.objetivo === o).length + ids.length > 8) return { error: "limite" };
+    ids.forEach(x => db.omiembros.push({ objetivo: o, user_id: x, estado: "invitado", invita: yo, desde: null, creado: Date.now() }));
+    this._amGuardar(db);
+    return { n: ids.length };
+  },
+  async objetivoResponder(o, acepta, hoy) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    const m = db.omiembros.find(x => x.objetivo === o && x.user_id === yo && x.estado === "invitado");
+    if (!m) return { r: "nada" };
+    if (!acepta) { this._ojSacar(db, o, yo); this._amGuardar(db); return { r: "rechazado" }; }
+    if (db.omiembros.filter(x => x.user_id === yo && x.estado === "activo").length >= 20) return { error: "limite" };
+    m.estado = "activo"; m.desde = this._cjHoy(hoy);
+    this._amGuardar(db);
+    return { r: "unido" };
+  },
+  async objetivoSalir(o) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!db.omiembros.some(m => m.objetivo === o && m.user_id === yo)) return { r: "nada" };
+    this._ojSacar(db, o, yo); this._amGuardar(db);
+    return { r: "salio" };
+  },
+  async objetivoEditar(o, nombre, unidad, meta, fechaLimite) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._ojActivo(db, o, yo)) return { error: "no-miembro" };
+    const mal = this._ojValida(nombre, unidad, meta); if (mal) return { error: mal };
+    Object.assign(db.objetivos.find(x => x.id === o), { nombre: String(nombre).trim(), unidad: String(unidad || "").trim(), meta: Math.round(Number(meta) * 100) / 100, fecha_limite: fechaLimite || null });
+    const r = this._ojRecalcular(db, o, todayISO());
+    this._amGuardar(db);
+    return r;
+  },
+  async objetivoAportar(o, cantidad, nota, hoy) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._ojActivo(db, o, yo)) return { error: "no-miembro" };
+    const c = Math.round(Number(cantidad) * 100) / 100;
+    if (!(c > 0) || c > 1e12) return { error: "cantidad" };
+    if (db.oaportes.filter(a => a.objetivo === o && a.user_id === yo && Date.now() - a.creado < 864e5).length >= 30) return { error: "limite" };
+    const id = db.sig++, d = this._cjHoy(hoy);
+    db.oaportes.push({ id, objetivo: o, user_id: yo, cantidad: c, nota: String(nota || "").trim().slice(0, 80), fecha: d, creado: Date.now() });
+    const r = this._ojRecalcular(db, o, d);
+    this._amGuardar(db);
+    return Object.assign(r, { id });
+  },
+  async objetivoBorrarAporte(aporte) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    const a = db.oaportes.find(x => x.id === aporte && x.user_id === yo);
+    if (!a) return null;
+    db.oaportes = db.oaportes.filter(x => x !== a);
+    const r = this._ojRecalcular(db, a.objetivo, todayISO());
+    this._amGuardar(db);
+    return r;
+  },
+  async objetivoLista() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb();
+    return db.omiembros.filter(m => m.user_id === yo).sort((a, b) => a.creado - b.creado).map(mio => {
+      const o = db.objetivos.find(x => x.id === mio.objetivo), aps = db.oaportes.filter(a => a.objetivo === o.id), tot = {};
+      aps.forEach(a => { tot[a.user_id] = Math.round(((tot[a.user_id] || 0) + a.cantidad) * 100) / 100; });
+      return {
+        id: o.id, nombre: o.nombre, unidad: o.unidad, meta: o.meta, fecha_limite: o.fecha_limite, creado: o.creado, cumplido: o.cumplido, estado: mio.estado, invita: mio.invita,
+        miembros: db.omiembros.filter(m => m.objetivo === o.id).sort((a, b) => (a.estado > b.estado) - (a.estado < b.estado) || a.creado - b.creado)
+          .map(m => Object.assign(this._amFicha(db, m.user_id), { yo: m.user_id === yo, estado: m.estado, desde: m.desde })),
+        totales: Object.keys(tot).map(id => ({ id, nombre: this._amFicha(db, id).nombre, total: tot[id] })),
+        aportes: aps.slice().sort((a, b) => b.creado - a.creado || b.id - a.id).slice(0, 30).map(a => ({ id: a.id, user_id: a.user_id, cantidad: a.cantidad, nota: a.nota, fecha: a.fecha })),
       };
     });
   },
@@ -675,6 +785,21 @@ const SupabaseBackend = {
     return r.error ? r : { r: r.data };
   },
   async conjuntoMarcar(h, fecha, hecho) { const r = await this._amRpc("conjunto_marcar", { p_id: h, p_fecha: fecha, p_hecho: !!hecho }); return r.error ? r : r.data; },
+  /* -------- Objetivos en conjunto (supabase/objetivos.sql) -------- */
+  async objetivoLista() { const r = await this._amRpc("objetivo_lista"); return r.error ? r : r.data || []; },
+  async objetivoCrear(nombre, unidad, meta, fechaLimite, amigos, hoy) {
+    const r = await this._amRpc("objetivo_crear", { p_nombre: nombre, p_unidad: unidad || "", p_meta: meta, p_fecha_limite: fechaLimite || null, p_amigos: amigos, p_hoy: hoy });
+    return r.error ? r : { id: r.data };
+  },
+  async objetivoInvitar(o, amigos) { const r = await this._amRpc("objetivo_invitar", { p_id: o, p_amigos: amigos }); return r.error ? r : { n: r.data }; },
+  async objetivoResponder(o, acepta, hoy) { const r = await this._amRpc("objetivo_responder", { p_id: o, p_acepta: !!acepta, p_hoy: hoy }); return r.error ? r : { r: r.data }; },
+  async objetivoSalir(o) { const r = await this._amRpc("objetivo_salir", { p_id: o }); return r.error ? r : { r: r.data }; },
+  async objetivoEditar(o, nombre, unidad, meta, fechaLimite) {
+    const r = await this._amRpc("objetivo_editar", { p_id: o, p_nombre: nombre, p_unidad: unidad || "", p_meta: meta, p_fecha_limite: fechaLimite || null });
+    return r.error ? r : r.data;
+  },
+  async objetivoAportar(o, cantidad, nota, hoy) { const r = await this._amRpc("objetivo_aportar", { p_id: o, p_cantidad: cantidad, p_nota: nota || "", p_hoy: hoy }); return r.error ? r : r.data; },
+  async objetivoBorrarAporte(aporte) { const r = await this._amRpc("objetivo_borrar_aporte", { p_aporte: aporte }); return r.error ? r : r.data; },
   /* ¿Está activo "Iniciar sesión con Google" en Supabase? (Authentication → Providers → Google).
      Se consulta al mostrar la pantalla de acceso: así el botón aparece solo cuando funciona. */
   async googleDisponible() {

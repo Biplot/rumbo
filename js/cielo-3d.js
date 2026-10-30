@@ -49,6 +49,7 @@ function crearMotorCielo(T, D) {
   for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i / 5 * 6.283; FIG.rituales.p.push([Math.cos(a), -Math.sin(a)]); FIG.rituales.l.push([i, (i + 1) % 5], [i, i + 5]); }
   for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i / 10 * 6.283; FIG.vida.p.push([Math.cos(a) * 0.66, -0.17 + Math.sin(a) * 0.66]); FIG.vida.l.push([4 + i, 4 + (i + 1) % 10]); }
   FIG.vida.l.push([1, 4], [3, 4]);
+  FIG.vida.p.push([0, -0.17]);   // En Equipo, en el centro de La Medalla
   const SECRETAS = { buho: [0.27, 0.56], aniversario: [-0.24, 0.42], "anio-nuevo": [0.86, 0.6], remontada: [-0.2, 0.86] };   // en los huecos entre figuras
 
   /* -------- Utilidades -------- */
@@ -138,6 +139,7 @@ function crearMotorCielo(T, D) {
       case "corazon": P("M50 84 C20 64 10 46 18 30 C26 16 44 18 50 32 C56 18 74 16 82 30 C90 46 80 64 50 84 Z"); break;
       case "flecha": P("M50 62 L50 12 M32 30 L50 12 L68 30 M24 46 L24 86 L76 86 L76 46"); break;
       case "medalla": C(50, 62, 24); P("M34 10 L46 40 M66 10 L54 40"); break;
+      case "equipo": C(34, 34, 12); C(66, 34, 12); P("M10 82 C10 62 22 54 34 54 C42 54 48 58 50 62 C52 58 58 54 66 54 C78 54 90 62 90 82"); break;
       case "buho": P("M26 30 L34 14 L42 26 M74 30 L66 14 L58 26 M26 30 C14 60 26 90 50 90 C74 90 86 60 74 30 C66 22 34 22 26 30 Z"); C(38, 44, 9); C(62, 44, 9); P("M46 58 L50 64 L54 58"); break;
       case "torta": rr(g, 18, 52, 64, 34, 6); g.stroke(); P("M18 66 C30 72 40 60 50 66 C60 72 70 60 82 66 M50 52 L50 32"); F("M50 14 C56 22 56 28 50 30 C44 28 44 22 50 14 Z"); break;
       case "fuegos": for (let j = 0; j < 10; j++) { const b2 = j / 10 * Math.PI * 2; g.beginPath(); g.moveTo(50 + Math.cos(b2) * 14, 50 + Math.sin(b2) * 14); g.lineTo(50 + Math.cos(b2) * 40, 50 + Math.sin(b2) * 40); g.stroke(); } C(50, 50, 5, true); break;

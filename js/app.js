@@ -10,7 +10,7 @@ const ROUTES = [
   { id: "inicio", label: "Inicio", icon: "🏠", render: renderInicio, subtitle: "Tu centro de control diario." },
   { id: "semana", label: "Semana", icon: "🗂️", render: renderSemana, subtitle: "Tu plan y tus tareas de lunes a domingo." },
   { id: "habitos", label: "Hábitos", icon: "📊", render: renderHabitos, subtitle: "Marca cada día y cuida tu racha." },
-  { id: "metas", label: "Objetivos", icon: "🎯", render: renderMetas, subtitle: "Tus metas trimestrales y mensuales." },
+  { id: "metas", label: "Objetivos", icon: "🎯", render: renderMetas, subtitle: "Tus metas trimestrales y mensuales, y las que logras con amigos." },
   { id: "ritual", label: "Ritual", icon: "🌅", render: renderRitual, subtitle: "Abre y cierra tu día, tu semana y tu mes." },
   { id: "diario", label: "Diario", icon: "📔", render: renderDiario, subtitle: "Tu día a día: ánimo, reflexión e historial del ritual." },
   { id: "amigos", label: "Amigos", icon: "🤝", render: renderAmigos, subtitle: "Invita, acompaña y manda ánimo. Tú eliges qué ven." },
@@ -155,7 +155,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 37;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 38;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -395,6 +395,11 @@ const NOVEDADES = {
     ["🤝", "Hábitos en conjunto", "Crea un hábito con uno o más amigos: al hacer uno nuevo, elige con quién. Cada uno lo marca en su Rumbo y ven quién ya cumplió hoy."],
     ["🔥", "Racha de a dos", "Sube cada vez que cumplen todos, y el día que lo hacen todos, +5 ⭐ para cada uno. Lo ves en Inicio, en Hábitos y en Amigos."],
     ["🔔", "Avisos para hacerlo juntos", "Te avisamos cuando te invitan, cuando un amigo ya lo hizo hoy y cuando lo cumplen todos. Si sales del hábito, se queda contigo con tu historial."],
+  ],
+  38: [
+    ["🎯", "Objetivos en conjunto", "En Objetivos, crea una meta con tus amigos: juntar para un viaje, correr 100 km en el mes o leer 12 libros entre todos. Cada uno suma sus aportes."],
+    ["📊", "La barra de todos", "Ves cuánto llevan, lo que puso cada uno con su color y cuántos días quedan. Te avisamos cuando alguien aporta y cuando lo logran."],
+    ["🏅", "Medalla En Equipo", "Al lograr un objetivo juntos, +20 ⭐ para cada uno; la primera vez, además, la medalla En Equipo en el centro de La Medalla de tu vitrina."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -948,6 +953,7 @@ function onClick(e) {
   const d = el.dataset;
   if (a.startsWith("am-")) { amigosAccion(a, d, el); return; }   // 🤝 Amigos (amigos.js)
   if (a.startsWith("cj-")) { conjuntoAccion(a, d); return; }      // hábitos en conjunto (conjunto.js)
+  if (a.startsWith("oj-")) { objetivosAccion(a, d); return; }     // objetivos en conjunto (objetivos.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;

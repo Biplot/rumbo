@@ -42,6 +42,11 @@ Un hábito que haces con uno o más amigos (`js/conjunto.js`). Cada uno lo tiene
 - **Activar:** Supabase → SQL Editor: correr `supabase/conjunto.sql` **después** de `amigos.sql` (se puede repetir). Crea `habitos_conjunto`, `habitos_conjunto_miembros` y `habitos_conjunto_marcas` (sin acceso directo: todo pasa por las funciones `conjunto_*`). Mientras no se corra, Amigos dice que todavía no están activos y el formulario de hábito no ofrece hacerlo con amigos.
 - **Avisos al celular** (te invitan, alguien se sumó, «ya cumplió hoy», «lo hicieron todos» con la racha): `notifier/conjunto.mjs`, desde `api/push.js`. Usan el mismo aviso «Amigos» y el mismo horario.
 
+### Objetivos en conjunto
+Una meta con avance sumado entre varios (`js/objetivos.js`): juntar para un viaje, correr 100 km en el mes, leer 12 libros entre todos. Cada uno suma sus aportes y la barra muestra lo de cada uno con su color; se ven en Objetivos (sección «Con amigos»), en Amigos y en el perfil de cada amigo. Al lograrlo, +20 ⭐ para cada uno (ledger `objetivo-juntos:<id>`) y, la primera vez, la medalla **En Equipo** (en el centro de La Medalla del cielo). Si después ya no llega (se borró un aporte o subió la meta), el +20 se anula. Si alguien sale, sus aportes siguen sumando.
+- **Activar:** Supabase → SQL Editor: correr `supabase/objetivos.sql` **después** de `amigos.sql` (se puede repetir). Crea `objetivos_conjunto`, `objetivos_conjunto_miembros` y `objetivos_conjunto_aportes` (sin acceso directo: todo pasa por las funciones `objetivo_*`). Mientras no se corra, Objetivos queda como siempre.
+- **Avisos al celular** (te invitan, alguien se sumó, alguien aportó —uno al día—, «¡lo lograron!»): `notifier/objetivos.mjs`, desde `api/push.js`, con el aviso «Amigos».
+
 ## Configuración de Supabase
 Las claves públicas van en `js/store.js` (`SUPABASE_URL`, `SUPABASE_KEY`). La `publishable key` es pública por diseño; los datos están protegidos por RLS. Esquema:
 

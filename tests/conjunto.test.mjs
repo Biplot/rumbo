@@ -109,4 +109,116 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(r.db.conjuntos.length, 0); assert.equal(r.db.cmiembros.length, 0); assert.equal(r.db.cmarcas.length, 0);
   });
   ls.removeItem("rumbo_amigos"); ls.removeItem("rumbo_session");
+
+  /* -------- Avisos al celular (notifier/conjunto.mjs) -------- */
+  const { avisoConjunto, destinatariosMarca, mensajeConjunto } = await import("../notifier/conjunto.mjs");
+  const { rachaConjunto } = await import("../notifier/habitos.mjs");
+
+  test("el servidor cuenta la racha igual que la app (el mismo motor)", () => {
+    const def = { frecuencia: { tipo: "diario" }, creado: "2026-10-20" };
+    const ms = [{ desde: "2026-10-20", marcas: dias("2026-10-25", 11) }, { desde: "2026-10-22", marcas: dias("2026-10-27", 9) }];
+    assert.deepEqual(rachaConjunto(def, ms, "2026-11-04"), clone(conHoy("2026-11-04", () => racha(def, ms))));
+    assert.equal(rachaConjunto(def, ms, "2026-11-04").n, 9);
+    assert.equal(rachaConjunto({ frecuencia: { tipo: "dias", dias: "roto" }, creado: "2026-10-20" }, ms, "2026-11-04").n, 9, "una frecuencia rota se lee como diaria");
+  });
+
+  test("al marcar: «ya lo hizo» a los que faltan; «lo hicieron todos» a los demás; una vez por día", () => {
+    const M = (user_id, avisos = {}) => ({ user_id, estado: "activo", desde: "2026-11-01", avisos });
+    const ms = [M("a"), M("b"), M("c", { marca: "2026-11-04" }), { user_id: "d", estado: "invitado" }, { user_id: "e", estado: "activo", desde: "2026-11-05" }];
+    assert.deepEqual(destinatariosMarca({ miembros: ms, marcas: [{ user_id: "a", fecha: "2026-11-04" }], yo: "a", fecha: "2026-11-04" }), { tipo: "marca", para: ["b"] });
+    const todas = ["a", "b", "c"].map(u => ({ user_id: u, fecha: "2026-11-04" }));
+    assert.deepEqual(destinatariosMarca({ miembros: ms, marcas: todas, yo: "c", fecha: "2026-11-04" }), { tipo: "todos", para: ["a", "b"] });
+    assert.deepEqual(destinatariosMarca({ miembros: [M("a"), M("b", { todos: "2026-11-04" })], marcas: todas, yo: "a", fecha: "2026-11-04" }), { tipo: "todos", para: [] });
+    assert.equal(destinatariosMarca({ miembros: [M("a")], marcas: todas, yo: "a", fecha: "2026-11-04" }).tipo, "marca", "solo, no hay «todos»");
+  });
+
+  test("los textos: invitación, se sumó, ya cumplió y lo hicieron todos (con la racha)", () => {
+    assert.deepEqual(mensajeConjunto("conjunto-invita", { nombre: "Ana", habito: "Leer" }), { title: "Ana te invita a un hábito", body: "«Leer», para hacerlo juntos en Rumbo.", url: "./#amigos", tag: "rumbo-conjunto-invita" });
+    assert.equal(mensajeConjunto("conjunto-acepta", { nombre: "Bruno", habito: "Leer" }).title, "Bruno se sumó a «Leer»");
+    assert.equal(mensajeConjunto("marca", { nombre: "Ana", habito: "Leer" }).body, "Te toca: si lo haces hoy, lo cumplen los dos.");
+    assert.equal(mensajeConjunto("marca", { nombre: " ", habito: "Correr", grupo: true }).title, "Un amigo ya cumplió «Correr» hoy");
+    assert.equal(mensajeConjunto("todos", { habito: "Leer", racha: { n: 7, unidad: "días" } }).body, "Racha de a dos: 7 días. +5 ⭐ para cada uno.");
+    assert.equal(mensajeConjunto("todos", { habito: "Correr", racha: { n: 3, unidad: "sem" }, grupo: true }).body, "Racha del grupo: 3 semanas. +5 ⭐ para cada uno.");
+    assert.equal(mensajeConjunto("todos", { habito: "Leer", racha: { n: 1, unidad: "días" } }).body, "+5 ⭐ para cada uno.");
+    assert.equal(mensajeConjunto("otro", {}), null);
+  });
+
+  /* Supabase de mentira: tablas en memoria con select/eq/gte/lte/update/maybeSingle */
+  function sbFalso(tablas) {
+    const cambios = [];
+    return {
+      cambios,
+      from(t) {
+        const filtros = []; let upd = null, cols = "";
+        const correr = () => {
+          const rs = (tablas[t] || []).filter(r => filtros.every(f => f(r)));
+          if (upd) { rs.forEach(r => Object.assign(r, clone(upd))); cambios.push([t, rs.map(r => r.user_id), clone(upd)]); return rs; }
+          if (cols.includes("notif:data->settings->notif")) return rs.map(r => ({ notif: ((r.data || {}).settings || {}).notif ?? null }));
+          return rs;
+        };
+        const q = {
+          select(c) { cols = c; return q; }, update(o) { upd = o; return q; },
+          eq(k, v) { filtros.push(r => r[k] === v); return q; }, gte(k, v) { filtros.push(r => r[k] >= v); return q; }, lte(k, v) { filtros.push(r => r[k] <= v); return q; },
+          async maybeSingle() { return { data: correr()[0] || null, error: null }; },
+          then(ok, ko) { return Promise.resolve({ data: correr(), error: null }).then(ok, ko); },
+        };
+        return q;
+      },
+    };
+  }
+  const H = "11111111-2222-3333-4444-555555555555", A = "aaaaaaaa-0000-0000-0000-000000000000", B = "bbbbbbbb-0000-0000-0000-000000000000", C = "cccccccc-0000-0000-0000-000000000000";
+  const base = () => ({
+    habitos_conjunto: [{ id: H, nombre: "Leer 20 minutos", frecuencia: { tipo: "diario" }, creado: "2026-11-01" }],
+    habitos_conjunto_miembros: [
+      { habito: H, user_id: A, estado: "activo", invita: null, desde: "2026-11-01", avisos: {} },
+      { habito: H, user_id: B, estado: "activo", invita: A, desde: "2026-11-01", avisos: {} },
+      { habito: H, user_id: C, estado: "invitado", invita: A, desde: null, avisos: {} },
+    ],
+    habitos_conjunto_marcas: [],
+    perfiles: [{ user_id: A, nombre: "Ana" }, { user_id: B, nombre: "Bruno" }, { user_id: C, nombre: "Cami" }],
+    estado_usuario: [{ user_id: A, data: { settings: { notif: {} } } }, { user_id: B, data: { settings: { notif: {} } } }, { user_id: C, data: { settings: { notif: { avisos: { amigos: false } } } } }],
+    suscripciones_push: [A, B, C].map((u, i) => ({ id: i, user_id: u, endpoint: "https://push/" + u, p256dh: "k", auth: "a" })),
+  });
+  const MEDIODIA = new Date("2026-11-04T15:00:00Z"), NOCHE = new Date("2026-11-05T02:00:00Z");   // 12:00 y 23:00 en Santiago
+  const enviados = [];
+  const enviar = async (ds, msg) => { enviados.push([ds.map(d => d.user_id), msg.title, msg.body]); return { enviadas: ds.length }; };
+  const t1 = base(), sb1 = sbFalso(t1);
+  r.av = {};
+  r.av.ajeno = await avisoConjunto({ sb: sb1, yo: C, body: { tipo: "conjunto-invita", habito: H }, enviar, ahora: MEDIODIA });
+  r.av.invita = await avisoConjunto({ sb: sb1, yo: A, body: { tipo: "conjunto-invita", habito: H }, enviar, ahora: MEDIODIA });
+  t1.estado_usuario[2].data.settings.notif = {};
+  r.av.invita2 = await avisoConjunto({ sb: sb1, yo: A, body: { tipo: "conjunto-invita", habito: H }, enviar, ahora: MEDIODIA });
+  r.av.invita3 = await avisoConjunto({ sb: sb1, yo: A, body: { tipo: "conjunto-invita", habito: H }, enviar, ahora: MEDIODIA });
+  r.av.acepta = await avisoConjunto({ sb: sb1, yo: B, body: { tipo: "conjunto-acepta", habito: H }, enviar, ahora: MEDIODIA });
+  r.av.acepta2 = await avisoConjunto({ sb: sb1, yo: B, body: { tipo: "conjunto-acepta", habito: H }, enviar, ahora: MEDIODIA });
+  r.av.sinMarca = await avisoConjunto({ sb: sb1, yo: A, body: { tipo: "conjunto-marca", habito: H, fecha: "2026-11-04" }, enviar, ahora: MEDIODIA });
+  ["2026-11-02", "2026-11-03", "2026-11-04"].forEach(fecha => t1.habitos_conjunto_marcas.push({ habito: H, user_id: A, fecha }));
+  ["2026-11-02", "2026-11-03"].forEach(fecha => t1.habitos_conjunto_marcas.push({ habito: H, user_id: B, fecha }));
+  r.av.deNoche = await avisoConjunto({ sb: sb1, yo: A, body: { tipo: "conjunto-marca", habito: H, fecha: "2026-11-04" }, enviar, ahora: NOCHE });
+  r.av.marca = await avisoConjunto({ sb: sb1, yo: A, body: { tipo: "conjunto-marca", habito: H, fecha: "2026-11-04" }, enviar, ahora: MEDIODIA });
+  r.av.marca2 = await avisoConjunto({ sb: sb1, yo: A, body: { tipo: "conjunto-marca", habito: H, fecha: "2026-11-04" }, enviar, ahora: MEDIODIA });
+  t1.habitos_conjunto_marcas.push({ habito: H, user_id: B, fecha: "2026-11-04" });
+  r.av.todos = await avisoConjunto({ sb: sb1, yo: B, body: { tipo: "conjunto-marca", habito: H, fecha: "2026-11-04" }, enviar, ahora: MEDIODIA });
+  r.av.malo = await avisoConjunto({ sb: sb1, yo: A, body: { tipo: "conjunto-marca", habito: "'; drop", fecha: "x" }, enviar, ahora: MEDIODIA });
+
+  test("aviso de invitación: solo de quien invitó, a quien tiene encendido «Amigos», y una vez", () => {
+    assert.equal(r.av.ajeno.motivo, "no-corresponde", "un invitado no manda avisos");
+    assert.equal(r.av.invita.enviadas, 0, "Cami tiene apagado «Amigos»: no se le avisa (ni queda anotado)");
+    assert.equal(r.av.invita2.enviadas, 1); assert.equal(r.av.invita3.motivo, "nadie");
+    assert.deepEqual(enviados[0], [[C], "Ana te invita a un hábito", "«Leer 20 minutos», para hacerlo juntos en Rumbo."]);
+  });
+  test("aviso al sumarse: a quien lo invitó, una vez", () => {
+    assert.equal(r.av.acepta.enviadas, 1); assert.equal(r.av.acepta2.motivo, "ya-avisado");
+    assert.deepEqual(enviados[1], [[A], "Bruno se sumó a «Leer 20 minutos»", "Ya lo hacen juntos: cada uno lo marca en su Rumbo."]);
+  });
+  test("aviso al marcar: solo si marcó de verdad, nunca de noche, «ya cumplió» una vez y «lo hicieron todos» con la racha", () => {
+    assert.equal(r.av.sinMarca.motivo, "no-corresponde");
+    assert.equal(r.av.deNoche.enviadas, 0);
+    assert.equal(r.av.marca.enviadas, 1); assert.equal(r.av.marca2.motivo, "nadie");
+    assert.deepEqual(enviados[2], [[B], "Ana ya cumplió «Leer 20 minutos» hoy", "Te toca: si lo haces hoy, lo cumplen los dos."]);
+    assert.equal(r.av.todos.enviadas, 1);
+    assert.deepEqual(enviados[3], [[A], "¡Lo hicieron todos! «Leer 20 minutos»", "Racha de a dos: 3 días. +5 ⭐ para cada uno."]);
+    assert.equal(r.av.malo.motivo, "no-valido");
+    assert.equal(enviados.length, 4);
+  });
 }

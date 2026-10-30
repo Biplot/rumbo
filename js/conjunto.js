@@ -129,7 +129,7 @@ async function cjSubirMarcas() {
     const r = await BACKEND.conjuntoMarcar(x.c.id, x.d, x.mio);
     if (!r || r.error) continue;
     x.yo.marcas = x.mio ? [...new Set(x.yo.marcas.concat(x.d))].sort() : x.yo.marcas.filter(d => d !== x.d);
-    if (x.mio && x.d === hoy) BACKEND.amigosAvisar("conjunto-marca", { habito: x.c.id, fecha: x.d, racha: cjRacha(x.c).n });
+    if (x.mio && x.d === hoy) BACKEND.amigosAvisar("conjunto-marca", { habito: x.c.id, fecha: x.d });
   }
 }
 /* +5 ⭐ a cada uno el día que cumplen todos (la última semana; si alguien desmarca, se anula) */
@@ -156,7 +156,7 @@ async function conjuntoAlMarcar(habitId, iso) {
   if (!r || r.error) return;   // se sube después, al cargar (cjSubirMarcas)
   if (!c) return conjuntoCargar(true);
   yo.marcas = hecho ? [...new Set(yo.marcas.concat(iso))].sort() : yo.marcas.filter(d => d !== iso);
-  if (hecho) BACKEND.amigosAvisar("conjunto-marca", { habito: c.id, fecha: iso, racha: cjRacha(c).n });
+  if (hecho) BACKEND.amigosAvisar("conjunto-marca", { habito: c.id, fecha: iso });
   if (!!r.todos !== hmTodosConjunto(cjMiembros(c), iso)) return conjuntoCargar(true);   // alguien marcó hace poco: se trae de nuevo
   cjPremios(); cjRepintar();
 }

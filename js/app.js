@@ -566,6 +566,7 @@ async function doLogout() {
   await soltarDispositivoPush();   // 🔔 este dispositivo deja de recibir los avisos de quien sale
   await BACKEND.logout();
   CURRENT_USER = null; STATE = null; location.hash = "";
+  amigosOlvidar();   // lo de tus amigos en memoria no queda para quien entre después
   authError(""); showAuth();
 }
 

@@ -69,6 +69,12 @@ async function amigosCargar(forzar) {
   if (CURRENT === "amigos") rerender();
   if (!AMIGOS.error) conjuntoCargar(forzar);   // y los hábitos en conjunto (conjunto.js)
 }
+/* Al salir de la cuenta: se olvida lo cargado (amigos y hábitos en conjunto) */
+function amigosOlvidar() {
+  clearTimeout(AMIGOS.pubT);
+  Object.assign(AMIGOS, { lista: null, t: 0, cargando: false, error: null, codigo: "", animosVistos: [], pubFirma: "", pubT: null, msg: "" });
+  Object.assign(CONJ, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
+}
 /* Cuántas cosas nuevas hay: solicitudes recibidas, ánimos sin ver e invitaciones a hábitos */
 function amigosNuevos() {
   const l = AMIGOS.lista; if (!l) return 0;

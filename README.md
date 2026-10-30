@@ -37,6 +37,11 @@ Invitar con enlace o código, la lista de hoy, ánimos y lo que cada uno muestra
 - **Activar:** Supabase → SQL Editor: correr `supabase/amigos.sql` (se puede repetir). Crea `perfiles`, `amistades` y `animos`, sus reglas (RLS) y las funciones `amigos_*`. Mientras no se corra, la pantalla Amigos dice que todavía no está activo.
 - **Avisos al celular** (ánimo, solicitud, amistad aceptada): los manda `api/push.js` (`accion: "amigos"`) después de revisar en la base que corresponden. Se apagan con el aviso «Amigos» en Notificaciones y nunca llegan de 22:00 a 8:00.
 
+### Hábitos en conjunto
+Un hábito que haces con uno o más amigos (`js/conjunto.js`). Cada uno lo tiene como un hábito suyo (id `cj-<id>`, con `conjunto: id`): lo marca como cualquier otro, le da sus estrellas y cuenta para su racha. Lo compartido es quiénes están y qué días cumplió cada uno. La racha de a dos (o del grupo) la cuenta `hmRachaConjunto` en `js/habitos-motor.js`, el mismo motor en la app y en el servidor; el día que cumplen todos, +5 ⭐ para cada uno. Si alguien sale, el hábito se queda con él, con su historial.
+- **Activar:** Supabase → SQL Editor: correr `supabase/conjunto.sql` **después** de `amigos.sql` (se puede repetir). Crea `habitos_conjunto`, `habitos_conjunto_miembros` y `habitos_conjunto_marcas` (sin acceso directo: todo pasa por las funciones `conjunto_*`). Mientras no se corra, Amigos dice que todavía no están activos y el formulario de hábito no ofrece hacerlo con amigos.
+- **Avisos al celular** (te invitan, alguien se sumó, «ya cumplió hoy», «lo hicieron todos» con la racha): `notifier/conjunto.mjs`, desde `api/push.js`. Usan el mismo aviso «Amigos» y el mismo horario.
+
 ## Configuración de Supabase
 Las claves públicas van en `js/store.js` (`SUPABASE_URL`, `SUPABASE_KEY`). La `publishable key` es pública por diseño; los datos están protegidos por RLS. Esquema:
 

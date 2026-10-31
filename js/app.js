@@ -158,7 +158,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 45;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 46;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -438,6 +438,9 @@ const NOVEDADES = {
     ["📷", "Tu álbum del mes", "Al cerrar el mes, un paso nuevo: hasta 9 fotos de los mejores momentos, con una línea para cada una. La primera vez con 3 fotos comentadas, +30 ⭐."],
     ["📔", "Tus álbumes, en el Diario", "Cada mes muestra su álbum bajo el mapa del ánimo, y «Tus álbumes» arma la estantería del año con la portada de cada mes."],
     ["🖼️", "Estilos de álbum", "En la Tienda, «Tu álbum»: Bullet journal, Polaroid y Película. Se compran una vez y cada mes elige el suyo. Clásico viene incluido."],
+  ],
+  46: [
+    ["📷", "Acomoda tus fotos", "En el álbum, toca una foto: pellizca para acercarla y arrástrala para elegir qué parte se ve en el marco. Así queda en las páginas, la estantería y el Diario."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -754,7 +757,7 @@ function initGestures() {
   modal.addEventListener("touchstart", e => {
     dragging = false;
     if (e.touches.length !== 1 || modal.scrollTop > 0) return;
-    if (isFormEl(e.target)) return;
+    if (isFormEl(e.target) || (e.target.closest && e.target.closest("[data-sin-arrastre]"))) return;   // p. ej., encuadrar una foto del álbum
     my = e.touches[0].clientY; moved = 0; dragging = true;
     modal.style.transition = "none";
   }, { passive: true });

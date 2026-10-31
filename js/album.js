@@ -73,6 +73,26 @@ function albumFechaLarga(iso) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/* -------- El encuadre: cómo se ve la foto en su marco. x, y: el punto que manda (de 0 a 1); z: el zoom (de 1 a 4).
+   Se dibuja con object-position (lo que sobra de la foto) y un scale con su origen en el mismo punto. -------- */
+const ALBUM_ZOOM = 4;
+function albumEnc(f) {
+  const e = f && f.encuadre, n = (v, min, max, def) => { v = Number(v); return isFinite(v) ? Math.min(max, Math.max(min, v)) : def; };
+  return e && typeof e === "object" ? { x: n(e.x, 0, 1, 0.5), y: n(e.y, 0, 1, 0.5), z: n(e.z, 1, ALBUM_ZOOM, 1) } : { x: 0.5, y: 0.5, z: 1 };
+}
+function albumEncNormal(enc) { return Math.abs(enc.x - 0.5) < 0.001 && Math.abs(enc.y - 0.5) < 0.001 && enc.z <= 1.001; }
+function albumEncEstilo(enc) {
+  if (!enc || albumEncNormal(enc)) return "";
+  const p = `${+(enc.x * 100).toFixed(1)}% ${+(enc.y * 100).toFixed(1)}%`;
+  return `object-position:${p};transform-origin:${p};transform:scale(${+enc.z.toFixed(3)})`;
+}
+/* Cuántos px se corre la foto en pantalla por cada unidad de x (o de y), en un marco W×H con la foto iw×ih y zoom z:
+   lo que sobra al cubrir el marco, más lo que agrega el zoom. Así, arrastrar sigue al dedo. */
+function albumEncPaso(W, H, iw, ih, z) {
+  const s = Math.max(W / iw, H / ih);
+  return { x: (iw * s - W) * z + (z - 1) * W, y: (ih * s - H) * z + (z - 1) * H };
+}
+
 /* -------- La fecha de la foto (EXIF: DateTimeOriginal, o DateTime) -------- */
 function albumFechaExif(buf) {
   try {
@@ -225,7 +245,12 @@ if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") 
     t = setTimeout(() => { t = null; if (STATE && document.querySelector("img[data-foto]:not([data-ok])")) albumPintar(); }, 30);
   }).observe(document.documentElement, { childList: true, subtree: true });
 }
-function albumImg(f, mini, cls) { return `<img class="${cls || "ft"}" data-foto="${escapeHtml(f.ruta)}"${mini ? " data-mini=\"1\"" : ""} alt="" loading="lazy">`; }
+function albumImg(f, mini, cls) {
+  const st = albumEncEstilo(albumEnc(f));
+  return `<img class="${cls || "ft"}" data-foto="${escapeHtml(f.ruta)}"${mini ? " data-mini=\"1\"" : ""}${st ? ` style="${st}"` : ""} alt="" loading="lazy">`;
+}
+/* La foto en su marco (el marco recorta lo que el zoom saca de borde) */
+function albumMarco(f, mini, cls) { return `<span class="${cls || "ft"} ft-marco">${albumImg(f, mini, "ft-img")}</span>`; }
 /* Las letras de los estilos (a mano y a máquina): se piden la primera vez que se ve un álbum */
 function albumFuentes() {
   if (ALB.fuentes || typeof document === "undefined") return;
@@ -271,12 +296,58 @@ function albumVolver(key, desde) {
   if (desde === "album") return openAlbum(key);
   closeModal(); rerender();
 }
+/* Guarda lo que cambiaste de la foto: el comentario y el encuadre */
 function albumGuardarComentario() {
   const e = ALB.editar; if (!e) return;
   const a = albumMes(e.key), f = a && a.fotos.find(x => x.id === e.id), t = document.getElementById("alb-com");
   if (!f || !t) return;
+  let cambio = false;
   const c = t.value.trim().slice(0, ALBUM_COMENTARIO);
-  if (c !== (f.comentario || "")) { f.comentario = c; f.ts = Date.now(); saveState(); }
+  if (c !== (f.comentario || "")) { f.comentario = c; cambio = true; }
+  if (e.enc) {
+    const nuevo = albumEncNormal(e.enc) ? null : { x: +e.enc.x.toFixed(3), y: +e.enc.y.toFixed(3), z: +e.enc.z.toFixed(2) };
+    if (JSON.stringify(nuevo) !== JSON.stringify(f.encuadre || null)) { if (nuevo) f.encuadre = nuevo; else delete f.encuadre; cambio = true; }
+  }
+  if (cambio) { f.ts = Date.now(); saveState(); }
+}
+/* -------- Encuadrar: pellizcar (o la rueda, o la barra) para el zoom; arrastrar para mover -------- */
+function albumEncAplicar() {
+  const e = ALB.editar, img = document.querySelector("#alb-marco img"), r = document.getElementById("alb-z");
+  if (!e || !e.enc || !img) return;
+  img.setAttribute("style", albumEncEstilo(e.enc));
+  if (r && document.activeElement !== r) r.value = e.enc.z;
+}
+function albumZoom(v) { const e = ALB.editar; if (!e || !e.enc) return; e.enc.z = Math.min(ALBUM_ZOOM, Math.max(1, +v || 1)); albumEncAplicar(); }
+function albumEncMontar() {
+  const el = document.getElementById("alb-marco"); if (!el || el.dataset.listo) return;
+  el.dataset.listo = "1";
+  const dedos = new Map(); let antes = null;
+  const dist = () => { const [a, b] = [...dedos.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  el.addEventListener("pointerdown", ev => {
+    try { el.setPointerCapture(ev.pointerId); } catch (x) {}
+    dedos.set(ev.pointerId, { x: ev.clientX, y: ev.clientY }); antes = dedos.size === 2 ? dist() : null;
+    el.classList.add("is-moviendo"); ev.preventDefault();
+  });
+  el.addEventListener("pointermove", ev => {
+    const d = dedos.get(ev.pointerId), e = ALB.editar; if (!d || !e || !e.enc) return;
+    if (dedos.size === 1) {
+      const img = el.querySelector("img"), iw = e.w || (img && img.naturalWidth) || 4, ih = e.h || (img && img.naturalHeight) || 3;
+      const p = albumEncPaso(el.clientWidth, el.clientHeight, iw, ih, e.enc.z);
+      if (p.x > 0.5) e.enc.x = Math.min(1, Math.max(0, e.enc.x - (ev.clientX - d.x) / p.x));
+      if (p.y > 0.5) e.enc.y = Math.min(1, Math.max(0, e.enc.y - (ev.clientY - d.y) / p.y));
+    }
+    d.x = ev.clientX; d.y = ev.clientY;
+    if (dedos.size === 2) { const n = dist(); if (antes) e.enc.z = Math.min(ALBUM_ZOOM, Math.max(1, e.enc.z * n / antes)); antes = n; }
+    albumEncAplicar();
+  });
+  const fin = ev => { dedos.delete(ev.pointerId); antes = dedos.size === 2 ? dist() : null; if (!dedos.size) el.classList.remove("is-moviendo"); };
+  el.addEventListener("pointerup", fin); el.addEventListener("pointercancel", fin);
+  el.addEventListener("wheel", ev => {
+    const e = ALB.editar; if (!e || !e.enc) return;
+    ev.preventDefault();
+    e.enc.z = Math.min(ALBUM_ZOOM, Math.max(1, e.enc.z * Math.exp(-ev.deltaY * 0.0015)));
+    albumEncAplicar();
+  }, { passive: false });
 }
 function albumListo() {
   const e = ALB.editar; if (!e) return;
@@ -368,7 +439,7 @@ function albumPaginasHtml(key) {
   const a = albumMes(key); if (!a) return "";
   const { y, m } = mesDeKey(key), estilo = albumEstilo(a), e = ALBUM_ESTILOS.find(x => x.id === estilo);
   const pags = albumPaginas(albumFotos(a), e.porPagina);
-  return pags.map((p, i) => albumPaginaHtml(estilo, p.map(f => ({ img: albumImg(f), comentario: f.comentario, fecha: albumFechaTxt(f.fecha) })),
+  return pags.map((p, i) => albumPaginaHtml(estilo, p.map(f => ({ img: albumMarco(f), comentario: f.comentario, fecha: albumFechaTxt(f.fecha) })),
     { mes: MESES[m], anio: y, primera: i === 0, n: `${i + 1} de ${pags.length}`, cuadro: 12 + i * e.porPagina })).join("");
 }
 /* Muestras dibujadas (para la Tienda, sin fotos tuyas) */
@@ -428,10 +499,15 @@ function albumPasoHtml(w) {
 function openAlbumFoto(key, id, desde) {
   const a = albumMes(key), fotos = a ? albumFotos(a) : [], f = fotos.find(x => x.id === id); if (!f) return;
   if (typeof MES_WIZ !== "undefined" && MES_WIZ && desde === "wiz") mesWizLeer();
-  ALB.editar = { key, id, desde };
-  const n = (f.comentario || "").length, portada = a.portada === f.id;
+  ALB.editar = { key, id, desde, enc: albumEnc(f), w: f.w, h: f.h };
+  const n = (f.comentario || "").length, portada = a.portada === f.id, z = ALB.editar.enc.z;
   openModal(`Foto ${fotos.indexOf(f) + 1} de ${fotos.length}`, `<div class="alb-ed">
-    <div class="alb-ed__foto">${albumImg(f, false)}</div>
+    <div class="alb-ed__marco" id="alb-marco" data-sin-arrastre>${albumImg(f, false, "alb-ed__img")}</div>
+    <div class="alb-ed__zoom" data-sin-arrastre><button type="button" class="icon-btn" data-action="alb-zoom" data-v="-1" aria-label="Alejar">−</button>
+      <input type="range" id="alb-z" min="1" max="${ALBUM_ZOOM}" step="0.01" value="${z}" oninput="albumZoom(this.value)" aria-label="Zoom de la foto">
+      <button type="button" class="icon-btn" data-action="alb-zoom" data-v="1" aria-label="Acercar">+</button>
+      <button type="button" class="btn-link" data-action="alb-centrar">Centrar</button></div>
+    <p class="text-xs muted alb-ed__ayuda">Pellizca o arrastra la foto para acomodarla en el marco: así se ve en el álbum.</p>
     ${f.fecha ? `<div class="alb-ed__fecha">${icoUI("camera")} ${escapeHtml(albumFechaLarga(f.fecha))}</div>` : ""}
     <div class="field" style="margin:0"><label for="alb-com">¿Qué pasó aquí?</label>
       <textarea class="input" id="alb-com" maxlength="${ALBUM_COMENTARIO}" rows="3" placeholder="Ej: El cumpleaños de Ana: llovió y lo celebramos igual en la terraza." oninput="albumContar(this)">${escapeHtml(f.comentario || "")}</textarea>
@@ -439,7 +515,7 @@ function openAlbumFoto(key, id, desde) {
     <div class="alb-ed__acc"><button class="btn btn--soft${portada ? " is-on" : ""}" data-action="alb-portada" ${portada ? "disabled" : ""}>${icoUI("estrella")} ${portada ? "Es la portada" : "Portada"}</button>
       <button class="btn-ghost" data-action="alb-quitar">${icoUI("trash-2")} Quitar</button>
       <button class="btn btn--primary" data-action="alb-listo">Listo</button></div></div>`);
-  setTimeout(() => { const t = document.getElementById("alb-com"); if (t && !t.value) t.focus(); }, 80);
+  setTimeout(albumEncMontar, 0);
 }
 function albumContar(t) { const n = document.getElementById("alb-com-n"); if (n) n.textContent = `${t.value.length} / ${ALBUM_COMENTARIO}`; }
 /* El álbum de un mes: sus páginas, el estilo y las fotos para editar */
@@ -467,7 +543,7 @@ function openAlbumes(y) {
     total += fs.length;
     if (futuro) return `<span class="alb-tapa is-vacia"><b>${MESES_CORTO[i]}</b></span>`;
     if (!fs.length) return `<button type="button" class="alb-tapa is-vacia" data-action="alb-ver" data-key="${key}"><b>${MESES_CORTO[i]}</b><i>${key === hoyKey ? "Al cerrar" : "Armar"}</i></button>`;
-    return `<button type="button" class="alb-tapa alb-tapa--${albumEstilo(a)}" data-action="alb-ver" data-key="${key}">${albumImg(fs[0], true)}<b>${MESES_CORTO[i]}</b><i>${fs.length === 1 ? "1 foto" : fs.length + " fotos"}</i></button>`;
+    return `<button type="button" class="alb-tapa alb-tapa--${albumEstilo(a)}" data-action="alb-ver" data-key="${key}">${albumMarco(fs[0], true, "alb-tapa__f")}<b>${MESES_CORTO[i]}</b><i>${fs.length === 1 ? "1 foto" : fs.length + " fotos"}</i></button>`;
   }).join("");
   openModal("Tus álbumes", `<div class="alb-est">
     ${anios.length > 1 ? `<div class="seg">${anios.map(a => `<button type="button" class="${a === y ? "is-active" : ""}" data-action="alb-estante" data-y="${a}">${a}</button>`).join("")}</div>` : ""}
@@ -484,7 +560,7 @@ function albumDiarioHtml(key) {
       <span class="text-xs muted">Las fotos de los mejores momentos, con una línea cada una.</span></div>
     <div class="alb-diario__b"><button class="btn btn--soft" data-action="alb-ver" data-key="${key}">${icoUI("plus")} Fotos</button>${hay ? `<button class="btn-ghost" data-action="alb-estante" data-y="${key.slice(0, 4)}">Tus álbumes</button>` : ""}</div></div>`;
   return `<div class="card alb-diario"><button type="button" class="alb-diario__fotos" data-action="alb-ver" data-key="${key}" aria-label="Ver el álbum de ${MESES[m].toLowerCase()}">
-      ${fs.slice(0, 4).map(f => albumImg(f, true)).join("")}</button>
+      ${fs.slice(0, 4).map(f => albumMarco(f, true, "alb-diario__f")).join("")}</button>
     <div class="alb-diario__t"><b>Álbum de ${MESES[m].toLowerCase()}</b><span class="text-xs muted">${fs.length === 1 ? "1 foto" : fs.length + " fotos"}${fs[0].comentario ? " · «" + escapeHtml(fs[0].comentario.slice(0, 60)) + (fs[0].comentario.length > 60 ? "…" : "") + "»" : ""}</span></div>
     <div class="alb-diario__b"><button class="btn btn--soft" data-action="alb-ver" data-key="${key}">Ver álbum</button><button class="btn-ghost" data-action="alb-estante" data-y="${key.slice(0, 4)}">Tus álbumes</button></div></div>`;
 }
@@ -501,6 +577,8 @@ function albumAccion(a, d) {
   if (a === "alb-portada") return albumPortada();
   if (a === "alb-quitar") return albumQuitar();
   if (a === "alb-estilo") return albumEstiloElegir(d.key, d.v, d.desde);
+  if (a === "alb-zoom") { const e = ALB.editar; if (e && e.enc) albumZoom(e.enc.z + 0.25 * (+d.v || 0)); return; }
+  if (a === "alb-centrar") { const e = ALB.editar; if (e) { e.enc = { x: 0.5, y: 0.5, z: 1 }; albumEncAplicar(); } return; }
   if (a === "alb-ver") { if (typeof MES_WIZ !== "undefined") MES_WIZ = null; return openAlbum(d.key); }
   if (a === "alb-estante") return openAlbumes(d.y);
   if (a === "alb-tienda") { closeModal(); if (typeof MES_WIZ !== "undefined") MES_WIZ = null; return go("recompensas"); }

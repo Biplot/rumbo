@@ -53,7 +53,8 @@ function aguaTotal(d) { if (!d) return 0; return d.r ? aguaRegistros(d).reduce((
 function aguaHoy(S) { return aguaTotal(aguaDia(todayISO(), false, S)); }
 /* La meta: la que elegiste, o 35 ml por kilo de tu último peso en Salud (entre 1,5 y 3,5 L), o 2 L */
 function aguaMetaAuto(S) {
-  const p = typeof pesoActualGlobal === "function" ? pesoActualGlobal(S || STATE) : null;
+  S = S || (typeof STATE !== "undefined" ? STATE : null);
+  const p = S && typeof pesoActualGlobal === "function" ? pesoActualGlobal(S) : null;
   return p > 0 ? Math.min(3500, Math.max(1500, Math.round(p * 35 / 50) * 50)) : 2000;
 }
 function aguaMetaBase(S) { const a = aguaDatos(S); return a.meta > 0 ? a.meta : aguaMetaAuto(S); }
@@ -1021,6 +1022,7 @@ const AGUA_MOTOR = (() => {
     const t0 = performance.now(); let activo = 3, vivo = false, visible = false, ant = 0, cuadro = 0;
     const pausa = () => modo === "portilla" && !AGUA_FAB.abierta;
     const pintar = t => {
+      if (typeof STATE === "undefined" || !STATE) return;
       tema(); const e = aguaEstado(), nh = Math.min(7, Math.floor(e.frac * 8 + 1e-6));
       giro += (giroMeta - giro) * 0.12; raiz.rotation.y = giro;
       const d = Math.max(tam.x / cam.aspect, tam.y) / (2 * Math.tan(cam.fov * Math.PI / 360)) * 0.94 + tam.z / 2;   // de cerca: el cuadro es angosto
@@ -1079,6 +1081,7 @@ const AGUA_MOTOR = (() => {
     const enPausa = () => modo === "portilla" && !AGUA_FAB.abierta;
     const obj = { cv, escena, despertar() { activo = 3; if (!vivo && visible && !enPausa()) arrancar(); } };
     const pintar = (t, dt) => {
+      if (!muestra && (typeof STATE === "undefined" || !STATE)) return;   // sin sesión (al salir de la cuenta) no hay agua que dibujar
       const ks = QUIETO ? 1 : Math.max(1, Math.min(3, Math.round(dt * 60)));
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.setTransform(k * DPR, 0, 0, k * DPR, 0, 0);
       const sabor = cv.dataset.sabor || aguaSabor(), cs = (AGUA_SABORES.find(s => s.id === sabor) || {}).c || null;

@@ -20,6 +20,10 @@ const ALBUM_ESTILOS = [
   { id: "bujo", nombre: "Bullet journal", cos: "alb-bujo", porPagina: 3 },
   { id: "polaroid", nombre: "Polaroid", cos: "alb-polaroid", porPagina: 3 },
   { id: "pelicula", nombre: "Película", cos: "alb-pelicula", porPagina: 2 },
+  { id: "kraft", nombre: "Scrapbook", cos: "alb-kraft", porPagina: 3 },
+  { id: "postal", nombre: "Postales", cos: "alb-postal", porPagina: 2 },
+  { id: "revista", nombre: "Revista", cos: "alb-revista", porPagina: 3 },
+  { id: "noche", nombre: "Noche estrellada", cos: "alb-noche", porPagina: 3 },
 ];
 /* En memoria: las direcciones de las fotos (ruta → blob: o firmada), si el servidor todavía no tiene
    el álbum, si se está subiendo y la foto que se está editando */
@@ -251,12 +255,12 @@ function albumImg(f, mini, cls) {
 }
 /* La foto en su marco (el marco recorta lo que el zoom saca de borde) */
 function albumMarco(f, mini, cls) { return `<span class="${cls || "ft"} ft-marco">${albumImg(f, mini, "ft-img")}</span>`; }
-/* Las letras de los estilos (a mano y a máquina): se piden la primera vez que se ve un álbum */
+/* Las letras de los estilos (a mano, a máquina y de revista): se piden la primera vez que se ve un álbum */
 function albumFuentes() {
   if (ALB.fuentes || typeof document === "undefined") return;
   ALB.fuentes = true;
   const l = document.createElement("link"); l.rel = "stylesheet";
-  l.href = "https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Special+Elite&display=swap";
+  l.href = "https://fonts.googleapis.com/css2?family=Anton&family=Caveat:wght@600;700&family=Special+Elite&display=swap";
   document.head.appendChild(l);
 }
 
@@ -407,27 +411,66 @@ function albumIdeas(y, m, mejor) {
   return out.slice(0, 4);
 }
 
-/* -------- Dibujo: las páginas de cada estilo (todo escala con el ancho de la página) -------- */
+/* -------- Dibujo: las páginas de cada estilo (todo escala con el ancho de la página) --------
+   La página mide al menos 3:4 y crece si las notas lo piden: los comentarios se ven enteros. */
 function albumCap(x, cls) { return `<figcaption class="${cls || ""}">${escapeHtml(x.comentario || "")}</figcaption>`; }
+/* La nota con su fecha arriba (para los estilos que la llevan) */
+function albumNota(x, cls) { return `<figcaption class="${cls || ""}">${x.fecha ? `<i>${x.fecha}</i>` : ""}${escapeHtml(x.comentario || "")}</figcaption>`; }
+/* El timbre de las postales: un cerro y un sol */
+function albumSello(i) {
+  const [cielo, sol] = [["#F6D7A7", "#EE6F7E"], ["#CFE6F2", "#F4AE3D"]][i % 2];
+  return `<svg viewBox="0 0 30 36" aria-hidden="true"><rect width="30" height="36" fill="${cielo}"/><circle cx="20" cy="12" r="5" fill="${sol}"/><path d="M0 29 L8 18 L13 24 L20 14 L30 27 V36 H0Z" fill="#2F5F86"/><path d="M17 18 L20 14 L23 18.5 L21 17.5 L19.5 19Z" fill="#fff"/></svg>`;
+}
 const ALBUM_PAGINA = {
   clasico(items, o) {
-    const [a, ...r] = items, fig = (x, cls) => `<figure class="${cls}">${x.img}<figcaption>${x.fecha ? `<i>${x.fecha}</i>` : ""}${escapeHtml(x.comentario || "")}</figcaption></figure>`;
+    const [a, ...r] = items;
     return `<div class="alb__in alb--clasico"><div class="ac-cab"><b>${o.primera ? o.mes : o.mes + " · " + o.n}</b><span>${o.anio}</span></div>
-      ${a ? fig(a, "ac-g") : ""}${r.length ? `<div class="ac-2">${r.map(x => fig(x, "")).join("")}</div>` : ""}</div>`;
+      ${a ? `<figure class="ac-g">${a.img}${albumNota(a)}</figure>` : ""}${r.length ? `<div class="ac-2">${r.map(x => `<figure>${x.img}${albumNota(x)}</figure>`).join("")}</div>` : ""}</div>`;
   },
   bujo(items, o) {
     const fila = (x, i) => `<div class="bj-f${i % 2 ? " bj-f--inv" : ""}"><figure class="bj-foto" style="--r:${["-2deg", "3deg", "-1deg"][i % 3]}">${x.img}<span class="washi w${i % 3 + 1}"></span></figure>
       <p>${escapeHtml(x.comentario || "")}${x.fecha ? `<em>${x.fecha}</em>` : ""}</p></div>`;
     return `<div class="alb__in alb--bujo"><div class="bj-cab"><b>${o.mes}</b><span>${o.primera ? "lo mejor del mes" : o.n}</span></div>${items.map(fila).join("")}</div>`;
   },
+  /* Dos columnas: la izquierda con la 1.ª y la 3.ª, la derecha con la 2.ª, más abajo */
   polaroid(items, o) {
-    const pos = [["5%", "7%", "-5deg", "52%"], ["52%", "33%", "4deg", "44%"], ["6%", "58%", "-2deg", "50%"]];
+    const pol = (x, i) => `<figure class="pol" style="--r:${["-4deg", "4deg", "-1.5deg"][i]}">${x.img}${albumCap(x)}</figure>`;
+    const izq = items.filter((x, i) => i !== 1), der = items[1];
     return `<div class="alb__in alb--polaroid"><span class="po-tit">${o.mes.toLowerCase()} ’${String(o.anio).slice(2)}</span>
-      ${items.map((x, i) => { const [l, t, r, w] = pos[i]; return `<figure class="pol" style="left:${l};top:${t};--r:${r};width:${w}">${x.img}${albumCap(x)}</figure>`; }).join("")}</div>`;
+      <div class="po-cols${der ? "" : " po-cols--1"}"><div class="po-col">${izq.map((x, j) => pol(x, j ? 2 : 0)).join("")}</div>${der ? `<div class="po-col po-col--b">${pol(der, 1)}</div>` : ""}</div></div>`;
   },
   pelicula(items, o) {
     return `<div class="alb__in alb--pelicula"><span class="pe-tit">${o.mes.toUpperCase()} · ${o.anio} · RUMBO 400</span>
       ${items.map((x, i) => `<figure class="pe-f">${x.img}<figcaption><b>${o.cuadro + i}A</b>${escapeHtml(x.comentario || "")}</figcaption></figure>`).join("")}</div>`;
+  },
+  /* Scrapbook: la primera grande con su cinta; las otras dos lado a lado */
+  kraft(items, o) {
+    const esq = `<i class="esq e1"></i><i class="esq e2"></i><i class="esq e3"></i><i class="esq e4"></i>`;
+    return `<div class="alb__in alb--kraft"><span class="kr-tag">${o.primera ? "lo mejor de " + o.mes.toLowerCase() : o.mes.toLowerCase() + " · " + o.n}</span>
+      <span class="kr-sello">${o.mes.slice(0, 3).toUpperCase()}<br>${o.anio}</span>
+      ${items.map((x, i) => `<figure class="kr-f kr-f--${i}"><div class="kr-foto">${x.img}${esq}</div>${albumNota(x, "kr-cinta")}</figure>`).join("")}</div>`;
+  },
+  /* Postales: la foto adelante y, al lado, el dorso con timbre, matasellos y la nota en líneas */
+  postal(items, o) {
+    return `<div class="alb__in alb--postal"><span class="ps-tit">Postales de ${o.mes.toLowerCase()}${o.primera ? "" : ` <small>${o.n}</small>`}</span>
+      ${items.map((x, i) => `<figure class="ps ps--${i}"><div class="ps-foto">${x.img}</div><div class="ps-dorso">
+        <div class="ps-arriba"><span class="ps-mata">RUMBO<br>${(x.fecha || o.mes.slice(0, 3)).toUpperCase()}<br>${o.anio}</span><span class="ps-sello">${albumSello(i)}</span></div>
+        ${albumCap(x)}</div></figure>`).join("")}</div>`;
+  },
+  /* Revista: la primera foto a toda página y su nota como titular; las otras, «en este número» */
+  revista(items, o) {
+    const [a, ...r] = items, t = a ? String(a.comentario || "") : "", tam = t.length <= 22 ? "xl" : t.length <= 48 ? "l" : t.length <= 90 ? "m" : "s";
+    return `<div class="alb__in alb--revista"><div class="rv-fondo">${a ? a.img : ""}</div><div class="rv-velo"></div>
+      <div class="rv-cab"><b>RUMBO</b><span>${o.mes.toUpperCase()} ${o.anio} · Nº ${o.nro}${o.primera ? "" : " · " + o.n}</span></div>
+      <div class="rv-pie"><div class="rv-tit rv-tit--${tam}">${a && a.fecha ? `<i>${a.fecha}</i>` : ""}<b>${escapeHtml(t || "Lo mejor de " + o.mes.toLowerCase())}</b></div>
+        ${r.length ? `<div class="rv-notas">${r.map(x => `<figure class="rv-nota">${x.img}${albumNota(x)}</figure>`).join("")}</div>` : ""}</div></div>`;
+  },
+  /* Noche estrellada: cada foto, una estrella de la constelación (el centro de la foto va en el punto) */
+  noche(items, o) {
+    const pos = [[24, 25], [72, 42], [30, 66]].slice(0, items.length);
+    return `<div class="alb__in alb--noche"><span class="no-tit">${o.mes.toLowerCase()}<small>${o.primera ? o.anio : o.n}</small></span>
+      ${pos.length > 1 ? `<svg class="no-lineas" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pos.map(p => p.join(",")).join(" ")}"/></svg>` : ""}
+      ${items.map((x, i) => `<figure class="no-f" style="left:${pos[i][0]}%;top:${pos[i][1]}%">${x.img}${albumNota(x)}</figure>`).join("")}</div>`;
   },
 };
 /* Una página: items = [{ img, comentario, fecha }] */
@@ -440,7 +483,7 @@ function albumPaginasHtml(key) {
   const { y, m } = mesDeKey(key), estilo = albumEstilo(a), e = ALBUM_ESTILOS.find(x => x.id === estilo);
   const pags = albumPaginas(albumFotos(a), e.porPagina);
   return pags.map((p, i) => albumPaginaHtml(estilo, p.map(f => ({ img: albumMarco(f), comentario: f.comentario, fecha: albumFechaTxt(f.fecha) })),
-    { mes: MESES[m], anio: y, primera: i === 0, n: `${i + 1} de ${pags.length}`, cuadro: 12 + i * e.porPagina })).join("");
+    { mes: MESES[m], anio: y, nro: m + 1, primera: i === 0, n: `${i + 1} de ${pags.length}`, cuadro: 12 + i * e.porPagina })).join("");
 }
 /* Muestras dibujadas (para la Tienda, sin fotos tuyas) */
 let ALBUM_MUESTRA_N = 0;
@@ -458,7 +501,7 @@ function albumMuestraHtml(estilo) {
   const items = [["10 km sin parar, y este atardecer.", "18 oct"], ["El cumpleaños de Ana bajo la lluvia.", "24 oct"], ["Llegó Canela.", "9 oct"]]
     .slice(0, (ALBUM_ESTILOS.find(e => e.id === estilo) || {}).porPagina || 3)
     .map(([comentario, fecha], i) => ({ img: albumMuestraSvg(i), comentario, fecha }));
-  return albumPaginaHtml(estilo, items, { mes: "Octubre", anio: 2026, primera: true, n: "", cuadro: 12 });
+  return albumPaginaHtml(estilo, items, { mes: "Octubre", anio: 2026, nro: 10, primera: true, n: "", cuadro: 12 });
 }
 
 /* La grilla de fotos (en el paso del cierre y en el álbum): miniaturas y «Agregar» */

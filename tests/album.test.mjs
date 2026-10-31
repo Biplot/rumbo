@@ -1,5 +1,6 @@
 /* Tests del álbum del mes (album.js y albumMerge en store.js): la fusión entre equipos, la fecha de la foto
-   (EXIF), las páginas, la portada y cuándo dan ⭐ */
+   (EXIF), las páginas, la portada, cuándo dan ⭐ y el dibujo de cada estilo */
+import fs from "node:fs";
 export default async function ({ G, test, assert, clone }) {
   console.log("\nÁlbum del mes");
   const merge = G("albumMerge"), mergeStates = G("mergeStates"), exif = G("albumFechaExif"), paginas = G("albumPaginas");
@@ -66,6 +67,29 @@ export default async function ({ G, test, assert, clone }) {
     assert.deepEqual(clone(paso(400, 300, 800, 600, 2)), { x: 400, y: 300 }, "con 2×, lo que agrega el zoom");
     const v = clone(paso(400, 300, 600, 800, 1));
     assert.equal(v.x, 0); assert.ok(Math.abs(v.y - 233.33) < 0.01, "una foto vertical en un marco apaisado: sobra alto");
+  });
+  test("los 8 estilos dibujan cada foto con su nota (escapada), y los que se compran están en la Tienda", () => {
+    G(`var escapeHtml = typeof escapeHtml === "function" ? escapeHtml : s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")`);
+    const estilos = G("ALBUM_ESTILOS"), pagina = G("albumPaginaHtml"), cos = fs.readFileSync(new URL("../js/cosmeticos.js", import.meta.url), "utf8");
+    const o = { mes: "Octubre", anio: 2026, nro: 10, primera: true, n: "1 de 1", cuadro: 12 };
+    assert.deepEqual(clone(estilos.map(e => e.id)), ["clasico", "bujo", "polaroid", "pelicula", "kraft", "postal", "revista", "noche"]);
+    for (const e of estilos) {
+      const items = Array.from({ length: e.porPagina }, (_, i) => ({ img: `<i class="F${i}"></i>`, comentario: `nota ${i} <script>`, fecha: `${i + 1} oct` }));
+      const h = pagina(e.id, items, o);
+      assert.ok(h.includes(`alb--${e.id}`), e.id);
+      items.forEach((x, i) => {
+        assert.ok(h.includes(`class="F${i}"`), `${e.id}: la foto ${i + 1}`);
+        assert.ok(h.includes(`nota ${i} &lt;script&gt;`) && !h.includes("<script>"), `${e.id}: la nota ${i + 1}, escapada`);
+      });
+      if (e.cos) assert.ok(new RegExp(`id: "${e.cos}"[^}]*value: "${e.id}"`).test(cos), `${e.id}: se vende en la Tienda`);
+    }
+  });
+  test("Revista: el titular achica la letra si la nota es larga; sin nota, «Lo mejor del mes»", () => {
+    const pagina = G("albumPaginaHtml"), o = { mes: "Octubre", anio: 2026, nro: 10, primera: true, n: "", cuadro: 12 };
+    const tam = n => pagina("revista", [{ img: "", comentario: "x".repeat(n), fecha: "" }], o).match(/rv-tit--(\w+)/)[1];
+    assert.deepEqual([10, 40, 80, 140].map(tam), ["xl", "l", "m", "s"]);
+    assert.ok(pagina("revista", [{ img: "", comentario: "", fecha: "" }], o).includes("Lo mejor de octubre"));
+    assert.ok(pagina("revista", [{ img: "", comentario: "", fecha: "" }], o).includes("Nº 10"));
   });
   test("dan ⭐ el mes en curso y el que se está cerrando; los meses viejos, no", () => {
     const hoy = new Date(2026, 10, 2);   // 2 de noviembre: se puede cerrar octubre

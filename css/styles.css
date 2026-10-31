@@ -3043,3 +3043,46 @@ span.alb-tapa.is-vacia { cursor: default; opacity: .6; }
 .alb-comp__acc { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
 .alb-comp__acc .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .alb-comp .btn-link { justify-self: start; }
+
+/* ============================================================
+   AGUA PARA TODOS (v111) · agua.js: la tarjeta «Agua de hoy», la hoja «Tu agua» y las muestras de la Tienda
+   ============================================================ */
+.agua-card .card__head { margin-bottom: 4px; }
+.agua-abrir { border: 0; background: none; padding: 0; cursor: pointer; font: inherit; }
+.agua-card__c { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px; align-items: center; }
+.agua-cv { display: block; width: 100%; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.agua-card__info { display: grid; gap: 6px; min-width: 0; }
+.agua-cifra { font: 800 30px/1 var(--font-display); letter-spacing: -.03em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.agua-cifra small { font: 600 13px var(--font-body); color: var(--text-muted); letter-spacing: 0; }
+.agua-vasos { display: flex; flex-wrap: wrap; gap: 4px; }
+.agua-vasos i { width: 11px; height: 15px; border-radius: 2px 2px 5px 5px; border: 2px solid #2E9BDB; transition: background .3s; }
+.agua-vasos i.is-on { background: #2E9BDB; }
+.agua-texto { font-size: 12.5px; color: var(--text-muted); line-height: 1.35; }
+.agua-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+.agua-btns .btn { display: grid; gap: 1px; justify-items: center; padding: 9px 4px; line-height: 1.1; white-space: nowrap; min-width: 0; }
+.agua-btns small { font-size: 11px; font-weight: 600; opacity: .85; }
+.agua-deshacer { justify-self: start; font-size: 12.5px; }
+.agua-deshacer[hidden] { display: none; }
+.agua-ayuda { font-size: 11.5px; color: var(--text-muted); }
+.agua-hoja { display: grid; gap: 18px; }
+.agua-hoja__c { grid-template-columns: 150px minmax(0, 1fr); }
+.agua-sec { display: grid; gap: 8px; }
+.agua-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.agua-chips .chip { cursor: pointer; border: 1px solid var(--line-strong); font: inherit; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.agua-chips .btn-link { font-size: 12.5px; }
+.agua-gota { width: 11px; height: 11px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: inline-block; }
+.agua-lista { display: grid; gap: 2px; }
+.agua-reg { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.agua-reg span { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.agua-reg .icon-btn { width: 28px; height: 28px; }
+.agua-semana { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; height: 110px; align-items: end; padding-bottom: 18px; }
+.agua-semana__meta { position: absolute; left: 0; right: 0; border-top: 1.5px dashed #F4AE3D; margin-bottom: 18px; pointer-events: none; }
+.agua-semana__d { position: relative; height: 100%; display: grid; align-items: end; justify-items: center; }
+.agua-semana__b { width: 100%; max-width: 26px; min-height: 2px; border-radius: 6px 6px 3px 3px; background: color-mix(in srgb, #2E9BDB 45%, var(--surface-2)); }
+.agua-semana__b.is-ok { background: #2E9BDB; }
+.agua-semana__d small { position: absolute; bottom: -18px; font-size: 11px; color: var(--text-muted); font-weight: 600; }
+.agua-semana__d.is-hoy small { color: var(--text); font-weight: 800; }
+.agua-inicio { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-soft); }
+.agua-muestra { max-width: 150px; margin: 0 auto 10px; }
+.ficha__ico .agua-ficha { width: 64%; height: auto; aspect-ratio: 140 / 200; display: block; }   /* ancho fijo: si no, el lienzo crecería con su propia resolución */
+.ficha__ico .agua-ficha-gota { width: 60%; height: 60%; }

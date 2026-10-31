@@ -879,8 +879,12 @@ function aguaMerge(l, s) {
     dias[k] = { r: [...r.values()].sort((x, y) => x.ts - y.ts), b: Array.from(new Set([...(a.b || []), ...(b.b || [])])) };
     if (a.p || b.p) dias[k].p = true;
     if (a.h || b.h) dias[k].h = true;
+    const c = typeof a.c === "number" ? a.c : typeof b.c === "number" ? b.c : null;   // la temperatura del día (la meta de calor)
+    if (c != null) dias[k].c = c;
+    if (a.cp || b.cp) dias[k].cp = true;
   });
-  return { meta: +nuevo.meta || 0, vaso: +nuevo.vaso || 250, inicio: nuevo.inicio !== false, ts: Math.max(l.ts || 0, s.ts || 0), dias };
+  const clima = nuevo.clima && typeof nuevo.clima === "object" ? { on: !!nuevo.clima.on, ciudad: String(nuevo.clima.ciudad || ""), lat: +nuevo.clima.lat, lon: +nuevo.clima.lon } : null;
+  return { meta: +nuevo.meta || 0, vaso: +nuevo.vaso || 250, inicio: nuevo.inicio !== false, fab: nuevo.fab !== false, clima, ts: Math.max(l.ts || 0, s.ts || 0), dias };
 }
 function mergeStates(server, local) {
   if (!server) return local;

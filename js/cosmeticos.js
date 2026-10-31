@@ -32,6 +32,10 @@ const COSMETICOS = [
   { id: "agua-cantimplora", grupo: "agua", icon: "💧", nombre: "Agua: la cantimplora", costo: 300, key: "agua", value: "cantimplora", animado: true, cuando: "tu día en cuatro tramos; se rellena en cada parada" },
   { id: "agua-bombilla", grupo: "agua", icon: "💧", nombre: "Agua: la bombilla", costo: 300, key: "agua", value: "bombilla", animado: true, cuando: "un vaso con hielo: mantén apretado para tomar a sorbos" },
   { id: "agua-reloj", grupo: "agua", icon: "💧", nombre: "Agua: el reloj de agua", costo: 400, key: "agua", value: "reloj", animado: true, cuando: "se vacía hasta tu próximo vaso y se da vuelta" },
+  { id: "agua-calor", grupo: "agua", icon: "💧", nombre: "Agua: el día de calor", costo: 400, key: "agua", value: "calor", animado: true, cuando: "la botella transpira con el sol de tu ciudad" },
+  { id: "agua-esclusa", grupo: "agua", icon: "💧", nombre: "Agua: la esclusa", costo: 500, key: "agua", value: "esclusa", animado: true, cuando: "cada vaso sube el barquito; en la meta se abre la compuerta y zarpa" },
+  { id: "agua-elefante", grupo: "agua", icon: "🐘", nombre: "Agua: tu elefante riega", costo: 600, key: "agua", value: "elefante", animado: true, cuando: "en 3D: cada vaso riega su planta, que florece en la meta" },
+  { id: "agua-acuario", grupo: "agua", icon: "🐠", nombre: "El acuario del mes", costo: 400, key: "acuario", value: "mes", animado: true, cuando: "un pez por cada día que cumples tu meta; en Salud y en tu cierre de mes" },
   { id: "sabor-pepino", grupo: "sabor", icon: "💧", nombre: "Sabor pepino", costo: 100, key: "sabor", value: "pepino", cuando: "el agua verde, en cualquier estilo" },
   { id: "sabor-frutilla", grupo: "sabor", icon: "💧", nombre: "Sabor frutilla", costo: 100, key: "sabor", value: "frutilla", cuando: "el agua rosada, en cualquier estilo" },
   { id: "sabor-te", grupo: "sabor", icon: "💧", nombre: "Sabor té", costo: 100, key: "sabor", value: "te", cuando: "el agua ámbar, en cualquier estilo" },
@@ -49,7 +53,7 @@ function cosActivo(id) {
   const eq = eqCos();
   if (it.key === "celebra") return !eq.celebraOff.includes(id);
   if (it.key === "sonidos") return eq.sonidos !== false;
-  if (it.key === "plantilla" || it.key === "album") return true;
+  if (it.key === "plantilla" || it.key === "album" || it.key === "acuario") return true;
   return eq[it.key] === it.value;
 }
 /* Equipar / quitar (lo llama equipItem de recompensas.js) */
@@ -162,13 +166,14 @@ function cosmeticoCard(it) {
   else if (!owned) pie = botonCompra(it.costo, `data-action="cos-buy" data-id="${it.id}"`);
   else if (it.key === "plantilla") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígela al compartir tu mes</div>`;
   else if (it.key === "album") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígelo en tu álbum del mes</div>`;
+  else if (it.key === "acuario") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Lo ves en Salud y en tu cierre de mes</div>`;
   else pie = `<button class="btn ${activo ? "btn--soft" : "btn--cian"} btn-block" data-action="cos-equip" data-id="${it.id}">${activo ? (it.key === "celebra" || it.key === "sonidos" ? "✓ Activo — apagar" : "✓ Equipado — quitar") : (it.key === "celebra" || it.key === "sonidos" ? "Activar" : "Equipar")}</button>`;
   const vista = it.key === "marco" ? `<div class="account__avatar marco marco--${it.value}" style="margin:0 auto 8px">${typeof avatarActualHtml === "function" ? avatarActualHtml((((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()) : escapeHtml(((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()}</div>`
     : `<span style="font-size:24px">${it.icon}</span>`;
   return `<div class="card cos-card" data-cos="${it.id}">
     ${it.key === "marco" ? `<div style="text-align:center">${vista}</div>` : ""}
     ${it.key === "album" && typeof albumMuestraHtml === "function" ? `<div class="alb-muestra">${albumMuestraHtml(it.value)}</div>` : ""}
-    ${(it.key === "agua" || it.key === "sabor") && typeof aguaMuestraHtml === "function" ? `<div class="agua-muestra">${aguaMuestraHtml(it)}</div>` : ""}
+    ${(it.key === "agua" || it.key === "sabor" || it.key === "acuario") && typeof aguaMuestraHtml === "function" ? `<div class="agua-muestra${it.key === "acuario" ? " agua-muestra--ancha" : ""}">${aguaMuestraHtml(it)}</div>` : ""}
     <div class="row" style="gap:10px">${it.key === "marco" ? "" : vista}
       <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${it.nombre}${it.animado ? ' <span class="chip">animado</span>' : ""}</div>
         <div class="text-xs muted">${owned ? "Desbloqueado" : it.rango ? "Por rango" : it.costo + " ⭐"}${it.cuando ? " · " + it.cuando : ""}</div></div></div>

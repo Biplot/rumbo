@@ -10,8 +10,11 @@ module.exports = async ({ b, ok, errs }) => {
     await salir();
     await p.click('[data-tab="login"]');
     await p.fill("#log-email", email); await p.fill("#log-pass", "secreto123");
-    await p.click('[data-action="auth-login"]'); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(600);
-    await p.evaluate(() => closeModal());   // p. ej., elegir el elefante, para quien no lo eligió
+    await p.click('[data-action="auth-login"]'); await p.waitForSelector("#app:not([hidden])");
+    // elegir el elefante (para quien no lo eligió) llega 600 ms después de entrar: se espera a que se abra y se cierra
+    await p.waitForFunction(() => !document.getElementById("modalOverlay").hidden, null, { timeout: 1500 }).catch(() => {});
+    await p.waitForTimeout(150);
+    await p.evaluate(() => closeModal());
   };
   const nombre = n => p.evaluate(n => { STATE.profile.name = n; saveState(); }, n);
   const amigos = async () => { await p.goto(URL + "#amigos"); await p.waitForTimeout(700); };

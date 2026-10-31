@@ -135,9 +135,10 @@ function defaultState() {
     // Aquí van los comentarios y dónde está cada foto; las fotos, en Storage (supabase/album.sql) y en este equipo.
     album: { meses: {} },
     // agua para todos (agua.js): meta (0 = automática, según tu peso), vaso (ml del botón «+ Vaso»), inicio (la tarjeta en Inicio),
-    // ts (de los ajustes) y dias: { "YYYY-MM-DD": { r: [{ id, ml, ts }], b: [id borrados], p (+10 ⭐ dado), h (marcó el hábito) } };
+    // fab (el botón de agua abajo a la derecha), clima ({ on, ciudad, lat, lon }: la meta sube los días de calor),
+    // ts (de los ajustes) y dias: { "YYYY-MM-DD": { r: [{ id, ml, ts }], b: [id borrados], p (+10 ⭐ dado), h (marcó el hábito), c (°C máxima) } };
     // pasados 14 días, un día queda solo con su total: { ml }
-    agua: { meta: 0, vaso: 250, inicio: true, ts: 0, dias: {} },
+    agua: { meta: 0, vaso: 250, inicio: true, fab: true, clima: null, ts: 0, dias: {} },
 
     // metas, finanzas, salud y rueda de los años distintos al año base (ver anios.js)
     anios: {},
@@ -245,7 +246,9 @@ function migrate(s) {
   // v70 · Notas estilo post-it: las notas por categoría pasan con su categoría como etiqueta y la
   // captura rápida como notas sueltas (las procesadas, archivadas). Ids fijos: idempotente; lo de antes no se borra.
   if (!s.album || typeof s.album !== "object" || !s.album.meses || typeof s.album.meses !== "object") s.album = { meses: {} };   // v107 · álbum del mes
-  if (!s.agua || typeof s.agua !== "object" || !s.agua.dias || typeof s.agua.dias !== "object") s.agua = { meta: 0, vaso: 250, inicio: true, ts: 0, dias: {} };   // v111 · agua para todos
+  if (!s.agua || typeof s.agua !== "object" || !s.agua.dias || typeof s.agua.dias !== "object") s.agua = { meta: 0, vaso: 250, inicio: true, fab: true, clima: null, ts: 0, dias: {} };   // v111 · agua para todos
+  if (s.agua.fab === undefined) s.agua.fab = true;   // v112 · el botón de agua y los días de calor
+  if (s.agua.clima === undefined) s.agua.clima = null;
   if (!Array.isArray(s.postits)) s.postits = [];
   const yaNota = new Set(s.postits.map(n => n.id));
   const slugCat = t => String(t || "").trim().toLowerCase().replace(/^#/, "").replace(/\s+/g, "-").slice(0, 30);

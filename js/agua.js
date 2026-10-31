@@ -3,9 +3,14 @@
    La tarjeta «Agua de hoy» en Inicio y la hoja «Tu agua»: cada vaso se registra con un toque,
    la meta sale de tu peso (Salud) o la eliges tú, al cumplirla se marca el hábito «Agua» y
    ganas +10 ⭐ (una vez al día; si deshaces y quedas bajo la meta, se devuelven).
-   Cómo se ve es un estilo: la botella viene con Rumbo; la burbuja, la cantimplora, la bombilla
-   y el reloj de agua se compran en Tienda › Para tu estilo › «Tu agua», igual que los sabores
-   (el color del agua). El agua se dibuja en canvas: olas con resortes, burbujas y chorros.
+   Cómo se ve es un estilo: la botella viene con Rumbo; la burbuja, la cantimplora, la bombilla,
+   el reloj de agua, el día de calor, la esclusa y tu elefante riega (3D) se compran en Tienda ›
+   Para tu estilo › «Tu agua», igual que los sabores (el color del agua) y el acuario del mes
+   (un pez por cada día cumplido, en Salud y en el cierre de mes).
+   El botón de agua (la portilla) vive abajo a la derecha en todas las pantallas: abre tu estilo
+   en una ventana redonda y tocarlo es tomar un vaso.
+   Los días de calor la meta sube (Open-Meteo, con la ciudad que eliges): medio litro sobre 28 °C
+   y un litro sobre 32 °C. El agua se dibuja en canvas: olas con resortes, burbujas y chorros.
    Datos: STATE.agua (ver state.js); entre equipos se fusiona con aguaMerge (store.js).
    ============================================================ */
 const AGUA_PREMIO = 10, AGUA_DETALLE = 14, AGUA_TOPE = 8000;
@@ -15,6 +20,9 @@ const AGUA_ESTILOS = [
   { id: "cantimplora", nombre: "La cantimplora", cos: "agua-cantimplora", desc: "cuatro tramos; se rellena en cada parada" },
   { id: "bombilla", nombre: "La bombilla", cos: "agua-bombilla", desc: "el vaso con lo que te queda; mantén apretado para tomar" },
   { id: "reloj", nombre: "El reloj de agua", cos: "agua-reloj", desc: "se vacía hasta tu próximo vaso" },
+  { id: "calor", nombre: "El día de calor", cos: "agua-calor", desc: "la botella transpira con el sol de tu ciudad" },
+  { id: "esclusa", nombre: "La esclusa", cos: "agua-esclusa", desc: "el barquito sube y zarpa en la meta" },
+  { id: "elefante", nombre: "Tu elefante riega", cos: "agua-elefante", desc: "cada vaso riega su planta, que florece en la meta" },
 ];
 const AGUA_SABORES = [
   { id: "natural", nombre: "Natural", cos: null, c: null },
@@ -27,8 +35,9 @@ const AGUA_TRAMOS = ["mañana", "mediodía", "tarde", "noche"];
 
 /* -------- Los datos -------- */
 function aguaDatos(S) {
-  S = S || STATE;
-  if (!S.agua || typeof S.agua !== "object" || !S.agua.dias || typeof S.agua.dias !== "object") S.agua = { meta: 0, vaso: 250, inicio: true, ts: 0, dias: {} };
+  S = S || (typeof STATE !== "undefined" ? STATE : null);
+  if (!S) return { meta: 0, vaso: 250, inicio: true, fab: false, clima: null, ts: 0, dias: {} };   // sin sesión (al salir de la cuenta): nada que guardar
+  if (!S.agua || typeof S.agua !== "object" || !S.agua.dias || typeof S.agua.dias !== "object") S.agua = { meta: 0, vaso: 250, inicio: true, fab: true, clima: null, ts: 0, dias: {} };
   return S.agua;
 }
 function aguaDia(fecha, crear, S) {
@@ -44,10 +53,24 @@ function aguaTotal(d) { if (!d) return 0; return d.r ? aguaRegistros(d).reduce((
 function aguaHoy(S) { return aguaTotal(aguaDia(todayISO(), false, S)); }
 /* La meta: la que elegiste, o 35 ml por kilo de tu último peso en Salud (entre 1,5 y 3,5 L), o 2 L */
 function aguaMetaAuto(S) {
-  const p = typeof pesoActualGlobal === "function" ? pesoActualGlobal(S || STATE) : null;
+  S = S || (typeof STATE !== "undefined" ? STATE : null);
+  const p = S && typeof pesoActualGlobal === "function" ? pesoActualGlobal(S) : null;
   return p > 0 ? Math.min(3500, Math.max(1500, Math.round(p * 35 / 50) * 50)) : 2000;
 }
-function aguaMeta(S) { const a = aguaDatos(S); return a.meta > 0 ? a.meta : aguaMetaAuto(S); }
+function aguaMetaBase(S) { const a = aguaDatos(S); return a.meta > 0 ? a.meta : aguaMetaAuto(S); }
+/* Los días de calor: sobre 28 °C medio litro más, sobre 32 °C un litro (la temperatura del día queda en dias[fecha].c) */
+function aguaExtraCalor(c) { return c >= 32 ? 1000 : c >= 28 ? 500 : 0; }
+/* La temperatura del día, para mostrarla; y la que cuenta para la meta (no cuenta si llegó cuando ya habías cumplido: cp) */
+function aguaTempDe(fecha, S) {
+  const a = aguaDatos(S); if (!a.clima || !a.clima.on) return null;
+  const d = a.dias[fecha || todayISO()]; return d && typeof d.c === "number" ? d.c : null;
+}
+function aguaCalorDe(fecha, S) { const d = aguaDatos(S).dias[fecha || todayISO()]; return d && d.cp ? null : aguaTempDe(fecha, S); }
+function aguaMeta(S, fecha) { const c = aguaCalorDe(fecha, S); return Math.min(AGUA_TOPE, aguaMetaBase(S) + (c == null ? 0 : aguaExtraCalor(c))); }
+function aguaCalorTxt(S) {
+  const c = aguaCalorDe(null, S), x = c == null ? 0 : aguaExtraCalor(c);
+  return x ? `Hoy ${c} °C: tu meta sube ${x >= 1000 ? "un litro" : "medio litro"}` : "";
+}
 function aguaVaso(S) { const v = +aguaDatos(S).vaso; return v >= 100 && v <= 1000 ? v : 250; }
 /* Pasados 14 días, cada día queda solo con su total (el documento no crece de más) */
 function aguaCompactar(S, hoy) {
@@ -105,18 +128,89 @@ function aguaQuitar(id) {
 }
 function aguaRevisar(fecha) {
   const d = aguaDia(fecha); if (!d) return;
-  const total = aguaTotal(d), meta = aguaMeta(), mov = "agua:" + fecha, h = aguaHabito();
+  const total = aguaTotal(d), meta = aguaMeta(null, fecha), mov = "agua:" + fecha, h = aguaHabito();
   const [y, m, dd] = fecha.split("-").map(Number);
   if (total >= meta && !d.p) {
     d.p = true; saveState();
     registrarMovimiento(mov, AGUA_PREMIO, AGUA_PREMIO, "Meta de agua", true);
-    toast(`💧 ¡Meta de agua cumplida! +${AGUA_PREMIO} ⭐`);
+    toast(`💧 ¡Meta de agua cumplida! +${AGUA_PREMIO} ⭐${typeof isOwned === "function" && isOwned("agua-acuario") ? " · llegó un pez a tu acuario" : ""}`);
     if (h && !habitDone(h.id, m - 1, dd, y) && (typeof tocaHoy !== "function" || tocaHoy(h))) { d.h = true; saveState(); toggleHabitDate(h.id, y, m - 1, dd); return; }
   } else if (total < meta && d.p) {
     d.p = false; saveState(); anularMovimiento(mov);
     if (d.h) { d.h = false; saveState(); if (h && habitDone(h.id, m - 1, dd, y)) { toggleHabitDate(h.id, y, m - 1, dd); return; } }
   }
   if (typeof updateTopbar === "function") updateTopbar();
+}
+
+/* -------- El clima de tu ciudad (Open-Meteo, gratis y sin cuenta) --------
+   Solo viajan las coordenadas de la ciudad que eliges, nunca tu ubicación. Sin conexión queda tu meta de siempre. */
+let AGUA_CLIMA_PIDIO = "", AGUA_CIUDADES = [], AGUA_CIUDAD_BUSCAR = false;
+const AGUA_SOL_SVG = `<svg class="agua-sol" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>`;
+function aguaClimaRevisar() {
+  if (typeof fetch !== "function" || typeof STATE === "undefined" || !STATE) return;
+  const a = aguaDatos(), cl = a.clima, hoy = todayISO();
+  if (!cl || !cl.on || !isFinite(cl.lat) || !isFinite(cl.lon) || cl.lat === null || AGUA_CLIMA_PIDIO === hoy) return;
+  const d = a.dias[hoy]; if (d && typeof d.c === "number") return;   // ya está la de hoy
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  AGUA_CLIMA_PIDIO = hoy;
+  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${(+cl.lat).toFixed(2)}&longitude=${(+cl.lon).toFixed(2)}&daily=temperature_2m_max&timezone=auto&forecast_days=1`)
+    .then(r => (r.ok ? r.json() : Promise.reject(new Error("clima " + r.status))))
+    .then(j => {
+      const t = j && j.daily && j.daily.temperature_2m_max && j.daily.temperature_2m_max[0];
+      if (typeof t !== "number" || todayISO() !== hoy) return;
+      const dd = aguaDia(hoy, true); if (typeof dd.c === "number") return;
+      dd.c = Math.round(t); if (dd.p) dd.cp = true;   // si ya cumpliste, la meta de hoy no cambia (y no se devuelven las ⭐)
+      saveState(); aguaPintar(0);
+      if (document.getElementById("agua-hoja")) openAgua();
+    })
+    .catch(() => { AGUA_CLIMA_PIDIO = ""; });
+}
+function aguaCiudadBuscar(q) {
+  q = String(q || "").trim(); const caja = () => document.getElementById("agua-ciudades");
+  if (q.length < 2) { if (caja()) caja().innerHTML = `<small class="text-xs muted">Escribe al menos dos letras.</small>`; return; }
+  if (caja()) caja().innerHTML = `<small class="text-xs muted">Buscando…</small>`;
+  fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=es&format=json`)
+    .then(r => (r.ok ? r.json() : Promise.reject(new Error("ciudades " + r.status))))
+    .then(j => {
+      AGUA_CIUDADES = ((j && j.results) || []).filter(x => isFinite(x.latitude) && isFinite(x.longitude)).slice(0, 5)
+        .map(x => ({ ciudad: [x.name, x.admin1 && x.admin1 !== x.name ? x.admin1 : "", x.country].filter(Boolean).join(", "), lat: Math.round(x.latitude * 100) / 100, lon: Math.round(x.longitude * 100) / 100 }));
+      if (!caja()) return;
+      caja().innerHTML = AGUA_CIUDADES.length ? AGUA_CIUDADES.map((x, i) => `<button type="button" class="chip" data-action="agua-ciudad" data-i="${i}">${escapeHtml(x.ciudad)}</button>`).join("")
+        : `<small class="text-xs muted">No encontré «${escapeHtml(q)}». Prueba con otro nombre.</small>`;
+    })
+    .catch(() => { if (caja()) caja().innerHTML = `<small class="text-xs muted">No pude buscar: revisa tu conexión.</small>`; });
+}
+
+/* Tu casa: con «Tu elefante riega» puesto, si tomaste agua hace menos de 20 minutos, el elefante va a regar su planta (casa.js) */
+function aguaEleRiega(S, ahora) {
+  const eq = (S && S.gamif && S.gamif.equipped) || {};
+  if (eq.agua !== "elefante" || typeof isOwned !== "function" || !isOwned("agua-elefante")) return false;
+  const e = aguaEstado(S); return !!e.ultimo && ((ahora ? +ahora : Date.now()) - e.ultimo) < 20 * 60000;
+}
+
+/* -------- El acuario del mes: un pez por cada día que cumpliste tu meta; con 7 seguidos, uno dorado -------- */
+function aguaDiaCumplido(f, S) { const d = aguaDia(f, false, S); return !!d && (!!d.p || aguaTotal(d) >= aguaMeta(S, f)); }
+function aguaMesAcuario(y, m, S) {
+  const n = new Date(y, m + 1, 0).getDate(), hoy = todayISO(), dias = [];
+  let racha = 0, dorados = 0;
+  for (let d = 1; d <= n; d++) {
+    const f = `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`, ok = f <= hoy && aguaDiaCumplido(f, S);
+    dias.push({ d, f, ok, futuro: f > hoy, hoy: f === hoy });
+    racha = ok ? racha + 1 : 0; if (racha && racha % 7 === 0) dorados++;
+  }
+  return { y, m, dias, peces: dias.filter(x => x.ok).length, dorados };
+}
+function aguaAcuarioHtml(y, m, cierre) {
+  if (typeof isOwned !== "function" || !isOwned("agua-acuario")) return "";
+  const hoy = todayISO(); if (y == null) { y = +hoy.slice(0, 4); m = +hoy.slice(5, 7) - 1; }
+  const A = aguaMesAcuario(y, m), mes = MESES[m].toLowerCase(), clave = `${y}-${String(m + 1).padStart(2, "0")}`;
+  const cuenta = `${A.peces} ${A.peces === 1 ? "pez" : "peces"}${A.dorados ? ` · ${A.dorados} ${A.dorados === 1 ? "dorado" : "dorados"}` : ""}`;
+  return `<div class="card mt-16 agua-acuario">
+    <div class="flex-between" style="gap:10px;flex-wrap:wrap"><b>🐠 Tu acuario de ${mes}</b><span class="text-sm muted">${cuenta}</span></div>
+    <canvas class="agua-cv agua-acuario__cv" data-agua="acuario" data-modo="mes" data-mes="${clave}" style="aspect-ratio:280/190" role="img" aria-label="Tu acuario de ${mes}: ${cuenta}"></canvas>
+    <div class="agua-mes" aria-hidden="true">${A.dias.map(x => `<i class="${x.ok ? "is-on" : x.futuro ? "is-futuro" : ""}${x.hoy ? " is-hoy" : ""}"></i>`).join("")}</div>
+    <small class="text-xs muted">${cierre ? `Tu acuario de ${mes}: ${cuenta}. Queda guardado aquí y en Salud.` : "Cada día que cumples tu meta de agua llega un pez. Con 7 días seguidos, uno dorado."}</small>
+  </div>`;
 }
 
 /* -------- La tarjeta en Inicio -------- */
@@ -129,9 +223,11 @@ function aguaControlesHtml(e, estilo) {
     <button class="btn-link agua-deshacer" data-action="agua-deshacer" ${e.n ? "" : "hidden"}>Deshacer el último</button>
     ${estilo === "bombilla" ? `<small class="agua-ayuda">También puedes mantener apretado el vaso para tomar a sorbos.</small>` : ""}`;
 }
+function aguaCalorHtml() { const t = aguaCalorTxt(); return `<small class="agua-calor" data-agua-calor ${t ? "" : "hidden"}>${t ? AGUA_SOL_SVG + escapeHtml(t) : ""}</small>`; }
 function aguaInicioHtml() {
   if (!STATE || aguaDatos().inicio === false) return "";
   const e = aguaEstado(), estilo = aguaEstilo();
+  setTimeout(aguaClimaRevisar, 0);
   return `<div class="card agua-card" data-agua-card>
     <div class="card__head"><div class="card__title">💧 Agua de hoy</div><button type="button" class="card__hint agua-abrir" data-action="agua-abrir">Tu agua →</button></div>
     <div class="agua-card__c">
@@ -140,6 +236,7 @@ function aguaInicioHtml() {
         <div class="agua-cifra" data-agua-cifra aria-live="polite">${aguaCifraHtml(e)}</div>
         <div class="agua-vasos" data-agua-vasos aria-hidden="true">${aguaVasitosHtml(e)}</div>
         <small class="agua-texto" data-agua-texto>${escapeHtml(aguaTexto(estilo, e))}</small>
+        ${aguaCalorHtml()}
         ${aguaControlesHtml(e, estilo)}
       </div>
     </div>
@@ -153,6 +250,9 @@ function aguaPintar(delta) {
   document.querySelectorAll("[data-agua-vasos]").forEach(x => { x.innerHTML = aguaVasitosHtml(e); });
   document.querySelectorAll("[data-agua-texto]").forEach(x => { x.textContent = aguaTexto(estilo, e); });
   document.querySelectorAll(".agua-deshacer").forEach(x => { x.hidden = !e.n; });
+  const calor = aguaCalorTxt();
+  document.querySelectorAll("[data-agua-calor]").forEach(x => { x.hidden = !calor; x.innerHTML = calor ? AGUA_SOL_SVG + escapeHtml(calor) : ""; });
+  document.querySelectorAll("[data-agua-anillo]").forEach(x => { x.style.strokeDashoffset = String(100 - Math.min(100, e.frac * 100)); });
   if (document.getElementById("agua-hoy-lista")) document.getElementById("agua-hoy-lista").innerHTML = aguaListaHtml();
   if (delta) AGUA_MOTOR.verter(delta);
 }
@@ -192,12 +292,29 @@ function openAgua() {
     <div class="agua-sec"><span class="cj-sub">Tu meta</span><div class="agua-chips">
       ${chip("agua-meta", 0, `Automática · ${litrosTxt(auto)} L`, !(a.meta > 0))}${[1500, 2000, 2500, 3000, 3500].map(v => chip("agua-meta", v, litrosTxt(v) + " L", a.meta === v)).join("")}</div>
       <small class="text-xs muted">${peso ? `La automática sale de tu peso en Salud (${String(peso).replace(".", ",")} kg × 35 ml).` : "Con tu peso en Salud, la automática se calcula sola (35 ml por kilo)."} Al cumplirla: +${AGUA_PREMIO} ⭐ y el hábito «Agua» marcado.</small></div>
+    <div class="agua-sec"><span class="cj-sub">Días de calor</span>${aguaCalorAjusteHtml()}</div>
     <div class="agua-sec"><span class="cj-sub">Tu vaso</span><div class="agua-chips">${[200, 250, 300, 350].map(v => chip("agua-vaso", v, v + " ml", aguaVaso() === v)).join("")}</div></div>
     <div class="agua-sec"><span class="cj-sub">Estilo</span><div class="agua-chips">${tuyos.map(x => chip("agua-estilo", x.id, x.nombre, x.id === estilo)).join("")}
       ${faltan ? `<button type="button" class="btn-link" data-action="agua-tienda">${faltan === 1 ? "1 estilo más" : faltan + " estilos más"} en la Tienda</button>` : ""}</div>
       ${sabores.length > 1 ? `<div class="agua-chips">${sabores.map(x => chip("agua-sabor", x.id, `<i class="agua-gota" style="background:${x.c ? x.c[1] : "#2E9BDB"}"></i>${x.nombre}`, x.id === sabor)).join("")}</div>` : ""}</div>
     <label class="agua-inicio"><input type="checkbox" data-action="agua-inicio" ${a.inicio !== false ? "checked" : ""}> Mostrar «Agua de hoy» en Inicio</label>
+    <label class="agua-inicio"><input type="checkbox" data-action="agua-fab" ${a.fab !== false ? "checked" : ""}> Botón de agua abajo a la derecha</label>
   </div>`, { ancho: true });
+}
+function aguaCalorAjusteHtml() {
+  const cl = aguaDatos().clima, c = aguaTempDe(), x = aguaCalorDe() == null ? 0 : aguaExtraCalor(c);
+  const regla = "Sobre 28 °C tu meta sube medio litro; sobre 32 °C, un litro.";
+  const cp = c != null && aguaCalorDe() == null && aguaExtraCalor(c) ? " · hoy ya la habías cumplido" : "";
+  if (cl && cl.on && cl.ciudad && !AGUA_CIUDAD_BUSCAR) return `<div class="agua-clima"><span>${AGUA_SOL_SVG}<span><b>${escapeHtml(cl.ciudad)}</b>${c != null ? ` · hoy ${c} °C${x ? ` · meta +${litrosTxt(x)} L` : cp}` : ""}</span></span>
+      <span class="agua-chips"><button type="button" class="btn-link" data-action="agua-ciudad-cambiar">Cambiar ciudad</button><button type="button" class="btn-link" data-action="agua-calor-off">Apagar</button></span></div>
+    <small class="text-xs muted">${regla} Rumbo usa solo la ciudad que elegiste, no tu ubicación.</small>`;
+  return `<small class="text-xs muted">${regla} Elige tu ciudad: Rumbo no usa tu ubicación.</small>
+    ${cl && cl.ciudad && !cl.on && !AGUA_CIUDAD_BUSCAR ? `<div class="agua-chips"><button type="button" class="chip" data-action="agua-calor-on">${AGUA_SOL_SVG}Activar con ${escapeHtml(cl.ciudad)}</button></div>` : ""}
+    <div class="agua-ciudad"><input class="input" id="agua-ciudad-q" placeholder="Tu ciudad" autocomplete="address-level2" aria-label="Tu ciudad"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();aguaCiudadBuscar(this.value)}">
+      <button type="button" class="btn btn--soft" data-action="agua-ciudad-buscar">Buscar</button></div>
+    <div class="agua-chips" id="agua-ciudades"></div>
+    ${cl && cl.on && cl.ciudad && AGUA_CIUDAD_BUSCAR ? `<button type="button" class="btn-link" data-action="agua-ciudad-volver">Seguir con ${escapeHtml(cl.ciudad)}</button>` : ""}`;
 }
 function aguaAjuste(cambio) { Object.assign(aguaDatos(), cambio, { ts: Date.now() }); saveState(); aguaRevisar(todayISO()); openAgua(); if (typeof rerender === "function") rerender(); }
 function aguaAccion(a, d, el) {
@@ -210,16 +327,118 @@ function aguaAccion(a, d, el) {
   if (a === "agua-estilo") { if (!aguaEstiloTuyo(d.v)) return; eqCos().agua = d.v === "botella" ? null : d.v; saveState(); openAgua(); if (typeof rerender === "function") rerender(); return; }
   if (a === "agua-sabor") { if (!aguaSaborTuyo(d.v)) return; eqCos().sabor = d.v === "natural" ? null : d.v; saveState(); openAgua(); if (typeof rerender === "function") rerender(); return; }
   if (a === "agua-inicio") { aguaAjuste({ inicio: !!(el && el.checked) }); return; }
+  if (a === "agua-fab") { aguaAjuste({ fab: !!(el && el.checked) }); aguaFabActualizar(); return; }
   if (a === "agua-tienda") { closeModal(); if (typeof TIENDA_SEC !== "undefined") TIENDA_SEC = "estilo"; return go("recompensas"); }
+  // los días de calor
+  if (a === "agua-ciudad-buscar") { const q = document.getElementById("agua-ciudad-q"); return aguaCiudadBuscar(q && q.value); }
+  if (a === "agua-ciudad") {
+    const x = AGUA_CIUDADES[+d.i]; if (!x) return;
+    AGUA_CIUDAD_BUSCAR = false; AGUA_CLIMA_PIDIO = "";
+    aguaAjuste({ clima: { on: true, ciudad: x.ciudad, lat: x.lat, lon: x.lon } }); aguaClimaRevisar();
+    return toast(`☀️ Listo: los días de calor en ${x.ciudad.split(",")[0]}, tu meta sube sola`);
+  }
+  if (a === "agua-ciudad-cambiar") { AGUA_CIUDAD_BUSCAR = true; return openAgua(); }
+  if (a === "agua-ciudad-volver") { AGUA_CIUDAD_BUSCAR = false; return openAgua(); }
+  if (a === "agua-calor-off") return aguaAjuste({ clima: Object.assign({}, aguaDatos().clima, { on: false }) });
+  if (a === "agua-calor-on") { AGUA_CLIMA_PIDIO = ""; aguaAjuste({ clima: Object.assign({}, aguaDatos().clima, { on: true }) }); return aguaClimaRevisar(); }
+  // el botón de agua (la portilla)
+  if (a === "agua-fab-abrir") return aguaFabAbrir();
+  if (a === "agua-fab-cerrar") return aguaFabCerrar();
+  if (a === "agua-fab-tomar") {
+    if (performance.now() - AGUA_FAB.sorbio < 500) return;   // la bombilla: lo que tomaste a sorbos ya se registró
+    aguaSumar(aguaVaso()); return;
+  }
+  if (a === "agua-fab-hoja") { aguaFabCerrar(); return openAgua(); }
 }
 /* La Tienda: miniatura de la ficha y muestra grande en el detalle */
 function aguaFichaHtml(it) {
   if (it.key === "sabor") { const s = AGUA_SABORES.find(x => x.id === it.value); return `<svg class="agua-ficha-gota" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5s-7 8-7 12.5a7 7 0 0 0 14 0c0-4.5-7-12.5-7-12.5z" fill="${s && s.c ? s.c[1] : "#2E9BDB"}"/></svg>`; }
+  if (it.key === "acuario") return `<canvas class="agua-ficha agua-ficha--ancha" data-agua="acuario" data-modo="muestra" aria-hidden="true"></canvas>`;
   return `<canvas class="agua-ficha" data-agua="${escapeAttr(it.value)}" data-modo="muestra" data-frac="0.62" aria-hidden="true"></canvas>`;
 }
 function aguaMuestraHtml(it) {
+  if (it.key === "acuario") return `<canvas class="agua-cv" data-agua="acuario" data-modo="muestra" style="aspect-ratio:280/190" aria-hidden="true"></canvas>`;
   const estilo = it.key === "sabor" ? aguaEstilo() : it.value, sabor = it.key === "sabor" ? it.value : "";
   return `<canvas class="agua-cv" data-agua="${escapeAttr(estilo)}" data-modo="muestra" data-frac="0.62" ${sabor ? `data-sabor="${escapeAttr(sabor)}"` : ""} style="aspect-ratio:140/200" aria-hidden="true"></canvas>`;
+}
+
+/* -------- El botón de agua (la portilla) --------
+   Abajo a la derecha, en todas las pantallas, con tu estilo en chico. Al tocarlo se abre una ventana redonda
+   con tu estilo, cuánto llevas y un anillo; tocar tu estilo es tomar un vaso (en la bombilla, mantén apretado
+   para tomar a sorbos). Se esconde con el teclado abierto, en hojas y ventanas, en Tu casa y Tu vitrina, y en
+   Inicio mientras se ve la tarjeta «Agua de hoy». Se apaga en «Tu agua». */
+const AGUA_FAB = { el: null, listo: false, pronto: 0, abierta: false, estilo: "", card: null, cardVisible: false, io: null, sorbio: -1e9, raf: 0 };
+function aguaFabHtml(estilo) {
+  return `<button type="button" class="agua-fab__velo" data-action="agua-fab-cerrar" tabindex="-1" aria-hidden="true"></button>
+    <div class="agua-fab__cap">
+      <span class="agua-fab__texto" data-agua-texto></span>
+      ${aguaCalorHtml()}
+      <span class="agua-fab__fila"><span class="agua-fab__pista">${estilo === "bombilla" ? "Mantén apretado para tomar" : `Toca para tomar ${aguaVaso()} ml`}</span>
+        <button type="button" class="btn-link agua-deshacer" data-action="agua-deshacer" hidden>Deshacer</button>
+        <button type="button" class="btn-link agua-fab__hoja" data-action="agua-fab-hoja">Tu agua ›</button></span>
+    </div>
+    <div class="agua-fab__port" role="dialog" aria-label="Agua de hoy">
+      <svg class="agua-fab__anillo" viewBox="0 0 236 236" aria-hidden="true"><circle cx="118" cy="118" r="112" pathLength="100"/><circle class="agua-fab__prog" cx="118" cy="118" r="112" pathLength="100" data-agua-anillo/></svg>
+      <div class="agua-fab__num" data-agua-cifra></div>
+      <button type="button" class="agua-fab__tomar" data-action="agua-fab-tomar" aria-label="${escapeAttr((AGUA_ESTILOS.find(x => x.id === estilo) || AGUA_ESTILOS[0]).nombre)}: tomar un vaso"></button>
+    </div>
+    <button type="button" class="agua-fab__btn" data-action="agua-fab-abrir" aria-expanded="false" aria-label="Agua de hoy"></button>`;
+}
+/* Los dibujos se crean cuando hacen falta: el chico cuando el botón se muestra, el grande la primera vez que se abre */
+function aguaFabLienzo(sel, modo) {
+  const caja = AGUA_FAB.el && AGUA_FAB.el.querySelector(sel);
+  if (caja && !caja.querySelector("canvas")) caja.innerHTML = `<canvas class="agua-cv" data-agua="${AGUA_FAB.estilo}" data-modo="${modo}" style="aspect-ratio:140/200"${modo === "boton" ? ' aria-hidden="true"' : ""}></canvas>`;
+}
+function aguaFabActualizar() {
+  if (typeof document === "undefined" || typeof STATE === "undefined" || !STATE || !document.body) return;
+  // al arrancar, el botón espera un momento: lo primero es que se vea la app
+  if (!AGUA_FAB.el && !AGUA_FAB.listo) { if (!AGUA_FAB.pronto) AGUA_FAB.pronto = setTimeout(() => { AGUA_FAB.listo = true; AGUA_FAB.pronto = 0; aguaFabActualizar(); }, 900); return; }
+  if (!AGUA_FAB.el) {
+    const el = document.createElement("div"); el.className = "agua-fab"; el.id = "aguaFab"; el.hidden = true;
+    document.body.appendChild(el); AGUA_FAB.el = el;
+    const revisar = () => { if (AGUA_FAB.raf) return; AGUA_FAB.raf = requestAnimationFrame(() => { AGUA_FAB.raf = 0; aguaFabVer(); }); };
+    new MutationObserver(revisar).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden"] });
+    document.addEventListener("focusin", revisar); document.addEventListener("focusout", () => setTimeout(revisar, 80));
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && AGUA_FAB.abierta) { aguaFabCerrar(); const b = el.querySelector(".agua-fab__btn"); if (b) b.focus(); } });
+  }
+  const estilo = aguaEstilo();
+  if (AGUA_FAB.estilo !== estilo) { AGUA_FAB.estilo = estilo; AGUA_FAB.el.innerHTML = aguaFabHtml(estilo); aguaPintar(0); }
+  // En Inicio, mientras se ve la tarjeta «Agua de hoy», el botón no se repite
+  const card = document.querySelector("[data-agua-card]");
+  if (card !== AGUA_FAB.card) {
+    if (AGUA_FAB.io) AGUA_FAB.io.disconnect();
+    AGUA_FAB.card = card; AGUA_FAB.cardVisible = !!card; AGUA_FAB.io = null;
+    if (card && "IntersectionObserver" in window) { AGUA_FAB.io = new IntersectionObserver(es => { AGUA_FAB.cardVisible = es[es.length - 1].isIntersecting; aguaFabVer(); }, { threshold: 0.2 }); AGUA_FAB.io.observe(card); }
+  }
+  aguaFabVer();
+  setTimeout(aguaClimaRevisar, 0);
+}
+function aguaFabVer() {
+  const el = AGUA_FAB.el; if (!el) return;
+  const app = document.getElementById("app"), ruta = typeof ROUTE_MAP !== "undefined" && typeof CURRENT !== "undefined" ? ROUTE_MAP[CURRENT] : null;
+  const ae = document.activeElement;
+  const escribe = !!ae && ae !== document.body && !el.contains(ae) && ae.matches && ae.matches("input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=button]), textarea, select, [contenteditable=''], [contenteditable=true]");
+  const tapa = document.querySelector("#modalOverlay:not([hidden]), .sheet-overlay:not([hidden]), .tour, .enfoque, .ele-escena, .ins-cerca, .auth:not([hidden])");
+  const ver = !!STATE && aguaDatos().fab !== false && !!app && !app.hidden && !(ruta && ruta.lugar) && !tapa && !escribe
+    && !(typeof CURRENT !== "undefined" && CURRENT === "inicio" && AGUA_FAB.card && AGUA_FAB.card.isConnected && AGUA_FAB.cardVisible);
+  if (!ver && AGUA_FAB.abierta) aguaFabCerrar();
+  if (ver) aguaFabLienzo(".agua-fab__btn", "boton");
+  if (el.hidden === ver) el.hidden = !ver;
+  document.body.classList.toggle("con-agua-fab", ver);   // la página deja espacio abajo para que el botón no tape lo último
+}
+function aguaFabAbrir() {
+  const el = AGUA_FAB.el; if (!el || el.hidden) return;
+  aguaFabLienzo(".agua-fab__tomar", "portilla");
+  AGUA_FAB.abierta = true; el.classList.add("is-open");
+  const b = el.querySelector(".agua-fab__btn"); if (b) b.setAttribute("aria-expanded", "true");
+  aguaPintar(0); vibrar(6);
+  el.querySelectorAll("canvas[data-modo=portilla]").forEach(cv => { if (cv._aguaDespertar) cv._aguaDespertar(); });
+  const t = el.querySelector(".agua-fab__tomar"); if (t) setTimeout(() => t.focus({ preventScroll: true }), 60);
+}
+function aguaFabCerrar() {
+  const el = AGUA_FAB.el; if (!el) return;
+  AGUA_FAB.abierta = false; el.classList.remove("is-open");
+  const b = el.querySelector(".agua-fab__btn"); if (b) b.setAttribute("aria-expanded", "false");
 }
 
 /* ============================================================
@@ -486,7 +705,372 @@ const AGUA_MOTOR = (() => {
         },
       };
     },
+    /* El día de calor: el cielo se calienta con la temperatura de tu ciudad y la botella transpira */
+    calor() {
+      const forma = new Path2D("M58 46 L82 46 L84 60 C84 66 98 68 98 80 L98 176 Q98 188 86 188 L54 188 Q42 188 42 176 L42 80 C42 68 56 66 56 60 Z");
+      const ola = new Ola(24), burb = new Burbujas(), gotas = new Gotas(), chorro = new Chorro(), marco = redondeado(2, 2, 136, 196, 18);
+      const sudor = Array.from({ length: 30 }, (_, i) => ({ x: 45 + ((i * 37) % 50), y: 84 + ((i * 53) % 100), r: 0.8 + (i % 4) * 0.4, cae: false, vy: 0, rastro: [] }));
+      const ARR = 62, ABA = 186, yDe = f => ABA - (ABA - ARR) * limitar(f, 0, 1);
+      let espera = 0;
+      return {
+        verter(ml) { if (ml > 0) { chorro.abrir(70, -6, 0.75); espera = 0.25; } else ola.tocar(0.5, -3, 6); },
+        tocar(x) { ola.tocar((x - 42) / 56, azar(-4, 4), 3); },
+        dibujar(ctx, t, k, dt, e, nivel, cs) {
+          espera -= dt; chorro.paso(dt); for (let i = 0; i < k; i++) ola.paso();
+          if (espera <= 0) nivel.paso(Math.min(1, e.frac)); else nivel.paso(nivel.x);
+          const temp = e.temp, calor = temp == null ? 0.45 : limitar((temp - 16) / 22, 0, 1);
+          ctx.save(); ctx.clip(marco);
+          const cielo = ctx.createLinearGradient(0, 0, 0, 200);
+          cielo.addColorStop(0, C.oscuro ? mezcla("#16244A", "#4A2A3A", calor) : mezcla("#CFEAFB", "#FFD49A", calor));
+          cielo.addColorStop(1, C.oscuro ? mezcla("#1D2C55", "#3A2440", calor) : mezcla("#EEF8FD", "#FFF0D8", calor));
+          ctx.fillStyle = cielo; ctx.fillRect(0, 0, W, H);
+          // el sol: los rayos giran más rápido mientras más calor hace
+          const sx = 26, sy = 28, sr = 9 + calor * 4;
+          ctx.fillStyle = `rgba(255,200,90,${0.14 + calor * 0.14})`; ctx.beginPath(); ctx.arc(sx, sy, sr * 1.9, 0, 6.3); ctx.fill();
+          ctx.save(); ctx.translate(sx, sy); ctx.rotate(QUIETO ? 0 : t * (0.15 + calor * 0.5)); ctx.fillStyle = `rgba(255,190,70,${0.55 + calor * 0.35})`;
+          for (let i = 0; i < 12; i++) { ctx.rotate(Math.PI / 6); ctx.beginPath(); ctx.moveTo(sr + 2, -2); ctx.lineTo(sr + 8 + calor * 4 + (i % 2) * 3, 0); ctx.lineTo(sr + 2, 2); ctx.fill(); }
+          ctx.restore();
+          ctx.fillStyle = "#FFC94D"; ctx.beginPath(); ctx.arc(sx, sy, sr, 0, 6.3); ctx.fill();
+          // el piso y el aire que tiembla
+          ctx.fillStyle = C.oscuro ? "#3A3550" : "#E3C9A2"; ctx.fillRect(0, 188, W, 12);
+          if (!QUIETO) for (let i = 0; i < 3 + Math.round(calor * 3); i++) {
+            const y0 = 184 - ((t * 14 + i * 13) % 52), a = (1 - (184 - y0) / 52) * 0.4 * calor;
+            ctx.strokeStyle = `rgba(255,255,255,${a})`; ctx.lineWidth = 1.1; ctx.beginPath();
+            for (let x = 0; x <= 140; x += 4) ctx.lineTo(x, y0 + Math.sin(x * 0.14 + t * 4 + i) * 1.8);
+            ctx.stroke();
+          }
+          ctx.restore();
+          sombra(ctx, 70, 190, 30, 3); atras(ctx, forma);
+          const pts = pintarAgua(ctx, { vaso: forma, x0: 42, x1: 98, y: yDe(nivel.x), fondo: 190, ola, t, colores: cs });
+          const ys = yEn(pts, 70);
+          if (chorro.on) { ola.tocar(0.5, 0.6 * k, 1); if (Math.random() < 0.4) burb.soltar(70, ys + 8, 1); if (Math.random() < 0.3) gotas.soltar(70, ys, 1, 0.8); }
+          ctx.save(); ctx.clip(forma); burb.paso(pts, k); burb.pintar(ctx); ctx.restore();
+          chorro.pintar(ctx, ys, t, cs ? cs[1] : C.agua); gotas.paso(pts, k); gotas.pintar(ctx, cs ? cs[1] : C.agua);
+          // la transpiración: más gotas con más calor; algunas corren dejando rastro
+          ctx.save(); ctx.clip(forma);
+          const n = Math.round(sudor.length * calor);
+          sudor.forEach((g, i) => {
+            if (i >= n) return;
+            if (!g.cae && !QUIETO && Math.random() < 0.0015 * calor * k) { g.cae = true; g.vy = 0.15; }
+            if (g.cae) { g.vy = Math.min(1.2, g.vy + 0.02 * k); g.y += g.vy * k; g.rastro.push([g.x, g.y]); if (g.rastro.length > 14) g.rastro.shift(); if (g.y > 186) { g.y = 84 + Math.random() * 30; g.cae = false; g.rastro = []; } }
+            if (g.rastro.length > 1) { ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = g.r; ctx.beginPath(); g.rastro.forEach(([x, y], j) => (j ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); }
+            ctx.beginPath(); ctx.ellipse(g.x, g.y, g.r, g.r * 1.25, 0, 0, 6.3); ctx.fillStyle = "rgba(255,255,255,.55)"; ctx.fill();
+          });
+          ctx.restore();
+          frente(ctx, forma, 42, 98, 46, 188, e.frac >= 1);
+          ctx.fillStyle = C.coral; ctx.fill(redondeado(56, 34, 28, 13, 4)); ctx.fillStyle = mezcla(C.coral, "#000000", 0.2); ctx.fill(redondeado(64, 26, 12, 9, 3));
+          // el termómetro
+          const tx = 122, top = 52, bot = 150, hm = bot - (bot - top) * calor;
+          ctx.fillStyle = C.oscuro ? "rgba(255,255,255,.14)" : "rgba(255,255,255,.88)"; ctx.fill(redondeado(tx - 5, top - 5, 10, bot - top + 8, 5));
+          ctx.beginPath(); ctx.arc(tx, bot + 8, 9, 0, 6.3); ctx.fill();
+          ctx.fillStyle = C.coral; ctx.fill(redondeado(tx - 2.5, hm, 5, bot - hm + 5, 2.5)); ctx.beginPath(); ctx.arc(tx, bot + 8, 6, 0, 6.3); ctx.fill();
+          if (temp != null) { ctx.font = "800 11px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = C.tinta; ctx.fillText(`${temp}°`, tx, top - 10); }
+        },
+      };
+    },
+    /* La esclusa: cada vaso llena la cámara y el barquito sube; en la meta se abre la compuerta y zarpa al lago */
+    esclusa() {
+      const XA = 24, XB = 108, BAJO = 172, ALTO = 66, FONDO = 192, marco = redondeado(2, 2, 136, 196, 18);
+      const ola = new Ola(30), olaLago = new Ola(10), olaCanal = new Ola(6), gotas = new Gotas(), chorro = new Chorro();
+      const camara = new Path2D(); camara.rect(XA, 24, XB - XA, FONDO - 24);
+      const lago = new Path2D(); lago.rect(XB, 40, 40, 170);
+      const canal = new Path2D(); canal.rect(-4, 130, XA + 4, 80);
+      const yDe = f => BAJO - (BAJO - ALTO) * limitar(f, 0, 1);
+      let espera = 0, abierta = null, bx = null;
+      const piedra = (ctx, x, y, w, h) => { ctx.fillStyle = C.oscuro ? "#4E5672" : "#A9B1C0"; ctx.fillRect(x, y, w, h); ctx.strokeStyle = "rgba(0,0,0,.18)"; ctx.lineWidth = 0.7; for (let yy = y + 7; yy < y + h; yy += 7) { ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + w, yy); ctx.stroke(); } };
+      const compuerta = (ctx, x, y, h) => { ctx.fillStyle = "#9C6B42"; ctx.fillRect(x, y, 7, h); ctx.strokeStyle = "rgba(0,0,0,.25)"; ctx.lineWidth = 0.7; for (let yy = y + 6; yy < y + h; yy += 6) { ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + 7, yy); ctx.stroke(); } };
+      function barco(ctx, x, y, ang, t) {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(0.8, 0.8);
+        ctx.strokeStyle = "#6B4A2E"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, -2); ctx.lineTo(0, -34); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(1.5, -32); ctx.quadraticCurveTo(14, -18, 18, -6); ctx.lineTo(1.5, -6); ctx.closePath(); ctx.fillStyle = "#FFFFFF"; ctx.fill();
+        ctx.fillStyle = C.agua; ctx.fillRect(1.5, -16, 12.5, 4);
+        ctx.beginPath(); ctx.moveTo(-1.5, -30); ctx.quadraticCurveTo(-8, -18, -10, -7); ctx.lineTo(-1.5, -7); ctx.closePath(); ctx.fillStyle = "rgba(255,255,255,.92)"; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(0, -34); ctx.quadraticCurveTo(5, -36 + Math.sin(t * 8) * 1.5, 10, -34); ctx.lineTo(10, -30); ctx.quadraticCurveTo(5, -32 + Math.sin(t * 8 + 1) * 1.5, 0, -30); ctx.closePath(); ctx.fillStyle = C.ambar; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-19, -5); ctx.lineTo(21, -5); ctx.quadraticCurveTo(16, 6, 8, 6); ctx.lineTo(-12, 6); ctx.quadraticCurveTo(-18, 4, -19, -5); ctx.closePath(); ctx.fillStyle = C.coral; ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.fillRect(-18, -5, 39, 2.4);
+        ctx.restore();
+      }
+      return {
+        verter(ml) { if (ml > 0) { chorro.abrir(XB - 10, 30, 0.9); espera = 0.25; } else ola.tocar(0.5, 3, 6); },
+        tocar(x) { if (x > XA && x < XB) ola.tocar((x - XA) / (XB - XA), azar(-4, 4), 3); },
+        dibujar(ctx, t, k, dt, e, nivel, cs) {
+          espera -= dt; chorro.paso(dt); for (let i = 0; i < k; i++) { ola.paso(); olaLago.paso(); olaCanal.paso(); }
+          if (espera <= 0) nivel.paso(Math.min(1, e.frac)); else nivel.paso(nivel.x);
+          const lleno = e.frac >= 1, arriba = lleno && nivel.x > 0.97;
+          if (abierta == null) abierta = arriba ? 1 : 0;
+          abierta = limitar(abierta + (arriba ? 1 : -1) * dt / (QUIETO ? 0.01 : 1.2), 0, 1);
+          const destino = abierta >= 1 ? 126 : 66; if (bx == null) bx = destino;
+          bx += limitar(destino - bx, -0.55 * k, 0.55 * k); if (QUIETO) bx = destino;
+          ctx.save(); ctx.clip(marco);
+          const cielo = ctx.createLinearGradient(0, 0, 0, 130); cielo.addColorStop(0, C.oscuro ? "#101A3C" : "#BFE3F7"); cielo.addColorStop(1, C.oscuro ? "#22305E" : "#EEF7FC");
+          ctx.fillStyle = cielo; ctx.fillRect(0, 0, W, H);
+          ctx.fillStyle = C.oscuro ? "#F3E6C4" : "#FFD27A"; ctx.beginPath(); ctx.arc(116, 20, 7, 0, 6.3); ctx.fill();
+          ctx.fillStyle = C.oscuro ? "#1E3A3F" : "#9ED3A6"; ctx.beginPath(); ctx.moveTo(0, 74); ctx.bezierCurveTo(30, 44, 70, 60, 100, 52); ctx.bezierCurveTo(120, 46, 132, 44, 140, 48); ctx.lineTo(140, 130); ctx.lineTo(0, 130); ctx.fill();
+          ctx.fillStyle = C.oscuro ? "#173033" : "#7FC28C"; ctx.beginPath(); ctx.moveTo(0, 96); ctx.bezierCurveTo(40, 80, 80, 92, 140, 84); ctx.lineTo(140, 140); ctx.lineTo(0, 140); ctx.fill();
+          const ptsL = pintarAgua(ctx, { vaso: lago, x0: XB, x1: 148, y: ALTO, fondo: 200, ola: olaLago, t, colores: cs });
+          pintarAgua(ctx, { vaso: canal, x0: -4, x1: XA, y: BAJO, fondo: 200, ola: olaCanal, t, colores: cs });
+          const pts = pintarAgua(ctx, { vaso: camara, x0: XA, x1: XB, y: yDe(nivel.x), fondo: FONDO, ola, t, colores: cs });
+          const ys = yEn(pts, XB - 10);
+          if (chorro.on) { ola.tocar((XB - 10 - XA) / (XB - XA), 0.7 * k, 1); if (Math.random() < 0.35) gotas.soltar(XB - 10, ys, 1, 0.9); }
+          chorro.pintar(ctx, ys, t, cs ? cs[1] : C.agua);
+          piedra(ctx, XA - 6, 128, 6, 72); piedra(ctx, XA - 6, FONDO, XB - XA + 12, 8);
+          compuerta(ctx, XA - 4, 112, FONDO - 112);
+          compuerta(ctx, XB - 3, 56 - 60 * abierta, FONDO - 56);
+          piedra(ctx, XB + 4, 34, 4, 22); ctx.fillStyle = C.oscuro ? "#3E465E" : "#8E97A8"; ctx.fillRect(XB - 8, 30, 18, 5);
+          const sup = x => (x > XB ? yEn(ptsL, x) : yEn(pts, x));
+          const by = sup(bx) - 1.2 + (QUIETO ? 0 : Math.sin(t * 2) * 0.5), ang = Math.atan2(sup(bx + 8) - sup(bx - 8), 16) * 0.9 + (QUIETO ? 0 : Math.sin(t * 1.7) * 0.03);
+          barco(ctx, bx, by, ang, t);
+          gotas.paso(pts, k); gotas.pintar(ctx, cs ? cs[1] : C.agua);
+          // la escala: los vasos de tu meta
+          const N = Math.max(1, Math.ceil(e.meta / e.vaso)), paso = N > 10 ? 4 : 2;
+          ctx.font = "700 7px system-ui, sans-serif"; ctx.textAlign = "right"; ctx.fillStyle = C.oscuro ? "rgba(255,255,255,.75)" : "rgba(20,26,46,.6)";
+          for (let v = 0; v <= N; v += paso) { const yy = yDe(v / N); ctx.fillRect(XA - 3, yy - 0.5, 3, 1); if (yy < 126) ctx.fillText(String(v), XA - 5, yy + 2.5); }
+          ctx.restore();
+          ctx.lineWidth = 1; ctx.strokeStyle = rgba(C.tinta, 0.12); ctx.stroke(marco);
+          if (e.frac >= 1) { ctx.lineWidth = 3; ctx.strokeStyle = rgba(C.agua, 0.35); ctx.stroke(marco); }
+        },
+      };
+    },
+    /* Tu elefante riega, en chico o sin 3D: la planta crece hoja por hoja y florece en la meta; la trompa riega */
+    elefante() {
+      const hojas = Array(7).fill(0), caen = []; let riego = 0, flor = 0;
+      const piel = () => (C.oscuro ? "#7C8FAD" : "#8FA5C2");
+      return {
+        verter(ml) { if (ml > 0) riego = 1.7; },
+        tocar() { riego = Math.max(riego, 0.5); },
+        dibujar(ctx, t, k, dt, e, nivel, cs) {
+          nivel.paso(Math.min(1, e.frac)); riego = Math.max(0, riego - dt);
+          const nh = Math.min(7, Math.floor(e.frac * 8 + 1e-6)), alto = 34 + 76 * limitar(nivel.x, 0, 1), base = 150, top = base - alto;
+          sombra(ctx, 70, 194, 34, 4);
+          // la trompa que asoma desde la izquierda
+          const sale = QUIETO ? 1 : 0.65 + 0.35 * Math.min(1, riego), tipX = 30 + 16 * sale, tipY = 58;
+          ctx.lineCap = "round"; ctx.strokeStyle = piel(); ctx.lineWidth = 15;
+          ctx.beginPath(); ctx.moveTo(-10, 18); ctx.bezierCurveTo(tipX - 26, 14, tipX - 2, 30, tipX, tipY - 6); ctx.stroke();
+          ctx.lineWidth = 11; ctx.beginPath(); ctx.moveTo(tipX, tipY - 8); ctx.lineTo(tipX + 1, tipY); ctx.stroke();
+          ctx.strokeStyle = "rgba(0,0,0,.14)"; ctx.lineWidth = 1.2; [0.45, 0.6, 0.75].forEach(f => { const x = -10 + (tipX + 10) * f, y = 18 + (tipY - 18) * f * f; ctx.beginPath(); ctx.moveTo(x - 4, y - 4); ctx.lineTo(x + 3, y + 5); ctx.stroke(); });
+          if (riego > 0 && !QUIETO && Math.random() < 0.6 * k) caen.push({ x: tipX + 2, y: tipY + 1, vx: azar(0.7, 1.3), vy: azar(-0.2, 0.4) });
+          for (let i = caen.length - 1; i >= 0; i--) { const g = caen[i]; g.vy += 0.12 * k; g.x += g.vx * k; g.y += g.vy * k; if (g.y > base - 2 || g.x > 110) { caen.splice(i, 1); continue; } gota(ctx, g.x, g.y, 2, cs ? cs[1] : C.agua); }
+          // la maceta
+          ctx.fillStyle = "#C46B3E"; ctx.beginPath(); ctx.moveTo(48, 150); ctx.lineTo(92, 150); ctx.lineTo(86, 192); ctx.lineTo(54, 192); ctx.closePath(); ctx.fill();
+          ctx.fillStyle = "#B25A30"; ctx.fill(redondeado(44, 144, 52, 10, 3));
+          ctx.fillStyle = "#4A3426"; ctx.fillRect(48, 148, 44, 3);
+          // el tallo, las hojas y la flor
+          const mece = QUIETO ? 0 : Math.sin(t * 1.3) * 2;
+          ctx.strokeStyle = "#3E9E5D"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(70, base); ctx.quadraticCurveTo(70 + mece, (base + top) / 2, 70 + mece * 1.5, top); ctx.stroke();
+          for (let i = 0; i < 7; i++) {
+            hojas[i] += ((i < nh ? 1 : 0) - hojas[i]) * Math.min(1, 0.08 * k); if (QUIETO) hojas[i] = i < nh ? 1 : 0;
+            const s = hojas[i]; if (s < 0.02) continue;
+            const y = base - 12 - (alto - 16) * (i + 1) / 8, lado = i % 2 ? 1 : -1, x = 70 + mece * (1 - (y - top) / alto) * 1.5;
+            ctx.save(); ctx.translate(x, y); ctx.rotate(lado * (0.55 + Math.sin(t * 1.5 + i) * 0.05)); ctx.scale(s, s);
+            ctx.beginPath(); ctx.ellipse(lado * 11, 0, 11, 4.6, 0, 0, 6.3); ctx.fillStyle = i % 2 ? "#3E9E5D" : "#56B874"; ctx.fill(); ctx.restore();
+          }
+          flor += ((e.frac >= 1 ? 1 : 0) - flor) * Math.min(1, 0.06 * k); if (QUIETO) flor = e.frac >= 1 ? 1 : 0;
+          if (flor > 0.02) {
+            ctx.save(); ctx.translate(70 + mece * 1.5, top); ctx.scale(flor, flor); ctx.rotate(QUIETO ? 0 : t * 0.3);
+            for (let i = 0; i < 6; i++) { ctx.rotate(Math.PI / 3); ctx.beginPath(); ctx.ellipse(0, -7, 4, 7, 0, 0, 6.3); ctx.fillStyle = "#F28CB0"; ctx.fill(); }
+            ctx.beginPath(); ctx.arc(0, 0, 4, 0, 6.3); ctx.fillStyle = C.ambar; ctx.fill(); ctx.restore();
+          }
+        },
+      };
+    },
+    /* El acuario del mes (280 × 190): un pez por cada día cumplido, uno dorado por cada 7 seguidos y algas que crecen */
+    acuario(cv, modo) {
+      const X0 = 10, X1 = 270, Y0 = 18, FONDO = 176, tanque = redondeado(X0, Y0, X1 - X0, FONDO - Y0, 12);
+      const ola = new Ola(60), burb = new Burbujas(), gotas = new Gotas(), niv = new Nivel(0.5);
+      const COLORES = [["#FF9A4D", "#E8602C"], ["#FFC94D", "#F09A1A"], ["#FF7A8A", "#D9455C"], ["#9C8CFF", "#6A55D9"], ["#5ED9B8", "#22A585"], ["#FF8FB0", "#E0507A"]];
+      const algasX = [36, 66, 104, 172, 250];
+      const leer = () => {
+        if (modo === "muestra" || !cv.dataset.mes) return { peces: 18, dorados: 1, dias: 31 };
+        const [y, m] = cv.dataset.mes.split("-").map(Number), A = aguaMesAcuario(y, m - 1);
+        return { peces: A.peces, dorados: A.dorados, dias: A.dias.length };
+      };
+      const nuevoPez = (i, cae) => ({ x: azar(36, 244), y: cae ? -10 : azar(70, 150), dir: Math.random() < 0.5 ? -1 : 1, cara: 1, v: azar(0.25, 0.55), f: Math.random() * 6, s: azar(0.85, 1.15), c: COLORES[i % COLORES.length], cae: !!cae, vy: 0, i });
+      let A = leer(), peces = Array.from({ length: A.peces }, (_, i) => nuevoPez(i));
+      peces.forEach(p => { p.cara = p.dir; });
+      niv.x = 0.22 + 0.78 * Math.min(1, A.peces / A.dias);
+      function pez(ctx, p, t, dorado) {
+        ctx.save(); ctx.translate(p.x, p.y); ctx.scale(p.cara * p.s * (dorado ? 1.25 : 1), p.s * (dorado ? 1.25 : 1));
+        const [c1, c2] = dorado ? ["#FFE27A", "#E6A51E"] : p.c, cola = QUIETO ? 0 : Math.sin(t * 9 + p.f) * 0.35;
+        ctx.save(); ctx.translate(-8, 0); ctx.rotate(cola); ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-5, -6, -8, -7); ctx.quadraticCurveTo(-6, 0, -8, 7); ctx.quadraticCurveTo(-5, 6, 0, 0); ctx.fillStyle = c2; ctx.fill(); ctx.restore();
+        ctx.beginPath(); ctx.moveTo(-2, -4.5); ctx.quadraticCurveTo(1, -9, 5, -4); ctx.fillStyle = c2; ctx.fill();
+        ctx.beginPath(); ctx.ellipse(0, 0, 9.5, 5.2, 0, 0, 6.3); ctx.fillStyle = c1; ctx.fill();
+        if (!dorado && p.i % 3 === 0) { ctx.fillStyle = "rgba(255,255,255,.75)"; ctx.fillRect(-2, -5, 2.2, 10); }
+        ctx.beginPath(); ctx.arc(5.2, -1.2, 1.9, 0, 6.3); ctx.fillStyle = "#fff"; ctx.fill(); ctx.beginPath(); ctx.arc(5.7, -1.2, 1, 0, 6.3); ctx.fillStyle = "#14182A"; ctx.fill();
+        ctx.restore();
+      }
+      return {
+        tam: [280, 190],
+        verter() { const antes = A.peces; A = leer(); for (let i = antes; i < A.peces; i++) { const p = nuevoPez(i, true); p.x = 140; peces.push(p); } if (A.peces < peces.length) peces.length = A.peces; },
+        tocar(x, y) { ola.tocar((x - X0) / (X1 - X0), -4, 3); peces.forEach(p => { if (Math.hypot(p.x - x, p.y - (y || 100)) < 60) { p.dir = p.x < x ? -1 : 1; p.v = 1.4; } }); },
+        dibujar(ctx, t, k, dt) {
+          for (let i = 0; i < k; i++) ola.paso();
+          niv.paso(0.22 + 0.78 * Math.min(1, A.peces / A.dias));
+          if (!QUIETO && Math.random() < 0.1 * k) burb.soltar(222, 168, 1, [0.8, 2.2]);
+          const y = FONDO - (FONDO - Y0 - 8) * niv.x;
+          atras(ctx, tanque);
+          const pts = pintarAgua(ctx, { vaso: tanque, x0: X0, x1: X1, y, fondo: FONDO, ola, t });
+          ctx.save(); ctx.clip(tanque);
+          const arena = new Path2D(); arena.moveTo(X0, FONDO); arena.lineTo(X0, 166); arena.bezierCurveTo(60, 156, 110, 170, 150, 163); arena.bezierCurveTo(190, 156, 230, 166, X1, 160); arena.lineTo(X1, FONDO); arena.closePath();
+          ctx.fillStyle = C.oscuro ? "#A88D5E" : "#EAD5A6"; ctx.fill(arena);
+          for (let i = 0; i < 26; i++) { ctx.beginPath(); ctx.ellipse(16 + (i * 37) % 250, 168 + (i * 7) % 8, 1.6 + (i % 3), 1.1 + (i % 2), 0, 0, 6.3); ctx.fillStyle = ["#C9B08A", "#A68D6E", "#E6D2AE", "#8E7B66"][i % 4]; ctx.fill(); }
+          ctx.beginPath(); ctx.moveTo(184, 168); ctx.bezierCurveTo(184, 148, 198, 142, 210, 146); ctx.bezierCurveTo(224, 150, 230, 160, 228, 168); ctx.closePath(); ctx.fillStyle = C.oscuro ? "#5C6478" : "#9AA3B6"; ctx.fill();
+          ctx.fillStyle = "#3A4155"; ctx.fill(redondeado(216, 166, 12, 5, 2));
+          const nAlgas = Math.min(5, 1 + Math.floor(A.peces / 6));
+          for (let a = 0; a < nAlgas; a++) {
+            const bx = algasX[a], alto = 46 + (a * 17) % 30; let px = bx, py = 170;
+            for (let s = 0; s < 7; s++) {
+              const nx = bx + (QUIETO ? 0 : Math.sin(t * 1.3 + a + s * 0.6)) * (s * 1.4), ny = 170 - alto * (s + 1) / 7;
+              ctx.lineCap = "round"; ctx.lineWidth = 5 - s * 0.5; ctx.strokeStyle = s % 2 ? "#3E9E5D" : "#4CB46C"; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(nx, ny); ctx.stroke();
+              if (s % 2) { ctx.beginPath(); ctx.ellipse(nx + (s % 4 ? 5 : -5), ny + 2, 5, 2.2, s % 4 ? 0.5 : -0.5, 0, 6.3); ctx.fillStyle = "#56C27A"; ctx.fill(); }
+              px = nx; py = ny;
+            }
+          }
+          peces.forEach((p, i) => {
+            const s = yEn(pts, p.x);
+            if (p.cae) { p.vy += 0.25 * k; p.y += p.vy * k; if (p.y > s) { if (p.vy > 1) { ola.tocar((p.x - X0) / (X1 - X0), 6, 2); gotas.soltar(p.x, s, 10, 1.3); burb.soltar(p.x, s + 12, 6); } p.vy *= 0.85; if (p.y > s + 22) p.cae = false; } }
+            else if (!QUIETO) {
+              p.f += 0.05 * k; p.x += p.dir * p.v * k; p.v += (0.4 - p.v) * 0.02 * k; p.y += Math.sin(p.f) * 0.18 * k;
+              if (p.x < 26) p.dir = 1; if (p.x > 254) p.dir = -1; if (Math.random() < 0.002 * k) p.dir *= -1;
+              p.y = limitar(p.y, s + 12, 156);
+            }
+            p.cara += (p.dir - p.cara) * 0.14 * k;
+            pez(ctx, p, t, i < A.dorados);
+          });
+          burb.paso(pts, k); burb.pintar(ctx);
+          ctx.restore();
+          gotas.paso(pts, k); gotas.pintar(ctx, C.agua);
+          frente(ctx, tanque, X0, X1, Y0, FONDO);
+          ctx.fillStyle = rgba(C.tinta, 0.8); ctx.fill(redondeado(X0 - 2, Y0 - 5, X1 - X0 + 4, 7, 3));
+        },
+      };
+    },
   };
+
+  /* -------- Tu elefante riega, en 3D: el mismo elefante de Tu casa (elefante-3d.js) junto a su planta --------
+     Se monta encima del dibujo en chico cuando three.js ya bajó; sin WebGL queda la planta en 2D. */
+  let hayWebGL = null;
+  const webgl = () => { if (hayWebGL == null) { try { const c = document.createElement("canvas"); hayWebGL = !!(window.WebGLRenderingContext && (c.getContext("webgl") || c.getContext("experimental-webgl"))); } catch (e) { hayWebGL = false; } } return hayWebGL; };
+  function montar3D(cv, modo) {
+    if (typeof cieloScripts !== "function" || !webgl()) return;
+    cieloScripts().then(() => {
+      if (!cv.isConnected || typeof crearElefante3D !== "function" || !window.THREE) return;
+      const cv3 = document.createElement("canvas");
+      cv3.className = cv.className; cv3.style.cssText = cv.style.cssText;
+      Object.assign(cv3.dataset, { agua: "elefante", modo, listo: "1", tres: "1" });
+      ["role", "aria-label"].forEach(a => { if (cv.hasAttribute(a)) cv3.setAttribute(a, cv.getAttribute(a)); });
+      let obj; try { obj = elefante3D(cv3, modo); } catch (e) { return; }
+      cv.replaceWith(cv3); obj.medir(); vivas.add(obj); obj.despertar();
+    }).catch(() => {});
+  }
+  function elefante3D(cv, modo) {
+    const T = window.THREE, r = new T.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
+    r.setPixelRatio(DPR); r.outputEncoding = T.sRGBEncoding; r.toneMapping = T.ACESFilmicToneMapping; r.toneMappingExposure = 1.05;
+    r.shadowMap.enabled = true; r.shadowMap.type = T.PCFSoftShadowMap;
+    const escena = new T.Scene(), raiz = new T.Group(); escena.add(raiz);
+    const cam = new T.PerspectiveCamera(30, 140 / 200, 0.1, 60);
+    const hemi = new T.HemisphereLight(0xF2F4FF, 0x6A5A4E, 0.75); escena.add(hemi);
+    const sol = new T.DirectionalLight(0xFFE9CF, 1.75); sol.position.set(2.6, 5.5, 4.2); sol.castShadow = true; sol.shadow.mapSize.set(1024, 1024);
+    Object.assign(sol.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 1, far: 20 }); sol.shadow.bias = -0.0006; sol.shadow.normalBias = 0.03; escena.add(sol);
+    const relleno = new T.DirectionalLight(0xBFD4FF, 0.45); relleno.position.set(-4, 3, -1); escena.add(relleno);
+    const lampara = new T.PointLight(0xFFC98A, 0, 6, 1.6); lampara.position.set(-1.2, 2.2, 1.2); escena.add(lampara);
+    const mat = (c, o) => new T.MeshStandardMaterial(Object.assign({ color: c, roughness: 0.75, metalness: 0 }, o || {}));
+    const piso = new T.Mesh(new T.CircleGeometry(2.2, 64), mat(0xD9B98F, { roughness: 0.7 })); piso.rotation.x = -Math.PI / 2; piso.receiveShadow = true; raiz.add(piso);
+    const alfombra = new T.Mesh(new T.CircleGeometry(1.05, 56), mat(0x9FD3F0, { roughness: 0.95 })); alfombra.rotation.x = -Math.PI / 2; alfombra.position.set(-0.2, 0.006, 0.25); alfombra.receiveShadow = true; raiz.add(alfombra);
+    const muro = new T.Mesh(new T.CylinderGeometry(2.2, 2.2, 2.6, 64, 1, true, Math.PI * 0.62, Math.PI * 0.76), mat(0xE4EAF2, { side: T.BackSide, roughness: 0.95 })); muro.position.y = 1.3; muro.receiveShadow = true; raiz.add(muro);
+    // el elefante, con su tipo, etapa y ropa
+    const datos = typeof tipoElefante === "function" ? { tipo: tipoElefante(), etapa: etapaElefante(STATE.gamif.xp || 0).idx, ropa: ropaPuesta(), animo: "feliz" } : { tipo: "clasico", etapa: 2, animo: "feliz" };
+    const ele = crearElefante3D(T, Object.assign({ calmo: QUIETO }, datos));
+    ele.g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    ele.g.position.set(-0.85, 0, 0.15); ele.g.rotation.y = -0.42; raiz.add(ele.g);
+    // dónde caen las gotas cuando riega: ahí va la planta (la punta de la trompa es lo más adelantado en la pose de regar)
+    ele.postura({ regar: 1, alza: 0.12 }, true); ele.vivo(0.55); ele.g.updateMatrixWorld(true);
+    const adelante = new T.Vector3(1, 0, 0).applyQuaternion(ele.g.quaternion);
+    let punta = null, mejor = -1e9;
+    ele.g.traverse(o => { if (o.isMesh) { const p = o.getWorldPosition(new T.Vector3()), d = p.dot(adelante); if (d > mejor) { mejor = d; punta = p; } } });
+    const caida = punta ? punta.clone().add(adelante.clone().multiplyScalar(0.95)) : null;
+    ele.postura({}, true);
+    const enPlanta = caida ? new T.Vector3(caida.x, 0, caida.z) : new T.Vector3(0.45, 0, 0.6);
+    const planta = new T.Group(); planta.position.copy(enPlanta); planta.scale.setScalar(1.55); raiz.add(planta);
+    const maceta = new T.Mesh(new T.CylinderGeometry(0.17, 0.13, 0.26, 28), mat(0xC46B3E, { roughness: 0.7 })); maceta.position.y = 0.13; maceta.castShadow = true; planta.add(maceta);
+    const labio = new T.Mesh(new T.CylinderGeometry(0.19, 0.19, 0.05, 28), mat(0xB25A30, { roughness: 0.7 })); labio.position.y = 0.26; planta.add(labio);
+    const tierra = new T.Mesh(new T.CylinderGeometry(0.165, 0.165, 0.02, 28), mat(0x4A3426, { roughness: 1 })); tierra.position.y = 0.275; planta.add(tierra);
+    const verde = mat(0x3E9E5D, { roughness: 0.55 }), verde2 = mat(0x56B874, { roughness: 0.55 });
+    const tallo = new T.Mesh(new T.CylinderGeometry(0.016, 0.022, 1, 10), verde); tallo.castShadow = true; planta.add(tallo);
+    const hojaG = new T.SphereGeometry(1, 16, 10), hojas = [];
+    for (let k = 0; k < 7; k++) {
+      const piv = new T.Group(), h = new T.Mesh(hojaG, k % 2 ? verde : verde2); h.scale.set(0.15, 0.022, 0.065); h.position.x = 0.14; h.castShadow = true; piv.add(h);
+      piv.rotation.y = k * 2.1; piv.rotation.z = 0.45; piv.scale.setScalar(0.001); planta.add(piv); hojas.push({ piv, alto: 0.33 + k * 0.075, s: 0 });
+    }
+    const flor = new T.Group(); planta.add(flor); flor.scale.setScalar(0.001);
+    const petalo = mat(0xF28CB0, { roughness: 0.5 });
+    for (let k = 0; k < 6; k++) { const p = new T.Mesh(hojaG, petalo); p.scale.set(0.07, 0.02, 0.04); p.position.set(Math.cos(k * 1.047) * 0.06, 0, Math.sin(k * 1.047) * 0.06); p.rotation.y = -k * 1.047; flor.add(p); }
+    const centro = new T.Mesh(hojaG, mat(0xF4AE3D, { roughness: 0.4 })); centro.scale.set(0.035, 0.025, 0.035); flor.add(centro);
+    const desde = punta ? punta.clone().add(adelante.clone().multiplyScalar(0.06)) : new T.Vector3(-0.1, 0.75, 0.4), hasta = new T.Vector3(enPlanta.x - 0.05, 0.85, enPlanta.z);
+    const gotaM = new T.MeshStandardMaterial({ color: 0x3AA8F0, roughness: 0.1, metalness: 0, emissive: 0x1A70B8, emissiveIntensity: 0.6, transparent: true, opacity: 0 });
+    const gotaG = new T.SphereGeometry(0.036, 10, 8);
+    const lluvia = Array.from({ length: 40 }, (_, i) => { const m = new T.Mesh(gotaG, gotaM); m.userData = { f: i / 40, j: new T.Vector3(azar(-0.05, 0.05), azar(-0.03, 0.03), azar(-0.05, 0.05)) }; m.scale.setScalar(azar(0.6, 1.3)); m.visible = false; raiz.add(m); return m; });
+    let regando = 0, regar = false, florS = 0, ocupado = false;
+    // el encuadre: el elefante y la planta
+    const caja = new T.Box3(); ele.g.updateMatrixWorld(true); ele.g.traverse(o => { if (o.isMesh) caja.expandByObject(o); });
+    caja.expandByPoint(new T.Vector3(enPlanta.x + 0.35, 1.5, enPlanta.z + 0.35)).expandByPoint(new T.Vector3(enPlanta.x - 0.35, 0, enPlanta.z - 0.35));
+    const mira = caja.getCenter(new T.Vector3()), tam = caja.getSize(new T.Vector3());
+    let giro = 0, giroMeta = 0, arrastre = null;
+    if (modo !== "portilla") {
+      cv.addEventListener("pointerdown", e => { arrastre = { x: e.clientX, g: giroMeta }; });
+      cv.addEventListener("pointermove", e => { if (arrastre) { giroMeta = limitar(arrastre.g + (e.clientX - arrastre.x) * 0.008, -0.7, 0.7); obj.despertar(); } });
+      const soltar = () => { arrastre = null; }; cv.addEventListener("pointerup", soltar); cv.addEventListener("pointercancel", soltar);
+      cv.style.touchAction = "pan-y";
+    }
+    const medir = () => { const w = cv.clientWidth || 140, h = Math.round(w * 200 / 140); r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
+    let oscuro = null;
+    const tema = () => {
+      if (oscuro === C.oscuro) return; oscuro = C.oscuro;
+      muro.material.color.set(oscuro ? 0x2A3358 : 0xE4EAF2); piso.material.color.set(oscuro ? 0x8A6F52 : 0xD9B98F);
+      hemi.intensity = oscuro ? 0.45 : 0.75; sol.intensity = oscuro ? 0.7 : 1.75; lampara.intensity = oscuro ? 1.4 : 0; r.toneMappingExposure = oscuro ? 1.15 : 1.05;
+    };
+    const t0 = performance.now(); let activo = 3, vivo = false, visible = false, ant = 0, cuadro = 0;
+    const pausa = () => modo === "portilla" && !AGUA_FAB.abierta;
+    const pintar = t => {
+      if (typeof STATE === "undefined" || !STATE) return;
+      tema(); const e = aguaEstado(), nh = Math.min(7, Math.floor(e.frac * 8 + 1e-6));
+      giro += (giroMeta - giro) * 0.12; raiz.rotation.y = giro;
+      const d = Math.max(tam.x / cam.aspect, tam.y) / (2 * Math.tan(cam.fov * Math.PI / 360)) * 0.94 + tam.z / 2;   // de cerca: el cuadro es angosto
+      cam.position.set(mira.x + d * 0.1, mira.y + d * 0.3, mira.z + d); cam.lookAt(mira.x, mira.y - 0.05, mira.z);
+      ele.vivo(QUIETO ? 0 : t);
+      hojas.forEach((h, k) => { h.s = QUIETO ? (k < nh ? 1 : 0) : h.s + ((k < nh ? 1 : 0) - h.s) * 0.08; h.piv.scale.setScalar(Math.max(0.001, h.s)); h.piv.position.y = h.alto; h.piv.rotation.z = 0.45 + (QUIETO ? 0 : Math.sin(t * 1.5 + k) * 0.04); });
+      const alto = 0.32 + 0.56 * Math.min(1, e.frac); tallo.scale.y = QUIETO ? alto : tallo.scale.y + (alto - tallo.scale.y) * 0.08; tallo.position.y = 0.28 + tallo.scale.y / 2;
+      regando += ((regar ? 1 : 0) - regando) * 0.12; gotaM.opacity = 0.92 * regando;
+      lluvia.forEach(m => { const u = m.userData, f = (u.f + t * 0.85) % 1; m.visible = regando > 0.04;
+        m.position.set(desde.x + (hasta.x - desde.x) * f + u.j.x, desde.y + (hasta.y - desde.y) * f + Math.sin(f * Math.PI) * 0.18 + u.j.y, desde.z + (hasta.z - desde.z) * f + u.j.z); });
+      florS = QUIETO ? (e.frac >= 1 ? 1 : 0) : florS + ((e.frac >= 1 ? 1 : 0) - florS) * 0.07; flor.scale.setScalar(Math.max(0.001, florS)); flor.position.y = 0.28 + tallo.scale.y + 0.02; flor.rotation.y = t * 0.4;
+      r.render(escena, cam);
+    };
+    const marco = ahora => {
+      if (!cv.isConnected) { vivo = false; vivas.delete(obj); try { if (ele.dispose) ele.dispose(); r.dispose(); r.forceContextLoss(); } catch (e) {} return; }
+      const dt = Math.min(0.05, (ahora - ant) / 1000); ant = ahora; activo -= dt; cuadro++;
+      if (typeof STATE === "undefined" || !STATE) { vivo = false; return; }
+      if (activo > 0 || regando > 0.02 || cuadro % 3 === 0) pintar((ahora - t0) / 1000);
+      if (visible && !document.hidden && !QUIETO && !pausa()) requestAnimationFrame(marco); else vivo = false;
+    };
+    const obj = {
+      cv, medir,
+      despertar() { activo = 3; if (!vivo && visible && !pausa()) { vivo = true; ant = performance.now(); requestAnimationFrame(marco); } else if (QUIETO) pintar(0); },
+      escena: {
+        verter(ml) {
+          if (!(ml > 0) || ocupado) { obj.despertar(); return; }
+          ocupado = true; ele.postura({ regar: 1, alza: 0.12 }); setTimeout(() => { regar = true; obj.despertar(); }, QUIETO ? 0 : 450);
+          setTimeout(() => { regar = false; ele.postura({}); ocupado = false; if (aguaEstado().frac >= 1) ele.reaccion("corazones"); obj.despertar(); }, QUIETO ? 0 : 2700);
+        },
+        tocar() { if (!ocupado) ele.reaccion("saluda"); },
+      },
+    };
+    cv._aguaDespertar = () => obj.despertar();
+    new IntersectionObserver(es => { visible = es[es.length - 1].isIntersecting; if (visible) obj.despertar(); }, { rootMargin: "80px" }).observe(cv);
+    if (window.ResizeObserver) new ResizeObserver(() => { medir(); pintar((performance.now() - t0) / 1000); }).observe(cv);
+    // a media tarde, si vas bajo la mitad, te saluda para recordarte
+    const hora = new Date().getHours(); if (modo !== "portilla" && hora >= 15 && aguaEstado().frac < 0.5) setTimeout(() => ele.reaccion("saluda"), 900);
+    return obj;
+  }
 
   /* -------- Montar un lienzo: su escena, su tamaño, su animación (solo mientras se ve) -------- */
   const vivas = new Set(), ultimo = {};
@@ -494,15 +1078,19 @@ const AGUA_MOTOR = (() => {
     if (cv.dataset.listo) return; cv.dataset.listo = "1";
     if (!C.tinta) colores();
     const estilo = ESCENAS[cv.dataset.agua] ? cv.dataset.agua : "botella", modo = cv.dataset.modo || "tarjeta";
-    const escena = ESCENAS[estilo](), ctx = cv.getContext("2d"), clave = modo + estilo;
+    const escena = ESCENAS[estilo](cv, modo), ctx = cv.getContext("2d"), clave = modo + estilo;
+    const SW = (escena.tam || [W, H])[0], SH = (escena.tam || [W, H])[1];
     const muestra = modo === "muestra", fracFija = +cv.dataset.frac || 0.62;
-    const estado = () => { if (!muestra) return aguaEstado(); const meta = 2000; return { ml: meta * fracFija, meta, vaso: 250, frac: fracFija, ultimo: Date.now() - 30 * 60000, n: 1 }; };
+    const estado = () => { if (!muestra) return Object.assign(aguaEstado(), { temp: aguaTempDe() }); const meta = 2000; return { ml: meta * fracFija, meta, vaso: 250, frac: fracFija, ultimo: Date.now() - 30 * 60000, n: 1, temp: 31 }; };
     const e0 = estado(), niv = new Nivel(ultimo[clave] != null ? ultimo[clave] : estilo === "bombilla" ? Math.max(0, 1 - e0.frac) : estilo === "cantimplora" ? 1 : estilo === "reloj" ? aguaRelojQueda(e0) : Math.min(1, e0.frac));
     let k = 1, activo = 2.5, vivo = false, id = 0, ant = 0, cuadro = 0;
-    const medir = () => { const w = cv.clientWidth || W; k = w / W; const pw = Math.max(1, Math.round(w * DPR)), ph = Math.max(1, Math.round(w * H / W * DPR)); if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; } };
+    const medir = () => { const w = cv.clientWidth || SW; k = w / SW; const pw = Math.max(1, Math.round(w * DPR)), ph = Math.max(1, Math.round(w * SH / SW * DPR)); if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; } };
     medir();
-    const obj = { cv, escena, despertar() { activo = 3; if (!vivo && visible) arrancar(); } };
+    // la portilla cerrada no se dibuja; el botón en chico se mueve solo después de un vaso (quieto no gasta batería)
+    const enPausa = () => modo === "portilla" && !AGUA_FAB.abierta;
+    const obj = { cv, escena, despertar() { activo = 3; if (!vivo && visible && !enPausa()) arrancar(); } };
     const pintar = (t, dt) => {
+      if (!muestra && (typeof STATE === "undefined" || !STATE)) return;   // sin sesión (al salir de la cuenta) no hay agua que dibujar
       const ks = QUIETO ? 1 : Math.max(1, Math.min(3, Math.round(dt * 60)));
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.setTransform(k * DPR, 0, 0, k * DPR, 0, 0);
       const sabor = cv.dataset.sabor || aguaSabor(), cs = (AGUA_SABORES.find(s => s.id === sabor) || {}).c || null;
@@ -514,9 +1102,10 @@ const AGUA_MOTOR = (() => {
     const marco = ahora => {
       if (!cv.isConnected) { vivo = false; vivas.delete(obj); return; }
       const dt = Math.min(0.05, Math.max(0.001, (ahora - ant) / 1000)); ant = ahora; activo -= dt; cuadro++;
+      if (enPausa() || (!muestra && (typeof STATE === "undefined" || !STATE))) { vivo = false; return; }   // cerrada, o sin sesión
       // tranquila, el agua se mueve a 20 cuadros por segundo; después de un vaso, a 60
       if (activo > 0 || cuadro % 3 === 0) pintar((ahora - t0) / 1000, activo > 0 ? dt : dt * 3);
-      if (vivo && visible && !document.hidden && !QUIETO) id = requestAnimationFrame(marco); else vivo = false;
+      if (vivo && visible && !document.hidden && !QUIETO && !(modo === "boton" && activo <= 0)) id = requestAnimationFrame(marco); else vivo = false;
     };
     const arrancar = () => { vivo = true; ant = performance.now(); id = requestAnimationFrame(marco); };
     new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible && !vivo) arrancar(); }, { rootMargin: "80px" }).observe(cv);
@@ -524,12 +1113,21 @@ const AGUA_MOTOR = (() => {
     pintar(0, 1 / 60);
     if (!muestra) {
       vivas.add(obj);
+      cv._aguaDespertar = () => obj.despertar();
+      if (modo === "boton") return obj;
+      let tSorbo = 0;
       cv.addEventListener("pointerdown", ev => {
-        const r = cv.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * W;
-        escena.tocar && escena.tocar(x); obj.despertar();
-        if (estilo === "bombilla" && escena.sorbo) { ev.preventDefault(); empezarSorbo(obj, ev); }
+        const r = cv.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * SW, y = (ev.clientY - r.top) / r.height * SH;
+        escena.tocar && escena.tocar(x, y); obj.despertar();
+        if (estilo === "bombilla" && escena.sorbo) {
+          // en la portilla un toque es un vaso y mantener es tomar a sorbos; en la tarjeta, apretar ya es sorber
+          if (modo === "portilla") { clearTimeout(tSorbo); tSorbo = setTimeout(() => empezarSorbo(obj), 230); }
+          else { ev.preventDefault(); empezarSorbo(obj, ev); }
+        }
       });
+      if (modo === "portilla") ["pointerup", "pointercancel", "pointerleave"].forEach(t => cv.addEventListener(t, () => clearTimeout(tSorbo)));
       if (estilo === "bombilla") { cv.style.touchAction = "none"; cv.addEventListener("contextmenu", ev => ev.preventDefault()); }
+      if (estilo === "elefante" && modo !== "mes") montar3D(cv, modo);
     }
     return obj;
   }
@@ -538,7 +1136,7 @@ const AGUA_MOTOR = (() => {
     const esc = obj.escena; let ml = 0, ant = performance.now(), on = true;
     esc.sorbiendo = true; esc.sorbo(0); vibrar(12);
     const tic = () => { if (!on) return; const ahora = performance.now(); ml += (ahora - ant) / 1000 * 100; ant = ahora; esc.sorbo(ml); obj.despertar(); if (Math.random() < 0.15) vibrar(4); if (ml < 1500) requestAnimationFrame(tic); else fin(); };
-    const fin = () => { if (!on) return; on = false; esc.sorbiendo = false; esc.sorbo(0); window.removeEventListener("pointerup", fin); window.removeEventListener("pointercancel", fin); const r = Math.round(ml / 10) * 10; if (r >= 10) { aguaSumar(r); toast(`💧 Tomaste ${r} ml`); } };
+    const fin = () => { if (!on) return; on = false; esc.sorbiendo = false; esc.sorbo(0); AGUA_FAB.sorbio = performance.now(); window.removeEventListener("pointerup", fin); window.removeEventListener("pointercancel", fin); const r = Math.round(ml / 10) * 10; if (r >= 10) { aguaSumar(r); toast(`💧 Tomaste ${r} ml`); } };
     window.addEventListener("pointerup", fin); window.addEventListener("pointercancel", fin);
     requestAnimationFrame(tic);
   }

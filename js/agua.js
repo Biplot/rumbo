@@ -35,7 +35,8 @@ const AGUA_TRAMOS = ["mañana", "mediodía", "tarde", "noche"];
 
 /* -------- Los datos -------- */
 function aguaDatos(S) {
-  S = S || STATE;
+  S = S || (typeof STATE !== "undefined" ? STATE : null);
+  if (!S) return { meta: 0, vaso: 250, inicio: true, fab: false, clima: null, ts: 0, dias: {} };   // sin sesión (al salir de la cuenta): nada que guardar
   if (!S.agua || typeof S.agua !== "object" || !S.agua.dias || typeof S.agua.dias !== "object") S.agua = { meta: 0, vaso: 250, inicio: true, fab: true, clima: null, ts: 0, dias: {} };
   return S.agua;
 }
@@ -1036,6 +1037,7 @@ const AGUA_MOTOR = (() => {
     const marco = ahora => {
       if (!cv.isConnected) { vivo = false; vivas.delete(obj); try { if (ele.dispose) ele.dispose(); r.dispose(); r.forceContextLoss(); } catch (e) {} return; }
       const dt = Math.min(0.05, (ahora - ant) / 1000); ant = ahora; activo -= dt; cuadro++;
+      if (typeof STATE === "undefined" || !STATE) { vivo = false; return; }
       if (activo > 0 || regando > 0.02 || cuadro % 3 === 0) pintar((ahora - t0) / 1000);
       if (visible && !document.hidden && !QUIETO && !pausa()) requestAnimationFrame(marco); else vivo = false;
     };
@@ -1088,7 +1090,7 @@ const AGUA_MOTOR = (() => {
     const marco = ahora => {
       if (!cv.isConnected) { vivo = false; vivas.delete(obj); return; }
       const dt = Math.min(0.05, Math.max(0.001, (ahora - ant) / 1000)); ant = ahora; activo -= dt; cuadro++;
-      if (enPausa()) { vivo = false; return; }
+      if (enPausa() || (!muestra && (typeof STATE === "undefined" || !STATE))) { vivo = false; return; }   // cerrada, o sin sesión
       // tranquila, el agua se mueve a 20 cuadros por segundo; después de un vaso, a 60
       if (activo > 0 || cuadro % 3 === 0) pintar((ahora - t0) / 1000, activo > 0 ? dt : dt * 3);
       if (vivo && visible && !document.hidden && !QUIETO && !(modo === "boton" && activo <= 0)) id = requestAnimationFrame(marco); else vivo = false;

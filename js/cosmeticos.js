@@ -23,6 +23,10 @@ const COSMETICOS = [
   { id: "alb-bujo", grupo: "album", icon: "📓", nombre: "Álbum Bullet journal", costo: 300, key: "album", value: "bujo", cuando: "papel punteado, cinta washi y letra a mano" },
   { id: "alb-polaroid", grupo: "album", icon: "🖼", nombre: "Álbum Polaroid", costo: 300, key: "album", value: "polaroid", cuando: "fotos instantáneas, con el comentario en el borde" },
   { id: "alb-pelicula", grupo: "album", icon: "🎬", nombre: "Álbum Película", costo: 400, key: "album", value: "pelicula", cuando: "un rollo de 35 mm, con el comentario como subtítulo" },
+  { id: "alb-kraft", grupo: "album", icon: "🔖", nombre: "Álbum Scrapbook", costo: 400, key: "album", value: "kraft", cuando: "papel kraft, esquineros, un timbre del mes y el comentario a máquina en cinta" },
+  { id: "alb-postal", grupo: "album", icon: "🌍", nombre: "Álbum Postales", costo: 400, key: "album", value: "postal", cuando: "cada momento, una postal: la foto adelante y el comentario atrás, con timbre y matasellos" },
+  { id: "alb-revista", grupo: "album", icon: "📄", nombre: "Álbum Revista", costo: 500, key: "album", value: "revista", cuando: "tu portada a toda página, con tus comentarios como titulares" },
+  { id: "alb-noche", grupo: "album", icon: "🌙", nombre: "Álbum Noche estrellada", costo: 600, key: "album", value: "noche", animado: true, cuando: "tus fotos como estrellas de una constelación que brilla" },
   // Marcos de avatar (uno a la vez). Diamante no se compra: llega con el rango Élite.
   { id: "mar-cian", grupo: "marco", icon: "🔵", nombre: "Marco Índigo", costo: 200, key: "marco", value: "cian" },
   { id: "mar-oro", grupo: "marco", icon: "🟡", nombre: "Marco Oro", costo: 400, key: "marco", value: "oro" },

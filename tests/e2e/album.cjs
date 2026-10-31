@@ -84,6 +84,33 @@ module.exports = async ({ b, ok, errs }) => {
   const a3 = await album();
   ok(a3.fotos.length === 3 && a3.borradas.length === 1 && (await p.evaluate(async () => (await FOTOS_DB.lista()).length)) === 3, "quitar la de septiembre la borra de verdad");
 
+  // 5b) Encuadrar la primera foto: zoom (botones y rueda) y arrastrar; queda así en el álbum
+  await miniaturas().first().click(); await p.waitForTimeout(400);
+  ok(await p.locator("#alb-marco img").count() === 1 && await p.locator("#alb-z").inputValue() === "1", "al tocar una foto se ve en su marco, sin zoom");
+  for (let i = 0; i < 4; i++) await p.click('[data-action="alb-zoom"][data-v="1"]');
+  ok(await p.evaluate(() => ALB.editar.enc.z) === 2 && (await p.locator("#alb-marco img").getAttribute("style")).includes("scale(2)"), "«+» acerca: zoom 2×");
+  const caja = await p.locator("#alb-marco").boundingBox();
+  await p.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+  await p.mouse.wheel(0, -200); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => ALB.editar.enc.z) > 2, "la rueda (o pellizcar) acerca más");
+  await p.click('[data-action="alb-zoom"][data-v="-1"]'); await p.evaluate(() => albumZoom(2));
+  await p.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2); await p.mouse.down();
+  await p.mouse.move(caja.x + caja.width / 2 - 60, caja.y + caja.height / 2 + 30, { steps: 6 }); await p.mouse.up();
+  const enc = await p.evaluate(() => ALB.editar.enc);
+  ok(enc.x > 0.5 && enc.y < 0.5 && await p.locator("#modalOverlay").isVisible(), "arrastrar mueve la foto en el marco (y la hoja no se cierra)");
+  await p.click('[data-action="alb-listo"]'); await p.waitForTimeout(300);
+  const portada = async () => { const a = await album(); return a.fotos.find(f => f.id === a.portada); };   // la primera miniatura es la portada
+  const e1 = (await portada()).encuadre;
+  ok(e1 && e1.z === 2 && e1.x > 0.5 && e1.y < 0.5, "«Listo» guarda el encuadre en tu documento (no se toca la foto)");
+  ok((await miniaturas().first().locator("img").getAttribute("style") || "").includes("scale(2)"), "y la miniatura ya se ve encuadrada");
+  await miniaturas().first().click(); await p.waitForTimeout(300);
+  await p.click('[data-action="alb-centrar"]'); await p.click('[data-action="alb-listo"]'); await p.waitForTimeout(300);
+  ok(!(await portada()).encuadre, "«Centrar» la deja como venía");
+  await miniaturas().first().click(); await p.waitForTimeout(300);
+  for (let i = 0; i < 2; i++) await p.click('[data-action="alb-zoom"][data-v="1"]');
+  await p.click('[data-action="alb-listo"]'); await p.waitForTimeout(300);
+  ok((await portada()).encuadre.z === 1.5, "(y se vuelve a acercar: 1,5×)");
+
   // 6) Cerrar el mes
   await p.click('[data-action="mes-next"]'); await p.waitForTimeout(200);
   ok(/Paso 6 de 6/i.test(await modal()), "después viene la nota del mes");
@@ -96,6 +123,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(d.includes("Álbum de octubre") && d.includes("3 fotos") && d.includes("Maitencillo"), "el Diario muestra el álbum de octubre, con la portada primero");
   ok(await blobs(".alb-diario img") === 3, "con sus fotos");
   await p.click('.alb-diario [data-action="alb-ver"].btn'); await p.waitForTimeout(500);
+  ok((await p.locator("#modal .alb .ft-marco img").first().getAttribute("style") || "").includes("scale(1.5)"), "en la página del álbum, la foto sale con su encuadre");
   ok(await p.locator("#modal .alb .alb--clasico").count() === 1 && await blobs("#modal .alb img") === 3 && (await modal()).includes("Maitencillo"), "el álbum: una página en estilo Clásico, con las 3 fotos y sus comentarios");
   ok((await p.locator("#modal .alb-estilos").innerText()).includes("3 estilos más en la Tienda"), "y la invitación a los otros estilos");
   ok(await p.evaluate(() => document.documentElement.scrollWidth) <= 390, "sin moverse de lado en el celular");

@@ -2834,7 +2834,9 @@ button.at-fila__t { cursor: pointer; }
 /* Las páginas: .alb mide su ancho (container) y el papel (.alb__in) usa cqw, así todo escala con la página */
 .alb { container-type: inline-size; position: relative; width: 100%; aspect-ratio: 3 / 4; overflow: hidden; border-radius: 10px; isolation: isolate; box-shadow: 0 14px 28px -18px rgba(10, 12, 30, .5); }
 .alb__in { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; color: #2B2F3F; }
-.alb .ft { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; background: #E7E4EC; }
+.alb .ft { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; background: #E7E4EC; overflow: hidden; }
+/* La foto en su marco: el encuadre (object-position + scale) se recorta en el marco */
+.ft-marco > .ft-img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .alb figure { margin: 0; }
 .alb figcaption, .alb .bj-f p { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 /* Clásico */
@@ -2898,8 +2900,14 @@ button.at-fila__t { cursor: pointer; }
 .alb-aviso { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); font-size: 13px; color: var(--text-soft); }
 /* Una foto */
 .alb-ed { display: grid; gap: 12px; }
-.alb-ed__foto { border-radius: 14px; overflow: hidden; background: var(--surface-2); }
-.alb-ed__foto img { display: block; width: 100%; max-height: 52vh; object-fit: contain; }
+.alb-ed__marco { position: relative; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden; background: var(--surface-2); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none;
+  box-shadow: inset 0 0 0 1px var(--line); }
+.alb-ed__marco.is-moviendo { cursor: grabbing; }
+.alb-ed__marco img { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; }
+.alb-ed__zoom { display: flex; align-items: center; gap: 8px; }
+.alb-ed__zoom input[type="range"] { flex: 1; min-width: 0; accent-color: var(--cian); }
+.alb-ed__zoom .icon-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); color: var(--text); font-size: 18px; font-weight: 700; line-height: 1; display: grid; place-items: center; }
+.alb-ed__ayuda { margin: -4px 0 0; }
 .alb-ed__fecha { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text-soft); }
 .alb-ed__n { display: block; text-align: right; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; margin-top: 4px; }
 .alb-ed__acc { display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 8px; }
@@ -2909,13 +2917,13 @@ button.at-fila__t { cursor: pointer; }
 .alb-ver { display: grid; gap: 14px; }
 .alb-paginas { display: grid; gap: 16px; justify-items: center; }
 .alb-paginas .alb { max-width: 440px; }
-.alb .ft.is-sin, .alb-t img.is-sin { visibility: hidden; }
+.alb img.is-sin, .alb-t img.is-sin, .ft-marco img.is-sin { visibility: hidden; }
 /* La estantería */
 .alb-est { display: grid; gap: 14px; }
 .alb-est .seg { justify-self: start; }
 .alb-est__g { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .alb-tapa { display: grid; gap: 1px; padding: 6px 6px 8px; border-radius: 12px; border: 0; background: #FBFAF6; color: #1B1F33; font: inherit; text-align: left; cursor: pointer; box-shadow: 0 1px 0 var(--line), 0 8px 16px -10px rgba(10, 12, 30, .4); }
-.alb-tapa img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 5px; margin-bottom: 4px; }
+.alb-tapa__f { display: block; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 5px; margin-bottom: 4px; background: var(--surface-2); }
 .alb-tapa b { font-size: 13.5px; font-weight: 800; } .alb-tapa i { font-style: normal; font-size: 11.5px; color: #6A7090; }
 .alb-tapa--bujo { background: #FCFCF8 radial-gradient(circle, #C4C8D3 .8px, transparent 1px) 0 0 / 7px 7px; }
 .alb-tapa--bujo b { font: 700 17px/1 "Caveat", "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive; color: #3949C9; }
@@ -2928,7 +2936,7 @@ span.alb-tapa.is-vacia { cursor: default; opacity: .6; }
 /* En el Diario y en Ritual › Mes */
 .alb-diario { display: grid; gap: 10px; margin-top: 16px; }
 .alb-diario__fotos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 0; border: 0; background: none; cursor: pointer; }
-.alb-diario__fotos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; background: var(--surface-2); }
+.alb-diario__f { display: block; aspect-ratio: 1; overflow: hidden; border-radius: 8px; background: var(--surface-2); }
 .alb-diario__t { display: grid; gap: 2px; } .alb-diario__t b { font-size: 15px; }
 .alb-diario__b { display: flex; flex-wrap: wrap; gap: 8px; }
 .alb-diario__b .btn { display: inline-flex; align-items: center; gap: 6px; }

@@ -55,6 +55,18 @@ export default async function ({ G, test, assert, clone }) {
     assert.deepEqual(clone(fotos({ portada: null, fotos: [f("a", 1)] }).map(x => x.id)), ["a"]);
   });
 
+  test("el encuadre: sin tocar, como viene; con zoom y punto, object-position y scale desde ese punto", () => {
+    const enc = G("albumEnc"), estilo = G("albumEncEstilo"), paso = G("albumEncPaso");
+    assert.deepEqual(clone(enc({})), { x: 0.5, y: 0.5, z: 1 });
+    assert.deepEqual(clone(enc({ encuadre: { x: "2", y: -1, z: 9 } })), { x: 1, y: 0, z: 4 }, "lo que llega se acota");
+    assert.equal(estilo(enc({})), "");
+    assert.equal(estilo({ x: 0.25, y: 0.5, z: 2 }), "object-position:25% 50%;transform-origin:25% 50%;transform:scale(2)");
+    // arrastrar sigue al dedo: px que se corre la foto por cada unidad de x / y
+    assert.deepEqual(clone(paso(400, 300, 800, 600, 1)), { x: 0, y: 0 }, "misma forma que el marco y sin zoom: no hay qué mover");
+    assert.deepEqual(clone(paso(400, 300, 800, 600, 2)), { x: 400, y: 300 }, "con 2×, lo que agrega el zoom");
+    const v = clone(paso(400, 300, 600, 800, 1));
+    assert.equal(v.x, 0); assert.ok(Math.abs(v.y - 233.33) < 0.01, "una foto vertical en un marco apaisado: sobra alto");
+  });
   test("dan ⭐ el mes en curso y el que se está cerrando; los meses viejos, no", () => {
     const hoy = new Date(2026, 10, 2);   // 2 de noviembre: se puede cerrar octubre
     assert.equal(premiable("2026-11", hoy), true); assert.equal(premiable("2026-10", hoy), true);

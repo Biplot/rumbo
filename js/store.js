@@ -866,6 +866,22 @@ function albumMerge(l, s) {
   });
   return { meses };
 }
+/* El agua en dos equipos: los ajustes, del más nuevo; cada día junta sus vasos por id (lo borrado no vuelve).
+   Un día resumido ({ ml }, pasados 14 días) se queda con el detalle si el otro lo tiene, o con el total mayor */
+function aguaMerge(l, s) {
+  l = l || {}; s = s || {};
+  const nuevo = (l.ts || 0) >= (s.ts || 0) ? l : s, dl = l.dias || {}, ds = s.dias || {}, dias = {};
+  new Set([...Object.keys(dl), ...Object.keys(ds)]).forEach(k => {
+    const a = dl[k], b = ds[k];
+    if (!a || !b) { dias[k] = JSON.parse(JSON.stringify(a || b)); return; }
+    if (!a.r && !b.r) { dias[k] = { ml: Math.max(+a.ml || 0, +b.ml || 0) }; return; }
+    const r = new Map(); [...(b.r || []), ...(a.r || [])].forEach(x => { if (x && x.id) r.set(x.id, { id: x.id, ml: +x.ml || 0, ts: x.ts || 0 }); });
+    dias[k] = { r: [...r.values()].sort((x, y) => x.ts - y.ts), b: Array.from(new Set([...(a.b || []), ...(b.b || [])])) };
+    if (a.p || b.p) dias[k].p = true;
+    if (a.h || b.h) dias[k].h = true;
+  });
+  return { meta: +nuevo.meta || 0, vaso: +nuevo.vaso || 250, inicio: nuevo.inicio !== false, ts: Math.max(l.ts || 0, s.ts || 0), dias };
+}
 function mergeStates(server, local) {
   if (!server) return local;
   if (!local) return server;
@@ -982,6 +998,7 @@ function mergeStates(server, local) {
 
   // album (álbum del mes): por mes; las fotos por id (gana ts), las borradas no reviven; estilo y portada, el ts del mes
   if (local.album || server.album) out.album = albumMerge(local.album, server.album);
+  if (local.agua || server.agua) out.agua = aguaMerge(local.agua, server.agua);
 
   // eventos: dict por fecha -> unión de arrays de texto
   out.eventos = {};

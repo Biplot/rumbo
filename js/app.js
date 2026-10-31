@@ -158,7 +158,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 48;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 49;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -448,6 +448,10 @@ const NOVEDADES = {
   ],
   48: [
     ["📤", "Comparte tu álbum", "En el álbum, toca «Compartir»: cada página se vuelve una imagen, como publicación (el carrusel de Instagram) o como historia, y la mandas por Instagram, WhatsApp o donde quieras. Se arma en tu teléfono y solo sale si tú la compartes."],
+  ],
+  49: [
+    ["💧", "Agua para todos", "En Inicio, «Agua de hoy»: toca «+ Vaso» y mira cómo se llena. Tu meta sale de tu peso en Salud (o la eliges tú), el hábito «Agua» se marca solo y cumplirla da +10 ⭐."],
+    ["🛍", "Estilos para tu agua", "La burbuja, la cantimplora, la bombilla y el reloj de agua, y sabores que cambian el color del agua. Están en la Tienda › Para tu estilo › Tu agua."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1008,6 +1012,7 @@ function onClick(e) {
   if (a.startsWith("lc-")) { listasCompAccion(a, d); return; }     // listas compartidas (listas-amigos.js)
   if (a.startsWith("lj-")) { lecturasAmigosAccion(a, d); return; } // leer el mismo libro (lecturas-amigos.js)
   if (a.startsWith("alb-")) { albumAccion(a, d); return; }         // 📷 álbum del mes (album.js)
+  if (a.startsWith("agua-")) { aguaAccion(a, d, el); return; }     // 💧 agua para todos (agua.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;
@@ -1976,6 +1981,7 @@ function renderInicio() {
   const doneToday = habToca.filter(h => habitDone(h.id, mIdx, day)).length;
 
   const metasMes = (anioHoy.metas.mensuales[mIdx] || []).filter(m => !m.done);
+  const aguaCard = typeof aguaInicioHtml === "function" ? aguaInicioHtml() : "";   // 💧 agua.js
 
   // Números de otros módulos: solo si el módulo está en tu menú y tiene algo que mostrar
   const kpis = [];
@@ -2025,13 +2031,14 @@ function renderInicio() {
   ${renderMisionCard()}
   ${plHoyHtml()}${plDespuesInicioHtml()}${amigosCumplesHoyHtml()}
   ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
-  <div class="grid grid-${metasMes.length ? 3 : 2} inicio-main">
+  <div class="grid grid-${Math.min(3, 2 + (metasMes.length ? 1 : 0) + (aguaCard ? 1 : 0))} inicio-main">
     ${tareasCard}
     <div class="card">
       <div class="card__head"><div class="card__title">Hábitos de hoy${habToca.length ? ` <span class="muted" style="font-weight:500;white-space:nowrap">· ${doneToday} de ${habToca.length}</span>` : ""}</div>
         <a class="card__hint" href="#habitos">Ver panel →</a></div>
       ${habitsToday || '<div class="empty">Agrega hábitos en el panel.</div>'}
     </div>
+    ${aguaCard}
     ${metasMes.length ? `<div class="card">
       <div class="card__head"><div class="card__title">Metas de ${MESES[mIdx]}</div>
         <a class="card__hint" href="#metas">Ver metas →</a></div>

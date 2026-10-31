@@ -27,6 +27,15 @@ const COSMETICOS = [
   { id: "alb-postal", grupo: "album", icon: "🌍", nombre: "Álbum Postales", costo: 400, key: "album", value: "postal", cuando: "cada momento, una postal: la foto adelante y el comentario atrás, con timbre y matasellos" },
   { id: "alb-revista", grupo: "album", icon: "📄", nombre: "Álbum Revista", costo: 500, key: "album", value: "revista", cuando: "tu portada a toda página, con tus comentarios como titulares" },
   { id: "alb-noche", grupo: "album", icon: "🌙", nombre: "Álbum Noche estrellada", costo: 600, key: "album", value: "noche", animado: true, cuando: "tus fotos como estrellas de una constelación que brilla" },
+  // Estilos del agua (agua.js; la botella viene incluida) y sabores: el color del agua en cualquier estilo. Uno a la vez
+  { id: "agua-burbuja", grupo: "agua", icon: "💧", nombre: "Agua: la burbuja", costo: 300, key: "agua", value: "burbuja", animado: true, cuando: "una burbuja que flota, tiembla y se llena por volumen" },
+  { id: "agua-cantimplora", grupo: "agua", icon: "💧", nombre: "Agua: la cantimplora", costo: 300, key: "agua", value: "cantimplora", animado: true, cuando: "tu día en cuatro tramos; se rellena en cada parada" },
+  { id: "agua-bombilla", grupo: "agua", icon: "💧", nombre: "Agua: la bombilla", costo: 300, key: "agua", value: "bombilla", animado: true, cuando: "un vaso con hielo: mantén apretado para tomar a sorbos" },
+  { id: "agua-reloj", grupo: "agua", icon: "💧", nombre: "Agua: el reloj de agua", costo: 400, key: "agua", value: "reloj", animado: true, cuando: "se vacía hasta tu próximo vaso y se da vuelta" },
+  { id: "sabor-pepino", grupo: "sabor", icon: "💧", nombre: "Sabor pepino", costo: 100, key: "sabor", value: "pepino", cuando: "el agua verde, en cualquier estilo" },
+  { id: "sabor-frutilla", grupo: "sabor", icon: "💧", nombre: "Sabor frutilla", costo: 100, key: "sabor", value: "frutilla", cuando: "el agua rosada, en cualquier estilo" },
+  { id: "sabor-te", grupo: "sabor", icon: "💧", nombre: "Sabor té", costo: 100, key: "sabor", value: "te", cuando: "el agua ámbar, en cualquier estilo" },
+  { id: "sabor-arandano", grupo: "sabor", icon: "💧", nombre: "Sabor arándano", costo: 100, key: "sabor", value: "arandano", cuando: "el agua violeta, en cualquier estilo" },
   // Marcos de avatar (uno a la vez). Diamante no se compra: llega con el rango Élite.
   { id: "mar-cian", grupo: "marco", icon: "🔵", nombre: "Marco Índigo", costo: 200, key: "marco", value: "cian" },
   { id: "mar-oro", grupo: "marco", icon: "🟡", nombre: "Marco Oro", costo: 400, key: "marco", value: "oro" },
@@ -48,7 +57,7 @@ function equipCosmetico(it) {
   const eq = eqCos();
   if (it.key === "celebra") eq.celebraOff = eq.celebraOff.includes(it.id) ? eq.celebraOff.filter(x => x !== it.id) : eq.celebraOff.concat(it.id);
   else if (it.key === "sonidos") { eq.sonidos = eq.sonidos === false; if (eq.sonidos) sonar("check"); }
-  else if (it.key === "marco" || it.key === "check") eq[it.key] = eq[it.key] === it.value ? null : it.value;
+  else if (it.key === "marco" || it.key === "check" || it.key === "agua" || it.key === "sabor") eq[it.key] = eq[it.key] === it.value ? null : it.value;
 }
 
 /* Aplica marco y estilo de check (se llama desde applyCosmetics) */
@@ -159,6 +168,7 @@ function cosmeticoCard(it) {
   return `<div class="card cos-card" data-cos="${it.id}">
     ${it.key === "marco" ? `<div style="text-align:center">${vista}</div>` : ""}
     ${it.key === "album" && typeof albumMuestraHtml === "function" ? `<div class="alb-muestra">${albumMuestraHtml(it.value)}</div>` : ""}
+    ${(it.key === "agua" || it.key === "sabor") && typeof aguaMuestraHtml === "function" ? `<div class="agua-muestra">${aguaMuestraHtml(it)}</div>` : ""}
     <div class="row" style="gap:10px">${it.key === "marco" ? "" : vista}
       <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${it.nombre}${it.animado ? ' <span class="chip">animado</span>' : ""}</div>
         <div class="text-xs muted">${owned ? "Desbloqueado" : it.rango ? "Por rango" : it.costo + " ⭐"}${it.cuando ? " · " + it.cuando : ""}</div></div></div>

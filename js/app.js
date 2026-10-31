@@ -158,7 +158,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 49;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 50;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -452,6 +452,11 @@ const NOVEDADES = {
   49: [
     ["💧", "Agua para todos", "En Inicio, «Agua de hoy»: toca «+ Vaso» y mira cómo se llena. Tu meta sale de tu peso en Salud (o la eliges tú), el hábito «Agua» se marca solo y cumplirla da +10 ⭐."],
     ["🛍", "Estilos para tu agua", "La burbuja, la cantimplora, la bombilla y el reloj de agua, y sabores que cambian el color del agua. Están en la Tienda › Para tu estilo › Tu agua."],
+  ],
+  50: [
+    ["💧", "Tu agua, a un toque", "Abajo a la derecha está tu botón de agua, en cualquier pantalla. Tócalo: se abre tu estilo en una ventana redonda y tocarlo es tomar un vaso. Si no lo quieres, se apaga en «Tu agua»."],
+    ["☀️", "La meta sigue al calor", "En «Tu agua», elige tu ciudad: los días sobre 28 °C tu meta sube medio litro, y sobre 32 °C, un litro. Rumbo usa solo la ciudad que eliges, no tu ubicación."],
+    ["🐘", "Estilos nuevos para tu agua", "El día de calor, la esclusa con su barquito y tu elefante, que en 3D riega su planta con cada vaso. Y el acuario del mes: un pez por cada día que cumples, en Salud y en tu cierre de mes."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -827,7 +832,7 @@ function unSoloCoral(root) {
 }
 
 /* Botón del día: vive en la barra inferior (móvil) y arriba del menú (computador) */
-function updateFab() { actualizarBotonDia(); }
+function updateFab() { actualizarBotonDia(); if (typeof aguaFabActualizar === "function") aguaFabActualizar(); }   // y el botón de agua (agua.js)
 
 function updateTopbar() {
   const route = ROUTE_MAP[CURRENT];

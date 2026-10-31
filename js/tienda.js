@@ -32,7 +32,7 @@ function tiendaTodos() {
   const cosEstado = it => isOwned(it.id) && cosActivo(it.id) ? "equipado" : estado(isOwned(it.id), it.costo, !!it.rango);
   COSMETICOS.forEach(it => {
     const sub = it.grupo === "marco" ? "perfil" : it.grupo === "plantilla" ? "informe" : it.grupo === "album" ? "album" : it.grupo === "agua" || it.grupo === "sabor" ? "agua" : "terminar";
-    const iconoHtml = (it.key === "agua" || it.key === "sabor") && typeof aguaFichaHtml === "function" ? aguaFichaHtml(it) : undefined;
+    const iconoHtml = (it.key === "agua" || it.key === "sabor" || it.key === "acuario") && typeof aguaFichaHtml === "function" ? aguaFichaHtml(it) : undefined;
     items.push({ key: "cos:" + it.id, cat: "estilo", sub, icon: it.icon, iconoHtml, nombre: it.nombre, costo: it.costo, estado: cosEstado(it),
       bloqueoTxt: it.rango ? "Rango Élite" : "", attr: `data-cos="${it.id}"`, detalle: () => cosmeticoCard(it) });
   });

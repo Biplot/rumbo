@@ -3086,3 +3086,66 @@ span.alb-tapa.is-vacia { cursor: default; opacity: .6; }
 .agua-muestra { max-width: 150px; margin: 0 auto 10px; }
 .ficha__ico .agua-ficha { width: 64%; height: auto; aspect-ratio: 140 / 200; display: block; }   /* ancho fijo: si no, el lienzo crecería con su propia resolución */
 .ficha__ico .agua-ficha-gota { width: 60%; height: 60%; }
+
+/* ============================================================
+   AGUA, SEGUNDA ENTREGA (v112) · agua.js: el botón de agua (la portilla), los días de calor y el acuario del mes
+   ============================================================ */
+.agua-calor { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--coral); line-height: 1.3; }
+.agua-calor[hidden] { display: none; }
+.agua-sol { flex: none; }
+.agua-clima { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; font-size: 14px; }
+.agua-clima > span:first-child { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.agua-clima .agua-sol { color: var(--coral); }
+.agua-chips .agua-sol { color: var(--coral); }
+.agua-ciudad { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+
+/* El botón de agua: abajo a la derecha (sobre la barra en el celular); al tocarlo, la portilla */
+.agua-fab[hidden] { display: none; }
+.agua-fab__btn { position: fixed; right: 18px; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); z-index: 57; width: 54px; height: 54px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--surface); box-shadow: 0 2px 4px rgba(22, 26, 46, .08), 0 10px 22px -8px rgba(22, 26, 46, .4);
+  display: grid; place-items: center; padding: 0; cursor: pointer; transition: transform .12s, opacity .12s; -webkit-tap-highlight-color: transparent; animation: fabIn .25s ease; }
+.agua-fab__btn canvas { width: 30px; pointer-events: none; }
+.agua-fab__btn:active { transform: scale(.93); }
+.agua-fab.is-open .agua-fab__btn { opacity: 0; transform: scale(.85); pointer-events: none; }
+.agua-fab__velo { position: fixed; inset: 0; z-index: 59; border: 0; padding: 0; margin: 0; background: rgba(4, 10, 24, .32); opacity: 0; pointer-events: none; transition: opacity .15s; }
+.agua-fab.is-open .agua-fab__velo { opacity: 1; pointer-events: auto; }
+.agua-fab__port { position: fixed; right: 18px; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); z-index: 60; width: 236px; height: 236px; border-radius: 50%;
+  background: var(--surface); box-shadow: 0 2px 4px rgba(22, 26, 46, .08), 0 18px 40px -12px rgba(8, 14, 36, .5);
+  transform-origin: 100% 100%; transform: scale(.23); opacity: 0; pointer-events: none; transition: transform .17s cubic-bezier(.2, .9, .3, 1.12), opacity .1s; }
+.agua-fab.is-open .agua-fab__port { transform: none; opacity: 1; pointer-events: auto; }
+.agua-fab__anillo { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); pointer-events: none; }
+.agua-fab__anillo circle { fill: none; stroke: var(--line); stroke-width: 5; }
+.agua-fab__anillo .agua-fab__prog { stroke: #2E9BDB; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset .5s ease; }
+.agua-fab__num { position: absolute; left: 0; right: 0; top: 24px; text-align: center; font: 800 18px/1 var(--font-display); letter-spacing: -.02em; font-variant-numeric: tabular-nums; pointer-events: none; }
+.agua-fab__num small { font: 600 12px var(--font-body); color: var(--text-muted); letter-spacing: 0; }
+.agua-fab__tomar { position: absolute; left: 50%; top: 52px; width: 108px; transform: translateX(-50%); border: 0; padding: 0; background: none; cursor: pointer; border-radius: 18px; -webkit-tap-highlight-color: transparent; }
+.agua-fab__tomar canvas { width: 100%; }
+.agua-fab__tomar:active canvas { transform: scale(.98); }
+.agua-fab__cap { position: fixed; right: 18px; bottom: calc(22px + 246px + env(safe-area-inset-bottom, 0px)); z-index: 60; width: max-content; max-width: min(300px, calc(100vw - 32px));
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 9px 14px; display: grid; gap: 3px; box-shadow: var(--shadow);
+  opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .15s .07s, transform .15s .07s; }
+.agua-fab.is-open .agua-fab__cap { opacity: 1; transform: none; pointer-events: auto; }
+.agua-fab__texto { font-size: 13.5px; color: var(--text-soft); }
+.agua-fab__fila { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; font-size: 12.5px; }
+.agua-fab__pista { color: var(--cian-ink); font-weight: 700; }
+.agua-fab__fila .btn-link { font-size: 12.5px; padding: 4px 0; min-height: 0; }
+.agua-fab__fila .agua-deshacer[hidden] { display: none; }
+@media (max-width: 760px) {
+  .agua-fab__btn, .agua-fab__port { right: 14px; bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
+  .agua-fab__cap { right: 14px; bottom: calc(74px + 246px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* El acuario del mes (Salud y el cierre de mes) */
+.agua-acuario { display: grid; gap: 10px; }
+.agua-acuario__cv { width: 100%; max-width: 560px; margin: 0 auto; display: block; }
+.agua-mes { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 5px 4px; width: 100%; max-width: 560px; margin: 0 auto; }
+@media (min-width: 560px) { .agua-mes { grid-template-columns: repeat(31, minmax(0, 1fr)); } }
+.agua-mes i { width: 78%; justify-self: center; aspect-ratio: 1; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 1.5px solid #2E9BDB; opacity: .55; }
+.agua-mes i.is-on { background: #2E9BDB; opacity: 1; }
+.agua-mes i.is-futuro { opacity: .25; }
+.agua-mes i.is-hoy { opacity: 1; box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--coral-btn, #F4AE3D); }
+.agua-muestra--ancha { max-width: 260px; }
+.ficha__ico .agua-ficha--ancha { width: 88%; aspect-ratio: 280 / 190; }
+@media (prefers-reduced-motion: reduce) { .agua-fab__port, .agua-fab__cap, .agua-fab__velo, .agua-fab__btn, .agua-fab__prog { transition: none; animation: none; } }
+body.con-agua-fab .view { padding-bottom: 96px; }
+@media (max-width: 760px) { body.con-agua-fab .view { padding-bottom: calc(144px + env(safe-area-inset-bottom, 0px)); } }

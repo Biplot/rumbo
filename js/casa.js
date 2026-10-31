@@ -40,13 +40,14 @@ const ELE_ACTIVIDADES = [
 function franjaCasa(h) { return h >= 20 || h < 6 ? 2 : h >= 18 || h < 8 ? 1 : 0; }   // como la luz del cuarto
 /* Lo que puede hacer ahora, con cuántas ganas (peso) */
 function eleActividades(s, ahora) {
-  return eleActividadesCon({ cosas: casaCosas(s).concat(cuartoPuestas(s)), medallas: repisaIds(s).length > 0, sueno: animoElefante(s) === "sueno" }, ahora);
+  return eleActividadesCon({ cosas: casaCosas(s).concat(cuartoPuestas(s)), medallas: repisaIds(s).length > 0, sueno: animoElefante(s) === "sueno",
+    riega: typeof aguaEleRiega === "function" && aguaEleRiega(s, ahora) }, ahora);   // 💧 tomaste agua con «Tu elefante riega»: va a regar su planta
 }
 /* Lo mismo, desde lo que hay en un cuarto: { cosas, medallas (hay en la repisa), sueno } (también el de un amigo, visitas.js) */
 function eleActividadesCon(c, ahora) {
   const f = franjaCasa((ahora || new Date()).getHours()), cosas = new Set(c.cosas || []);
   return ELE_ACTIVIDADES.filter(a => (!a.cosa || cosas.has(a.cosa)) && (!a.medallas || c.medallas))
-    .map(a => ({ ...a, w: a.peso[f] * (a.id === "siesta" && c.sueno ? 2 : 1) })).filter(a => a.w > 0);
+    .map(a => ({ ...a, w: a.id === "planta" && c.riega ? Math.max(1, a.peso[f]) * 8 : a.peso[f] * (a.id === "siesta" && c.sueno ? 2 : 1) })).filter(a => a.w > 0);
 }
 /* Lo que hace ahora mismo: lo mismo durante 20 minutos (en Inicio y al entrar a tu casa) */
 function eleActividadAhora(s, ahora) { return eleElegirAhora(eleActividades(s, ahora || new Date()), ahora); }

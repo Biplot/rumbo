@@ -56,6 +56,7 @@ function saludResumen() {
       <button class="card__hint btn-texto mt-8" data-action="salud-tab" data-v="entrenar">Ir a entrenar ›</button>
     </div>
   </div>
+  ${typeof aguaAcuarioHtml === "function" ? aguaAcuarioHtml() : ""}
   <div class="card mt-16">
     <div class="flex-between" style="flex-wrap:wrap;gap:10px"><b>Registrar peso de ${MESES[m].toLowerCase()}</b>
       <div class="row" style="gap:8px"><input class="input" id="salud-peso" style="width:96px;text-align:center" inputmode="decimal" placeholder="kg" value="${mes.peso != null ? String(mes.peso).replace(".", ",") : ""}" aria-label="Peso en kg">

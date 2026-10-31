@@ -91,6 +91,18 @@ export default async function ({ G, test, assert, clone }) {
     assert.ok(pagina("revista", [{ img: "", comentario: "", fecha: "" }], o).includes("Lo mejor de octubre"));
     assert.ok(pagina("revista", [{ img: "", comentario: "", fecha: "" }], o).includes("Nº 10"));
   });
+  test("compartir: la página entra entera en el marco, centrada y sin deformar; cada estilo tiene su fondo", () => {
+    const encaje = G("albumEncaje"), F = G("ALBUM_FORMATOS"), fondos = G("ALBUM_FONDOS");
+    const dentro = (r, f) => r.x >= f.lado && r.x + r.w <= f.ancho - f.lado && r.y >= f.arriba && r.y + r.h <= f.alto - f.abajo && Math.abs(r.x - (f.ancho - r.x - r.w)) <= 1;
+    for (const [pw, ph] of [[1080, 1440], [1080, 1960], [540, 720]]) for (const k of ["post", "historia"]) {
+      const r = encaje(pw, ph, F[k]);
+      assert.ok(dentro(r, F[k]), `${pw}×${ph} en ${k}`);
+      assert.ok(Math.abs(r.w / r.h - pw / ph) < 0.01, `${pw}×${ph} en ${k}: sin deformar`);
+    }
+    assert.deepEqual([F.post.ancho, F.post.alto, F.historia.ancho, F.historia.alto], [1080, 1350, 1080, 1920]);
+    assert.deepEqual(clone(G("ALBUM_ESTILOS").filter(e => !fondos[e.id]).map(e => e.id)), []);
+    assert.equal(G("albumNombreArchivo")("2026-10", 0), "rumbo-album-octubre-2026-1.jpg");
+  });
   test("dan ⭐ el mes en curso y el que se está cerrando; los meses viejos, no", () => {
     const hoy = new Date(2026, 10, 2);   // 2 de noviembre: se puede cerrar octubre
     assert.equal(premiable("2026-11", hoy), true); assert.equal(premiable("2026-10", hoy), true);

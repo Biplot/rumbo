@@ -158,7 +158,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 47;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 48;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -445,6 +445,9 @@ const NOVEDADES = {
   47: [
     ["📷", "Tus notas, enteras", "Las páginas del álbum crecen lo que haga falta: en el Clásico ya se ven las notas de las fotos de abajo, y en todos los estilos cada comentario se lee completo."],
     ["🎆", "4 estilos de álbum nuevos", "Scrapbook, Postales, Revista y Noche estrellada (con estrellas que brillan). Están en la Tienda › Tu álbum."],
+  ],
+  48: [
+    ["📤", "Comparte tu álbum", "En el álbum, toca «Compartir»: cada página se vuelve una imagen, como publicación (el carrusel de Instagram) o como historia, y la mandas por Instagram, WhatsApp o donde quieras. Se arma en tu teléfono y solo sale si tú la compartes."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

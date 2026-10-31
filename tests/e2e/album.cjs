@@ -1,6 +1,6 @@
 /* Pruebas en navegador · 📷 Álbum del mes, en el celular: en el cierre de octubre, fotos con su comentario y la
    portada (+30 ⭐), una foto de septiembre (pregunta), quitar una, el álbum en el Diario y la estantería, un estilo
-   de la Tienda y la miniatura en Ritual › Mes. Sin servidor: las fotos quedan en este navegador (IndexedDB). */
+   de la Tienda, la miniatura en Ritual › Mes y compartirlo como imagen. Sin servidor: las fotos quedan en este navegador (IndexedDB). */
 const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 
 /* Un APP1 con EXIF (DateTimeOriginal) para meterlo en un JPEG */
@@ -174,5 +174,19 @@ module.exports = async ({ b, ok, errs }) => {
   const tienda = await p.locator("#view").innerText();
   ok(/tu álbum/i.test(tienda) && ["Polaroid", "Película", "Scrapbook", "Postales"].every(n => tienda.includes("Álbum " + n)) && !["Bullet journal", "Revista", "Noche estrellada"].some(n => tienda.includes("Álbum " + n)),
     "la Tienda ofrece Polaroid, Película, Scrapbook y Postales (Bullet journal, Revista y Noche estrellada ya son tuyos)");
+
+  // 12) Compartir el álbum: cada página como imagen (publicación 4:5 o historia 9:16); en el computador, se descarga
+  await p.evaluate(() => openAlbum("2026-10")); await p.waitForTimeout(300);
+  await p.click('#modal [data-action="alb-compartir"]');
+  await p.waitForSelector("#modal .alb-comp__v img", { timeout: 20000 });
+  const medidas = () => p.evaluate(() => Promise.all(ALB_COMP.imgs.map(async x => { const b = await createImageBitmap(x.blob); return b.width + "x" + b.height; })));
+  ok((await medidas()).join() === "1080x1350" && await p.locator(".alb-lienzo").count() === 0, "«Compartir»: la página del álbum, lista como publicación de 1080 × 1350");
+  await p.click('#modal [data-action="alb-comp-formato"][data-v="historia"]');
+  await p.waitForSelector("#modal .alb-comp__v--historia img", { timeout: 10000 });
+  ok((await medidas()).join() === "1080x1920", "y como historia, de 1080 × 1920");
+  const descarga = p.waitForEvent("download");
+  await p.click('#modal [data-action="alb-comp-enviar"]');
+  ok((await descarga).suggestedFilename() === "rumbo-album-octubre-2026-1.jpg", "sin el menú de compartir del teléfono, se descarga: rumbo-album-octubre-2026-1.jpg");
+  ok(await p.evaluate(() => (STATE.gamif.ledger || []).some(x => String(x.id).startsWith("hito:compartir:"))), "y cuenta para la insignia Embajador");
   await ctx.close();
 };

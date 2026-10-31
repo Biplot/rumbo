@@ -129,7 +129,7 @@ const LOGROS = [
   { id: "mes-perfecto", icon: "🏁", nombre: "Mes Perfecto", desc: "Cumple el 100% de tus objetivos del mes", reward: 300, check: lg_mesPerfecto },
   { id: "meta-anual", icon: "🏆", nombre: "Meta Anual", desc: "Llega al 100% de tu meta de ahorro del año", reward: 500, check: lg_metaAnual },
   { id: "buen-amigo", icon: "🤝", nombre: "Buen Amigo", desc: "Ponte al día con 10 personas de Relaciones en un mes", reward: 100, check: lg_buenAmigo },
-  { id: "embajador", icon: "📤", nombre: "Embajador", desc: "Comparte tu mes 3 veces", reward: 100, check: s => lg_compartidos(s) >= 3 },
+  { id: "embajador", icon: "📤", nombre: "Embajador", desc: "Comparte tu mes o tu álbum 3 veces", reward: 100, check: s => lg_compartidos(s) >= 3 },
   { id: "en-equipo", icon: "🤝", nombre: "En Equipo", desc: "Logra un objetivo en conjunto con tus amigos", reward: 150, check: s => lg_juntos(s) >= 1 },
   // Secretas: se ven como ??? hasta ganarlas
   { id: "buho", icon: "🦉", nombre: "Búho", desc: "Cerraste tu día entre las 23:55 y las 23:59", reward: 77, secreta: true, check: lg_buho },
@@ -150,9 +150,9 @@ const LOGROS = [
 })();
 
 /* Compartir (informe del mes/año): hito para la insignia Embajador */
-function registrarCompartido() {
+function registrarCompartido(motivo) {
   if (typeof ledgerRegistrar !== "function") return;
-  ledgerRegistrar(STATE, "hito:compartir:" + uid(), 0, 0, "Compartiste tu mes");
+  ledgerRegistrar(STATE, "hito:compartir:" + uid(), 0, 0, motivo || "Compartiste tu mes");
   saveState();
 }
 

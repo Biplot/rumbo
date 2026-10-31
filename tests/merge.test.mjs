@@ -16,7 +16,7 @@ const ctx = vm.createContext({
   console, Math, Date, JSON,
   localStorage: { getItem: k => mem[k] ?? null, setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } },
 });
-for (const f of ["js/store.js", "js/state.js", "js/anios.js", "js/agenda.js", "js/habitos-motor.js", "js/tareas-motor.js", "js/ritual-mes.js", "js/ritual-semana.js", "js/ritual-express.js", "js/ritual-trimestre.js", "js/tutorial.js", "js/gcal.js", "js/recompensas.js", "js/consumibles.js", "js/funciones.js", "js/logros.js", "js/cielo.js", "js/casa.js", "js/elefante.js", "js/avatares.js", "js/salud.js", "js/notas.js", "js/amigos.js", "js/conjunto.js", "js/objetivos.js", "js/visitas.js", "js/planes.js", "js/planes-despues.js", "js/listas-amigos.js", "js/lecturas-amigos.js", "js/amigos-tablero.js", "js/album.js"]) {
+for (const f of ["js/store.js", "js/state.js", "js/anios.js", "js/agenda.js", "js/habitos-motor.js", "js/tareas-motor.js", "js/ritual-mes.js", "js/ritual-semana.js", "js/ritual-express.js", "js/ritual-trimestre.js", "js/tutorial.js", "js/gcal.js", "js/recompensas.js", "js/consumibles.js", "js/funciones.js", "js/logros.js", "js/cielo.js", "js/casa.js", "js/elefante.js", "js/avatares.js", "js/salud.js", "js/notas.js", "js/amigos.js", "js/conjunto.js", "js/objetivos.js", "js/visitas.js", "js/planes.js", "js/planes-despues.js", "js/listas-amigos.js", "js/lecturas-amigos.js", "js/amigos-tablero.js", "js/album.js", "js/album-compartir.js"]) {
   const p = path.join(root, f);
   if (fs.existsSync(p)) vm.runInContext(fs.readFileSync(p, "utf8"), ctx, { filename: f });
 }

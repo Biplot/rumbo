@@ -572,7 +572,8 @@ function openAlbum(key) {
     <div class="cj-sub">Fotos · ${fotos.length} de ${ALBUM_MAX}</div>
     ${albumGridHtml(key, "album")}
     ${albumAvisoServidor()}
-    <div class="row-wrap" style="gap:8px"><button class="btn-ghost" data-action="alb-estante" data-y="${y}">${icoUI("library")} Tus álbumes</button></div></div>`, { ancho: true });
+    <div class="row-wrap" style="gap:8px">${fotos.length ? `<button class="btn btn--soft" data-action="alb-compartir" data-key="${escapeHtml(key)}">${icoUI("compartir")} Compartir</button>` : ""}
+      <button class="btn-ghost" data-action="alb-estante" data-y="${y}">${icoUI("library")} Tus álbumes</button></div></div>`, { ancho: true });
 }
 /* La estantería: un año, la portada de cada mes */
 function openAlbumes(y) {
@@ -615,6 +616,7 @@ function albumMiniHtml(key) {
 
 /* -------- Acciones (data-action="alb-…", ver onClick en app.js) -------- */
 function albumAccion(a, d) {
+  if (a === "alb-compartir" || a.startsWith("alb-comp-")) return typeof albumCompAccion === "function" ? albumCompAccion(a, d) : undefined;   // album-compartir.js
   if (a === "alb-foto") return openAlbumFoto(d.key, d.id, d.desde);
   if (a === "alb-listo") return albumListo();
   if (a === "alb-portada") return albumPortada();

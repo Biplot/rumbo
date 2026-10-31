@@ -367,7 +367,7 @@ function aguaMuestraHtml(it) {
    con tu estilo, cuánto llevas y un anillo; tocar tu estilo es tomar un vaso (en la bombilla, mantén apretado
    para tomar a sorbos). Se esconde con el teclado abierto, en hojas y ventanas, en Tu casa y Tu vitrina, y en
    Inicio mientras se ve la tarjeta «Agua de hoy». Se apaga en «Tu agua». */
-const AGUA_FAB = { el: null, abierta: false, estilo: "", card: null, cardVisible: false, io: null, sorbio: -1e9, raf: 0 };
+const AGUA_FAB = { el: null, listo: false, pronto: 0, abierta: false, estilo: "", card: null, cardVisible: false, io: null, sorbio: -1e9, raf: 0 };
 function aguaFabHtml(estilo) {
   return `<button type="button" class="agua-fab__velo" data-action="agua-fab-cerrar" tabindex="-1" aria-hidden="true"></button>
     <div class="agua-fab__cap">
@@ -380,12 +380,19 @@ function aguaFabHtml(estilo) {
     <div class="agua-fab__port" role="dialog" aria-label="Agua de hoy">
       <svg class="agua-fab__anillo" viewBox="0 0 236 236" aria-hidden="true"><circle cx="118" cy="118" r="112" pathLength="100"/><circle class="agua-fab__prog" cx="118" cy="118" r="112" pathLength="100" data-agua-anillo/></svg>
       <div class="agua-fab__num" data-agua-cifra></div>
-      <button type="button" class="agua-fab__tomar" data-action="agua-fab-tomar" aria-label="${escapeAttr((AGUA_ESTILOS.find(x => x.id === estilo) || AGUA_ESTILOS[0]).nombre)}: tomar un vaso"><canvas class="agua-cv" data-agua="${estilo}" data-modo="portilla" style="aspect-ratio:140/200"></canvas></button>
+      <button type="button" class="agua-fab__tomar" data-action="agua-fab-tomar" aria-label="${escapeAttr((AGUA_ESTILOS.find(x => x.id === estilo) || AGUA_ESTILOS[0]).nombre)}: tomar un vaso"></button>
     </div>
-    <button type="button" class="agua-fab__btn" data-action="agua-fab-abrir" aria-expanded="false" aria-label="Agua de hoy"><canvas class="agua-cv" data-agua="${estilo}" data-modo="boton" style="aspect-ratio:140/200" aria-hidden="true"></canvas></button>`;
+    <button type="button" class="agua-fab__btn" data-action="agua-fab-abrir" aria-expanded="false" aria-label="Agua de hoy"></button>`;
+}
+/* Los dibujos se crean cuando hacen falta: el chico cuando el botón se muestra, el grande la primera vez que se abre */
+function aguaFabLienzo(sel, modo) {
+  const caja = AGUA_FAB.el && AGUA_FAB.el.querySelector(sel);
+  if (caja && !caja.querySelector("canvas")) caja.innerHTML = `<canvas class="agua-cv" data-agua="${AGUA_FAB.estilo}" data-modo="${modo}" style="aspect-ratio:140/200"${modo === "boton" ? ' aria-hidden="true"' : ""}></canvas>`;
 }
 function aguaFabActualizar() {
   if (typeof document === "undefined" || typeof STATE === "undefined" || !STATE || !document.body) return;
+  // al arrancar, el botón espera un momento: lo primero es que se vea la app
+  if (!AGUA_FAB.el && !AGUA_FAB.listo) { if (!AGUA_FAB.pronto) AGUA_FAB.pronto = setTimeout(() => { AGUA_FAB.listo = true; AGUA_FAB.pronto = 0; aguaFabActualizar(); }, 900); return; }
   if (!AGUA_FAB.el) {
     const el = document.createElement("div"); el.className = "agua-fab"; el.id = "aguaFab"; el.hidden = true;
     document.body.appendChild(el); AGUA_FAB.el = el;
@@ -415,11 +422,13 @@ function aguaFabVer() {
   const ver = !!STATE && aguaDatos().fab !== false && !!app && !app.hidden && !(ruta && ruta.lugar) && !tapa && !escribe
     && !(typeof CURRENT !== "undefined" && CURRENT === "inicio" && AGUA_FAB.card && AGUA_FAB.card.isConnected && AGUA_FAB.cardVisible);
   if (!ver && AGUA_FAB.abierta) aguaFabCerrar();
+  if (ver) aguaFabLienzo(".agua-fab__btn", "boton");
   if (el.hidden === ver) el.hidden = !ver;
   document.body.classList.toggle("con-agua-fab", ver);   // la página deja espacio abajo para que el botón no tape lo último
 }
 function aguaFabAbrir() {
   const el = AGUA_FAB.el; if (!el || el.hidden) return;
+  aguaFabLienzo(".agua-fab__tomar", "portilla");
   AGUA_FAB.abierta = true; el.classList.add("is-open");
   const b = el.querySelector(".agua-fab__btn"); if (b) b.setAttribute("aria-expanded", "true");
   aguaPintar(0); vibrar(6);

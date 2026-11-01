@@ -11,7 +11,7 @@ export default async function ({ G, test, assert }) {
     BADGES.forEach(b => assert.ok(ids.includes(b.id), "tiene familia " + b.id));
     assert.equal(cieloOrden().length, BADGES.length);
     // La cantidad de puntos de cada figura del cielo (cielo-3d.js): copa, brújula, elefante, sol, columna, medalla
-    assert.equal(FAMS.map(f => f.ids.length).join(","), "4,6,13,10,5,16,4");   // La Medalla suma «Primera alcancía» (el broche de la cinta)
+    assert.equal(FAMS.map(f => f.ids.length).join(","), "4,6,13,10,5,16,4");   // La Medalla suma «Primera alcancía» (adentro, bajo En Equipo)
     assert.ok(FAMS.find(f => f.id === "secretas").ids.every(id => findBadge(id).secreta));
   });
 

@@ -55,7 +55,7 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 3) Su vitrina, y de vuelta a Amigos
   await p.click('#lugarHoja [data-action="vis-cielo"]'); await p.waitForTimeout(2500);
-  ok(await p.evaluate(() => CURRENT) === "visita-cielo" && (await p.locator(".lugar__t").innerText()).includes("2 de 57 medallas"), "«Su vitrina»: el cielo de Ana, con sus 2 de 57 medallas");
+  ok(await p.evaluate(() => CURRENT) === "visita-cielo" && (await p.locator(".lugar__t").innerText()).includes("2 de 58 medallas"), "«Su vitrina»: el cielo de Ana, con sus 2 de 58 medallas");
   await shot(p, "visita-vitrina");
   await p.click('[data-action="lugar-volver"]'); await p.waitForTimeout(800);
   ok(await p.evaluate(() => CURRENT) === "amigos", "‹ vuelve a Amigos");
@@ -64,7 +64,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => STATE.gamif.badges.length === 0 && !STATE.gamif.owned.includes("cua-gato")), "Bruno sigue con sus cosas y sus medallas");
   ok(await p.evaluate(() => localStorage.getItem("rumbo-cielo-visto")) === visto0, "y su cielo no cuenta como vistas las medallas de Ana");
   await ir("cielo"); await p.waitForTimeout(1500);
-  ok((await p.locator(".lugar__t, .lugar-plano").first().innerText()).includes("0 de 57"), "en su propia vitrina, Bruno ve las suyas (0 de 57)");
+  ok((await p.locator(".lugar__t, .lugar-plano").first().innerText()).includes("0 de 58"), "en su propia vitrina, Bruno ve las suyas (0 de 58)");
 
   // 5) Ana apaga «Tu casa»: ya no se puede visitar (la vitrina sí)
   await entrar("ana@vis.cl"); await ir("amigos"); await hojaAmigos(p, "ajustes");

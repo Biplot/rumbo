@@ -270,7 +270,8 @@ function renderHabitos() {
   <div class="pill pill--streak mt-16" style="display:inline-flex" title="Días seguidos cumpliendo todos los hábitos que tocaban">${icoHab("✅", 16)} ${racha} ${racha === 1 ? "día" : "días"} de hábitos seguidos</div>`;
   if (!defs.length) return head + `<div class="card mt-16"><div class="empty">Aún no tienes hábitos. Crea el primero con “+ Nuevo hábito”.</div></div>`;
   const body = HABIT_VIEW === "mensual" ? habitViewMensual() : HABIT_VIEW === "anual" ? habitViewAnual() : habitViewDiario();
-  return head + `<div class="mt-16">${body}</div>`;
+  const jardin = HABIT_VIEW !== "mensual" && HABIT_VIEW !== "anual" && typeof jardinCardHtml === "function" ? jardinCardHtml() : "";   // 🌱 jardin.js
+  return head + (jardin ? `<div class="mt-16">${jardin}</div>` : "") + `<div class="mt-16">${body}</div>`;
 }
 
 function habitTodayCard(h) {

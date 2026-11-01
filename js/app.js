@@ -158,7 +158,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 52;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 53;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -468,6 +468,12 @@ const NOVEDADES = {
     ["💎", "Tus deseos, en Finanzas", "Anota lo que te gustaría comprarte, con su precio. Después de 7 días (30 si es caro) Rumbo te pregunta si todavía lo quieres; si sí, «Ahorrar para esto» le arma su alcancía, y «Lo compré» rompe el chanchito y anota cuánto pagaste."],
     ["🌱", "Lo que no gastaste", "Si ya no lo quieres, suéltalo: su precio suma a «Lo que no gastaste este año». Tus listas de deseos de antes se mudaron solas a Finanzas."],
     ["🐷", "Mis caprichos", "Para los deseos chicos, una sola alcancía en orden: marca cuál ya te alcanza. Usa «A mis caprichos» en cualquier deseo."],
+  ],
+  53: [
+    ["🌱", "Tu jardín, en Hábitos e Inicio", "Tres macetas para los hábitos que estás formando: cada planta crece con sus días cumplidos. Si tienes más de tres, eliges cuáles; el jardín premia la constancia, no la cantidad."],
+    ["🌳", "Echar raíces", "A los 66 días cumplidos, tu elefante trasplanta el hábito al patio como árbol y su maceta queda libre. Si lo dejas, el árbol pierde las hojas hasta que vuelves; nunca se pierde."],
+    ["☀️", "El cielo de tu semana", "El cielo es lo que cumpliste esta semana: sol y mariposas o nublado. Da lo mismo cuántos hábitos tengas. Y cuando marcas un hábito, tu elefante riega su maceta."],
+    ["🪟", "Cuatro estilos en la Tienda", "La entrada viene con Rumbo; la ventana, en píxeles, el terrario y el sur, en Recompensas › Tienda › Tu jardín."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1031,6 +1037,7 @@ function onClick(e) {
   if (a.startsWith("agua-")) { aguaAccion(a, d, el); return; }     // 💧 agua para todos (agua.js)
   if (a.startsWith("alc-")) { alcAccion(a, d, el); return; }       // 🐷 tus alcancías (alcancias.js)
   if (a.startsWith("des-")) { deseosAccion(a, d); return; }        // 💎 tus deseos (deseos.js)
+  if (a.startsWith("jar-")) { jardinAccion(a, d, el); return; }    // 🌱 tu jardín (jardin.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;
@@ -1694,6 +1701,7 @@ function toggleHabitDate(habitId, year, monthIdx, day) {
   if (cur) { delete STATE.habitos.log[key][habitId][day]; anularMovimiento(movId); }
   else { STATE.habitos.log[key][habitId][day] = true; registrarMovimiento(movId, 5, 5); vibrar(10); }
   actualizarMetaHabito(habitId, isoLocal(new Date(year, monthIdx, day)));
+  if (typeof jardinAlMarcar === "function") jardinAlMarcar(habitId, !cur);   // 🌱 tu elefante riega (o trasplanta a los 66 días)
   saveState();
   updateTopbar();
   rerender();
@@ -2054,6 +2062,7 @@ function renderInicio() {
     <div class="card">
       <div class="card__head"><div class="card__title">Hábitos de hoy${habToca.length ? ` <span class="muted" style="font-weight:500;white-space:nowrap">· ${doneToday} de ${habToca.length}</span>` : ""}</div>
         <a class="card__hint" href="#habitos">Ver panel →</a></div>
+      ${typeof jardinInicioHtml === "function" ? jardinInicioHtml() : ""}
       ${habitsToday || '<div class="empty">Agrega hábitos en el panel.</div>'}
     </div>
     ${aguaCard}

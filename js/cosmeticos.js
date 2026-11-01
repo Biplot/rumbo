@@ -47,6 +47,11 @@ const COSMETICOS = [
   { id: "alc-frasco", grupo: "alcancia", icon: "🫙", nombre: "Alcancía: el frasco", costo: 300, key: "alcancia", value: "frasco", animado: true, cuando: "vidrio grueso, tapa de rosca y la etiqueta escrita a mano" },
   { id: "alc-caja", grupo: "alcancia", icon: "🔒", nombre: "Alcancía: la caja fuerte", costo: 400, key: "alcancia", value: "caja", animado: true, cuando: "para metas grandes: la perilla gira con cada aporte y el monto se ve al abrirla" },
   { id: "alc-viaje", grupo: "alcancia", icon: "🚌", nombre: "Alcancía: el viaje", costo: 400, key: "alcancia", value: "viaje", animado: true, cuando: "un bus avanza hasta tu destino; cada parada (25, 50 y 75 %) da +10 ⭐" },
+  // Estilos del jardín de tus hábitos (jardin.js; la entrada viene incluida): uno a la vez
+  { id: "jar-ventana", grupo: "jardin", icon: "🪟", nombre: "Jardín: la ventana", costo: 300, key: "jardin", value: "ventana", animado: true, cuando: "desde adentro de Tu casa: tus macetas en la ventana y tus árboles afuera; la luz cambia con tu semana" },
+  { id: "jar-pixeles", grupo: "jardin", icon: "👾", nombre: "Jardín: en píxeles", costo: 300, key: "jardin", value: "pixeles", animado: true, cuando: "un jardín de videojuego antiguo, con tu elefante junto a las macetas y un marcador" },
+  { id: "jar-terrario", grupo: "jardin", icon: "🫙", nombre: "Jardín: el terrario", costo: 400, key: "jardin", value: "terrario", animado: true, cuando: "en tu escritorio: los hábitos que echan raíces pasan al frasco; de noche, luciérnagas" },
+  { id: "jar-sur", grupo: "jardin", icon: "🌋", nombre: "Jardín: el sur", costo: 500, key: "jardin", value: "sur", animado: true, cuando: "un lago con su volcán: araucarias, cabaña de tejuelas y las macetas en el muelle; llueve si tu semana va floja" },
   { id: "mon-plata", grupo: "moneda", icon: "🪙", nombre: "Monedas de plata", costo: 100, key: "moneda", value: "plata", cuando: "en todas tus alcancías y en la torre del año" },
   { id: "mon-cobre", grupo: "moneda", icon: "🪙", nombre: "Monedas de cobre", costo: 100, key: "moneda", value: "cobre", cuando: "en todas tus alcancías y en la torre del año" },
   { id: "mon-estrella", grupo: "moneda", icon: "🪙", nombre: "Monedas estrella", costo: 100, key: "moneda", value: "estrella", cuando: "doradas con una estrella índigo, en todas tus alcancías" },
@@ -71,7 +76,7 @@ function equipCosmetico(it) {
   const eq = eqCos();
   if (it.key === "celebra") eq.celebraOff = eq.celebraOff.includes(it.id) ? eq.celebraOff.filter(x => x !== it.id) : eq.celebraOff.concat(it.id);
   else if (it.key === "sonidos") { eq.sonidos = eq.sonidos === false; if (eq.sonidos) sonar("check"); }
-  else if (it.key === "marco" || it.key === "check" || it.key === "agua" || it.key === "sabor" || it.key === "moneda") eq[it.key] = eq[it.key] === it.value ? null : it.value;
+  else if (it.key === "marco" || it.key === "check" || it.key === "agua" || it.key === "sabor" || it.key === "moneda" || it.key === "jardin") eq[it.key] = eq[it.key] === it.value ? null : it.value;
 }
 
 /* Aplica marco y estilo de check (se llama desde applyCosmetics) */
@@ -186,6 +191,7 @@ function cosmeticoCard(it) {
     ${it.key === "album" && typeof albumMuestraHtml === "function" ? `<div class="alb-muestra">${albumMuestraHtml(it.value)}</div>` : ""}
     ${(it.key === "agua" || it.key === "sabor" || it.key === "acuario") && typeof aguaMuestraHtml === "function" ? `<div class="agua-muestra${it.key === "acuario" ? " agua-muestra--ancha" : ""}">${aguaMuestraHtml(it)}</div>` : ""}
     ${(it.key === "alcancia" || it.key === "moneda") && typeof alcMuestraHtml === "function" ? `<div class="alc-muestra">${alcMuestraHtml(it)}</div>` : ""}
+    ${it.key === "jardin" && typeof jardinMuestraHtml === "function" ? `<div class="jar-muestra">${jardinMuestraHtml(it)}</div>` : ""}
     <div class="row" style="gap:10px">${it.key === "marco" ? "" : vista}
       <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${it.nombre}${it.animado ? ' <span class="chip">animado</span>' : ""}</div>
         <div class="text-xs muted">${owned ? "Desbloqueado" : it.rango ? "Por rango" : it.costo + " ⭐"}${it.cuando ? " · " + it.cuando : ""}</div></div></div>

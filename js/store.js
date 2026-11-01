@@ -911,6 +911,13 @@ function deseosMerge(l, s) {
   const nuevo = (l.ts || 0) >= (s.ts || 0) ? l : s;
   return { lista: [...map.values()], borrados, espera: nuevo.espera !== false, ts: Math.max(l.ts || 0, s.ts || 0) };
 }
+/* El jardín en dos equipos: las macetas y si se ve en Inicio, de lo elegido más nuevo; los trasplantes celebrados se juntan */
+function jardinMerge(l, s) {
+  l = l || {}; s = s || {};
+  const nuevo = (l.ts || 0) >= (s.ts || 0) ? l : s, raices = {};
+  [s.raices, l.raices].forEach(r => Object.entries(r || {}).forEach(([id, f]) => { if (f && (!raices[id] || String(f) < raices[id])) raices[id] = String(f); }));
+  return { macetas: Array.isArray(nuevo.macetas) ? nuevo.macetas.slice(0, 3) : [], inicio: nuevo.inicio !== false, raices, ts: Math.max(l.ts || 0, s.ts || 0) };
+}
 function mergeStates(server, local) {
   if (!server) return local;
   if (!local) return server;
@@ -1030,6 +1037,7 @@ function mergeStates(server, local) {
   if (local.agua || server.agua) out.agua = aguaMerge(local.agua, server.agua);
   if (local.alcancias || server.alcancias) out.alcancias = alcMerge(local.alcancias, server.alcancias);
   if (local.deseos || server.deseos) out.deseos = deseosMerge(local.deseos, server.deseos);
+  if (local.jardin || server.jardin) out.jardin = jardinMerge(local.jardin, server.jardin);
 
   // eventos: dict por fecha -> unión de arrays de texto
   out.eventos = {};

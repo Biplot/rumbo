@@ -3252,3 +3252,43 @@ body.con-agua-fab .view { padding-bottom: 96px; }
 .lista-deseos-link { width: 100%; }
 .des-nuevo[hidden] { display: none; }
 .alc .btn--soft, .des .btn--soft { background: var(--surface); border: 1px solid var(--line-strong); }
+
+/* ============================================================
+   TU JARDÍN (v115) · jardin.js y jardin-motor.js: el jardín de tus hábitos en Hábitos e Inicio,
+   su hoja (macetas, árboles, cielo y estilo), elegir macetas y los estilos en la Tienda
+   ============================================================ */
+.jar-cv { display: block; width: 100%; height: auto; border-radius: 14px; background: var(--surface-2); }
+.jar-lienzo { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 14px; touch-action: manipulation; }
+.jar-lienzo:focus-visible { outline: 2.5px solid var(--cian); outline-offset: 2px; }
+.jar-lienzo .jar-cv { pointer-events: none; border: 1px solid var(--line); }
+.jar-lienzo--inicio { margin: 2px 0 12px; }
+.jar-card { display: grid; gap: 10px; }
+.jar-card .card__head { margin-bottom: 0; }
+.jar-card .jar-lienzo { max-width: 560px; margin: 0 auto; }
+.jar-lectura { margin: 0; font-size: 13.5px; color: var(--text-soft); }
+.jar-aviso { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; background: var(--cian-soft); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; }
+.jar-aviso .btn { min-height: 38px; padding: 7px 14px; background: var(--surface); border: 1px solid var(--line-strong); }
+.jar-hoja { display: grid; gap: 12px; }
+.jar-hoja > .jar-cv { border: 1px solid var(--line); }
+.jar-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.jar-item:last-child { border-bottom: 0; }
+.jar-item__main { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.jar-item__main b { overflow-wrap: anywhere; }
+.jar-barra { display: block; height: 6px; border-radius: 99px; background: var(--surface-3); overflow: hidden; margin-top: 4px; }
+.jar-barra i { display: block; height: 100%; border-radius: 99px; }
+.jar-estilos { display: flex; flex-wrap: wrap; gap: 6px; }
+.jar-estilos .chip { cursor: pointer; min-height: 36px; }
+.jar-estilos .chip.is-on { background: var(--cian); color: var(--on-cian); border-color: var(--cian); }
+.jar-check { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+.jar-check input { width: 18px; height: 18px; accent-color: var(--cian); }
+.jar-como summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+.jar-como ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; color: var(--text-soft); }
+.jar-opciones { display: grid; gap: 6px; }
+.jar-opcion { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+.jar-opcion:has(input:checked) { border-color: var(--cian); background: var(--cian-soft); }
+.jar-opcion input { width: 18px; height: 18px; accent-color: var(--cian); }
+.jar-opcion__n { font-weight: 700; overflow-wrap: anywhere; }
+.jar-raices { display: grid; gap: 12px; }
+.jar-raices p { margin: 0; }
+.jar-muestra { max-width: 300px; margin: 0 auto 10px; }
+.ficha__ico .jar-ficha { width: 92%; height: auto; display: block; border-radius: 8px; }

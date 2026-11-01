@@ -381,14 +381,18 @@ function saveRel() {
    LISTAS
    ============================================================ */
 function renderListas() {
-  const listas = STATE.vida.listas;
+  // Las listas de deseos viven ahora en Finanzas › Tus deseos (deseos.js); las de antes se mudaron solas (migrate)
+  const listas = STATE.vida.listas.filter(l => l && l.tipo !== "deseos");
+  const deseos = typeof deseosVivos === "function" ? deseosVivos().filter(d => !d.tengo && !d.soltado).length : 0;
   return `
   ${lcSeccionListas()}
   <div class="flex-between"><div class="card__title" style="margin:0">Tus listas</div>
     <button class="btn btn--primary" data-action="lista-add">+ Nueva lista</button></div>
+  <button type="button" class="tienda-link mt-16 lista-deseos-link" data-action="des-ir">${iconoLinea("finanzas", 20)}
+    <span><b>💎 Tus deseos están en Finanzas</b><small>${deseos ? `${deseos === 1 ? "1 deseo" : deseos + " deseos"} · ` : ""}Anota lo que quieres comprarte, espéralo unos días y ahórrale su alcancía</small></span>${iconoLinea("chevron", 16)}</button>
   <div class="grid grid-3 mt-16">
-    ${listas.length ? listas.map(l => l.tipo === "deseos" ? listaDeseosCard(l) : listaNormalCard(l)).join("")
-      : '<div class="card"><div class="empty">Crea tu primera lista. También puedes crear una <b>Lista de deseos</b> que suma los montos.</div></div>'}
+    ${listas.length ? listas.map(listaNormalCard).join("")
+      : '<div class="card"><div class="empty">Crea tu primera lista: compras, películas, lo que quieras.</div></div>'}
   </div>`;
 }
 function listaNormalCard(l) {
@@ -429,16 +433,12 @@ function listaDeseosCard(l) {
 function openListaModal() {
   const iconos = ["🛒", "🎬", "✈️", "📚", "🎵", "🎁", "🍽️", "🏋️", "💡", "✅"];
   openModal("Nueva lista", `
-    <div class="field"><label>Tipo</label>
-      <div class="seg" id="lst-tipos" style="width:100%">
-        <button type="button" class="is-active" data-t="normal" onclick="listaTipoPick(this)" style="flex:1">Normal</button>
-        <button type="button" data-t="deseos" onclick="listaTipoPick(this)" style="flex:1">💎 Lista de deseos</button>
-      </div><input type="hidden" id="lst-tipo" value="normal"></div>
+    <input type="hidden" id="lst-tipo" value="normal">
     <div class="field"><label>Nombre</label><input class="input" id="lst-nombre" placeholder="Ej: Compras"></div>
     <div class="field" id="lst-icon-field"><label>Ícono</label><div class="row-wrap" id="lst-iconos">${iconos.map(ic =>
       `<button type="button" class="btn btn--soft" style="padding:8px 12px" data-ic="${ic}" onclick="listaIconPick(this)">${emoLit(ic)}</button>`).join("")}</div>
       <input type="hidden" id="lst-icon" value="🛒"></div>
-    <p class="text-xs muted" style="margin:-4px 0 12px" id="lst-deseo-hint" hidden>💎 En una lista de deseos cada ítem lleva un monto y verás el total (para cuantificar tus gastos lujosos).</p>
+    <p class="text-xs muted" style="margin:-4px 0 12px">💎 ¿Algo que quieres comprarte? Anótalo en Finanzas › Tus deseos: te ayuda a esperarlo y a ahorrar para eso.</p>
     <button class="btn btn--primary btn-block" data-action="lista-save">Crear lista</button>`);
 }
 function listaTipoPick(btn) {

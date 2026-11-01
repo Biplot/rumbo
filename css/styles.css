@@ -3210,3 +3210,45 @@ body.con-agua-fab .view { padding-bottom: 96px; }
 /* La Tienda */
 .alc-muestra { max-width: 240px; margin: 0 auto 10px; }
 .ficha__ico .alc-ficha { width: 88%; height: auto; aspect-ratio: 260 / 220; display: block; }
+
+/* ============================================================
+   TUS DESEOS (v114) · deseos.js: los deseos en Finanzas (esperar, ahorrar, comprar o soltar),
+   la escalera de «Mis caprichos» y el enlace desde Listas
+   ============================================================ */
+.des-sec .card__title .chip { margin-left: 6px; vertical-align: 2px; }
+.des-nuevo { display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 8px; margin-bottom: 12px; }
+.des-nuevo__link { grid-column: 1 / -1; }
+.des-nuevo .btn { grid-column: 1 / -1; justify-self: start; }
+@media (min-width: 720px) { .des-nuevo { grid-template-columns: minmax(0, 1fr) 140px minmax(0, 1fr) auto; } .des-nuevo__link, .des-nuevo .btn { grid-column: auto; } }
+.des-nogaste { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: color-mix(in srgb, #2F9E74 14%, var(--surface)); color: var(--text); border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 12px; font-size: 13.5px; font-weight: 600; }
+.des-nogaste b { font-size: 17px; font-variant-numeric: tabular-nums; color: color-mix(in srgb, #2F9E74 75%, var(--text)); }
+.des-lista { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 900px) { .des-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.des { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; display: grid; gap: 7px; align-content: start; min-width: 0; }
+.des--decidir { border-color: var(--coral-btn, var(--coral)); }
+.des__t { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; min-width: 0; }
+.des__n { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; font-size: 15px; color: var(--text); text-align: left; cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
+.des__n:hover { text-decoration: underline; text-underline-offset: 3px; }
+.des__p { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.des__est { justify-self: start; font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--surface-3); color: var(--text-soft); }
+.des__est--decidir { background: var(--coral-soft); color: var(--coral); }
+.des__est--ahorro { background: var(--cian-soft); color: var(--cian-ink); }
+.des__espera { height: 6px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.des__espera i { display: block; height: 100%; background: var(--line-strong); border-radius: 99px; }
+.des .bar { margin: 0; }
+.des__info { color: var(--text-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.des__btns { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.des__btns .btn { min-height: 38px; padding: 7px 12px; }
+.des__soltar { color: var(--text-muted) !important; }
+.des__link { font-size: 13px; color: var(--cian-ink); }
+.alc__chip { font-size: 11px; padding: 2px 8px; flex: none; }
+.alc__cab b { flex: 1; }
+.des-escalera { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.des-escalera li { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 13px; }
+.des-escalera i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line-strong); display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 800; color: var(--text-soft); }
+.des-escalera li.is-ok i { background: var(--cian); border-color: var(--cian); color: var(--on-cian); }
+.des-escalera span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.des-escalera small { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.lista-deseos-link { width: 100%; }
+.des-nuevo[hidden] { display: none; }
+.alc .btn--soft, .des .btn--soft { background: var(--surface); border: 1px solid var(--line-strong); }

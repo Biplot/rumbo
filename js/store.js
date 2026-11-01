@@ -903,6 +903,14 @@ function alcMerge(l, s) {
   const nuevo = (l.ts || 0) >= (s.ts || 0) ? l : s;
   return { lista: [...map.values()].sort((x, y) => (x.creada || 0) - (y.creada || 0)), borradas, ocultar: !!nuevo.ocultar, ts: Math.max(l.ts || 0, s.ts || 0) };
 }
+/* Los deseos en dos equipos: cada uno por id, gana el ts más nuevo; los borrados no reviven; la espera, del ajuste más nuevo */
+function deseosMerge(l, s) {
+  l = l || {}; s = s || {};
+  const borrados = Array.from(new Set([...(l.borrados || []), ...(s.borrados || [])])), fuera = new Set(borrados), map = new Map();
+  [...(s.lista || []), ...(l.lista || [])].forEach(d => { if (!d || !d.id || fuera.has(d.id)) return; const o = map.get(d.id); if (!o || (d.ts || 0) >= (o.ts || 0)) map.set(d.id, JSON.parse(JSON.stringify(d))); });
+  const nuevo = (l.ts || 0) >= (s.ts || 0) ? l : s;
+  return { lista: [...map.values()], borrados, espera: nuevo.espera !== false, ts: Math.max(l.ts || 0, s.ts || 0) };
+}
 function mergeStates(server, local) {
   if (!server) return local;
   if (!local) return server;
@@ -1021,6 +1029,7 @@ function mergeStates(server, local) {
   if (local.album || server.album) out.album = albumMerge(local.album, server.album);
   if (local.agua || server.agua) out.agua = aguaMerge(local.agua, server.agua);
   if (local.alcancias || server.alcancias) out.alcancias = alcMerge(local.alcancias, server.alcancias);
+  if (local.deseos || server.deseos) out.deseos = deseosMerge(local.deseos, server.deseos);
 
   // eventos: dict por fecha -> unión de arrays de texto
   out.eventos = {};

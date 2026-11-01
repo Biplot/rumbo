@@ -302,6 +302,7 @@ function mesCierrePaso(w) {
     }).join("");
   }
   if (w.paso === 1) return resumenMesHtml(resumenMes(w.y, w.m)) + (typeof alcRepartoHtml === "function" ? alcRepartoHtml(w.y, w.m) : "")   // 🐷 repartir el ahorro en tus alcancías (alcancias.js)
+    + (typeof deseosCierreHtml === "function" ? deseosCierreHtml() : "")   // 💎 los deseos que esperan respuesta (deseos.js)
     + (typeof aguaAcuarioHtml === "function" ? aguaAcuarioHtml(w.y, w.m, true) : "");   // 🐠 el acuario del mes (agua.js)
   if (w.paso === 2) {
     return STATE.rueda.areas.map((a, i) => `<div class="field"><label>${escapeHtml(a)}: <b id="mc-rl-${i}">${d.rueda[i]}</b>/10</label>

@@ -68,6 +68,7 @@ function renderFinanzas() {
     <div class="bar mt-16"><div class="bar__fill" style="width:${pctAnual}%"></div></div>
     ${typeof alcTorreHtml === "function" ? alcTorreHtml() : ""}
   </div>
+  ${typeof deseosHtml === "function" ? deseosHtml() : ""}
   ${typeof alcFinanzasHtml === "function" ? alcFinanzasHtml() : ""}
 
   <div class="grid grid-2 mt-24">

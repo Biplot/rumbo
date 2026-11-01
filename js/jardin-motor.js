@@ -1,7 +1,7 @@
 /* ============================================================
    RUMBO · 🌱 El motor del jardín (Hábitos, Inicio y la Tienda)
-   Canvas 2D. Cinco estilos del mismo jardín: la entrada (viene con Rumbo), la ventana, el terrario,
-   en píxeles y el sur. Las mismas reglas en todos: hasta tres macetas (cada planta crece con sus
+   Canvas 2D. Siete estilos del mismo jardín: la entrada (viene con Rumbo), la ventana, el terrario,
+   en píxeles y el sur, y los temas especiales Marte y la base lunar. Las mismas reglas en todos: hasta tres macetas (cada planta crece con sus
    días cumplidos y florece cerca de echar raíces), un árbol por hábito con raíces (sin hojas si lo
    dejaste) y un cielo que es tu constancia de la semana.
    Cada lienzo canvas[data-jardin="<estilo>"] se monta solo con jardinEscena() (jardin.js);
@@ -29,6 +29,7 @@ const JARDIN_MOTOR = (() => {
   }
   const ahora = () => performance.now() / 1000;
   let riego = { id: "", t0: -99 }, brote = { id: "", t0: -99 };
+  let FIJA = false;   // en las tarjetas (quietas), los personajes de los temas especiales posan
   /* Un árbol recién trasplantado brota: crece de 0 a 1 en un poco más de un segundo */
   const brota = (a, t) => { if (!a || a.id !== brote.id) return 1; const d = t - brote.t0; return d < 0 ? 0.05 : d > 1.3 ? 1 : Math.max(0.05, 1 - Math.pow(1 - d / 1.3, 3)); };
   const ultimos = e => (e.arboles || []).slice(-8);
@@ -322,8 +323,321 @@ const JARDIN_MOTOR = (() => {
     if (e.c < 0.42) { const a = Math.min(0.7, (0.42 - e.c) * 1.6 + 0.2); ctx.strokeStyle = dk ? `rgba(180,195,230,${a})` : `rgba(220,230,245,${a})`; ctx.lineWidth = 1; for (let i = 0; i < 70; i++) { const x = (i * 53 + t * 110) % (W + 40) - 20, y = (i * 31 + t * 240) % (H + 20) - 10; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 3, y + 9); ctx.stroke(); } }
   }
 
+
+  /* ============ Temas especiales: Marte y la base lunar ============
+     Tu elefante con traje y casco: de vez en cuando baja el visor de cristal negro y lo sube para regar.
+     Menta, el alienígena, se pasea entre tus cúpulas (en la Luna llega en su platillo) y salta cuando riegas.
+     Lo que construyes se queda: en Marte tus raíces vuelven verde la arena (laguna desde 4 árboles, pasto
+     y flores con 8); en la Luna encienden continentes de la Tierra (con sus ciudades, si el hábito sigue vivo).
+     Tu semana pone el clima: remolinos y tormentas de arena en Marte, nubes y tormentas en la Tierra.
+     En las tarjetas (quietas) el alienígena posa saludando y el visor está abajo; en la hoja se mueven. */
+  const ESPACIO = (() => {
+    function espacio(ctx, x, y, w, h, t, c, sd) {
+      ctx.fillStyle = lg(ctx, 0, y, 0, y + h, [[0, "#04050D"], [1, "#0C1230"]]); ctx.fillRect(x, y, w, h);
+      const a = 0.05 + 0.16 * c;
+      ctx.fillStyle = rg(ctx, x + w * 0.22, y + h * 0.28, 0, w * 0.5, [[0, `rgba(130,80,210,${a})`], [1, "rgba(130,80,210,0)"]]); ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = rg(ctx, x + w * 0.78, y + h * 0.62, 0, w * 0.45, [[0, `rgba(60,150,230,${a * 0.8})`], [1, "rgba(60,150,230,0)"]]); ctx.fillRect(x, y, w, h);
+      const r = semilla(sd || 5);
+      for (let i = 0; i < Math.round(w * h / 900); i++) { const sx = x + r() * w, sy = y + r() * h, big = r() < 0.08, tw = 0.55 + 0.45 * Math.sin(t * 2 + i * 1.7); ctx.fillStyle = `rgba(255,255,255,${(big ? 0.9 : 0.55) * tw})`; ctx.fillRect(sx, sy, big ? 1.6 : 0.9, big ? 1.6 : 0.9); }
+    }
+    function fugaz(ctx, x, y, w, h, t, periodo) {
+      const f = (t % periodo) / periodo; if (f > 0.18) return;
+      const k = f / 0.18, x0 = x + w * (0.15 + 0.5 * ((Math.floor(t / periodo) * 0.37) % 1)), y0 = y + h * 0.12, px = x0 + k * w * 0.35, py = y0 + k * h * 0.22;
+      ctx.strokeStyle = lg(ctx, px - 40, py - 25, px, py, [[0, "rgba(255,255,255,0)"], [1, "rgba(255,255,255,.9)"]]); ctx.lineWidth = 1.6; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(px - 40, py - 25); ctx.lineTo(px, py); ctx.stroke();
+    }
+    const CONT = [
+      { lon: 0.1, lat: 0.62, b: [[0, 0, 0.3, 0.17], [0.22, -0.12, 0.2, 0.14], [-0.18, 0.08, 0.16, 0.1], [0.05, -0.28, 0.1, 0.1]] },
+      { lon: 0.55, lat: -0.35, b: [[0, 0.05, 0.17, 0.2], [0.04, -0.22, 0.11, 0.13], [-0.05, 0.25, 0.08, 0.06]] },
+      { lon: 1.45, lat: 0.05, b: [[0, 0, 0.2, 0.24], [0.06, 0.22, 0.2, 0.1], [0.08, -0.22, 0.12, 0.1]] },
+      { lon: 1.55, lat: 0.62, b: [[0, 0, 0.16, 0.09], [0.24, 0.02, 0.24, 0.12]] },
+      { lon: 2.45, lat: 0.5, b: [[0, 0, 0.36, 0.17], [-0.25, 0.08, 0.18, 0.12], [0.2, -0.18, 0.14, 0.1]] },
+      { lon: 3.25, lat: -0.42, b: [[0, 0, 0.22, 0.12], [0.12, 0.05, 0.08, 0.06]] },
+      { lon: 4.35, lat: 0.22, b: [[0, 0, 0.13, 0.08], [0.14, 0.1, 0.1, 0.07], [-0.12, -0.08, 0.08, 0.05]] },
+      { lon: 5.3, lat: -0.12, b: [[0, 0, 0.15, 0.19], [0.1, 0.18, 0.1, 0.07]] },
+    ];
+    const NUBES = (() => { const r = semilla(77), out = []; for (let i = 0; i < 30; i++) out.push({ lon: r() * 6.283, lat: (r() - 0.5) * 2.2, s: 0.06 + r() * 0.1 }); return out; })();
+    function tierra(ctx, cx, cy, R, o, t) {
+      const atm = o.humo > 0.05 ? mezcla("#7FB8FF", "#B0885A", Math.min(1, o.humo * 1.4)) : "#7FB8FF";
+      ctx.fillStyle = rg(ctx, cx, cy, R * 0.96, R * 1.2, [[0, rgba(atm, 0.5)], [1, rgba(atm, 0)]]); ctx.beginPath(); ctx.arc(cx, cy, R * 1.2, 0, 6.3); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.3); ctx.clip();
+      const mar1 = mezcla("#55606E", "#2F80D2", o.mar), mar2 = mezcla("#232830", "#0F3A82", o.mar);
+      ctx.fillStyle = rg(ctx, cx - R * 0.35, cy - R * 0.35, R * 0.05, R * 1.25, [[0, mezcla(mar1, "#FFFFFF", 0.18)], [0.55, mar1], [1, mar2]]); ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+      const rot = o.rot, tilt = o.tilt || 0, proy = (lon, lat) => { const d = lon - rot, la = lat + tilt; return { x: cx + R * Math.cos(la) * Math.sin(d), y: cy - R * Math.sin(la), k: Math.cos(d) * Math.cos(la) }; };
+      const blobs = [];
+      CONT.forEach((C, i) => {
+        const v = o.verdes[i], col = mezcla(o.seco, "#4E9F5A", v), col2 = mezcla(col, v > 0.5 ? "#7CC46A" : "#C9AE84", 0.35);
+        C.b.forEach(([dl, dp, rl, rp], j) => { const lat = C.lat + dp, p = proy(C.lon + dl, lat); if (p.k <= 0.02) return;
+          const K = 1.35, la = lat + tilt, rx = Math.max(0.6, K * R * rl * Math.cos(la) * Math.cos(C.lon + dl - rot)), ry = K * R * rp * (0.55 + 0.45 * Math.cos(la));
+          ctx.fillStyle = j % 2 ? col2 : col; ctx.beginPath(); ctx.ellipse(p.x, p.y, rx, ry, 0, 0, 6.3); ctx.fill();
+          blobs.push({ i, j, x: p.x, y: p.y, rx, ry }); });
+      });
+      // hielo en los polos
+      if (!tilt) ctx.fillStyle = "rgba(245,250,255,.92)"; if (!tilt) [[-1, 0.5], [1, 0.42]].forEach(([s, w]) => { ctx.beginPath(); ctx.ellipse(cx, cy + s * R * 0.97, R * w * o.hielo, R * 0.16 * Math.max(0.3, o.hielo), 0, 0, 6.3); ctx.fill(); });
+      // incendios (solo «en juego»)
+      if (o.fuego > 0) blobs.forEach((b, n) => { const r = semilla(n * 13 + 7), cant = Math.round(o.fuego * 4); for (let k = 0; k < cant; k++) { const fx = b.x + (r() - 0.5) * b.rx * 1.4, fy = b.y + (r() - 0.5) * b.ry * 1.4, a = 0.6 + 0.4 * Math.sin(t * 6 + n + k);
+        ctx.fillStyle = rg(ctx, fx, fy, 0, 4, [[0, `rgba(255,170,60,${a})`], [1, "rgba(255,80,30,0)"]]); ctx.beginPath(); ctx.arc(fx, fy, 4, 0, 6.3); ctx.fill(); } });
+      // nubes
+      const cant = Math.round(o.nubes * NUBES.length), gris = o.tormenta > 0.3;
+      NUBES.slice(0, cant).forEach((n, k) => { const p = proy(n.lon + t * 0.015, n.lat); if (p.k <= 0.05) return; ctx.fillStyle = gris ? `rgba(196,202,214,${0.55 + 0.25 * o.tormenta})` : "rgba(255,255,255,.72)";
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, R * n.s * 1.5 * Math.max(0.2, p.k), R * n.s * 0.55, 0, 0, 6.3); ctx.fill(); });
+      if (o.tormenta > 0.3) { const p = proy(2.1 + t * 0.015, 0.28); if (p.k > 0.25) { ctx.strokeStyle = "rgba(225,230,240,.75)"; ctx.lineWidth = Math.max(1, R * 0.03); for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(p.x, p.y, R * (0.04 + k * 0.035), t * 1.5 + k, t * 1.5 + k + 3.6); ctx.stroke(); } } }
+      if (o.humo > 0) { ctx.fillStyle = `rgba(150,112,70,${Math.min(0.45, o.humo * 0.45)})`; ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R); }
+      // la noche y las ciudades
+      const xT = cx + R * (0.95 - 1.55 * o.noche);
+      ctx.fillStyle = lg(ctx, xT - R * 0.28, 0, xT + R * 0.38, 0, [[0, "rgba(2,4,14,0)"], [1, "rgba(2,4,14,.86)"]]); ctx.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+      blobs.forEach(b => { const luz = o.luces[b.i]; if (!luz) return; const r = semilla(b.i * 31 + b.j * 7 + 3); for (let k = 0; k < 7; k++) { const lx = b.x + (r() - 0.5) * b.rx * 1.5, ly = b.y + (r() - 0.5) * b.ry * 1.5; if (lx < xT + R * 0.12) continue; ctx.fillStyle = `rgba(255,214,120,${0.85 * luz})`; ctx.beginPath(); ctx.arc(lx, ly, R * 0.012 + 0.6, 0, 6.3); ctx.fill(); } });
+      ctx.restore();
+      ctx.strokeStyle = `rgba(190,225,255,${0.4 * (1 - Math.min(1, o.humo))})`; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(cx, cy, R - 0.6, Math.PI * 0.62, Math.PI * 1.38); ctx.stroke();
+    }
+    function verdeDe(c, base) { return mezcla(base || "#3FA36A", "#8A949A", (1 - c) * 0.3); }
+    function flor(ctx, x, y, r, color) { ctx.fillStyle = color; for (let i = 0; i < 5; i++) { const an = i / 5 * 6.283; ctx.beginPath(); ctx.ellipse(x + Math.cos(an) * r, y + Math.sin(an) * r, r * 0.85, r * 0.6, an, 0, 6.3); ctx.fill(); } ctx.fillStyle = "#F7C948"; ctx.beginPath(); ctx.arc(x, y, r * 0.55, 0, 6.3); ctx.fill(); }
+    function hoja(ctx, x, y, s, dir, color) { ctx.fillStyle = color; ctx.save(); ctx.translate(x, y); ctx.rotate(dir * -0.6); ctx.beginPath(); ctx.ellipse(dir * s, 0, s, s * 0.45, 0, 0, 6.3); ctx.fill(); ctx.restore(); }
+    function planta(ctx, base, t, color, c) {
+      const verde = verdeDe(c), verde2 = mezcla(verde, "#FFFFFF", 0.2);
+      if (t < 0.15) { ctx.strokeStyle = verde; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, base); ctx.lineTo(0, base - 6); ctx.stroke(); hoja(ctx, 0, base - 6, 3.6, -1, verde2); hoja(ctx, 0, base - 6, 3.6, 1, verde2); return; }
+      const h = 10 + t * 42, pares = 1 + Math.floor(t * 5);
+      ctx.strokeStyle = verde; ctx.lineWidth = 1.6 + t * 1.6; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(0, base); ctx.quadraticCurveTo(-3, base - h / 2, 0, base - h); ctx.stroke();
+      for (let i = 0; i < pares; i++) { const yy = base - h * (0.25 + i * 0.65 / pares), s = 4 + t * 6 * (1 - i * 0.12); hoja(ctx, 0, yy, s, i % 2 ? 1 : -1, i % 2 ? verde : verde2); hoja(ctx, 0, yy - 2, s * 0.8, i % 2 ? -1 : 1, verde2); }
+      if (t >= 0.62) { const n = Math.min(4, 1 + Math.floor((t - 0.62) * 9)), rr = 3 + t * 2.4; flor(ctx, 0, base - h - 2, rr, color); for (let i = 1; i < n; i++) flor(ctx, (i % 2 ? 1 : -1) * (6 + t * 6), base - h * (0.62 - i * 0.12), rr * 0.8, color); }
+      else if (t >= 0.45) { ctx.fillStyle = mezcla(color, verde, 0.4); ctx.beginPath(); ctx.ellipse(0, base - h - 2, 2.6, 4, 0, 0, 6.3); ctx.fill(); }
+    }
+    function capsula(ctx, x, y, k, t, color, c, salto) {
+      ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
+      ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(0, 1, 13, 2.6, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = lg(ctx, -11, 0, 11, 0, [[0, "#F6F8FC"], [0.6, "#D6DBE5"], [1, "#9EA6B6"]]); ctx.beginPath(); ctx.moveTo(-11, -18); ctx.lineTo(11, -18); ctx.lineTo(9, 0); ctx.lineTo(-9, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(92,225,230,.9)"; ctx.fillRect(-10.4, -11, 20.8, 2.2); ctx.fillStyle = "rgba(92,225,230,.25)"; ctx.fillRect(-12, -13, 24, 6);
+      ctx.fillStyle = "#E6E9F0"; ctx.fillRect(-12.5, -21, 25, 4); ctx.fillStyle = "#26304A"; ctx.beginPath(); ctx.ellipse(0, -21, 11, 2.2, 0, 0, 6.3); ctx.fill();
+      ctx.save(); ctx.translate(0, -21); ctx.scale(1, 1 + (salto || 0) * 0.08); ctx.translate(0, 21); planta(ctx, -21, t, color, c); ctx.restore();
+      ctx.restore();
+      return { x, y: y - 21 * k, k };
+    }
+    function arbol(ctx, x, y, s, c, color, hojas) {
+      const tronco = "#8A5A36", verde = verdeDe(c, "#4FA463");
+      ctx.fillStyle = tronco; ctx.beginPath(); ctx.moveTo(x - 5 * s, y); ctx.lineTo(x - 3 * s, y - 34 * s); ctx.lineTo(x + 3 * s, y - 34 * s); ctx.lineTo(x + 5 * s, y); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = tronco; ctx.lineCap = "round"; ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(x, y - 26 * s); ctx.lineTo(x - 11 * s, y - 38 * s); ctx.moveTo(x, y - 30 * s); ctx.lineTo(x + 10 * s, y - 42 * s); ctx.stroke();
+      if (hojas === false) return;
+      [[0, -54, 20], [-15, -44, 15], [15, -46, 16], [-6, -64, 14], [9, -62, 13]].forEach(([dx, dy, r], i) => { ctx.fillStyle = i % 2 ? verde : mezcla(verde, "#FFFFFF", 0.12); ctx.beginPath(); ctx.arc(x + dx * s, y + dy * s, r * s, 0, 6.3); ctx.fill(); });
+      if (c > 0.7) { const r = semilla(Math.round(x * 7) + 1); ctx.fillStyle = color; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc(x + (r() - 0.5) * 34 * s, y - (40 + r() * 28) * s, 2.2 * s, 0, 6.3); ctx.fill(); } }
+    }
+    function cupula(ctx, x, y, s, c, color, hojas) {
+      ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(x, y + 2 * s, 26 * s, 5 * s, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = "#3C4E3A"; ctx.beginPath(); ctx.ellipse(x, y, 22 * s, 4 * s, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = "rgba(170,215,255,.12)"; ctx.beginPath(); ctx.ellipse(x, y, 24 * s, 36 * s, 0, Math.PI, 0); ctx.fill();
+      arbol(ctx, x, y, 0.44 * s, c, color, hojas !== false);
+      ctx.strokeStyle = "rgba(205,232,255,.6)"; ctx.lineWidth = 1.2 * s; ctx.beginPath(); ctx.ellipse(x, y, 24 * s, 36 * s, 0, Math.PI, 0); ctx.stroke();
+      ctx.strokeStyle = "rgba(205,232,255,.22)"; ctx.beginPath(); ctx.ellipse(x, y, 11 * s, 36 * s, 0, Math.PI, 0); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 2 * s; ctx.beginPath(); ctx.ellipse(x - 9 * s, y - 16 * s, 6 * s, 14 * s, -0.3, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke();
+      ctx.fillStyle = "#9AA2B2"; ctx.fillRect(x - 25 * s, y - 1 * s, 50 * s, 3 * s);
+      ctx.fillStyle = "rgba(92,225,230,.9)"; ctx.beginPath(); ctx.arc(x + 18 * s, y + 0.5 * s, 1.4 * s, 0, 6.3); ctx.fill();
+    }
+    function regadera(ctx, p, t) {
+      const d = t - riego.t0; if (d < 0 || d > 1.6) return;
+      const k = p.k, x = p.x - 26 * k, y = p.y - 44 * k, a = Math.min(1, d / 0.25) * (d > 1.35 ? (1.6 - d) / 0.25 : 1);
+      ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.translate(x, y); ctx.rotate(0.55); ctx.scale(k, k);
+      ctx.fillStyle = "#C9D0DC"; ctx.beginPath(); ctx.moveTo(-10, -8); ctx.lineTo(10, -8); ctx.lineTo(8, 10); ctx.lineTo(-8, 10); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#8E97A8"; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(10, -2); ctx.lineTo(22, -10); ctx.stroke(); ctx.beginPath(); ctx.arc(0, -10, 7, Math.PI, 0); ctx.stroke();
+      ctx.restore(); ctx.globalAlpha = 1;
+      if (d > 0.25 && d < 1.3) { ctx.fillStyle = "#5CC8E8"; for (let i = 0; i < 7; i++) { const f = ((d * 2.2 + i / 7) % 1), sx = x + 18 * k, sy = y - 6 * k; ctx.beginPath(); ctx.ellipse(sx + (p.x - sx) * f * 0.5, sy + (p.y - sy) * f, 1.4 * k, 2.4 * k, 0, 0, 6.3); ctx.fill(); } }
+    }
+    function visorDe(t, desfase) {
+      if (t - riego.t0 < 2.2) return 0;
+      const p = FIJA ? 6 : (t + (desfase || 0)) % 11;
+      if (p < 4) return 0; if (p < 4.6) return (p - 4) / 0.6; if (p < 8) return 1; if (p < 8.6) return 1 - (p - 8) / 0.6; return 0;
+    }
+    function astronauta(ctx, x, y, s, t, modo, op) {
+      op = op || {};
+      const by = y + (modo === "flota" ? Math.sin(t * 1.3) * 3 : -Math.abs(Math.sin(t * 1.4)) * 2.5), giro = modo === "flota" ? Math.sin(t * 0.7) * 0.12 : 0, v = op.visor || 0;
+      ctx.save(); ctx.translate(x, by); ctx.rotate(giro); ctx.scale(s * (op.dir || 1), s);
+      ctx.fillStyle = "rgba(0,0,0,.22)"; if (modo !== "flota") { ctx.beginPath(); ctx.ellipse(0, 22 + (y - by) / s, 11, 2.4, 0, 0, 6.3); ctx.fill(); }
+      ctx.fillStyle = "#B9C0CE"; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(4, -4, 9, 17, 2) : ctx.rect(4, -4, 9, 17); ctx.fill();
+      ctx.fillStyle = "#EEF1F6"; [[-7, 12], [1, 12]].forEach(([lx, ly]) => { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx, ly, 6, 9, 2.5) : ctx.rect(lx, ly, 6, 9); ctx.fill(); });
+      ctx.fillStyle = "#8C94A6"; ctx.fillRect(-7, 19, 6, 2.5); ctx.fillRect(1, 19, 6, 2.5);
+      ctx.fillStyle = lg(ctx, -10, 0, 10, 0, [[0, "#FFFFFF"], [1, "#C9CFDB"]]); ctx.beginPath(); ctx.ellipse(0, 7, 10, 10, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = "#E8606B"; ctx.fillRect(-9.5, 1, 3, 4); ctx.fillStyle = "#3949C9"; ctx.fillRect(-9.5, 5, 3, 2);
+      ctx.fillStyle = "#5CE1E6"; ctx.fillRect(-3, 4, 3, 2.4); ctx.fillStyle = "#FF8A85"; ctx.fillRect(1, 4, 3, 2.4);
+      ctx.fillStyle = "#D8DDE6"; ctx.beginPath(); ctx.ellipse(0, 2.5, 9, 2.2, 0, 0, 6.3); ctx.fill();
+      // el casco: la cara, el visor de cristal negro y el brillo
+      ctx.save(); ctx.beginPath(); ctx.arc(0, -8, 11, 0, 6.3); ctx.clip();
+      ctx.fillStyle = "rgba(20,30,60,.55)"; ctx.fillRect(-12, -20, 24, 24); elefanteCara(ctx, -1, -7, 0.75);
+      if (v > 0.01) {
+        const h = 23 * v;
+        ctx.fillStyle = lg(ctx, 0, -19, 0, 4, [[0, "#04060C"], [0.55, "#0E1424"], [1, "#25324E"]]); ctx.fillRect(-12, -19, 24, h);
+        ctx.strokeStyle = "rgba(244,190,90,.9)"; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(-12, -19 + h); ctx.quadraticCurveTo(0, -16.5 + h, 12, -19 + h); ctx.stroke();
+        ctx.globalAlpha = Math.min(1, v * 1.3);
+        ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(3, -5, 10, Math.PI * 1.12, Math.PI * 1.48); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,200,130,.5)"; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.arc(0, 12, 15, Math.PI * 1.3, Math.PI * 1.7); ctx.stroke();
+        if (op.refleja) { ctx.fillStyle = op.refleja; ctx.beginPath(); ctx.arc(4.5, -12, 1.9, 0, 6.3); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.7)"; ctx.beginPath(); ctx.arc(4, -12.6, 0.6, 0, 6.3); ctx.fill(); }
+        ctx.globalAlpha = 1;
+      }
+      ctx.restore();
+      ctx.fillStyle = "rgba(200,230,255,.14)"; ctx.beginPath(); ctx.arc(0, -8, 11, 0, 6.3); ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, -8, 11, 0, 6.3); ctx.stroke();
+      ctx.strokeStyle = v > 0.5 ? "rgba(255,255,255,.35)" : "rgba(255,255,255,.7)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, -8, 8, Math.PI * 1.1, Math.PI * 1.45); ctx.stroke();
+      ctx.strokeStyle = "#B9C0CE"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(6, -17); ctx.lineTo(9, -24); ctx.stroke(); ctx.fillStyle = (Math.floor(t * 2) % 2) ? "#FF8A85" : "#FFD0CC"; ctx.beginPath(); ctx.arc(9, -24, 1.6, 0, 6.3); ctx.fill();
+      ctx.restore();
+    }
+    function alien(ctx, x, y, s, t, o) {
+      o = o || {};
+      const paso = o.camina ? Math.sin(t * 10) : 0, salto = o.salta || 0, by = y - salto * 12 - (o.camina ? Math.abs(paso) * 1.2 : Math.sin(t * 2) * 0.6);
+      ctx.save(); ctx.translate(x, by); ctx.scale(s * (o.dir || 1), s);
+      ctx.fillStyle = "rgba(0,0,0,.2)"; ctx.beginPath(); ctx.ellipse(0, 12.5 + (y - by) / s, 6, 1.6, 0, 0, 6.3); ctx.fill();
+      ctx.strokeStyle = "#4FB45C"; ctx.lineWidth = 2.4; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-2.5, 6); ctx.lineTo(-3 - paso * 2.4, 12); ctx.moveTo(2.5, 6); ctx.lineTo(3 + paso * 2.4, 12); ctx.stroke();
+      ctx.fillStyle = "#74D47A"; ctx.beginPath(); ctx.ellipse(0, 2, 5.2, 6.6, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = "#B7F0A6"; ctx.beginPath(); ctx.ellipse(0, 3.6, 2.6, 3.6, 0, 0, 6.3); ctx.fill();
+      ctx.strokeStyle = "#5FC46B"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(-7.5, 4.5 + paso); ctx.stroke();
+      const a = o.saluda ? -1.35 + Math.sin(t * 9) * 0.55 : 0.95 - paso * 0.3;
+      ctx.beginPath(); ctx.moveTo(4, -0.5); ctx.lineTo(4 + Math.cos(a) * 6.5, -0.5 + Math.sin(a) * 6.5); ctx.stroke();
+      ctx.strokeStyle = "#74D47A"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-3, -14); ctx.quadraticCurveTo(-5, -19, -6.5, -21.5); ctx.moveTo(3, -14); ctx.quadraticCurveTo(5, -19, 6.5, -21.5); ctx.stroke();
+      const brillo = 0.55 + 0.45 * Math.sin(t * 4);
+      [-6.5, 6.5].forEach(ax => { ctx.fillStyle = `rgba(196,155,245,${0.35 * brillo})`; ctx.beginPath(); ctx.arc(ax, -21.5, 3.6, 0, 6.3); ctx.fill(); ctx.fillStyle = "#C49BF5"; ctx.beginPath(); ctx.arc(ax, -21.5, 1.8, 0, 6.3); ctx.fill(); });
+      ctx.fillStyle = "#86E284"; ctx.beginPath(); ctx.ellipse(0, -9, 8.4, 7.2, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.beginPath(); ctx.ellipse(-3, -13, 3.4, 1.8, -0.3, 0, 6.3); ctx.fill();
+      const parpadea = (t % 4.3) < 0.14;
+      ctx.fillStyle = "#0E1220";
+      if (parpadea) { ctx.fillRect(-5.6, -9, 4.6, 0.9); ctx.fillRect(1, -9, 4.6, 0.9); }
+      else { ctx.beginPath(); ctx.ellipse(-3.2, -9, 2.6, 3.5, 0.35, 0, 6.3); ctx.fill(); ctx.beginPath(); ctx.ellipse(3.2, -9, 2.6, 3.5, -0.35, 0, 6.3); ctx.fill();
+        ctx.fillStyle = "#FFFFFF"; ctx.beginPath(); ctx.arc(-2.3, -10.5, 0.85, 0, 6.3); ctx.fill(); ctx.beginPath(); ctx.arc(4.1, -10.5, 0.85, 0, 6.3); ctx.fill(); }
+      ctx.strokeStyle = "#1E3A24"; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.arc(0, -5.6, 1.6, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
+      ctx.restore();
+    }
+    function platillo(ctx, x, y, s, t, rayo, suelo) {
+      if (rayo > 0) { ctx.fillStyle = lg(ctx, 0, y, 0, suelo, [[0, `rgba(170,255,210,${0.35 * rayo})`], [1, `rgba(170,255,210,${0.08 * rayo})`]]); ctx.beginPath(); ctx.moveTo(x - 8 * s, y + 4 * s); ctx.lineTo(x + 8 * s, y + 4 * s); ctx.lineTo(x + 26 * s, suelo); ctx.lineTo(x - 26 * s, suelo); ctx.closePath(); ctx.fill(); }
+      ctx.save(); ctx.translate(x, y + Math.sin(t * 2.2) * 1.5); ctx.scale(s, s);
+      ctx.fillStyle = "rgba(190,230,255,.35)"; ctx.beginPath(); ctx.ellipse(0, -4, 10, 9, 0, Math.PI, 0); ctx.fill();
+      ctx.save(); ctx.beginPath(); ctx.ellipse(0, -4, 10, 9, 0, Math.PI, 0); ctx.clip(); alien(ctx, 0, 8, 0.62, t, { saluda: rayo > 0.5 }); ctx.restore();
+      ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(0, -4, 10, 9, 0, Math.PI, 0); ctx.stroke();
+      ctx.fillStyle = lg(ctx, 0, -5, 0, 5, [[0, "#E8ECF4"], [1, "#7D869A"]]); ctx.beginPath(); ctx.ellipse(0, 0, 24, 6, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = "#5C6578"; ctx.beginPath(); ctx.ellipse(0, 2.5, 12, 3, 0, 0, Math.PI); ctx.fill();
+      ["#FF8A85", "#FFD24A", "#5CE1E6", "#C49BF5", "#7ED97A"].forEach((c, i) => { const on = (Math.floor(t * 4) + i) % 2; ctx.fillStyle = on ? c : rgba(c, 0.35); ctx.beginPath(); ctx.arc(-16 + i * 8, 1, 1.5, 0, 6.3); ctx.fill(); });
+      ctx.restore();
+    }
+    function saltaAlRegar(t) { const d = t - riego.t0; return d > 0.3 && d < 1.9 ? Math.abs(Math.sin((d - 0.3) * 6)) * (1 - (d - 0.3) / 1.6) : 0; }
+    function marte(ctx, W, H, e, t) {
+      const dk = OSC, HZ = 170;
+      if (dk) { espacio(ctx, 0, 0, W, HZ, t, e.c * 0.6, 23); ctx.fillStyle = lg(ctx, 0, 40, 0, HZ, [[0, "rgba(60,20,40,0)"], [1, "rgba(130,55,55,.6)"]]); ctx.fillRect(0, 0, W, HZ);
+        ctx.fillStyle = rg(ctx, 90, HZ - 6, 0, 130, [[0, "rgba(110,165,255,.42)"], [1, "rgba(110,165,255,0)"]]); ctx.fillRect(0, 0, W, HZ); }
+      else { ctx.fillStyle = lg(ctx, 0, 0, 0, HZ, [[0, "#D4825C"], [1, "#F2C9A6"]]); ctx.fillRect(0, 0, W, HZ);
+        ctx.fillStyle = rg(ctx, 92, 46, 0, 40, [[0, "rgba(255,246,230,.7)"], [1, "rgba(255,246,230,0)"]]); ctx.beginPath(); ctx.arc(92, 46, 40, 0, 6.3); ctx.fill(); ctx.fillStyle = "#FFF6E6"; ctx.beginPath(); ctx.arc(92, 46, 6.5, 0, 6.3); ctx.fill(); }
+      // la Tierra: una estrellita azul
+      const ex = 404, ey = 36, br = 0.7 + 0.3 * Math.sin(t * 2);
+      ctx.fillStyle = rg(ctx, ex, ey, 0, 10, [[0, `rgba(140,200,255,${0.85 * br})`], [1, "rgba(140,200,255,0)"]]); ctx.beginPath(); ctx.arc(ex, ey, 10, 0, 6.3); ctx.fill();
+      ctx.fillStyle = "#7FC4FF"; ctx.beginPath(); ctx.arc(ex, ey, 2.6, 0, 6.3); ctx.fill(); ctx.fillStyle = "#E8ECF4"; ctx.beginPath(); ctx.arc(ex + 5.5, ey - 2, 0.9, 0, 6.3); ctx.fill();
+      ctx.font = "600 10px Figtree, system-ui, sans-serif"; ctx.fillStyle = dk ? "rgba(220,230,255,.75)" : "rgba(90,40,30,.62)"; ctx.fillText("la Tierra", ex + 10, ey + 3.5);
+      // Fobos cruza rápido; Deimos, lento
+      const fx = ((t * 7) % 560) - 40; ctx.fillStyle = dk ? "#B9A898" : "rgba(120,80,60,.55)"; ctx.beginPath(); ctx.ellipse(fx, 30 + Math.sin(t * 0.3) * 3, 5.5, 3.6, 0.4, 0, 6.3); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(170 + Math.sin(t * 0.05) * 40, 62, 2.6, 2, 0, 0, 6.3); ctx.fill();
+      // el gran volcán y las mesetas
+      const lejos = dk ? "#3E2224" : "#C27050";
+      ctx.fillStyle = lejos; ctx.beginPath(); ctx.moveTo(240, HZ); [[300, 140], [338, 120], [352, 114], [392, 114], [404, 120], [446, 140], [480, 152], [480, HZ]].forEach(([x, y]) => ctx.lineTo(x, y)); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = dk ? "#2E1A1C" : "#B36446"; ctx.beginPath(); ctx.ellipse(372, 115, 18, 3, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = dk ? "#4A2A2A" : "#C87654"; ctx.beginPath(); ctx.moveTo(0, HZ); [[0, 150], [36, 146], [50, 132], [104, 132], [118, 148], [196, 152], [214, HZ]].forEach(([x, y]) => ctx.lineTo(x, y)); ctx.closePath(); ctx.fill();
+      // la arena, con ondas y piedras
+      ctx.fillStyle = lg(ctx, 0, HZ - 6, 0, H, [[0, dk ? "#7A3A26" : "#D26C40"], [1, dk ? "#4A2216" : "#9A4426"]]); ctx.beginPath(); ctx.moveTo(0, HZ - 2); ctx.quadraticCurveTo(240, HZ - 16, W, HZ - 2); ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+      ctx.strokeStyle = dk ? "rgba(255,190,150,.08)" : "rgba(120,40,20,.18)"; ctx.lineWidth = 1.2; for (let i = 0; i < 9; i++) { const y = HZ + 8 + i * 10; ctx.beginPath(); ctx.moveTo(0, y); for (let x = 0; x <= W; x += 30) ctx.quadraticCurveTo(x + 15, y - 3, x + 30, y); ctx.stroke(); }
+      const r = semilla(9); ctx.fillStyle = "rgba(60,20,10,.35)"; for (let i = 0; i < 30; i++) { ctx.beginPath(); ctx.ellipse(r() * W, HZ + 8 + r() * 82, 2 + r() * 3, 1 + r() * 1.4, 0, 0, 6.3); ctx.fill(); }
+      // lo que tus raíces van volviendo verde: pasto, una laguna (desde 4) y flores (con 8)
+      const P = [[292, 204], [332, 202], [372, 204], [412, 202], [312, 238], [352, 240], [392, 238], [432, 240]];
+      for (let i = 0; i < e.r; i++) { const [x, y] = P[i]; ctx.fillStyle = "rgba(96,176,92,.5)"; ctx.beginPath(); ctx.ellipse(x, y + 3, 36, 10, 0, 0, 6.3); ctx.fill(); const rr = semilla(i + 40); ctx.fillStyle = "rgba(126,206,112,.6)"; for (let k = 0; k < 9; k++) { ctx.beginPath(); ctx.arc(x + (rr() - 0.5) * 64, y + 3 + (rr() - 0.5) * 16, 1.7, 0, 6.3); ctx.fill(); } }
+      if (e.r >= 4) { ctx.fillStyle = "rgba(96,176,92,.5)"; ctx.beginPath(); ctx.ellipse(250, 250, 40, 9, 0, 0, 6.3); ctx.fill(); ctx.fillStyle = dk ? "#2C5C8C" : "#5FA9D6"; ctx.beginPath(); ctx.ellipse(250, 250, 30, 6, 0, 0, 6.3); ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(246, 249, 14, 2.4, 0, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); }
+      if (e.r >= 8) { const rr = semilla(88); for (let k = 0; k < 26; k++) { const x = 220 + rr() * 250, y = 186 + rr() * 70; ctx.strokeStyle = "rgba(110,190,100,.8)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 1.5, y - 4); ctx.moveTo(x, y); ctx.lineTo(x + 1.5, y - 4.5); ctx.stroke(); if (k % 3 === 0) { ctx.fillStyle = FLORES[k % FLORES.length]; ctx.beginPath(); ctx.arc(x, y - 5, 1.5, 0, 6.3); ctx.fill(); } } }
+      // un remolino de polvo si la semana va regular
+      if (e.c >= 0.45 && e.c < 0.7) { const x = 230 + Math.sin(t * 0.25) * 160; for (let k = 0; k < 7; k++) { ctx.fillStyle = `rgba(230,170,130,${0.12 + k * 0.02})`; ctx.beginPath(); ctx.ellipse(x + Math.sin(t * 4 + k) * 2, 196 - k * 6, 4 + k * 1.6, 1.6 + k * 0.4, 0, 0, 6.3); ctx.fill(); } }
+      // el rover, estacionado
+      { const x = 34, y = 204; ctx.fillStyle = "#E6E9F0"; ctx.fillRect(x - 12, y - 8, 24, 6); ctx.fillStyle = "#8E97A8"; ctx.fillRect(x - 10, y - 12, 8, 4); ctx.strokeStyle = "#8E97A8"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x + 6, y - 8); ctx.lineTo(x + 8, y - 16); ctx.stroke(); ctx.fillStyle = "#C9D0DC"; ctx.beginPath(); ctx.ellipse(x + 9, y - 17, 3.5, 1.6, -0.4, 0, 6.3); ctx.fill();
+        ctx.fillStyle = "#3A3F4C"; [-9, 0, 9].forEach(dx => { ctx.beginPath(); ctx.arc(x + dx, y, 3, 0, 6.3); ctx.fill(); }); ctx.fillStyle = (Math.floor(t * 1.5) % 2) ? "#FF8A85" : "#7A3A3A"; ctx.beginPath(); ctx.arc(x - 11, y - 9, 1, 0, 6.3); ctx.fill(); }
+      // paneles solares
+      [[214, 198], [242, 196]].forEach(([x, y]) => { ctx.strokeStyle = "#8E97A8"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x + 10, y + 6); ctx.lineTo(x + 10, y + 16); ctx.stroke(); ctx.fillStyle = "#2B4A8A"; ctx.beginPath(); ctx.moveTo(x, y + 6); ctx.lineTo(x + 22, y + 6); ctx.lineTo(x + 18, y - 4); ctx.lineTo(x + 4, y - 4); ctx.closePath(); ctx.fill(); ctx.strokeStyle = "rgba(200,220,255,.4)"; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(x + 11, y + 6); ctx.lineTo(x + 11, y - 4); ctx.moveTo(x + 2, y + 1); ctx.lineTo(x + 20, y + 1); ctx.stroke(); });
+      // el túnel del invernadero a las cúpulas
+      ctx.fillStyle = "#C9CFDB"; ctx.fillRect(200, 220, 76, 9); ctx.fillStyle = "rgba(0,0,0,.15)"; for (let x = 206; x < 276; x += 10) ctx.fillRect(x, 220, 2, 9);
+      // el invernadero grande con tus macetas
+      const gx = 118, gy = 228;
+      ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(gx, gy + 3, 88, 10, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = "rgba(255,235,220,.16)"; ctx.beginPath(); ctx.ellipse(gx, gy, 84, 78, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = rg(ctx, gx, gy - 30, 0, 80, [[0, "rgba(255,214,140,.2)"], [1, "rgba(255,214,140,0)"]]); ctx.beginPath(); ctx.ellipse(gx, gy, 84, 78, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = "#8E96A6"; ctx.fillRect(gx - 56, gy - 2, 112, 5);
+      macetas(ctx, [[gx - 34, gy - 2, 1.05], [gx, gy - 2, 1.05], [gx + 34, gy - 2, 1.05]], e, t);
+      ctx.strokeStyle = "rgba(255,240,230,.7)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(gx, gy, 84, 78, 0, Math.PI, 0); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,240,230,.22)"; ctx.lineWidth = 1.1; [56, 28, 1].forEach(rx => { ctx.beginPath(); ctx.ellipse(gx, gy, rx, 78, 0, Math.PI, 0); ctx.stroke(); }); [26, 52].forEach(dy => { const k = Math.sqrt(1 - (dy / 78) ** 2); ctx.beginPath(); ctx.ellipse(gx, gy - dy, 84 * k, 7 * k, 0, 0, Math.PI); ctx.stroke(); });
+      ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(gx - 30, gy - 36, 12, 32, -0.3, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke();
+      ctx.fillStyle = "#B8BCC8"; ctx.fillRect(gx - 86, gy - 1, 172, 4);
+      // las cúpulas de atrás, el alienígena entre ellas y las de adelante; la roca donde se esconde
+      for (let i = 0; i < Math.min(4, e.r); i++) cup(ctx, P, i, 0.62, e, t);
+      { const p = (QUIETO || FIJA) ? 8 : (t + 3) % 16, tormenta = e.c < 0.45; let x = 462, camina = false, dir = -1, saluda = false;
+        if (!tormenta) { if (p < 1.5) x = 462 - p * 4; else if (p < 6) { x = 456 - (p - 1.5) / 4.5 * 120; camina = true; } else if (p < 9.5) { x = 336; saluda = true; } else if (p < 14) { x = 336 + (p - 9.5) / 4.5 * 126; camina = true; dir = 1; } else x = 462; }
+        else x = 458 + Math.sin(t) * 2;
+        alien(ctx, x, 224, 1.05, t, { camina, dir, saluda, salta: saltaAlRegar(t) }); }
+      for (let i = 4; i < e.r; i++) cup(ctx, P, i, 0.62, e, t);
+      ctx.fillStyle = dk ? "#5A2A1C" : "#A9502E"; ctx.beginPath(); ctx.moveTo(446, 238); ctx.quadraticCurveTo(450, 214, 466, 210); ctx.quadraticCurveTo(480, 214, 480, 238); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.1)"; ctx.beginPath(); ctx.ellipse(460, 216, 6, 2.4, -0.3, 0, 6.3); ctx.fill();
+      astronauta(ctx, 214, 238, 1.05, t, "salta", { visor: visorDe(t, 0), refleja: "#FFF6E6" });
+      if (e.c < 0.45) { const a = (0.45 - e.c) * 1.4; ctx.fillStyle = `rgba(190,110,70,${Math.min(0.55, a)})`; ctx.fillRect(0, 0, W, H); ctx.strokeStyle = `rgba(240,180,140,${Math.min(0.6, a)})`; ctx.lineWidth = 1;
+        for (let i = 0; i < 60; i++) { const x = (i * 47 + t * 90) % (W + 40) - 20, y = (i * 29) % H; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 12, y + 1); ctx.stroke(); } }
+    }
+    function luna(ctx, W, H, e, t) {
+      const dk = OSC;
+      espacio(ctx, 0, 0, W, H, t, e.c, 41);
+      tierra(ctx, 372, 72, 56, tierraDe(e, "reverdece", t, dk ? 0.62 : 0.3), t);
+      if (e.c > 0.8) fugaz(ctx, 0, 0, W * 0.6, H * 0.6, t, 5);
+      { const f = ((t * 0.04) % 1), x = 40 + f * 260, y = 40 + Math.sin(f * 3) * 6; ctx.fillStyle = "#C9D0DC"; ctx.fillRect(x - 2, y - 2, 4, 4); ctx.fillStyle = "#4A7BD0"; ctx.fillRect(x - 9, y - 1.4, 6, 2.8); ctx.fillRect(x + 3, y - 1.4, 6, 2.8); }
+      // el suelo lunar
+      ctx.fillStyle = lg(ctx, 0, 160, 0, H, [[0, "#A3A6B0"], [1, "#5C5F6A"]]); ctx.beginPath(); ctx.moveTo(0, 176); ctx.quadraticCurveTo(240, 150, W, 172); ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+      ctx.fillStyle = rg(ctx, 400, 170, 0, 200, [[0, "rgba(127,184,255,.10)"], [1, "rgba(127,184,255,0)"]]); ctx.fillRect(200, 150, 280, 110);
+      [[40, 236, 18, 5], [300, 248, 14, 4], [196, 252, 9, 2.6], [470, 250, 10, 3]].forEach(([x, y, rx, ry]) => { ctx.fillStyle = "rgba(0,0,0,.22)"; ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 6.3); ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x, y - 1, rx, ry, 0, Math.PI, 0); ctx.stroke(); });
+      ctx.fillStyle = "rgba(60,62,72,.5)"; for (let i = 0; i < 8; i++) { ctx.beginPath(); ctx.ellipse(236 + i * 9, 252 - i * 2, 2, 1, 0, 0, 6.3); ctx.fill(); }
+      // el módulo de aterrizaje, lejos
+      { const x = 26, y = 176; ctx.strokeStyle = "#B8BFCC"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(x - 8, y); ctx.lineTo(x - 4, y - 8); ctx.moveTo(x + 8, y); ctx.lineTo(x + 4, y - 8); ctx.stroke(); ctx.fillStyle = "#D9A646"; ctx.fillRect(x - 6, y - 14, 12, 7); ctx.fillStyle = "#C9D0DC"; ctx.beginPath(); ctx.moveTo(x - 5, y - 14); ctx.lineTo(x - 3, y - 20); ctx.lineTo(x + 3, y - 20); ctx.lineTo(x + 5, y - 14); ctx.closePath(); ctx.fill(); }
+      // paneles solares, la bandera y el módulo donde vive tu elefante
+      [[246, 172], [272, 170]].forEach(([x, y]) => { ctx.strokeStyle = "#8E97A8"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x + 10, y + 6); ctx.lineTo(x + 10, y + 16); ctx.stroke(); ctx.fillStyle = "#2B4A8A"; ctx.beginPath(); ctx.moveTo(x, y + 6); ctx.lineTo(x + 22, y + 6); ctx.lineTo(x + 18, y - 4); ctx.lineTo(x + 4, y - 4); ctx.closePath(); ctx.fill(); ctx.strokeStyle = "rgba(200,220,255,.4)"; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(x + 11, y + 6); ctx.lineTo(x + 11, y - 4); ctx.stroke(); });
+      ctx.strokeStyle = "#D6DAE2"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(310, 192); ctx.lineTo(310, 150); ctx.stroke();
+      ctx.fillStyle = "#3949C9"; ctx.fillRect(311, 151, 24, 15); ctx.fillStyle = "#FFFFFF"; ctx.font = "800 11px Figtree, system-ui, sans-serif"; ctx.fillText("R", 319, 163);
+      ctx.fillStyle = "#D9DDE5"; ctx.fillRect(210, 206, 34, 12); ctx.fillStyle = "rgba(0,0,0,.12)"; for (let x = 214; x < 244; x += 8) ctx.fillRect(x, 206, 2, 12);
+      ctx.fillStyle = lg(ctx, 0, 182, 0, 226, [[0, "#F2F4F8"], [1, "#B8BFCC"]]); ctx.beginPath(); ctx.roundRect ? ctx.roundRect(238, 184, 54, 40, 10) : ctx.rect(238, 184, 54, 40); ctx.fill();
+      ctx.fillStyle = dk ? "#FFD98A" : "#CDEBFB"; [[250, 198], [266, 198]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 4, 0, 6.3); ctx.fill(); });
+      ctx.strokeStyle = "#9AA2B2"; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(284, 184); ctx.lineTo(288, 172); ctx.stroke(); ctx.fillStyle = "#C9D0DC"; ctx.beginPath(); ctx.ellipse(290, 170, 7, 3.4, -0.5, 0, 6.3); ctx.fill();
+      // el invernadero grande con tus macetas
+      const gx = 122, gy = 218;
+      ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(gx, gy + 3, 98, 10, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = "rgba(170,215,255,.12)"; ctx.beginPath(); ctx.ellipse(gx, gy, 94, 86, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = rg(ctx, gx, gy - 30, 0, 90, [[0, "rgba(255,214,140,.22)"], [1, "rgba(255,214,140,0)"]]); ctx.beginPath(); ctx.ellipse(gx, gy, 94, 86, 0, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = "#8E96A6"; ctx.fillRect(gx - 60, gy - 2, 120, 5);
+      macetas(ctx, [[gx - 36, gy - 2, 1.1], [gx, gy - 2, 1.1], [gx + 36, gy - 2, 1.1]], e, t);
+      ctx.strokeStyle = "rgba(205,232,255,.65)"; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(gx, gy, 94, 86, 0, Math.PI, 0); ctx.stroke();
+      ctx.strokeStyle = "rgba(205,232,255,.2)"; ctx.lineWidth = 1.2; [62, 30, 1].forEach(rx => { ctx.beginPath(); ctx.ellipse(gx, gy, rx, 86, 0, Math.PI, 0); ctx.stroke(); }); [28, 56].forEach(dy => { const k = Math.sqrt(1 - (dy / 86) ** 2); ctx.beginPath(); ctx.ellipse(gx, gy - dy, 94 * k, 8 * k, 0, 0, Math.PI); ctx.stroke(); });
+      ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(gx - 34, gy - 40, 14, 36, -0.3, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke();
+      ctx.fillStyle = "#B8BFCC"; ctx.fillRect(gx - 96, gy - 1, 192, 5);
+      // las cúpulas con árboles
+      const P = [[340, 196], [376, 194], [412, 196], [448, 194], [354, 230], [390, 232], [426, 230], [462, 232]];
+      for (let i = 0; i < e.r; i++) cup(ctx, P, i, 0.66, e, t);
+      // el platillo: llega, mira tus árboles con su luz y se va
+      { const p = (QUIETO || FIJA) ? 6 : t % 18; let x, y, rayo = 0, ver = true;
+        if (p < 4) { const k = p / 4, kk = k * k * (3 - 2 * k); x = 520 - kk * 125; y = 34 + kk * 96; }
+        else if (p < 10) { x = 395 + Math.sin((p - 4) * 1.2) * 8; y = 130 + Math.sin((p - 4) * 2) * 2; rayo = Math.min(1, (p - 4) / 0.6, (10 - p) / 0.6); }
+        else if (p < 13) { const k = (p - 10) / 3, kk = k * k; x = 395 - kk * 470; y = 130 - kk * 110; }
+        else ver = false;
+        if (ver) platillo(ctx, x, y, 1.05, t, rayo, 214); }
+      astronauta(ctx, 226, 238, 1.05, t, "salta", { visor: visorDe(t, 5), refleja: "#7FB8FF" });
+    }
+    /* Las macetas de la app: cada una con su planta; tu elefante riega la que marcaste */
+    function saltoDe(M, t) { if (!M || M.id !== riego.id) return 0; const d = t - riego.t0 - 0.6; return Math.max(0, Math.sin(d * 8)) * Math.max(0, 1 - d); }
+    function macetas(ctx, pos, e, t) {
+      pos.forEach(([x, y, k], j) => { const M = e.macetas[j]; if (!M) return; const p = capsula(ctx, x, y, k, M.t, M.color, e.c, saltoDe(M, t)); if (M.id === riego.id) regadera(ctx, p, t); });
+    }
+    /* Cada árbol en su cúpula: su color, sin hojas si dejaste el hábito, y brota al trasplantarlo */
+    function cup(ctx, P, i, s, e, t) { const a = e.arboles[i]; if (!a || !P[i]) return; cupula(ctx, P[i][0], P[i][1], s * brota(a, t), e.c, a.color, a.hojas); }
+    /* La Tierra reverdece: un continente por árbol (para siempre); sus ciudades se prenden si ese hábito sigue vivo */
+    function tierraDe(e, modo, t, noche) {
+      const c = e.c, n = e.r;
+      const verdes = Array.from({ length: 8 }, (_, i) => (i < n ? 1 : 0)), luces = Array.from({ length: 8 }, (_, i) => (i < n && e.arboles[i] && e.arboles[i].hojas !== false ? 1 : 0));
+      return { rot: t * 0.05, noche, nubes: 0.22 + (1 - c) * 0.6, tormenta: c < 0.45 ? (0.45 - c) / 0.45 : 0, fuego: 0, humo: 0, hielo: 1, mar: 0.3 + 0.7 * (n / 8), seco: "#94806A", verdes, luces };
+    }
+    const adaptar = e => { const arboles = ultimos(e); return { m: e.macetas.length, r: arboles.length, ts: e.macetas.map(x => x.t), c: e.c, macetas: e.macetas, arboles }; };
+    return { marte: (ctx, W, H, e, t) => marte(ctx, W, H, adaptar(e), t), luna: (ctx, W, H, e, t) => luna(ctx, W, H, adaptar(e), t) };
+  })();
+
   /* ============ Montar, mover y regar ============ */
-  const ESCENAS = { entrada: [entrada, 320, 220], ventana: [ventana, 320, 240], terrario: [terrario, 320, 240], pixeles: [pixeles, 320, 240], sur: [sur, 480, 200] };
+  const ESCENAS = { entrada: [entrada, 320, 220], ventana: [ventana, 320, 240], terrario: [terrario, 320, 240], pixeles: [pixeles, 320, 240], sur: [sur, 480, 200], marte: [ESPACIO.marte, 480, 260], luna: [ESPACIO.luna, 480, 260] };
   const lienzos = new Set();
   const datosDe = cv => {
     let e = null;
@@ -335,6 +649,7 @@ const JARDIN_MOTOR = (() => {
     const { cv, ctx, W, H } = L, w = cv.clientWidth || W, k = w / W, pw = Math.max(1, Math.round(w * DPR)), ph = Math.max(1, Math.round(w * H / W * DPR));
     if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.setTransform(k * DPR, 0, 0, k * DPR, 0, 0);
+    FIJA = !L.cv.dataset.vivo;
     try { L.f(ctx, W, H, L.e, t, OSC); } catch (err) { if (!L.fallo) { L.fallo = true; console.warn("jardín", err); } }
     ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
   }

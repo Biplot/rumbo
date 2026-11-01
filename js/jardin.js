@@ -10,6 +10,7 @@
      la semana pesa también la anterior, así un mal lunes no apaga el sol. Nada se seca.
    · Cuando marcas un hábito que está en maceta, tu elefante la riega (jardinAlMarcar → JARDIN_MOTOR).
    La entrada viene con Rumbo; la ventana, el terrario, en píxeles y el sur, en la Tienda (gamif.equipped.jardin).
+   Temas especiales (1.200 ⭐ cada uno): Marte y la base lunar, con tu elefante de visor negro y Menta, el alienígena.
    Datos: STATE.jardin = { macetas: [ids que elegiste], inicio (en Inicio), raices: { id: "YYYY-MM-DD" }, ts }.
    raices guarda el día en que se celebró cada trasplante (para no celebrarlo dos veces).
    ============================================================ */
@@ -20,6 +21,9 @@ const JARDIN_ESTILOS = [
   { id: "terrario", nombre: "El terrario", cos: "jar-terrario", w: 320, h: 240, desc: "en tu escritorio: los hábitos que echaron raíces pasan al frasco" },
   { id: "pixeles", nombre: "En píxeles", cos: "jar-pixeles", w: 320, h: 240, desc: "un jardín de videojuego antiguo, con tu elefante y un marcador" },
   { id: "sur", nombre: "El sur", cos: "jar-sur", w: 480, h: 200, desc: "un lago con su volcán, araucarias y las macetas en el muelle" },
+  // Temas especiales (1.200 ⭐): tu elefante con casco y visor de cristal negro, y Menta, el alienígena
+  { id: "marte", nombre: "Marte", cos: "jar-marte", w: 480, h: 260, especial: true, desc: "una colonia en Marte: tus raíces vuelven verde la arena y Menta se pasea entre tus cúpulas" },
+  { id: "luna", nombre: "La base lunar", cos: "jar-luna", w: 480, h: 260, especial: true, desc: "una base en la Luna con la Tierra de fondo: cada hábito con raíces enciende un continente" },
 ];
 const JARDIN_FLORES = ["#F28CB0", "#FFD24A", "#9AA6FF", "#FF8A5B", "#C49BF5", "#5CC8E8", "#FF6B8A"];
 

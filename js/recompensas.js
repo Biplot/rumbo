@@ -117,7 +117,7 @@ function buyItem(id) {
   if (it.key === "acuario") { saveState(); updateTopbar(); rerender(); return toast("🐠 El acuario del mes: ya está en Salud. Cada día que cumples tu meta llega un pez"); }
   if (it.key === "alcancia") { saveState(); updateTopbar(); rerender(); return toast(`🐷 ${it.nombre.replace("Alcancía: ", "")}: elígelo al crear o editar una alcancía en Finanzas`); }
   if (it.key === "moneda" && typeof eqCos === "function") { eqCos().moneda = it.value; saveState(); updateTopbar(); rerender(); return toast(`🪙 ${it.nombre}: ya caen en tus alcancías`); }
-  if (it.key === "jardin" && typeof eqCos === "function") { eqCos().jardin = it.value; saveState(); updateTopbar(); rerender(); return toast(`🌱 ${it.nombre.replace("Jardín: ", "")}: ya lo ves en Hábitos`); }   // jardin.js: se usa al tiro
+  if (it.key === "jardin" && typeof eqCos === "function") { eqCos().jardin = it.value; saveState(); updateTopbar(); rerender(); return toast(`${it.grupo === "jardin-especial" ? "🚀" : "🌱"} ${it.nombre.replace("Jardín: ", "")}: ya lo ves en Hábitos`); }   // jardin.js: se usa al tiro
   if ((it.key === "agua" || it.key === "sabor") && typeof eqCos === "function") { eqCos()[it.key] = it.value; saveState(); updateTopbar(); rerender(); return toast(`💧 ${it.nombre}: ya la ves en «Agua de hoy»`); }   // agua.js: se usa al tiro
   saveState(); updateTopbar(); rerender();
   toast(esDelCuarto(it) ? `${it.pared ? "🎨" : it.icon} ${it.nombre}: ${it.pared ? "el cuarto de tu elefante quedó pintado" : "ya está en el cuarto de tu elefante"}` : "🛍️ " + it.nombre + " desbloqueado");

@@ -100,6 +100,14 @@ export default async function ({ G, test, assert, clone }) {
     S.gamif.owned = (S.gamif.owned || []).concat("jar-sur");
     assert.equal(estilo(S), "sur");
   });
+  test("los temas especiales (Marte y la base lunar) son anchos, especiales y solo se usan si los compraste", () => {
+    const S = S0(); usar(S);
+    S.gamif.equipped = Object.assign(S.gamif.equipped || {}, { jardin: "luna" });
+    assert.equal(estilo(S), "entrada", "sin comprarla, la entrada");
+    S.gamif.owned = (S.gamif.owned || []).concat("jar-luna");
+    assert.equal(estilo(S), "luna");
+    assert.deepEqual(clone(["marte", "luna"].map(id => { const e = G("jardinEstiloDe")(id); return [e.w, e.h, !!e.especial]; })), [[480, 260, true], [480, 260, true]]);
+  });
   test("dos equipos: las macetas y el «en Inicio» del ajuste más nuevo; los trasplantes celebrados se juntan", () => {
     const l = { macetas: ["a", "b"], inicio: false, raices: { x: "2026-10-02" }, ts: 200 };
     const s = { macetas: ["c"], inicio: true, raices: { x: "2026-10-01", y: "2026-10-05" }, ts: 100 };

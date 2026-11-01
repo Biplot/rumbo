@@ -158,7 +158,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 53;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 54;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -474,6 +474,11 @@ const NOVEDADES = {
     ["🌳", "Echar raíces", "A los 66 días cumplidos, tu elefante trasplanta el hábito al patio como árbol y su maceta queda libre. Si lo dejas, el árbol pierde las hojas hasta que vuelves; nunca se pierde."],
     ["☀️", "El cielo de tu semana", "El cielo es lo que cumpliste esta semana: sol y mariposas o nublado. Da lo mismo cuántos hábitos tengas. Y cuando marcas un hábito, tu elefante riega su maceta."],
     ["🪟", "Cuatro estilos en la Tienda", "La entrada viene con Rumbo; la ventana, en píxeles, el terrario y el sur, en Recompensas › Tienda › Tu jardín."],
+  ],
+  54: [
+    ["🚀", "Tu jardín en el espacio", "Dos temas especiales en la Tienda: Marte y la base lunar, a 1.200 ⭐ cada uno. Tus macetas en un invernadero y cada árbol en su cúpula."],
+    ["🌍", "Lo que construyes se queda", "En Marte, tus raíces vuelven verde la arena (con 4 árboles aparece una laguna). En la Luna, cada hábito con raíces enciende un continente de la Tierra."],
+    ["👽", "Tu elefante astronauta y Menta", "Tu elefante baja de vez en cuando su visor de cristal negro y lo sube para regar. Menta, el alienígena, se pasea entre tus cúpulas y salta cuando riegas."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

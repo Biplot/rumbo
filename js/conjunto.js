@@ -30,6 +30,7 @@ function cjLimpio(x) {
       id: String((m && m.id) || ""), yo: !!(m && m.yo), nombre: String((m && m.nombre) || "").slice(0, 60), avatar: (m && m.avatar) || null,
       estado: m && m.estado === "activo" ? "activo" : "invitado", desde: cjFecha(m && m.desde),
       marcas: (Array.isArray(m && m.marcas) ? m.marcas : []).map(cjFecha).filter(Boolean),
+      descansos: (Array.isArray(m && m.descansos) ? m.descansos : []).map(cjFecha).filter(Boolean),   // supabase/conjunto.sql
     })),
   };
 }
@@ -44,10 +45,13 @@ function cjMisMarcas(h, desde) {
   for (let d = hmMax(desde, hmAdd(hoy, -400)); d <= hoy; d = hmAdd(d, 1)) if (hmDone(h, d)) out.push(d);
   return out;
 }
-/* Los activos, con tus marcas tomadas de tu registro */
+/* Los activos, con tus marcas y tus descansos tomados de tu registro (los de los demás, del servidor) */
 function cjMiembros(c) {
-  const h = cjDef(c);
-  return c.miembros.filter(m => m.estado === "activo").map(m => m.yo && h ? Object.assign({}, m, { marcas: cjMisMarcas(h, m.desde || c.creado) }) : m);
+  const h = cjDef(c), hoy = hmHoy();
+  return c.miembros.filter(m => m.estado === "activo").map(m => m.yo && h ? Object.assign({}, m, {
+    marcas: cjMisMarcas(h, m.desde || c.creado),
+    descansos: typeof cjMisDescansos === "function" ? cjMisDescansos(h, hmMax(m.desde || c.creado, hmAdd(hoy, -400)), hoy) : [],
+  }) : m);
 }
 function cjRacha(c) { return hmRachaConjunto({ frecuencia: c.frecuencia, creado: c.creado }, cjMiembros(c)); }
 function cjRachaTxt(c) {
@@ -80,6 +84,7 @@ async function conjuntoCargar(forzar) {
   CONJ.lista = (Array.isArray(r) ? r : []).map(cjLimpio).filter(c => c.id && cjYo(c));
   if (cjAjustarHabitos()) saveState();
   await cjSubirMarcas();
+  if (typeof cjSincronizarDescansos === "function") cjSincronizarDescansos();   // tus descansos, para la racha de a dos
   cjPremios();
   const nueva = CONJ.lista.find(c => c.estado === "invitado" && !CONJ.vistas.includes(c.id));
   CONJ.lista.forEach(c => { if (!CONJ.vistas.includes(c.id)) CONJ.vistas.push(c.id); });

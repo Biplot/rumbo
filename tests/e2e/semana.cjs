@@ -79,7 +79,7 @@ module.exports = async ({ b, ok, errs }) => {
   // Apertura encadenada (empieza en Foco y prioridades)
   const titulo = await p.locator("#modalTitle").innerText();
   const paso = await p.locator(".modal__body .text-xs.muted").first().innerText();
-  ok(titulo.includes("Planificar la semana") && /Paso 2 de 4/i.test(paso), "tras cerrar, se abre la planificación de la próxima: " + titulo + " · " + paso);
+  ok(titulo.includes("Planificar la semana") && /Paso 2 de 5/i.test(paso), "tras cerrar, se abre la planificación de la próxima: " + titulo + " · " + paso);
   ok((await p.locator("#sem-wiz").innerText()).includes("Menos reuniones"), "muestra lo que anotaste para ajustar");
   const opciones = await p.locator("#sp-o-0 option").allInnerTexts();
   ok(opciones.some(o => o.includes("Primeros 10 clientes")), "las prioridades se vinculan a los objetivos de octubre (mes de su jueves)");
@@ -98,6 +98,9 @@ module.exports = async ({ b, ok, errs }) => {
   const mie = await p.locator(".semw-dia", { hasText: "Miércoles 30" }).innerText();
   ok(mie.includes("Preparar propuesta") && !mie.includes("Borrar esta"), "agregar con Enter y quitar una tarea del día");
   await shot(p, "f4-apertura-dias");
+  await p.click('[data-action="semw-next"]'); await p.waitForTimeout(150);
+  // Paso: descansos (opcional)
+  ok(/¿Qué días vas a descansar\?/.test(await p.locator("#sem-wiz").innerText()), "el paso Descansos pregunta qué días vas a descansar");
   await p.click('[data-action="semw-next"]'); await p.waitForTimeout(150);
   // Paso: premio y hábitos (máx 3)
   await p.fill("#sw-premio", "Película con palomitas");
@@ -119,7 +122,7 @@ module.exports = async ({ b, ok, errs }) => {
 
   // Re-editar la apertura no duplica ni vuelve a pagar
   await p.evaluate(() => openSemApertura("2026-09-28"));
-  for (let i = 0; i < 3; i++) { await p.click('[data-action="semw-next"]'); await p.waitForTimeout(100); }
+  for (let i = 0; i < 4; i++) { await p.click('[data-action="semw-next"]'); await p.waitForTimeout(100); }
   await p.click('[data-action="semw-finish"]'); await p.waitForTimeout(300);
   s = await p.evaluate(() => STATE);
   ok(d("2026-09-29").filter(t => t.txt === "Cerrar 3 reuniones").length === 1 && s.gamif.ledger.filter(m => m.id === "ritual-semana-apertura:2026-09-28").length === 1, "editar el plan no duplica tareas ni monedas");

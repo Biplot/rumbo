@@ -8,6 +8,8 @@
      marcarlo), el árbol queda sin hojas hasta que vuelves; nunca se pierde.
    · El cielo es tu constancia de la semana: lo que cumpliste de lo que tocaba desde el lunes. Al partir
      la semana pesa también la anterior, así un mal lunes no apaga el sol. Nada se seca.
+   · Días de descanso (v55): no suman a los 66 días ni el cielo los espera; ese día la maceta tiene una
+     hamaquita, y en vacaciones un letrero dice cuándo vuelves. Descansar no deja al árbol sin hojas.
    · Cuando marcas un hábito que está en maceta, tu elefante la riega (jardinAlMarcar → JARDIN_MOTOR).
    La entrada viene con Rumbo; la ventana, el terrario, en píxeles y el sur, en la Tienda (gamif.equipped.jardin).
    Temas especiales (1.200 ⭐ cada uno): Marte y la base lunar, con tu elefante de visor negro y Menta, el alienígena.
@@ -58,11 +60,16 @@ function jardinConteo(S) {
   return out;
 }
 function jardinDiasDe(hid, S) { return (jardinConteo(S)[hid] || { dias: 0 }).dias; }
-/* ¿Lo dejaste? En pausa, o sin marcarlo más de lo que su frecuencia aguanta: el árbol queda sin hojas */
-function jardinDejado(h, info, hoy) {
+/* ¿Lo dejaste? En pausa, o sin marcarlo más de lo que su frecuencia aguanta: el árbol queda sin hojas.
+   Los días de descanso y de vacaciones no cuentan como dejarlo. */
+function jardinDejado(h, info, hoy, S) {
   if (!h || h.pausado) return true;
   const f = hmFreq(h), tope = f.tipo === "mensual" ? 62 : f.tipo === "semanal" ? 28 : 21;
-  return !info || !info.ultimo || hmDiff(info.ultimo, hoy) > tope;
+  if (!info || !info.ultimo) return true;
+  const sin = hmDiff(info.ultimo, hoy);
+  if (sin <= tope) return false;
+  let libres = 0; for (let d = hmAdd(info.ultimo, 1); d <= hoy && sin - libres > tope; d = hmAdd(d, 1)) if (hmDescanso(h, d, S)) libres++;
+  return sin - libres > tope;
 }
 function jardinColor(id) { let n = 0; String(id || "").split("").forEach(ch => { n = (n * 31 + ch.charCodeAt(0)) >>> 0; }); return JARDIN_FLORES[n % JARDIN_FLORES.length]; }
 /* Cómo crece la planta de una maceta: 0 (semilla) → 1 (a punto de echar raíces); florece al acercarse */
@@ -78,8 +85,9 @@ function jardinCielo(S, hoyIso) {
   let esp = 0, hecho = 0;
   defs.forEach(h => {
     const f = hmFreq(h), desde = hmMax(lunes, hmCreado(h));
-    if (f.tipo === "semanal") {
-      const n = Math.min(f.veces, hmContar(h, desde, hoy, S)), debe = Math.floor(f.veces * hmDow(hoy) / 7);
+    if (f.tipo === "semanal") {   // la cuota de la semana (con vacaciones, en proporción)
+      const meta = hmCuotaSemana(h, lunes, S); if (!meta) return;
+      const n = Math.min(meta, hmContar(h, desde, hoy, S)), debe = Math.floor(meta * hmDow(hoy) / 7);
       hecho += n; esp += Math.max(n, debe);
       return;
     }
@@ -102,7 +110,7 @@ function jardinEscena(S, hoyIso) {
   S = S || STATE;
   const hoy = hoyIso || hmHoy(), j = jardinDatos(S), cuenta = jardinConteo(S), defs = S.habitos.defs || [];
   const diasDe = h => (cuenta[h.id] || { dias: 0 }).dias;
-  const arboles = defs.filter(h => diasDe(h) >= JARDIN_RAICES).map(h => ({ id: h.id, nombre: h.nombre, icon: h.icon, hojas: !jardinDejado(h, cuenta[h.id], hoy), color: jardinColor(h.id) }));
+  const arboles = defs.filter(h => diasDe(h) >= JARDIN_RAICES).map(h => ({ id: h.id, nombre: h.nombre, icon: h.icon, hojas: !jardinDejado(h, cuenta[h.id], hoy, S), color: jardinColor(h.id) }));
   const formando = defs.filter(h => hmActivo(h) && diasDe(h) < JARDIN_RAICES);
   const tuyas = j.macetas.map(id => formando.find(h => h.id === id)).filter(Boolean).slice(0, JARDIN_MACETAS);
   // Las que elegiste van primero y en su lugar (las plantas no saltan de maceta); si falta alguna (no elegiste
@@ -111,8 +119,12 @@ function jardinEscena(S, hoyIso) {
   if (formando.length > JARDIN_MACETAS) resto = resto.sort((a, b) => diasDe(b) - diasDe(a) || hmCreado(a).localeCompare(hmCreado(b)));
   const enMaceta = tuyas.concat(resto).slice(0, JARDIN_MACETAS);
   const cielo = jardinCielo(S, hoy);
+  // De vacaciones hoy: el letrero dice cuándo vuelves (el día después de la vacación que termina más tarde)
+  const vac = hmVacaciones(S).filter(v => v.desde <= hoy && hoy <= v.hasta).sort((a, b) => b.hasta.localeCompare(a.hasta))[0];
   return {
-    macetas: enMaceta.map(h => ({ id: h.id, nombre: h.nombre, icon: h.icon, dias: diasDe(h), t: jardinCrecer(diasDe(h)), color: jardinColor(h.id) })),
+    macetas: enMaceta.map(h => ({ id: h.id, nombre: h.nombre, icon: h.icon, dias: diasDe(h), t: jardinCrecer(diasDe(h)), color: jardinColor(h.id),
+      descansa: hmDescanso(h, hoy, S) && !hmDone(h, hoy, S) })),
+    vuelve: vac ? hmAdd(vac.hasta, 1) : null,
     arboles, formando: formando.map(h => ({ id: h.id, nombre: h.nombre, icon: h.icon, dias: diasDe(h) })),
     sinMaceta: Math.max(0, formando.length - JARDIN_MACETAS), elegir: formando.length > JARDIN_MACETAS && tuyas.length < JARDIN_MACETAS,
     c: cielo.c, pct: cielo.pct,

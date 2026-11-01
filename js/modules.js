@@ -245,12 +245,14 @@ function rachaTxt(h) {
   const r = rachaPeriodos(h);
   return r.n ? `🔥 ${r.n} ${r.unidad}` : "";
 }
-/* Hábitos para hoy: los que tocan (pendientes) y los ya cumplidos en el período */
+/* Hábitos para hoy: los que tocan (pendientes), los que descansan hoy (descanso o vacaciones, sin hacer)
+   y los ya cumplidos en el período */
 function habitosHoy() {
-  const activos = STATE.habitos.defs.filter(h => !h.pausado);
+  const activos = STATE.habitos.defs.filter(h => !h.pausado), hoy = hmHoy();
   const toca = activos.filter(h => tocaHoy(h));
-  const cumplidos = activos.filter(h => !toca.includes(h) && hmCreado(h) <= hmHoy());
-  return { toca, cumplidos };
+  const descansan = activos.filter(h => !toca.includes(h) && hmCreado(h) <= hoy && hmDescanso(h, hoy) && !hmDone(h, hoy));
+  const cumplidos = activos.filter(h => !toca.includes(h) && !descansan.includes(h) && hmCreado(h) <= hoy);
+  return { toca, cumplidos, descansan };
 }
 
 function renderHabitos() {
@@ -262,12 +264,14 @@ function renderHabitos() {
   const head = `
   <div class="hab-head">
     <div class="seg seg--full" role="tablist" aria-label="Vista">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${vista === k}" class="${vista === k ? "is-active" : ""}" data-action="habit-vista" data-v="${k}">${l}</button>`).join("")}</div>
-    <div class="row" style="gap:8px">
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button class="btn-ghost" data-action="dsc-vacaciones" title="Días de vacaciones: no cortan tu racha">${icoUI("tree-palm")} Vacaciones</button>
       <button class="btn-ghost" data-action="plantillas-open" title="Plantillas de rutina">${icoHab("📋", 16)} Plantillas</button>
       <button class="btn btn--primary" data-action="habit-add">+ Nuevo hábito</button>
     </div>
   </div>
-  <div class="pill pill--streak mt-16" style="display:inline-flex" title="Días seguidos cumpliendo todos los hábitos que tocaban">${icoHab("✅", 16)} ${racha} ${racha === 1 ? "día" : "días"} de hábitos seguidos</div>`;
+  <div class="pill pill--streak mt-16" style="display:inline-flex" title="Días seguidos cumpliendo todos los hábitos que tocaban">${icoHab("✅", 16)} ${racha} ${racha === 1 ? "día" : "días"} de hábitos seguidos</div>
+  ${vacAvisoHtml()}`;
   if (!defs.length) return head + `<div class="card mt-16"><div class="empty">Aún no tienes hábitos. Crea el primero con “+ Nuevo hábito”.</div></div>`;
   const body = HABIT_VIEW === "mensual" ? habitViewMensual() : HABIT_VIEW === "anual" ? habitViewAnual() : habitViewDiario();
   const jardin = HABIT_VIEW !== "mensual" && HABIT_VIEW !== "anual" && typeof jardinCardHtml === "function" ? jardinCardHtml() : "";   // 🌱 jardin.js
@@ -280,7 +284,7 @@ function habitTodayCard(h) {
   const prog = progresoPeriodoActual(h), hoy = todayISO();
   const pase = !on && hmPase(h, hoy);
   const libre = hmLibre(hoy) && ["diario", "dias"].includes(hmFreq(h).tipo);
-  return `<div class="card hb-today ${on || pase ? "is-on" : ""}" data-action="habit-today" data-id="${h.id}" role="button" tabindex="0">
+  return `<div class="card hb-today ${on || pase ? "is-on" : ""} ${prog.descanso ? "is-desc" : ""}" data-action="habit-today" data-id="${h.id}" role="button" tabindex="0">
       <div class="hb-today__ico">${icoHab(h.icon, 28)}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
       <div class="hb-today__prog">${pase ? "🎟️ Pase usado hoy" : libre ? "🌴 Día libre" : prog.texto}${rachaTxt(h) ? " · " + rachaTxt(h) : ""}</div>
       ${h.conjunto ? cjResumenHtml(h) : ""}
@@ -303,7 +307,11 @@ function habitViewDiario() {
         const iso = isoLocal(d);
         const isT = iso === todayISO();
         const prog = hmFreq(h).tipo === "dias" && hmProgramado(h, iso);
-        return `<button class="hb-day ${on ? "on" : ""} ${isT ? "today" : ""} ${prog ? "prog" : ""}" data-action="habit-daycell" data-id="${h.id}" data-y="${d.getFullYear()}" data-m="${d.getMonth()}" data-d="${d.getDate()}">
+        // Descanso (rayitas) y vacaciones; un día que viene se toca para descansar (habitos de cuota: avisa por qué no)
+        const desc = !on && hmDescanso(h, iso), futuro = iso > todayISO();
+        const act = futuro ? `data-action="dsc-dia" data-id="${h.id}" data-f="${iso}"` : `data-action="habit-daycell" data-id="${h.id}" data-y="${d.getFullYear()}" data-m="${d.getMonth()}" data-d="${d.getDate()}"`;
+        return `<button class="hb-day ${on ? "on" : ""} ${isT ? "today" : ""} ${prog && !desc ? "prog" : ""} ${desc ? (hmVacacion(h, iso) ? "vac" : "rest") : ""}" ${act}
+          ${desc ? `aria-label="${escapeAttr(DIAS_CORTO[d.getDay()] + " " + d.getDate() + ": " + (hmVacacion(h, iso) ? "vacaciones" : "descanso"))}"` : ""}>
           <span class="hb-day__dow">${DIAS_CORTO[d.getDay()]}</span><span class="hb-day__n">${d.getDate()}</span></button>`;
       }).join("");
       const meta = hmFreq(h).tipo === "mensual" ? progresoPeriodoActual(h).texto : `${hmMetaPeriodo(h, todayISO()).hecho}/${hmMetaPeriodo(h, todayISO()).esperado} esta semana`;
@@ -311,15 +319,18 @@ function habitViewDiario() {
         <span class="text-xs muted" style="margin-left:auto">${h.pausado ? "" : meta}</span>
         <button class="icon-btn" data-action="habit-edit" data-id="${h.id}" title="Editar">✎</button></div><div class="hb-week__days">${cells}</div></div>`;
     }).join("");
-    return sub + rows;
+    return sub + `<p class="text-xs muted" style="margin-bottom:10px">${icoUI("moon")} Toca un día que viene para descansar: no corta tu racha ni suma (hasta ${HM_DESCANSOS_MES} por mes en cada hábito).</p>` + rows;
   }
 
-  // Hoy: solo los que tocan hoy; los demás en un colapsable
-  const { toca, cumplidos } = habitosHoy();
+  // Hoy: solo los que tocan hoy; los que descansan y los demás en un colapsable
+  const { toca, cumplidos, descansan } = habitosHoy();
   const done = toca.filter(h => habitDoneDate(h.id, now)).length;
   const pausados = defs.filter(h => h.pausado);
   return sub + `<div class="text-sm muted" style="margin-bottom:12px">Hoy llevas <b>${done}/${toca.length}</b> hábitos que tocan hoy</div>
     <div class="hb-grid">${toca.map(habitTodayCard).join("") || '<div class="empty">Nada pendiente hoy 🎉</div>'}</div>
+    ${descansan.length ? `<details class="hb-more mt-16"><summary>${icoUI("moon")} Descansan hoy (${descansan.length})</summary>
+      <p class="text-xs muted mt-8">No cortan tu racha. Si igual lo haces, tócalo: cuenta como siempre.</p>
+      <div class="hb-grid mt-8">${descansan.map(habitTodayCard).join("")}</div></details>` : ""}
     ${cumplidos.length ? `<details class="hb-more mt-16"><summary>${icoHab("✅", 15)} Ya cumplidos este período (${cumplidos.length})</summary>
       <div class="hb-grid mt-16">${cumplidos.map(habitTodayCard).join("")}</div></details>` : ""}
     ${pausados.length ? `<details class="hb-more mt-16"><summary>⏸ Pausados (${pausados.length})</summary>
@@ -343,7 +354,8 @@ function habitGrid(m) {
       const d = k + 1; const on = habitDone(h.id, m, d, year);
       const iso = isoLocal(new Date(year, m, d));
       const prog = esDias && hmProgramado(h, iso) && iso >= hmCreado(h);
-      return `<td><span class="cell ${on ? "on" : ""} ${d === todayD ? "today" : ""} ${prog ? "prog" : ""}" data-action="habit-cell" data-id="${h.id}" data-day="${d}"></span></td>`;
+      const desc = !on && hmDescanso(h, iso), act = iso > todayISO() ? `data-action="dsc-dia" data-id="${h.id}" data-f="${iso}"` : `data-action="habit-cell" data-id="${h.id}" data-day="${d}"`;
+      return `<td><span class="cell ${on ? "on" : ""} ${d === todayD ? "today" : ""} ${prog && !desc ? "prog" : ""} ${desc ? "rest" : ""}" ${act}${desc ? ` title="${hmVacacion(h, iso) ? "Vacaciones" : "Descanso"}"` : ""}></span></td>`;
     }).join("");
     const c = cumplimiento(h, desde, hasta);
     return `<tr class="${h.pausado ? "is-paused" : ""}"><td class="name">${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)}
@@ -372,7 +384,7 @@ function habitViewMensual() {
         <span class="text-sm">${i + 1}. ${icoHab(r.h.icon, 16)} ${escapeHtml(r.h.nombre)} ${freqChip(r.h)}</span>
         <span class="hl-cian">${r.c.pct == null ? (r.c.enCurso ? "en curso" : "—") : r.c.pct + "%"}</span></div>`).join("")}</div></div>
   </div>
-  <div class="section-title">Calendario del mes <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· los días programados se marcan con un borde</span></div>
+  <div class="section-title">Calendario del mes <span class="text-xs muted" style="text-transform:none;letter-spacing:0">· los días programados se marcan con un borde; los de descanso, con rayitas</span></div>
   <div class="card habit-grid">${habitGrid(m)}</div>`;
 }
 
@@ -432,6 +444,7 @@ function openHabitModal(id, op) {
         <div class="row-wrap" id="h-dias">${HM_DIAS.map((d, i) => `<label class="dia-pick"><input type="checkbox" value="${i}" ${dias.includes(i) ? "checked" : ""}> ${["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][i]}</label>`).join("")}</div></div>
       <div class="text-xs muted mt-8">Se mide contra este objetivo, no contra 7 días. La semana va de lunes a domingo.</div></div>
     ${cjSeccionModal(h, op && op.amigos)}
+    ${h ? dscHojaHtml(h) : ""}
     ${h && !h.conjunto ? `<label class="row" style="gap:8px;margin-bottom:14px"><input type="checkbox" id="h-pausado" ${h.pausado ? "checked" : ""}> ⏸ Pausar este hábito (no se mide mientras esté pausado)</label>` : ""}
     <button class="btn btn--primary btn-block mt-8" data-action="habit-save">${h ? "Guardar cambios" : "Crear hábito"}</button>
     ${h ? `<button class="btn-ghost btn-block mt-8" data-action="habit-del" data-id="${h.id}" style="color:var(--coral);border-color:var(--coral)">🗑 Eliminar hábito</button>` : ""}`);
@@ -857,6 +870,8 @@ function calMonthItems(year, m) {
     if (p[0] === year && p[1] === m + 1)
       (STATE.eventos[iso] || []).forEach(e => push(p[2], { icon: "📌", label: e, cls: "cian", type: "evento", date: iso }));
   }
+  // Días de descanso y vacaciones de tus hábitos (descansos.js)
+  if (typeof dscCalendario === "function") dscCalendario(year, m, push);
   // Google Calendar (solo lectura, desde este equipo)
   if (gcalConectado()) for (let d = 1; d <= nDays; d++) {
     gcalEventosDia(`${year}-${mm}-${String(d).padStart(2, "0")}`).forEach(e =>
@@ -891,7 +906,7 @@ function calMonthItems(year, m) {
 
 /* Día elegido en el Calendario (se ve su agenda debajo de la grilla) */
 let CAL_DIA = null;
-const CAL_COLOR = { ritual: "var(--cian)", abierto: "var(--cian)", gcal: "#4285F4", evento: "var(--coral)", plan: "#E0951F", cumple: "#F5C451", libro: "#8B93E8", tarea: "var(--text-muted)" };
+const CAL_COLOR = { ritual: "var(--cian)", abierto: "var(--cian)", gcal: "#4285F4", evento: "var(--coral)", plan: "#E0951F", cumple: "#F5C451", libro: "#8B93E8", descanso: "#7FB8A4", tarea: "var(--text-muted)" };
 function renderCalendario() {
   const m = CAL_MONTH, year = anioVista();
   const mm = String(m + 1).padStart(2, "0");
@@ -911,7 +926,8 @@ function renderCalendario() {
     const iso = isoDe(d), its = items[d] || [];
     const tipos = [...new Set(its.map(tipoPunto))].slice(0, 4);
     const evs = its.filter(x => x.type === "evento" || x.type === "gcal" || x.type === "plan");
-    celdas.push(`<button class="calg__c${iso === hoy ? " cal-cell--today" : ""}${iso === CAL_DIA ? " is-sel" : ""}" data-action="cal-dia" data-date="${iso}"
+    const vac = its.some(x => x.type === "descanso" && x.icon === "🌴");
+    celdas.push(`<button class="calg__c${iso === hoy ? " cal-cell--today" : ""}${iso === CAL_DIA ? " is-sel" : ""}${vac ? " calg__c--vac" : ""}" data-action="cal-dia" data-date="${iso}"
       aria-label="${d} de ${MESES[m]}${its.length ? ", " + its.length + " cosa" + (its.length === 1 ? "" : "s") : ""}" aria-pressed="${iso === CAL_DIA}">
       <span class="calg__n">${d}</span>
       ${tipos.length ? `<span class="calg__dots">${tipos.map(t => `<i class="${t === "abierto" ? "is-anillo" : ""}" style="--c:${CAL_COLOR[t] || "var(--cian)"}"></i>`).join("")}</span>` : ""}
@@ -924,7 +940,7 @@ function renderCalendario() {
   const delDia = (items[dSel] || []).map(it => ({ ...it, color: CAL_COLOR[tipoPunto(it)] }));
   tareasDelDia(CAL_DIA).filter(t => tareaAbierta(t) || estadoTarea(t) === "hecha").forEach(t =>
     delDia.push({ label: t.txt, type: "tarea", color: t.esSapo ? "var(--coral)" : CAL_COLOR.tarea, sub: estadoTarea(t) === "hecha" ? "Tarea hecha" : t.esSapo ? "Tarea · primer bocado" : "Tarea" }));
-  const subDe = it => it.sub || ({ gcal: "Google Calendar", evento: "Evento", plan: "Plan con amigos", cumple: "Cumpleaños", libro: "Lectura", ritual: "Ritual" })[it.type] || "";
+  const subDe = it => it.sub || ({ gcal: "Google Calendar", evento: "Evento", plan: "Plan con amigos", cumple: "Cumpleaños", libro: "Lectura", ritual: "Ritual", descanso: "Descanso" })[it.type] || "";
   const evIdx = {}; let n = 0;
   const agendaDia = delDia.length ? delDia.map(it => {
     const hora = (it.type === "gcal" || it.type === "plan") && /^\d\d:\d\d /.test(it.label) ? it.label.slice(0, 5) : "";
@@ -948,7 +964,8 @@ function renderCalendario() {
   const nRitual = agenda.filter(x => x.type === "ritual").length;
   const metasMes = (datosAnio(STATE, year).metas.mensuales[m] || []);
   const leyenda = [["ritual", "Día abierto o cerrado"], ["evento", "Tus eventos"], ...(gcalConectado() ? [["gcal", "Google"]] : []),
-    ...((PLAN.lista || []).some(plVa) ? [["plan", "Planes"]] : []), ["cumple", "Cumpleaños"], ["libro", "Libros"]];
+    ...((PLAN.lista || []).some(plVa) ? [["plan", "Planes"]] : []), ["cumple", "Cumpleaños"], ["libro", "Libros"],
+    ...(agenda.some(x => x.type === "descanso") ? [["descanso", "Descansos y vacaciones"]] : [])];
   return `
   ${selectorAnio()}
   ${monthNav(m, "cal-goto", "cal")}

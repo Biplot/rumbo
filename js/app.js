@@ -158,7 +158,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 54;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 55;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -479,6 +479,12 @@ const NOVEDADES = {
     ["🚀", "Tu jardín en el espacio", "Dos temas especiales en la Tienda: Marte y la base lunar, a 1.200 ⭐ cada uno. Tus macetas en un invernadero y cada árbol en su cúpula."],
     ["🌍", "Lo que construyes se queda", "En Marte, tus raíces vuelven verde la arena (con 4 árboles aparece una laguna). En la Luna, cada hábito con raíces enciende un continente de la Tierra."],
     ["👽", "Tu elefante astronauta y Menta", "Tu elefante baja de vez en cuando su visor de cristal negro y lo sube para regar. Menta, el alienígena, se pasea entre tus cúpulas y salta cuando riegas."],
+  ],
+  55: [
+    ["😴", "Días de descanso", "En Hábitos › Semana toca un día que viene para descansar de un hábito (hasta 2 por mes). No corta tu racha ni suma, y se decide desde el día anterior."],
+    ["🌴", "Vacaciones", "Elige cuándo te vas (hasta 21 días) y qué hábitos descansan. Tu racha te espera y, al volver, todo sigue solo."],
+    ["🗓️", "Descansos en tu ritual", "Al planificar la semana hay un paso nuevo y opcional: ¿qué días vas a descansar?"],
+    ["🌱", "Tu jardín también descansa", "La maceta del hábito que descansa tiene su hamaquita y, en vacaciones, un letrero dice cuándo vuelves."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1043,6 +1049,7 @@ function onClick(e) {
   if (a.startsWith("alc-")) { alcAccion(a, d, el); return; }       // 🐷 tus alcancías (alcancias.js)
   if (a.startsWith("des-")) { deseosAccion(a, d); return; }        // 💎 tus deseos (deseos.js)
   if (a.startsWith("jar-")) { jardinAccion(a, d, el); return; }    // 🌱 tu jardín (jardin.js)
+  if (a.startsWith("dsc-")) { descansoAccion(a, d, el); return; }   // 🛋 días de descanso y vacaciones (descansos.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;
@@ -2002,13 +2009,14 @@ function renderInicio() {
     return `<button class="hab-chip${on ? " is-on" : ""}" data-action="quick-habit" data-id="${h.id}" aria-pressed="${on}"
       title="${escapeAttr(h.nombre + " · " + prog.texto)}"><span class="hab-chip__i">${icoHab(h.icon, 20)}</span><span class="hab-chip__n">${escapeHtml(h.nombre)}</span></button>`;
   };
-  const { toca: habToca, cumplidos: habCumplidos } = habitosHoy();
+  const { toca: habToca, cumplidos: habCumplidos, descansan: habDescansan } = habitosHoy();
   // Los hábitos en conjunto van aparte, con cómo va cada uno (conjunto.js)
   const propios = l => l.filter(h => !h.conjunto), propiosToca = propios(habToca), propiosCumplidos = propios(habCumplidos);
   const habitsToday = (propiosToca.length ? `<div class="hab-chips">${propiosToca.map(habBtn).join("")}</div>` : "")
     + (propiosCumplidos.length ? `<details class="hb-more"><summary>${icoHab("✅", 15)} Ya cumplidos este período (${propiosCumplidos.length})</summary>
       <div class="hab-chips mt-8">${propiosCumplidos.map(habBtn).join("")}</div></details>` : "")
-    + cjInicioHtml(habToca.concat(habCumplidos).filter(h => h.conjunto));
+    + cjInicioHtml(habToca.concat(habCumplidos).filter(h => h.conjunto))
+    + (vacHoy() ? vacAvisoHtml() : dscHoyHtml(habDescansan));
   const doneToday = habToca.filter(h => habitDone(h.id, mIdx, day)).length;
 
   const metasMes = (anioHoy.metas.mensuales[mIdx] || []).filter(m => !m.done);

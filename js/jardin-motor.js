@@ -7,6 +7,8 @@
    Cada lienzo canvas[data-jardin="<estilo>"] se monta solo con jardinEscena() (jardin.js);
    data-modo="muestra" dibuja un jardín de ejemplo (la Tienda).
    regar(id): tu elefante riega esa maceta (al marcar el hábito). trasplantar(id): el árbol nuevo brota.
+   Días de descanso: la maceta del hábito que descansa hoy tiene su hamaquita, y en vacaciones un letrero
+   dice cuándo vuelves (en todos los estilos: se dibujan encima, donde quedó cada maceta).
    En las tarjetas queda quieto (no gasta batería): se mueve al regar o trasplantar, en la hoja del jardín y en la
    muestra de la Tienda (data-vivo), un rato y solo si se ve.
    ============================================================ */
@@ -112,7 +114,46 @@ const JARDIN_MOTOR = (() => {
   }
   function saltoDe(M, t) { if (!M || M.id !== riego.id) return 0; const d = t - riego.t0 - 0.6; return Math.max(0, Math.sin(d * 8)) * Math.max(0, 1 - d); }
   function plantar(ctx, pots, e, dk, t) {
-    pots.forEach(([x, y, k], j) => { const M = e.macetas[j]; if (!M) return; const p = maceta(ctx, x, y, k, M.t, M.color, dk, e.c, saltoDe(M, t)); if (M.id === riego.id) regadera(ctx, p, t); });
+    pots.forEach(([x, y, k], j) => { const M = e.macetas[j]; if (!M) return; const p = maceta(ctx, x, y, k, M.t, M.color, dk, e.c, saltoDe(M, t)); anotar(M, p); if (M.id === riego.id) regadera(ctx, p, t); });
+  }
+  /* -------- Días de descanso: dónde quedó cada maceta (al dibujar), la hamaquita y el letrero de vacaciones -------- */
+  let POTS = [];
+  function anotar(M, p) { if (M && p) POTS.push({ M, x: p.x, y: p.y, k: p.k }); }
+  function hamaca(ctx, x, y, k, t) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
+    ctx.strokeStyle = OSC ? "#B08560" : "#8A5A36"; ctx.lineWidth = 1.8; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-11, 0); ctx.lineTo(-12.5, -16); ctx.moveTo(11, 0); ctx.lineTo(12.5, -16); ctx.stroke();
+    ctx.strokeStyle = OSC ? "#D9CBB0" : "#B9A27E"; ctx.lineWidth = 0.9;
+    ctx.beginPath(); ctx.moveTo(-12.5, -15); ctx.lineTo(-9, -11.5); ctx.moveTo(12.5, -15); ctx.lineTo(9, -11.5); ctx.stroke();
+    const vaiven = FIJA || QUIETO ? 0 : Math.sin(t * 1.6) * 0.9;
+    ctx.beginPath(); ctx.moveTo(-9, -11.5); ctx.quadraticCurveTo(vaiven, -1, 9, -11.5); ctx.quadraticCurveTo(vaiven, -5.5, -9, -11.5); ctx.closePath();
+    ctx.save(); ctx.clip();
+    for (let i = -10; i < 10; i += 3) { ctx.fillStyle = (i / 3 | 0) % 2 ? "#F4AE3D" : "#E8606B"; ctx.fillRect(i, -14, 3, 14); }
+    ctx.restore();
+    ctx.strokeStyle = "rgba(0,0,0,.18)"; ctx.lineWidth = 0.6; ctx.stroke();
+    const z = FIJA || QUIETO ? 0 : (t * 0.5) % 1;
+    ctx.fillStyle = OSC ? "rgba(225,230,245,.85)" : "rgba(40,48,80,.7)"; ctx.font = "800 6.5px Figtree, system-ui, sans-serif"; ctx.textAlign = "center";
+    ctx.globalAlpha = 1 - z * 0.6; ctx.fillText("z", 15 + z * 2, -18 - z * 4); ctx.font = "800 8.5px Figtree, system-ui, sans-serif"; ctx.fillText("z", 19 + z * 2, -25 - z * 4);
+    ctx.globalAlpha = 1; ctx.restore();
+  }
+  function letrero(ctx, x, y, txt) {
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,.14)"; ctx.beginPath(); ctx.ellipse(x, y + 1, 8, 2, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = OSC ? "#8F633B" : "#8A5A36"; ctx.fillRect(x - 1.3, y - 22, 2.6, 23);
+    ctx.font = "700 13px Caveat, 'Segoe Print', cursive"; const w = Math.max(44, ctx.measureText(txt).width + 12);
+    ctx.fillStyle = OSC ? "#E3D3B4" : "#F6E7C8"; ctx.strokeStyle = OSC ? "#6B4524" : "#9A6A3E"; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(x - w / 2 + 3, y - 38); ctx.lineTo(x + w / 2 - 3, y - 38); ctx.quadraticCurveTo(x + w / 2, y - 38, x + w / 2, y - 35); ctx.lineTo(x + w / 2, y - 23); ctx.quadraticCurveTo(x + w / 2, y - 20, x + w / 2 - 3, y - 20);
+    ctx.lineTo(x - w / 2 + 3, y - 20); ctx.quadraticCurveTo(x - w / 2, y - 20, x - w / 2, y - 23); ctx.lineTo(x - w / 2, y - 35); ctx.quadraticCurveTo(x - w / 2, y - 38, x - w / 2 + 3, y - 38); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#4A2E16"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(txt, x, y - 28.5);
+    ctx.restore();
+  }
+  /* Dónde se clava el letrero en cada estilo (un lugar despejado, cerca de las macetas) */
+  const LETRERO = { entrada: [274, 214], ventana: [58, 167], terrario: [90, 236], pixeles: [252, 236], sur: [214, 196], marte: [292, 256], luna: [336, 250] };
+  function descansos(ctx, W, H, e, t, estilo) {
+    POTS.forEach(p => { if (p.M.descansa) hamaca(ctx, p.x, p.y, p.k, t); });
+    if (!e.vuelve) return;
+    const d = new Date(e.vuelve + "T12:00:00"), [x, y] = LETRERO[estilo] || [W - 40, H - 6];
+    letrero(ctx, x, y, "Vuelvo el " + d.getDate());
   }
 
   /* -------- La entrada (viene con Rumbo) -------- */
@@ -256,6 +297,7 @@ const JARDIN_MOTOR = (() => {
     const d = t - riego.t0;
     [10, 21, 32].forEach((x, j) => {
       const M = e.macetas[j]; if (!M) return;
+      anotar(M, { x: (x + 3) * P, y: 50 * P, k: 0.95 });
       const y = 56, riega = M.id === riego.id, sube = riega && d > 0.6 && d < 1.2 && ((d * 10) | 0) % 2 ? 1 : 0, yb = y - sube;
       px(x - 1, y + 1, 8, 1, "rgba(0,0,0,.18)"); px(x, y - 5, 6, 1, "#D27A45"); px(x + 1, y - 4, 4, 4, "#C4682F"); px(x + 4, y - 4, 1, 4, "#8C3E18"); px(x + 1, y - 6, 4, 1, "#5A3418");
       const tal = dk ? "#3FA36A" : "#3E9C57", hj = mezcla(tal, "#FFFFFF", 0.25), col = M.color, tt = M.t;
@@ -622,7 +664,7 @@ const JARDIN_MOTOR = (() => {
     /* Las macetas de la app: cada una con su planta; tu elefante riega la que marcaste */
     function saltoDe(M, t) { if (!M || M.id !== riego.id) return 0; const d = t - riego.t0 - 0.6; return Math.max(0, Math.sin(d * 8)) * Math.max(0, 1 - d); }
     function macetas(ctx, pos, e, t) {
-      pos.forEach(([x, y, k], j) => { const M = e.macetas[j]; if (!M) return; const p = capsula(ctx, x, y, k, M.t, M.color, e.c, saltoDe(M, t)); if (M.id === riego.id) regadera(ctx, p, t); });
+      pos.forEach(([x, y, k], j) => { const M = e.macetas[j]; if (!M) return; const p = capsula(ctx, x, y, k, M.t, M.color, e.c, saltoDe(M, t)); anotar(M, p); if (M.id === riego.id) regadera(ctx, p, t); });
     }
     /* Cada árbol en su cúpula: su color, sin hojas si dejaste el hábito, y brota al trasplantarlo */
     function cup(ctx, P, i, s, e, t) { const a = e.arboles[i]; if (!a || !P[i]) return; cupula(ctx, P[i][0], P[i][1], s * brota(a, t), e.c, a.color, a.hojas); }
@@ -643,14 +685,14 @@ const JARDIN_MOTOR = (() => {
     let e = null;
     try { e = cv.dataset.modo === "muestra" ? jardinMuestra() : jardinEscena(); } catch (err) { e = null; }
     e = e || { macetas: [], arboles: [], c: 0.7 };
-    return { macetas: (e.macetas || []).slice(0, 3), arboles: e.arboles || [], c: e.c == null ? 0.7 : e.c };
+    return { macetas: (e.macetas || []).slice(0, 3), arboles: e.arboles || [], c: e.c == null ? 0.7 : e.c, vuelve: e.vuelve || null };
   };
   function pintar(L, t) {
     const { cv, ctx, W, H } = L, w = cv.clientWidth || W, k = w / W, pw = Math.max(1, Math.round(w * DPR)), ph = Math.max(1, Math.round(w * H / W * DPR));
     if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.setTransform(k * DPR, 0, 0, k * DPR, 0, 0);
-    FIJA = !L.cv.dataset.vivo;
-    try { L.f(ctx, W, H, L.e, t, OSC); } catch (err) { if (!L.fallo) { L.fallo = true; console.warn("jardín", err); } }
+    FIJA = !L.cv.dataset.vivo; POTS = [];
+    try { L.f(ctx, W, H, L.e, t, OSC); descansos(ctx, W, H, L.e, t, L.cv.dataset.jardin); } catch (err) { if (!L.fallo) { L.fallo = true; console.warn("jardín", err); } }
     ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
   }
   function montar(cv) {

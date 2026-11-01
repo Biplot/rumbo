@@ -120,7 +120,7 @@ const LocalBackend = {
   /* -------- Amigos sin servidor: las mismas reglas que supabase/amigos.sql, guardadas en este navegador.
      Las cuentas locales comparten esta "base", así se prueban dos personas en un mismo equipo. -------- */
   _amDb() {
-    const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1, conjuntos: [], cmiembros: [], cmarcas: [], objetivos: [], omiembros: [], oaportes: [],
+    const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1, conjuntos: [], cmiembros: [], cmarcas: [], cdescansos: [], objetivos: [], omiembros: [], oaportes: [],
       planes: [], pinvitados: [], popciones: [], pvotos: [], precuerdos: [], pgastos: [], listas: [], lmiembros: [], litems: [], lvotos: [], lecturas: [], ljmiembros: [] };
     try { return Object.assign(vacia, JSON.parse(localStorage.getItem("rumbo_amigos") || "{}")); } catch { return vacia; }
   },
@@ -244,6 +244,7 @@ const LocalBackend = {
   _cjActivo(db, h, yo) { return db.cmiembros.find(m => m.habito === h && m.user_id === yo && m.estado === "activo"); },
   _cjSacar(db, h, quien) {   // sale con sus marcas; si no queda nadie activo, se borra el hábito
     db.cmarcas = db.cmarcas.filter(x => !(x.habito === h && x.user_id === quien));
+    db.cdescansos = (db.cdescansos || []).filter(x => !(x.habito === h && x.user_id === quien));
     db.cmiembros = db.cmiembros.filter(m => !(m.habito === h && m.user_id === quien));
     if (!db.cmiembros.some(m => m.habito === h && m.estado === "activo")) {
       db.conjuntos = db.conjuntos.filter(x => x.id !== h);
@@ -320,9 +321,21 @@ const LocalBackend = {
         id: c.id, nombre: c.nombre, icono: c.icono, frecuencia: c.frecuencia, creado: c.creado, estado: mio.estado, invita: mio.invita,
         miembros: db.cmiembros.filter(m => m.habito === c.id).sort((a, b) => (a.estado > b.estado) - (a.estado < b.estado) || a.creado - b.creado)
           .map(m => Object.assign(this._amFicha(db, m.user_id), { yo: m.user_id === yo, estado: m.estado, desde: m.desde,
-            marcas: db.cmarcas.filter(k => k.habito === c.id && k.user_id === m.user_id).map(k => k.fecha).sort() })),
+            marcas: db.cmarcas.filter(k => k.habito === c.id && k.user_id === m.user_id).map(k => k.fecha).sort(),
+            descansos: (db.cdescansos || []).filter(k => k.habito === c.id && k.user_id === m.user_id).map(k => k.fecha).sort() })),
       };
     });
+  },
+  /* Tus días de descanso en un hábito en conjunto (supabase/conjunto.sql): desde ayer, hasta 60 por vez */
+  async conjuntoDescansos(h, fechas, descansa) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), m = this._cjActivo(db, h, yo);
+    if (!m) return { error: "no-miembro" };
+    const t = todayISO(), ok = f => /^\d{4}-\d{2}-\d{2}$/.test(f || "") && Math.round((new Date(f + "T12:00:00") - new Date(t + "T12:00:00")) / 864e5) >= -1;
+    if (!Array.isArray(fechas) || fechas.length > 60 || !fechas.every(ok)) return { error: "fecha" };
+    db.cdescansos = (db.cdescansos || []).filter(x => !(x.habito === h && x.user_id === yo && fechas.includes(x.fecha)));
+    if (descansa) fechas.forEach(fecha => db.cdescansos.push({ habito: h, user_id: yo, fecha }));
+    this._amGuardar(db);
+    return { ok: true };
   },
 
   /* -------- Objetivos en conjunto sin servidor: las reglas de supabase/objetivos.sql -------- */
@@ -1054,6 +1067,9 @@ function mergeStates(server, local) {
     });
     out.habitos.log = ml;
     out.habitos.defs = byId(local.habitos.defs, server.habitos.defs);
+    // Días de descanso y vacaciones: por id; gana el cambio más nuevo (quitar deja la marca «quitado»)
+    out.habitos.descansos = byId(local.habitos.descansos, server.habitos.descansos);
+    out.habitos.vacaciones = byId(local.habitos.vacaciones, server.habitos.vacaciones);
   }
 
   // gamif: el saldo se DERIVA del libro de movimientos (ledger), fusionado por id.
@@ -1264,6 +1280,7 @@ const SupabaseBackend = {
     return r.error ? r : { r: r.data };
   },
   async conjuntoMarcar(h, fecha, hecho) { const r = await this._amRpc("conjunto_marcar", { p_id: h, p_fecha: fecha, p_hecho: !!hecho }); return r.error ? r : r.data; },
+  async conjuntoDescansos(h, fechas, descansa) { const r = await this._amRpc("conjunto_descansos", { p_id: h, p_fechas: fechas, p_descansa: !!descansa }); return r.error ? r : r.data || { ok: true }; },
   /* -------- Objetivos en conjunto (supabase/objetivos.sql) -------- */
   async objetivoLista() { const r = await this._amRpc("objetivo_lista"); return r.error ? r : r.data || []; },
   async objetivoCrear(nombre, unidad, meta, fechaLimite, amigos, hoy) {

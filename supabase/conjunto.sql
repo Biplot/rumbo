@@ -11,6 +11,8 @@
 --   2. habitos_conjunto_miembros: quiénes están (activo) y a quiénes invitaron
 --      (invitado), desde qué día cuenta cada uno y los avisos al celular ya enviados.
 --   3. habitos_conjunto_marcas: qué días cumplió cada uno.
+--   4. habitos_conjunto_descansos (v55): qué días descansa cada uno (de sus días de descanso y
+--      vacaciones). Un día que descansan TODOS no corta la racha de a dos ni suma.
 --
 -- Nadie lee ni escribe estas tablas directo (no tienen reglas de acceso abiertas):
 -- todo pasa por las funciones, que validan quién llama.
@@ -20,6 +22,7 @@
 --   conjunto_salir(id)                                     sale (su historial queda en su documento)
 --   conjunto_editar(id, nombre, icono, frecuencia)         cambia el nombre, el ícono o la frecuencia
 --   conjunto_marcar(id, fecha, hecho)                      marca o desmarca un día
+--   conjunto_descansos(id, fechas, descansa)               deja o quita tus días de descanso (desde ayer, hasta 60 por vez)
 --   conjunto_lista()                                       tus hábitos en conjunto e invitaciones
 --
 -- Bloquear a alguien te saca de los hábitos que compartían. Si un hábito se queda
@@ -62,6 +65,26 @@ CREATE TABLE IF NOT EXISTS habitos_conjunto_marcas (
   PRIMARY KEY (habito, user_id, fecha)
 );
 ALTER TABLE habitos_conjunto_marcas ENABLE ROW LEVEL SECURITY;
+
+-- ---------- 4. habitos_conjunto_descansos (v55) ----------
+CREATE TABLE IF NOT EXISTS habitos_conjunto_descansos (
+  habito  uuid NOT NULL REFERENCES habitos_conjunto ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
+  fecha   date NOT NULL,
+  PRIMARY KEY (habito, user_id, fecha)
+);
+ALTER TABLE habitos_conjunto_descansos ENABLE ROW LEVEL SECURITY;
+
+-- Al salir de un hábito (o al bloquear, que también te saca), tus descansos se van contigo
+CREATE OR REPLACE FUNCTION rumbo_conjunto_descansos_salir() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  DELETE FROM habitos_conjunto_descansos WHERE habito = OLD.habito AND user_id = OLD.user_id;
+  RETURN NULL;
+END $$;
+DROP TRIGGER IF EXISTS conjunto_descansos_salir ON habitos_conjunto_miembros;
+CREATE TRIGGER conjunto_descansos_salir AFTER DELETE ON habitos_conjunto_miembros
+  FOR EACH ROW EXECUTE FUNCTION rumbo_conjunto_descansos_salir();
 
 -- El día de quien llama: el de su teléfono, si no se aleja más de un día del servidor (UTC)
 CREATE OR REPLACE FUNCTION rumbo_hoy(p_hoy date) RETURNS date
@@ -208,7 +231,26 @@ BEGIN
   RETURN jsonb_build_object('todos', total >= 2 AND faltan = 0);
 END $$;
 
--- Tus hábitos en conjunto y las invitaciones, con quiénes están y sus marcas (de los últimos 400 días)
+-- Deja (o quita) tus días de descanso. Solo de ayer en adelante (el descanso se decide antes;
+-- ayer, por la diferencia de hora con el servidor) y a lo más un año.
+CREATE OR REPLACE FUNCTION conjunto_descansos(p_id uuid, p_fechas date[], p_descansa boolean) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE yo uuid := auth.uid(); n integer := coalesce(array_length(p_fechas, 1), 0);
+BEGIN
+  IF yo IS NULL THEN RAISE EXCEPTION 'sin-sesion'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM habitos_conjunto_miembros WHERE habito = p_id AND user_id = yo AND estado = 'activo') THEN RAISE EXCEPTION 'no-miembro'; END IF;
+  IF n = 0 THEN RETURN jsonb_build_object('ok', true); END IF;
+  IF n > 60 OR EXISTS (SELECT 1 FROM unnest(p_fechas) f WHERE f IS NULL OR f < current_date - 1 OR f > current_date + 400) THEN RAISE EXCEPTION 'fecha'; END IF;
+  IF p_descansa THEN
+    INSERT INTO habitos_conjunto_descansos (habito, user_id, fecha)
+      SELECT p_id, yo, f FROM unnest(p_fechas) f ON CONFLICT DO NOTHING;
+  ELSE
+    DELETE FROM habitos_conjunto_descansos WHERE habito = p_id AND user_id = yo AND fecha = ANY (p_fechas);
+  END IF;
+  RETURN jsonb_build_object('ok', true);
+END $$;
+
+-- Tus hábitos en conjunto y las invitaciones, con quiénes están, sus marcas y sus descansos (de los últimos 400 días en adelante)
 CREATE OR REPLACE FUNCTION conjunto_lista() RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
 DECLARE yo uuid := auth.uid(); r jsonb;
@@ -221,7 +263,9 @@ BEGIN
           'id', m.user_id, 'yo', m.user_id = yo, 'nombre', coalesce(p.nombre, ''), 'avatar', p.avatar,
           'estado', m.estado, 'desde', m.desde,
           'marcas', (SELECT coalesce(jsonb_agg(x.fecha ORDER BY x.fecha), '[]'::jsonb) FROM habitos_conjunto_marcas x
-            WHERE x.habito = h.id AND x.user_id = m.user_id AND x.fecha >= greatest(h.creado, current_date - 400)))
+            WHERE x.habito = h.id AND x.user_id = m.user_id AND x.fecha >= greatest(h.creado, current_date - 400)),
+          'descansos', (SELECT coalesce(jsonb_agg(z.fecha ORDER BY z.fecha), '[]'::jsonb) FROM habitos_conjunto_descansos z
+            WHERE z.habito = h.id AND z.user_id = m.user_id AND z.fecha >= greatest(h.creado, current_date - 400)))
         ORDER BY m.estado, m.creado), '[]'::jsonb)
         FROM habitos_conjunto_miembros m LEFT JOIN perfiles p ON p.user_id = m.user_id WHERE m.habito = h.id)
     ) ORDER BY mio.creado), '[]'::jsonb)
@@ -234,9 +278,9 @@ END $$;
 -- Solo las personas con sesión usan estas funciones
 REVOKE ALL ON FUNCTION conjunto_crear(text, text, jsonb, uuid[], date), conjunto_invitar(uuid, uuid[]), conjunto_responder(uuid, boolean, date),
   conjunto_salir(uuid), conjunto_editar(uuid, text, text, jsonb), conjunto_marcar(uuid, date, boolean), conjunto_lista(),
-  rumbo_en_conjunto(uuid) FROM PUBLIC, anon;
+  conjunto_descansos(uuid, date[], boolean), rumbo_en_conjunto(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION conjunto_crear(text, text, jsonb, uuid[], date), conjunto_invitar(uuid, uuid[]), conjunto_responder(uuid, boolean, date),
   conjunto_salir(uuid), conjunto_editar(uuid, text, text, jsonb), conjunto_marcar(uuid, date, boolean), conjunto_lista(),
-  rumbo_en_conjunto(uuid) TO authenticated;
+  conjunto_descansos(uuid, date[], boolean), rumbo_en_conjunto(uuid) TO authenticated;
 
 COMMIT;

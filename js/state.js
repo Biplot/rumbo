@@ -83,6 +83,8 @@ function defaultState() {
         { id: uid(), nombre: "Vitaminas", icon: "💊", frecuencia: { tipo: "diario" }, creado: todayISO() },
       ],
       log: {}, // ej: { "2026-9": { habitId: {5:true, 6:true} } }
+      descansos: [],   // v116 · descanso de un hábito: [{ id: "d:<hid>:<iso>", hid, fecha, ts, quitado? }]
+      vacaciones: [],  // v116 · [{ id, desde, hasta, habitos: null (todos) | [ids], ts, quitado? }]
     },
 
     // rueda de la vida: por mes, 8 áreas 0-10
@@ -266,6 +268,10 @@ function migrate(s) {
   if (!s.jardin || typeof s.jardin !== "object") s.jardin = { macetas: [], inicio: true, raices: {}, ts: 0 };   // v115 · tu jardín
   if (!Array.isArray(s.jardin.macetas)) s.jardin.macetas = [];
   if (!s.jardin.raices || typeof s.jardin.raices !== "object") s.jardin.raices = {};
+  if (s.habitos && typeof s.habitos === "object") {   // v116 · días de descanso y vacaciones
+    if (!Array.isArray(s.habitos.descansos)) s.habitos.descansos = [];
+    if (!Array.isArray(s.habitos.vacaciones)) s.habitos.vacaciones = [];
+  }
   // Las listas de deseos de antes (Listas) pasan a Tus deseos: cada ítem, un deseo sin espera (id fijo: idempotente, y lo que
   // un equipo viejo agregue después también pasa); los conseguidos quedan en «Lo tienes». La lista queda marcada (migrada) y no se borra.
   ((s.vida && s.vida.listas) || []).forEach(l => {

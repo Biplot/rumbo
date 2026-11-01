@@ -75,7 +75,11 @@ export async function avisoConjunto({ sb, yo, body, enviar, ahora = new Date() }
     const d = destinatariosMarca({ miembros: ms, marcas, yo, fecha });
     tipo = d.tipo; para = d.para; cambio = { [d.tipo]: fecha };
     if (tipo === "todos") {
-      const activos = ms.filter(m => m.estado === "activo").map(m => ({ desde: m.desde, marcas: marcas.filter(x => x.user_id === m.user_id).map(x => x.fecha) }));
+      // Los días que descansaron todos no cortan la racha (sin la tabla de descansos, como antes)
+      const { data: descansos } = await sb.from("habitos_conjunto_descansos").select("user_id, fecha")
+        .eq("habito", habito).gte("fecha", desde.toISOString().slice(0, 10)).lte("fecha", fecha);
+      const activos = ms.filter(m => m.estado === "activo").map(m => ({ desde: m.desde, marcas: marcas.filter(x => x.user_id === m.user_id).map(x => x.fecha),
+        descansos: (descansos || []).filter(x => x.user_id === m.user_id).map(x => x.fecha) }));
       racha = rachaConjunto({ frecuencia: h.frecuencia, creado: h.creado }, activos, fecha);
     }
   } else return { enviadas: 0, motivo: "tipo" };

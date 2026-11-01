@@ -24,8 +24,8 @@ module.exports = async ({ b, ok, errs }) => {
     ok(await p.locator("#puertaNuevo").isVisible(), "con una medalla que el cielo no te mostró, la estrella de arriba lleva un punto");
     await p.goto(URL + "#cielo");
     await p.waitForFunction(() => CIELO_ESTADO.motor && document.querySelector("#lugarLienzo .cielo__canvas"), null, { timeout: 15000 });
-    ok((await p.locator(".lugar__t small").innerText()).startsWith("5 de 57 medallas"), "Tu vitrina cuenta las medallas encendidas (5 de 57)");
-    ok(await p.locator("#lugarHoja .med-chip").count() === 57 && (await p.locator("#lugarHoja").innerText()).includes("Búho"), "la lista de las 57 está en la hoja del cielo, por constelación");
+    ok((await p.locator(".lugar__t small").innerText()).startsWith("5 de 58 medallas"), "Tu vitrina cuenta las medallas encendidas (5 de 58)");
+    ok(await p.locator("#lugarHoja .med-chip").count() === 58 && (await p.locator("#lugarHoja").innerText()).includes("Búho"), "la lista de las 58 está en la hoja del cielo, por constelación");
     await p.waitForTimeout(4200);   // la medalla nueva llega como estrella fugaz
     ok(await p.evaluate(() => JSON.parse(localStorage.getItem("rumbo-cielo-visto")).includes("inquebrantable")) && await p.evaluate(() => document.getElementById("puertaNuevo").hidden), "la medalla nueva queda vista después de llegar (y la estrella de arriba apaga su punto)");
     await shot(p, "cielo-escritorio");

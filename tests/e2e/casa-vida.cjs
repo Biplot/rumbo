@@ -34,7 +34,7 @@ module.exports = async ({ b, ok, errs }) => {
     ok(await p.locator("#view .mundo__b, #view .mundo").count() === 0, "Inicio ya no tiene las tarjetas de Tu casa y Tu vitrina");
     ok((await p.locator("#puertaCasa").getAttribute("aria-label")).includes(ahora.txt) && await p.locator("#puertaZ").isHidden() === (ahora.id !== "siesta"),
       "la cara de tu elefante (arriba) cuenta lo que hace ahora, con una «z» solo si duerme la siesta");
-    ok((await p.locator("#puertaN").innerText()) === "2" && (await p.locator("#puertaVitrina").getAttribute("aria-label")).startsWith("Tu vitrina: 2 de 57 medallas"), "la estrella cuenta tus medallas");
+    ok((await p.locator("#puertaN").innerText()) === "2" && (await p.locator("#puertaVitrina").getAttribute("aria-label")).startsWith("Tu vitrina: 2 de 58 medallas"), "la estrella cuenta tus medallas");
     // Una medalla que el cielo todavía no te mostró: la estrella lleva un punto
     await p.evaluate(() => { cieloGuardarVisto(["primer-paso"]); });
     ok(await p.locator("#puertaNuevo").isVisible() && (await p.locator("#puertaVitrina").getAttribute("aria-label")).includes("1 nueva"), "si hay una medalla que no viste en el cielo, la estrella lleva un punto");
@@ -74,7 +74,7 @@ module.exports = async ({ b, ok, errs }) => {
     ok(await p.evaluate(() => CURRENT === "inicio" && !document.body.classList.contains("en-lugar")), "Escape vuelve a Inicio");
     // Tu vitrina: un toque y a pantalla completa
     await p.click("#puertaVitrina"); await en(p, "cielo", true); await p.waitForTimeout(500);
-    ok((await p.locator(".lugar__t b").innerText()) === "Tu vitrina" && (await p.locator(".lugar__t small").innerText()).startsWith("2 de 57 medallas"), "un toque en la estrella abre tus medallas a pantalla completa");
+    ok((await p.locator(".lugar__t b").innerText()) === "Tu vitrina" && (await p.locator(".lugar__t small").innerText()).startsWith("2 de 58 medallas"), "un toque en la estrella abre tus medallas a pantalla completa");
     await p.keyboard.press("Escape"); await en(p, "inicio");
     // El elefante de tu día también lleva a su casa
     await p.click(".ele-hero"); await en(p, "cuarto", true);
@@ -96,7 +96,7 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click("#puertaCasa"); await en(p, "cuarto"); await p.waitForTimeout(2500);
     ok(await p.evaluate(() => CURRENT === "cuarto" && !document.body.classList.contains("en-lugar")) && await p.locator(".lugar-plano .ele-svg").isVisible(), "sin WebGL, la cara de tu elefante abre Tu casa como página, con tu elefante dibujado");
     await p.click("#puertaVitrina"); await en(p, "cielo"); await p.waitForTimeout(800);
-    ok(await p.evaluate(() => CURRENT === "cielo") && await p.locator(".lugar-plano .med-chip").count() === 57, "y la estrella abre Tu vitrina como lista");
+    ok(await p.evaluate(() => CURRENT === "cielo") && await p.locator(".lugar-plano .med-chip").count() === 58, "y la estrella abre Tu vitrina como lista");
     await p.goto(URL + "#inicio"); await p.waitForTimeout(400);
     await p.click(".ele-hero"); await en(p, "cuarto"); await p.waitForTimeout(800);
     ok(await p.evaluate(() => CURRENT === "cuarto"), "el elefante de tu día también lleva a su casa, sin 3D");

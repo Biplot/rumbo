@@ -3149,3 +3149,64 @@ span.alb-tapa.is-vacia { cursor: default; opacity: .6; }
 @media (prefers-reduced-motion: reduce) { .agua-fab__port, .agua-fab__cap, .agua-fab__velo, .agua-fab__btn, .agua-fab__prog { transition: none; animation: none; } }
 body.con-agua-fab .view { padding-bottom: 96px; }
 @media (max-width: 760px) { body.con-agua-fab .view { padding-bottom: calc(144px + env(safe-area-inset-bottom, 0px)); } }
+
+/* ============================================================
+   TUS ALCANCÍAS (v113) · alcancias.js y alcancia-motor.js: las alcancías en Finanzas, la torre del año,
+   la hoja de cada alcancía, el reparto en el cierre de mes y sus fichas en la Tienda
+   ============================================================ */
+.alc-cv { display: block; width: 100%; height: auto; touch-action: manipulation; }
+.alc-sec__acc { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.alc-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 720px) { .alc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1180px) { .alc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.alc { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.alc.is-llena { border-color: var(--coral-btn, var(--coral)); }
+.alc__cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.alc__cab b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alc__cab .icon-btn { width: 32px; height: 32px; flex: none; }
+.alc .alc-cv { max-width: 300px; margin: 0 auto; }
+.alc__estado { display: grid; gap: 5px; }
+.alc__estado .bar { margin: 0; }
+.alc__t { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.alc__t span { font-weight: 700; font-size: 15px; }
+.alc__t span small { font-weight: 500; color: var(--text-muted); font-size: 12.5px; }
+.alc__t b { font-size: 17px; }
+.alc__btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.alc__btns .btn { flex: 1 1 auto; min-height: 40px; padding: 8px 10px; font-variant-numeric: tabular-nums; }
+.alc__pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; min-height: 0; }
+.alc__pie:not(:has(:not([hidden]))) { display: none; }
+.alc__pie .btn-link[hidden], .alc__pie .btn[hidden] { display: none; }
+.alc__cerrar { margin-left: auto; }
+.alc-vacio { display: grid; grid-template-columns: 1fr; gap: 12px; align-items: center; }
+.alc-vacio__cv { max-width: 220px; margin: 0 auto; }
+.alc-vacio p { margin: 6px 0 12px; }
+@media (min-width: 640px) { .alc-vacio { grid-template-columns: 220px minmax(0, 1fr); } }
+.alc-cumplidas { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+.alc-cumplidas summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--text-soft); }
+.alc-cumplida { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.alc-cumplida span { display: grid; min-width: 0; }
+.alc-cumplida small { color: var(--text-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.alc-torre { margin-top: 16px; display: grid; gap: 6px; }
+.alc-torre__cv { max-width: 640px; margin: 0 auto; cursor: pointer; }
+/* La hoja: nueva o editar */
+.alc-hoja { display: grid; gap: 14px; }
+.alc-hoja .field { margin: 0; }
+.alc-hoja__2 { gap: 10px; }
+.alc-estilos { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.alc-estilo { display: grid; gap: 4px; justify-items: center; padding: 6px 6px 8px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--surface); color: var(--text); font: inherit; font-size: 12px; font-weight: 600; line-height: 1.2; text-align: center; cursor: pointer; }
+.alc-estilo.is-on { border-color: var(--cian); box-shadow: inset 0 0 0 1.5px var(--cian); background: var(--cian-soft); }
+.alc-estilo .alc-cv { pointer-events: none; }
+.alc-hoja__fin { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.alc-borrar { color: var(--coral) !important; }
+.alc-otro__f { display: flex; gap: 8px; margin-top: 10px; }
+.alc-otro__f .input { flex: 1; min-width: 0; }
+/* El cierre de mes: repartir */
+.alc-reparto { display: grid; gap: 4px; }
+.alc-reparto__f { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.alc-reparto__f span { display: grid; min-width: 0; font-weight: 600; }
+.alc-reparto__f small { font-weight: 500; color: var(--text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.alc-reparto__f .input { padding: 8px 10px; text-align: right; }
+.alc-reparto__pie { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 8px; }
+/* La Tienda */
+.alc-muestra { max-width: 240px; margin: 0 auto 10px; }
+.ficha__ico .alc-ficha { width: 88%; height: auto; aspect-ratio: 260 / 220; display: block; }

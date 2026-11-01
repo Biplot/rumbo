@@ -18,7 +18,7 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('[data-action="tienda-sec"][data-v="estilo"]'); await p.waitForTimeout(200);
   ok(await p.locator('[data-action="tienda-mas"]').count() > 0, "en Para tu estilo, los grupos largos muestran sus primeras fichas y «Ver todo»");
   while (await p.locator('[data-action="tienda-mas"]').count()) { await p.locator('[data-action="tienda-mas"]').first().click(); await p.waitForTimeout(150); }
-  ok(await p.evaluate(() => new Set([...document.querySelectorAll("[data-cos]")].map(e => e.dataset.cos)).size) === 34, "Para tu estilo muestra los 34 cosméticos (efectos, marcos, estilos del álbum y plantillas del informe)");
+  ok(await p.evaluate(() => new Set([...document.querySelectorAll("[data-cos]")].map(e => e.dataset.cos)).size) === 43, "Para tu estilo muestra los 43 cosméticos (efectos, marcos, estilos del álbum, del agua y de las alcancías, y plantillas del informe)");
   // Cada ficha abre su detalle con el botón de compra
   const enFicha = async (id, accion) => { await p.click(`.ficha[data-cos="${id}"]`); await p.waitForTimeout(150);
     const n = await p.locator(`#modal [data-action="${accion}"]`).count(); if (n) { await p.click(`#modal [data-action="${accion}"]`); await p.waitForTimeout(150); }

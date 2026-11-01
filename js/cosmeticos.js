@@ -40,6 +40,16 @@ const COSMETICOS = [
   { id: "sabor-frutilla", grupo: "sabor", icon: "💧", nombre: "Sabor frutilla", costo: 100, key: "sabor", value: "frutilla", cuando: "el agua rosada, en cualquier estilo" },
   { id: "sabor-te", grupo: "sabor", icon: "💧", nombre: "Sabor té", costo: 100, key: "sabor", value: "te", cuando: "el agua ámbar, en cualquier estilo" },
   { id: "sabor-arandano", grupo: "sabor", icon: "💧", nombre: "Sabor arándano", costo: 100, key: "sabor", value: "arandano", cuando: "el agua violeta, en cualquier estilo" },
+  // Estilos de alcancía (alcancias.js; el chanchito de greda viene incluido): se eligen en cada alcancía. Y el color de las monedas, uno a la vez
+  { id: "alc-ele-suerte", grupo: "alcancia", icon: "🐘", nombre: "Alcancía: el elefante de la suerte", costo: 500, key: "alcancia", value: "ele-suerte", animado: true, cuando: "porcelana con la trompa arriba que se baña en oro desde las patas; el nombre de tu meta grabado en la base" },
+  { id: "alc-ele-greda", grupo: "alcancia", icon: "🐘", nombre: "Alcancía: el elefante de greda", costo: 400, key: "alcancia", value: "ele-greda", animado: true, cuando: "hermano del chanchito: greda bruñida; en la meta levanta la trompa y tira monedas" },
+  { id: "alc-vidrio", grupo: "alcancia", icon: "🐷", nombre: "Alcancía: el chanchito de vidrio", costo: 300, key: "alcancia", value: "vidrio", animado: true, cuando: "se ven todas las monedas; en la meta se rompe" },
+  { id: "alc-frasco", grupo: "alcancia", icon: "🫙", nombre: "Alcancía: el frasco", costo: 300, key: "alcancia", value: "frasco", animado: true, cuando: "vidrio grueso, tapa de rosca y la etiqueta escrita a mano" },
+  { id: "alc-caja", grupo: "alcancia", icon: "🔒", nombre: "Alcancía: la caja fuerte", costo: 400, key: "alcancia", value: "caja", animado: true, cuando: "para metas grandes: la perilla gira con cada aporte y el monto se ve al abrirla" },
+  { id: "alc-viaje", grupo: "alcancia", icon: "🚌", nombre: "Alcancía: el viaje", costo: 400, key: "alcancia", value: "viaje", animado: true, cuando: "un bus avanza hasta tu destino; cada parada (25, 50 y 75 %) da +10 ⭐" },
+  { id: "mon-plata", grupo: "moneda", icon: "🪙", nombre: "Monedas de plata", costo: 100, key: "moneda", value: "plata", cuando: "en todas tus alcancías y en la torre del año" },
+  { id: "mon-cobre", grupo: "moneda", icon: "🪙", nombre: "Monedas de cobre", costo: 100, key: "moneda", value: "cobre", cuando: "en todas tus alcancías y en la torre del año" },
+  { id: "mon-estrella", grupo: "moneda", icon: "🪙", nombre: "Monedas estrella", costo: 100, key: "moneda", value: "estrella", cuando: "doradas con una estrella índigo, en todas tus alcancías" },
   // Marcos de avatar (uno a la vez). Diamante no se compra: llega con el rango Élite.
   { id: "mar-cian", grupo: "marco", icon: "🔵", nombre: "Marco Índigo", costo: 200, key: "marco", value: "cian" },
   { id: "mar-oro", grupo: "marco", icon: "🟡", nombre: "Marco Oro", costo: 400, key: "marco", value: "oro" },
@@ -53,7 +63,7 @@ function cosActivo(id) {
   const eq = eqCos();
   if (it.key === "celebra") return !eq.celebraOff.includes(id);
   if (it.key === "sonidos") return eq.sonidos !== false;
-  if (it.key === "plantilla" || it.key === "album" || it.key === "acuario") return true;
+  if (it.key === "plantilla" || it.key === "album" || it.key === "acuario" || it.key === "alcancia") return true;
   return eq[it.key] === it.value;
 }
 /* Equipar / quitar (lo llama equipItem de recompensas.js) */
@@ -61,7 +71,7 @@ function equipCosmetico(it) {
   const eq = eqCos();
   if (it.key === "celebra") eq.celebraOff = eq.celebraOff.includes(it.id) ? eq.celebraOff.filter(x => x !== it.id) : eq.celebraOff.concat(it.id);
   else if (it.key === "sonidos") { eq.sonidos = eq.sonidos === false; if (eq.sonidos) sonar("check"); }
-  else if (it.key === "marco" || it.key === "check" || it.key === "agua" || it.key === "sabor") eq[it.key] = eq[it.key] === it.value ? null : it.value;
+  else if (it.key === "marco" || it.key === "check" || it.key === "agua" || it.key === "sabor" || it.key === "moneda") eq[it.key] = eq[it.key] === it.value ? null : it.value;
 }
 
 /* Aplica marco y estilo de check (se llama desde applyCosmetics) */
@@ -167,6 +177,7 @@ function cosmeticoCard(it) {
   else if (it.key === "plantilla") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígela al compartir tu mes</div>`;
   else if (it.key === "album") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígelo en tu álbum del mes</div>`;
   else if (it.key === "acuario") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Lo ves en Salud y en tu cierre de mes</div>`;
+  else if (it.key === "alcancia") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígelo al crear o editar una alcancía (Finanzas)</div>`;
   else pie = `<button class="btn ${activo ? "btn--soft" : "btn--cian"} btn-block" data-action="cos-equip" data-id="${it.id}">${activo ? (it.key === "celebra" || it.key === "sonidos" ? "✓ Activo — apagar" : "✓ Equipado — quitar") : (it.key === "celebra" || it.key === "sonidos" ? "Activar" : "Equipar")}</button>`;
   const vista = it.key === "marco" ? `<div class="account__avatar marco marco--${it.value}" style="margin:0 auto 8px">${typeof avatarActualHtml === "function" ? avatarActualHtml((((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()) : escapeHtml(((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()}</div>`
     : `<span style="font-size:24px">${it.icon}</span>`;
@@ -174,6 +185,7 @@ function cosmeticoCard(it) {
     ${it.key === "marco" ? `<div style="text-align:center">${vista}</div>` : ""}
     ${it.key === "album" && typeof albumMuestraHtml === "function" ? `<div class="alb-muestra">${albumMuestraHtml(it.value)}</div>` : ""}
     ${(it.key === "agua" || it.key === "sabor" || it.key === "acuario") && typeof aguaMuestraHtml === "function" ? `<div class="agua-muestra${it.key === "acuario" ? " agua-muestra--ancha" : ""}">${aguaMuestraHtml(it)}</div>` : ""}
+    ${(it.key === "alcancia" || it.key === "moneda") && typeof alcMuestraHtml === "function" ? `<div class="alc-muestra">${alcMuestraHtml(it)}</div>` : ""}
     <div class="row" style="gap:10px">${it.key === "marco" ? "" : vista}
       <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${it.nombre}${it.animado ? ' <span class="chip">animado</span>' : ""}</div>
         <div class="text-xs muted">${owned ? "Desbloqueado" : it.rango ? "Por rango" : it.costo + " ⭐"}${it.cuando ? " · " + it.cuando : ""}</div></div></div>

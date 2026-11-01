@@ -886,6 +886,23 @@ function aguaMerge(l, s) {
   const clima = nuevo.clima && typeof nuevo.clima === "object" ? { on: !!nuevo.clima.on, ciudad: String(nuevo.clima.ciudad || ""), lat: +nuevo.clima.lat, lon: +nuevo.clima.lon } : null;
   return { meta: +nuevo.meta || 0, vaso: +nuevo.vaso || 250, inicio: nuevo.inicio !== false, fab: nuevo.fab !== false, clima, ts: Math.max(l.ts || 0, s.ts || 0), dias };
 }
+/* Las alcancías en dos equipos: cada una por id; nombre, meta, fecha, estilo y destino, del ts más nuevo; los aportes se juntan
+   por id y lo deshecho no vuelve; cerrada en cualquiera de los dos queda cerrada; las borradas no reviven. Ocultar, del más nuevo */
+function alcMerge(l, s) {
+  l = l || {}; s = s || {};
+  const borradas = Array.from(new Set([...(l.borradas || []), ...(s.borradas || [])])), fuera = new Set(borradas), map = new Map();
+  [...(s.lista || []), ...(l.lista || [])].forEach(a => {
+    if (!a || !a.id || fuera.has(a.id)) return;
+    const o = map.get(a.id); if (!o) { map.set(a.id, JSON.parse(JSON.stringify(a))); return; }
+    const nuevo = (a.ts || 0) >= (o.ts || 0) ? a : o, ap = new Map();
+    [...(o.aportes || []), ...(a.aportes || [])].forEach(x => { if (x && x.id) ap.set(x.id, Object.assign({}, x)); });
+    map.set(a.id, Object.assign(JSON.parse(JSON.stringify(nuevo)), {
+      aportes: [...ap.values()].sort((x, y) => (x.ts || 0) - (y.ts || 0)), b: Array.from(new Set([...(o.b || []), ...(a.b || [])])),
+      cerrada: Math.max(+o.cerrada || 0, +a.cerrada || 0), creada: Math.min(+o.creada || +a.creada || 0, +a.creada || +o.creada || 0), ts: Math.max(o.ts || 0, a.ts || 0) }));
+  });
+  const nuevo = (l.ts || 0) >= (s.ts || 0) ? l : s;
+  return { lista: [...map.values()].sort((x, y) => (x.creada || 0) - (y.creada || 0)), borradas, ocultar: !!nuevo.ocultar, ts: Math.max(l.ts || 0, s.ts || 0) };
+}
 function mergeStates(server, local) {
   if (!server) return local;
   if (!local) return server;
@@ -1003,6 +1020,7 @@ function mergeStates(server, local) {
   // album (álbum del mes): por mes; las fotos por id (gana ts), las borradas no reviven; estilo y portada, el ts del mes
   if (local.album || server.album) out.album = albumMerge(local.album, server.album);
   if (local.agua || server.agua) out.agua = aguaMerge(local.agua, server.agua);
+  if (local.alcancias || server.alcancias) out.alcancias = alcMerge(local.alcancias, server.alcancias);
 
   // eventos: dict por fecha -> unión de arrays de texto
   out.eventos = {};

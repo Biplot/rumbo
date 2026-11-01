@@ -131,6 +131,7 @@ const LOGROS = [
   { id: "buen-amigo", icon: "🤝", nombre: "Buen Amigo", desc: "Ponte al día con 10 personas de Relaciones en un mes", reward: 100, check: lg_buenAmigo },
   { id: "embajador", icon: "📤", nombre: "Embajador", desc: "Comparte tu mes o tu álbum 3 veces", reward: 100, check: s => lg_compartidos(s) >= 3 },
   { id: "en-equipo", icon: "🤝", nombre: "En Equipo", desc: "Logra un objetivo en conjunto con tus amigos", reward: 150, check: s => lg_juntos(s) >= 1 },
+  { id: "primera-alcancia", icon: "🐷", nombre: "Primera alcancía", desc: "Llena tu primera alcancía en Finanzas", reward: 60, check: s => typeof alcCumplidas === "function" && alcCumplidas(s) >= 1 },
   // Secretas: se ven como ??? hasta ganarlas
   { id: "buho", icon: "🦉", nombre: "Búho", desc: "Cerraste tu día entre las 23:55 y las 23:59", reward: 77, secreta: true, check: lg_buho },
   { id: "aniversario", icon: "🎂", nombre: "Aniversario", desc: "Cumpliste un año usando Rumbo", reward: 365, secreta: true, check: lg_aniversario },

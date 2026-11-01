@@ -139,6 +139,10 @@ function defaultState() {
     // ts (de los ajustes) y dias: { "YYYY-MM-DD": { r: [{ id, ml, ts }], b: [id borrados], p (+10 ⭐ dado), h (marcó el hábito), c (°C máxima) } };
     // pasados 14 días, un día queda solo con su total: { ml }
     agua: { meta: 0, vaso: 250, inicio: true, fab: true, clima: null, ts: 0, dias: {} },
+    // tus alcancías (alcancias.js): lista: [{ id, nombre, meta, fecha, estilo, destino, creada, cerrada (ts al cerrarla), ts (de lo editado),
+    // aportes: [{ id, monto, ts, fecha, o ("cierre:YYYY-MM" si vino del cierre de mes) }], b: [ids de aportes deshechos] }],
+    // borradas: [ids], ocultar (solo porcentajes) y ts (de ocultar)
+    alcancias: { lista: [], borradas: [], ocultar: false, ts: 0 },
 
     // metas, finanzas, salud y rueda de los años distintos al año base (ver anios.js)
     anios: {},
@@ -249,6 +253,8 @@ function migrate(s) {
   if (!s.agua || typeof s.agua !== "object" || !s.agua.dias || typeof s.agua.dias !== "object") s.agua = { meta: 0, vaso: 250, inicio: true, fab: true, clima: null, ts: 0, dias: {} };   // v111 · agua para todos
   if (s.agua.fab === undefined) s.agua.fab = true;   // v112 · el botón de agua y los días de calor
   if (s.agua.clima === undefined) s.agua.clima = null;
+  if (!s.alcancias || typeof s.alcancias !== "object" || !Array.isArray(s.alcancias.lista)) s.alcancias = { lista: [], borradas: [], ocultar: false, ts: 0 };   // v113 · tus alcancías
+  if (!Array.isArray(s.alcancias.borradas)) s.alcancias.borradas = [];
   if (!Array.isArray(s.postits)) s.postits = [];
   const yaNota = new Set(s.postits.map(n => n.id));
   const slugCat = t => String(t || "").trim().toLowerCase().replace(/^#/, "").replace(/\s+/g, "-").slice(0, 30);

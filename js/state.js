@@ -146,6 +146,9 @@ function defaultState() {
     // tus deseos (deseos.js): lista: [{ id, nombre, precio, link, creado (YYYY-MM-DD), listo (saltó la espera), alc (su alcancía), capricho, orden,
     // soltado (YYYY-MM-DD), tengo: { pagado, fecha, gasto } | null, ts }], borrados: [ids], espera (7 días; 30 sobre $300.000) y ts (de espera)
     deseos: { lista: [], borrados: [], espera: true, ts: 0 },
+    // tu jardín (jardin.js): macetas (los hábitos que elegiste formar, hasta 3), inicio (se ve en Inicio),
+    // raices: { idHábito: "YYYY-MM-DD" } (el día que se celebró que echó raíces) y ts (de lo que elegiste). El estilo, en gamif.equipped.jardin
+    jardin: { macetas: [], inicio: true, raices: {}, ts: 0 },
 
     // metas, finanzas, salud y rueda de los años distintos al año base (ver anios.js)
     anios: {},
@@ -260,6 +263,9 @@ function migrate(s) {
   if (!Array.isArray(s.alcancias.borradas)) s.alcancias.borradas = [];
   if (!s.deseos || typeof s.deseos !== "object" || !Array.isArray(s.deseos.lista)) s.deseos = { lista: [], borrados: [], espera: true, ts: 0 };   // v114 · tus deseos
   if (!Array.isArray(s.deseos.borrados)) s.deseos.borrados = [];
+  if (!s.jardin || typeof s.jardin !== "object") s.jardin = { macetas: [], inicio: true, raices: {}, ts: 0 };   // v115 · tu jardín
+  if (!Array.isArray(s.jardin.macetas)) s.jardin.macetas = [];
+  if (!s.jardin.raices || typeof s.jardin.raices !== "object") s.jardin.raices = {};
   // Las listas de deseos de antes (Listas) pasan a Tus deseos: cada ítem, un deseo sin espera (id fijo: idempotente, y lo que
   // un equipo viejo agregue después también pasa); los conseguidos quedan en «Lo tienes». La lista queda marcada (migrada) y no se borra.
   ((s.vida && s.vida.listas) || []).forEach(l => {

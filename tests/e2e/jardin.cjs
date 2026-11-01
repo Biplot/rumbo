@@ -84,5 +84,21 @@ module.exports = async ({ b, ok, errs }) => {
   await p.evaluate(() => closeModal()); await p.waitForTimeout(200);
   ok(await p.locator('.jar-card canvas[data-jardin="entrada"]').count() === 1, "en la hoja se vuelve a la entrada (lo comprado queda para elegirlo)");
   ok(await p.evaluate(() => document.documentElement.scrollWidth) <= 390, "sin scroll horizontal en el celular");
+
+  // 8) Temas especiales: Marte y la base lunar, 1.200 ⭐ cada uno
+  await p.evaluate(() => { closeModal(); TIENDA_SEC = "estilo"; go("recompensas"); rerender(); }); await p.waitForTimeout(600);
+  const especiales = await p.evaluate(() => tiendaItems().filter(i => i.sub === "especiales").map(i => i.nombre + " " + i.costo).join(" · "));
+  ok(especiales === "Jardín: Marte 1200 · Jardín: la base lunar 1200" && /Jardín: Marte[\s\S]*1200/.test(await p.locator("#view").innerText()), "Tienda › Temas especiales: Marte y la base lunar, a 1.200 ⭐ cada uno (si te alcanza, suben a «Te alcanza»)");
+  await p.evaluate(() => { ledgerRegistrar(STATE, "regalo-espacio", 3000, 0, "prueba"); saveState(); rerender(); }); await p.waitForTimeout(500);
+  await p.locator(".ficha").filter({ hasText: "base lunar" }).first().click(); await p.waitForTimeout(500);
+  await p.locator('#modal [data-action="cos-buy"]').click(); await p.waitForTimeout(500);
+  await habitos();
+  const luna = p.locator('.jar-card canvas[data-jardin="luna"][data-listo]');
+  ok(await luna.count() === 1 && (await luna.evaluate(c => c.getContext("2d").getImageData(c.width - 30, 30, 1, 1).data[3])) > 0, "comprarla pone la base lunar en tu jardín, dibujada");
+  await shot(p, "jardin-luna");
+  await p.evaluate(() => { const f = findCosmetic("jar-marte"); ledgerComprar(STATE, f.id, f.costo); eqCos().jardin = "marte"; saveState(); rerender(); }); await p.waitForTimeout(400);
+  await p.locator('.hb-today[data-id="meditar"]').click(); await p.waitForTimeout(300); await p.locator('.hb-today[data-id="meditar"]').click(); await p.waitForTimeout(700);
+  ok(await p.locator('.jar-card canvas[data-jardin="marte"][data-listo]').count() === 1, "Marte también: el jardín se dibuja y riega al marcar un hábito");
+  await shot(p, "jardin-marte");
   await ctx.close();
 };

@@ -153,7 +153,7 @@ function cfgTriageSemana(lunes) {
 let SEM_WIZ = null;   // { tipo, lunes, paso, draft, siguiente }
 const SEM_PASOS = {
   cierre: ["Prioridades", "Números", "Pendientes", "Reflexión", "Nota"],
-  apertura: ["Mirada atrás", "Foco y prioridades", "Tus días", "Premio y hábitos"],
+  apertura: ["Mirada atrás", "Foco y prioridades", "Tus días", "Descansos", "Premio y hábitos"],
 };
 
 function openSemanaRitual(cierre, apertura) {
@@ -284,6 +284,7 @@ function semAperturaPaso(w) {
       <p class="text-xs muted" style="margin-bottom:6px">${cap ? `Tu capacidad real: en promedio completas <b>${String(cap.hechasProm).replace(".", ",")}</b> tareas por día. Deja espacio para lo imprevisto.` : "Reparte tus tareas en los días. Menos es más: deja espacio para lo imprevisto."}</p>
       ${dias}`;
   }
+  if (w.paso === 3) return dscRitualHtml(w.lunes);   // ¿qué días vas a descansar? (descansos.js)
   const activos = STATE.habitos.defs.filter(hmActivo);
   return `<div class="field"><label>🏆 Tu premio de la semana</label>
       <input class="input" id="sw-premio" value="${escapeAttr(d.premio)}" placeholder="¿Con qué te vas a premiar al cumplir tus prioridades?"></div>
@@ -353,7 +354,7 @@ function semWizLeer() {
       }));
     }
     if (w.paso === 2) for (let i = 0; i < 7; i++) if (el("sw-amb-" + i)) d.ambDia[i] = val("sw-amb-" + i);
-    if (w.paso === 3 && el("sw-premio")) {
+    if (w.paso === 4 && el("sw-premio")) {
       d.premio = val("sw-premio");
       d.habitosFoco = Array.from(document.querySelectorAll(".sw-hab:checked")).map(x => x.value).slice(0, 3);
     }

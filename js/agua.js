@@ -134,7 +134,8 @@ function aguaRevisar(fecha) {
     d.p = true; saveState();
     registrarMovimiento(mov, AGUA_PREMIO, AGUA_PREMIO, "Meta de agua", true);
     toast(`💧 ¡Meta de agua cumplida! +${AGUA_PREMIO} ⭐${typeof isOwned === "function" && isOwned("agua-acuario") ? " · llegó un pez a tu acuario" : ""}`);
-    if (h && !habitDone(h.id, m - 1, dd, y) && (typeof tocaHoy !== "function" || tocaHoy(h))) { d.h = true; saveState(); toggleHabitDate(h.id, y, m - 1, dd); return; }
+    // Marca el hábito «Agua» si tocaba hoy (o si descansaba y igual llegaste: cuenta como siempre)
+    if (h && !habitDone(h.id, m - 1, dd, y) && (typeof tocaHoy !== "function" || tocaHoy(h) || (typeof hmDescanso === "function" && hmDescanso(h, fecha)))) { d.h = true; saveState(); toggleHabitDate(h.id, y, m - 1, dd); return; }
   } else if (total < meta && d.p) {
     d.p = false; saveState(); anularMovimiento(mov);
     if (d.h) { d.h = false; saveState(); if (h && habitDone(h.id, m - 1, dd, y)) { toggleHabitDate(h.id, y, m - 1, dd); return; } }

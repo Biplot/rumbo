@@ -275,6 +275,7 @@ function deseosAccion(a, d) {
   }
   if (a === "des-saltar") { const x = deseoPorId(d.id); if (!x) return; x.listo = true; deseoTocar(x); return deseosRefrescar(); }
   if (a === "des-ahorrar" || a === "des-capricho") {
+    const x = deseoPorId(d.id); if (x && !(x.precio > 0)) { toast("Primero ponle un precio", true); return openDeseoEditar(d.id); }
     const al = deseoAhorrar(d.id, a === "des-capricho"); if (!al) return;
     deseosRefrescar();
     toast(a === "des-capricho" ? "🐷 A tus caprichos: la alcancía marca cuál ya te alcanza" : `🐷 «${al.nombre}» ya tiene su alcancía`);

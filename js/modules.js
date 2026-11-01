@@ -66,7 +66,9 @@ function renderFinanzas() {
       <div class="text-sm muted">de ${fmtCLP(fy.metaAnual)}</div>
     </div>
     <div class="bar mt-16"><div class="bar__fill" style="width:${pctAnual}%"></div></div>
+    ${typeof alcTorreHtml === "function" ? alcTorreHtml() : ""}
   </div>
+  ${typeof alcFinanzasHtml === "function" ? alcFinanzasHtml() : ""}
 
   <div class="grid grid-2 mt-24">
     <div class="card">

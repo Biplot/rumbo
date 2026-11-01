@@ -301,7 +301,8 @@ function mesCierrePaso(w) {
         <input class="input mt-8" id="mc-n-${o.id}" value="${escapeAttr(e.nota)}" placeholder="Nota breve (opcional)"></div>`;
     }).join("");
   }
-  if (w.paso === 1) return resumenMesHtml(resumenMes(w.y, w.m)) + (typeof aguaAcuarioHtml === "function" ? aguaAcuarioHtml(w.y, w.m, true) : "");   // 🐠 el acuario del mes (agua.js)
+  if (w.paso === 1) return resumenMesHtml(resumenMes(w.y, w.m)) + (typeof alcRepartoHtml === "function" ? alcRepartoHtml(w.y, w.m) : "")   // 🐷 repartir el ahorro en tus alcancías (alcancias.js)
+    + (typeof aguaAcuarioHtml === "function" ? aguaAcuarioHtml(w.y, w.m, true) : "");   // 🐠 el acuario del mes (agua.js)
   if (w.paso === 2) {
     return STATE.rueda.areas.map((a, i) => `<div class="field"><label>${escapeHtml(a)}: <b id="mc-rl-${i}">${d.rueda[i]}</b>/10</label>
       <input type="range" min="0" max="10" step="1" id="mc-r-${i}" value="${d.rueda[i]}" style="width:100%;accent-color:var(--cian)"

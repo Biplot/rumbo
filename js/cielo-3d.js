@@ -50,6 +50,7 @@ function crearMotorCielo(T, D) {
   for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i / 10 * 6.283; FIG.vida.p.push([Math.cos(a) * 0.66, -0.17 + Math.sin(a) * 0.66]); FIG.vida.l.push([4 + i, 4 + (i + 1) % 10]); }
   FIG.vida.l.push([1, 4], [3, 4]);
   FIG.vida.p.push([0, -0.17]);   // En Equipo, en el centro de La Medalla
+  FIG.vida.p.push([0, 1.14]); FIG.vida.l.push([0, 15], [2, 15]);   // Primera alcancía: el broche de la cinta
   const SECRETAS = { buho: [0.27, 0.56], aniversario: [-0.24, 0.42], "anio-nuevo": [0.86, 0.6], remontada: [-0.2, 0.86] };   // en los huecos entre figuras
 
   /* -------- Utilidades -------- */

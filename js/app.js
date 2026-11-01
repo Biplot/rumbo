@@ -158,7 +158,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 51;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 52;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -463,6 +463,11 @@ const NOVEDADES = {
     ["🪙", "La torre del año", "Arriba en Finanzas, tus meses en pilas de monedas (ingreso menos gasto), con la línea de tu meta del mes. Toca un mes para ver cuánto guardaste."],
     ["⭐", "Ahorrar se premia", "Llenar una alcancía da +50 ⭐ y la medalla «Primera alcancía»; guardar algo cada semana durante 4 semanas, +20 ⭐. Y al cerrar el mes, repartes lo que ahorraste entre tus alcancías con un toque."],
     ["🛍", "Más alcancías en la Tienda", "El elefante de la suerte, que se baña en oro; el elefante de greda; el chanchito de vidrio, el frasco, la caja fuerte y el viaje. Y monedas de plata, cobre y estrella. Con «Ocultar montos» se ven solo los porcentajes."],
+  ],
+  52: [
+    ["💎", "Tus deseos, en Finanzas", "Anota lo que te gustaría comprarte, con su precio. Después de 7 días (30 si es caro) Rumbo te pregunta si todavía lo quieres; si sí, «Ahorrar para esto» le arma su alcancía, y «Lo compré» rompe el chanchito y anota cuánto pagaste."],
+    ["🌱", "Lo que no gastaste", "Si ya no lo quieres, suéltalo: su precio suma a «Lo que no gastaste este año». Tus listas de deseos de antes se mudaron solas a Finanzas."],
+    ["🐷", "Mis caprichos", "Para los deseos chicos, una sola alcancía en orden: marca cuál ya te alcanza. Usa «A mis caprichos» en cualquier deseo."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1025,6 +1030,7 @@ function onClick(e) {
   if (a.startsWith("alb-")) { albumAccion(a, d); return; }         // 📷 álbum del mes (album.js)
   if (a.startsWith("agua-")) { aguaAccion(a, d, el); return; }     // 💧 agua para todos (agua.js)
   if (a.startsWith("alc-")) { alcAccion(a, d, el); return; }       // 🐷 tus alcancías (alcancias.js)
+  if (a.startsWith("des-")) { deseosAccion(a, d); return; }        // 💎 tus deseos (deseos.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;

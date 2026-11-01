@@ -143,6 +143,9 @@ function defaultState() {
     // aportes: [{ id, monto, ts, fecha, o ("cierre:YYYY-MM" si vino del cierre de mes) }], b: [ids de aportes deshechos] }],
     // borradas: [ids], ocultar (solo porcentajes) y ts (de ocultar)
     alcancias: { lista: [], borradas: [], ocultar: false, ts: 0 },
+    // tus deseos (deseos.js): lista: [{ id, nombre, precio, link, creado (YYYY-MM-DD), listo (saltó la espera), alc (su alcancía), capricho, orden,
+    // soltado (YYYY-MM-DD), tengo: { pagado, fecha, gasto } | null, ts }], borrados: [ids], espera (7 días; 30 sobre $300.000) y ts (de espera)
+    deseos: { lista: [], borrados: [], espera: true, ts: 0 },
 
     // metas, finanzas, salud y rueda de los años distintos al año base (ver anios.js)
     anios: {},
@@ -255,6 +258,18 @@ function migrate(s) {
   if (s.agua.clima === undefined) s.agua.clima = null;
   if (!s.alcancias || typeof s.alcancias !== "object" || !Array.isArray(s.alcancias.lista)) s.alcancias = { lista: [], borradas: [], ocultar: false, ts: 0 };   // v113 · tus alcancías
   if (!Array.isArray(s.alcancias.borradas)) s.alcancias.borradas = [];
+  if (!s.deseos || typeof s.deseos !== "object" || !Array.isArray(s.deseos.lista)) s.deseos = { lista: [], borrados: [], espera: true, ts: 0 };   // v114 · tus deseos
+  if (!Array.isArray(s.deseos.borrados)) s.deseos.borrados = [];
+  // Las listas de deseos de antes (Listas) pasan a Tus deseos: cada ítem, un deseo sin espera (id fijo: idempotente, y lo que
+  // un equipo viejo agregue después también pasa); los conseguidos quedan en «Lo tienes». La lista queda marcada (migrada) y no se borra.
+  ((s.vida && s.vida.listas) || []).forEach(l => {
+    if (!l || l.tipo !== "deseos") return;
+    const ya = new Set([...s.deseos.lista.map(d => d && d.id), ...s.deseos.borrados]);
+    (l.items || []).forEach(it => { if (!it || !it.id || ya.has("ld-" + it.id)) return;
+      s.deseos.lista.push({ id: "ld-" + it.id, nombre: String(it.txt || "Deseo").slice(0, 40), precio: Math.max(0, Math.round(+it.costo || 0)), link: "", creado: "", listo: true, alc: "", capricho: false, orden: 0, soltado: "",
+        tengo: it.done ? { pagado: Math.max(0, Math.round(+it.costo || 0)), fecha: "", gasto: false } : null, ts: 1 }); });
+    if (!l.migrada) l.migrada = 1;
+  });
   if (!Array.isArray(s.postits)) s.postits = [];
   const yaNota = new Set(s.postits.map(n => n.id));
   const slugCat = t => String(t || "").trim().toLowerCase().replace(/^#/, "").replace(/\s+/g, "-").slice(0, 30);

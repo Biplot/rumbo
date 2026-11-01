@@ -98,7 +98,7 @@ function alcAportar(id, monto, origen, S, fecha) {
 }
 function alcDeshacerAporte(id, aporteId, S) {
   const a = alcPorId(id, S); if (!a || a.cerrada) return null;
-  const xs = alcAportes(a), x = aporteId ? xs.find(y => y.id === aporteId) : xs[xs.length - 1]; if (!x) return null;
+  const xs = alcAportes(a).filter(y => !String(y.o || "").startsWith("compra:")), x = aporteId ? xs.find(y => y.id === aporteId) : xs[xs.length - 1]; if (!x) return null;
   a.b = a.b || []; a.b.push(x.id); return x;
 }
 
@@ -112,7 +112,7 @@ function alcRevisar(id) {
       if (STATE.gamif.equipped && STATE.gamif.equipped.confeti && typeof launchConfetti === "function") launchConfetti();
       if (typeof checkBadges === "function") setTimeout(checkBadges, 1200);
     }
-  } else if (!llena && !a.cerrada && ledgerVigente(STATE, mov)) anularMovimiento(mov);
+  } else if (!llena && !a.cerrada && !a.caprichos && ledgerVigente(STATE, mov)) anularMovimiento(mov);
   if (alcEstiloVer(a) === "viaje") [25, 50, 75].forEach(p => {
     const m = `alc-parada:${a.id}:${p}`, pasa = alcFrac(a) * 100 >= p;
     if (pasa && !ledgerVigente(STATE, m)) { if (registrarMovimiento(m, ALC_PARADA, ALC_PARADA, `Parada del ${p} %: ${a.nombre}`, true) && !llena) toast(`🚌 Parada del ${p} %: +${ALC_PARADA} ⭐`); }
@@ -182,7 +182,8 @@ function alcMontoTxt(a) {
 }
 function alcTexto(a) {
   const g = alcGuardado(a), falta = Math.max(0, a.meta - g), oculto = alcOculto(), ver = alcEstiloVer(a);
-  if (alcLlena(a)) return `¡Meta cumplida! +${ALC_PREMIO} ⭐${g > a.meta && !oculto ? ` · ${fmtCLP(g - a.meta)} de más` : ""}`;
+  if (a.caprichos && !(a.meta > 0)) return "Suma deseos chicos desde Tus deseos con «A mis caprichos»";
+  if (alcLlena(a)) return a.caprichos ? "¡Te alcanza para todos tus caprichos!" : `¡Meta cumplida! +${ALC_PREMIO} ⭐${g > a.meta && !oculto ? ` · ${fmtCLP(g - a.meta)} de más` : ""}`;
   if (ver === "caja" && !oculto) return "El monto se ve al abrirla";
   const pm = alcPorMes(a);
   const partes = [oculto ? `${Math.round(alcFrac(a) * 100)}%` : `Faltan ${fmtCLP(falta)}`];
@@ -195,16 +196,18 @@ function alcBotonesHtml(a) {
   return `<div class="alc__btns">${rap.map((v, i) => `<button type="button" class="btn ${i ? "btn--soft" : "btn--cian"}" data-action="alc-sumar" data-id="${id}" data-monto="${v}">+ ${fmtCLP(v)}</button>`).join("")}
       <button type="button" class="btn btn--soft" data-action="alc-otro" data-id="${id}">Otro</button></div>
     <div class="alc__pie"><button type="button" class="btn-link" data-action="alc-deshacer" data-id="${id}" data-alc-deshacer ${n ? "" : "hidden"}>Deshacer el último</button>
-      <button type="button" class="btn btn--primary alc__cerrar" data-action="alc-cerrar" data-id="${id}" data-alc-cerrar ${llena ? "" : "hidden"}>${rompe ? "Romper el chanchito" : "Cerrar la alcancía"}</button></div>`;
+      ${a.caprichos ? "" : a.deseo ? `<button type="button" class="btn btn--primary alc__cerrar" data-action="des-comprar" data-id="${escapeAttr(a.deseo)}" data-alc-cerrar ${llena ? "" : "hidden"}>Lo compré</button>`
+        : `<button type="button" class="btn btn--primary alc__cerrar" data-action="alc-cerrar" data-id="${id}" data-alc-cerrar ${llena ? "" : "hidden"}>${rompe ? "Romper el chanchito" : "Cerrar la alcancía"}</button>`}</div>`;
 }
 function alcCardHtml(a) {
   const ver = alcEstiloVer(a), e = alcEstiloDe(ver), pct = Math.round(Math.min(1, alcFrac(a)) * 100), id = escapeAttr(a.id);
   return `<article class="alc${alcLlena(a) ? " is-llena" : ""}" data-alc-card="${id}">
-    <div class="alc__cab"><b>${escapeHtml(a.nombre)}</b><button type="button" class="icon-btn" data-action="alc-editar" data-id="${id}" aria-label="Editar ${escapeAttr(a.nombre)}">✎</button></div>
+    <div class="alc__cab"><b>${escapeHtml(a.nombre)}</b>${a.deseo ? `<span class="chip alc__chip">💎 Deseo</span>` : a.caprichos ? `<span class="chip alc__chip">💎 Caprichos</span>` : ""}<button type="button" class="icon-btn" data-action="alc-editar" data-id="${id}" aria-label="Editar ${escapeAttr(a.nombre)}">✎</button></div>
     <canvas class="alc-cv" data-alc="${ver}" data-id="${id}" style="aspect-ratio:260/220" role="img" aria-label="${escapeAttr(e.nombre)}: ${escapeAttr(a.nombre)}, ${pct}%"></canvas>
     <div class="alc__estado"><div class="alc__t"><span data-alc-monto>${alcMontoTxt(a)}</span><b data-alc-pct>${pct}%</b></div>
       <div class="bar"><div class="bar__fill" data-alc-barra style="width:${pct}%"></div></div>
       <small class="text-xs muted" data-alc-txt>${escapeHtml(alcTexto(a))}</small></div>
+    ${a.caprichos && typeof deseosEscaleraHtml === "function" ? `<div data-alc-escalera>${deseosEscaleraHtml(a)}</div>` : ""}
     ${alcBotonesHtml(a)}
   </article>`;
 }
@@ -253,7 +256,9 @@ function alcPintar(id, delta) {
     if (q("[data-alc-txt]")) q("[data-alc-txt]").textContent = alcTexto(a);
     if (q("[data-alc-deshacer]")) q("[data-alc-deshacer]").hidden = !n;
     if (q("[data-alc-cerrar]")) q("[data-alc-cerrar]").hidden = !llena;
+    if (q("[data-alc-escalera]") && typeof deseosEscaleraHtml === "function") q("[data-alc-escalera]").innerHTML = deseosEscaleraHtml(a);
   });
+  if (document.getElementById("deseos") && typeof deseosHtml === "function" && (a.deseo || a.caprichos)) { const v = document.createElement("div"); v.innerHTML = iconizar(deseosHtml()); document.getElementById("deseos").replaceWith(v.firstElementChild); }
   if (delta && typeof ALC_MOTOR !== "undefined") ALC_MOTOR.cambio(id, delta);
 }
 function alcSumar(id, monto) {
@@ -292,16 +297,17 @@ function alcHojaHtml() {
   return `<div class="alc-hoja" id="alc-hoja">
     <div class="field"><label for="alc-nombre">¿Para qué ahorras?</label><input class="input" id="alc-nombre" maxlength="40" value="${escapeAttr(d.nombre || "")}" placeholder="Ej: Viaje al sur"></div>
     <div class="grid grid-2 alc-hoja__2">
-      <div class="field"><label for="alc-meta">Tu meta ($)</label><input class="input" id="alc-meta" type="text" inputmode="numeric" value="${d.meta ? d.meta : ""}" placeholder="Ej: 600.000"></div>
+      <div class="field"><label for="alc-meta">Tu meta ($)</label>${a && (a.deseo || a.caprichos) ? `<input class="input" id="alc-meta-fija" value="${fmtCLP(a.meta)}" disabled><small class="text-xs muted">${a.caprichos ? "Es la suma de tus caprichos." : "Sale del precio del deseo (cámbialo en Tus deseos)."}</small>`
+        : `<input class="input" id="alc-meta" type="text" inputmode="numeric" value="${d.meta ? d.meta : ""}" placeholder="Ej: 600.000">`}</div>
       <div class="field"><label for="alc-fecha">Para cuándo (opcional)</label><input class="input" id="alc-fecha" type="date" value="${escapeAttr(d.fecha || "")}"></div>
     </div>
     <div class="field"><label>Estilo</label>${alcEstilosChipsHtml(d.estilo)}</div>
     ${d.estilo === "viaje" ? `<div class="field"><label for="alc-destino">Tu destino (el letrero del final)</label><input class="input" id="alc-destino" maxlength="22" value="${escapeAttr(d.destino || "")}" placeholder="Ej: Puerto Varas"></div>` : ""}
     <button type="button" class="btn btn--primary btn-block" data-action="alc-guardar">${a ? "Guardar cambios" : "Crear la alcancía"}</button>
     ${a ? `<div class="agua-sec"><span class="cj-sub">Lo que guardaste</span>
-      ${aportes.length ? `<div class="agua-lista">${aportes.map(x => `<div class="agua-reg"><span>${alcFechaTxt(x.fecha)}${x.o ? " · cierre de mes" : ""}</span><b>${fmtCLP(x.monto)}</b>
-        <button class="icon-btn" data-action="alc-quitar" data-id="${escapeAttr(a.id)}" data-ap="${escapeAttr(x.id)}" aria-label="Quitar ${fmtCLP(x.monto)}">✕</button></div>`).join("")}</div>` : `<p class="text-sm muted" style="margin:0">Aún no guardas nada en esta alcancía.</p>`}</div>
-      <div class="alc-hoja__fin"><button type="button" class="btn-link" data-action="alc-cerrar" data-id="${escapeAttr(a.id)}">Cerrar la alcancía</button>
+      ${aportes.length ? `<div class="agua-lista">${aportes.map(x => `<div class="agua-reg"><span>${alcFechaTxt(x.fecha)}${String(x.o || "").startsWith("cierre:") ? " · cierre de mes" : String(x.o || "").startsWith("compra:") ? " · compraste" : String(x.o || "").startsWith("sobra:") ? " · lo que sobró" : ""}</span><b>${fmtCLP(x.monto)}</b>
+        ${String(x.o || "").startsWith("compra:") ? "<span></span>" : `<button class="icon-btn" data-action="alc-quitar" data-id="${escapeAttr(a.id)}" data-ap="${escapeAttr(x.id)}" aria-label="Quitar ${fmtCLP(x.monto)}">✕</button>`}</div>`).join("")}</div>` : `<p class="text-sm muted" style="margin:0">Aún no guardas nada en esta alcancía.</p>`}</div>
+      <div class="alc-hoja__fin">${a.caprichos ? "<span></span>" : a.deseo ? `<button type="button" class="btn-link" data-action="des-comprar" data-id="${escapeAttr(a.deseo)}">Lo compré</button>` : `<button type="button" class="btn-link" data-action="alc-cerrar" data-id="${escapeAttr(a.id)}">Cerrar la alcancía</button>`}
         <button type="button" class="btn-link alc-borrar" data-action="alc-borrar" data-id="${escapeAttr(a.id)}">Borrar</button></div>` : ""}
   </div>`;
 }
@@ -318,7 +324,9 @@ function alcGuardarHoja() {
   alcLeerBorrador();
   const d = ALC_BORRADOR; if (!d) return;
   if (!String(d.nombre || "").trim()) return toast("Ponle un nombre a tu alcancía", true);
-  if (!(d.meta > 0)) return toast("Ponle una meta (cuánto quieres juntar)", true);
+  const fija = d.id && alcPorId(d.id) && (alcPorId(d.id).deseo || alcPorId(d.id).caprichos);
+  if (fija) d.meta = alcPorId(d.id).meta;
+  if (!(d.meta > 0) && !(fija && alcPorId(d.id).caprichos)) return toast("Ponle una meta (cuánto quieres juntar)", true);
   if (d.id) { alcEditar(d.id, d); alcRevisar(d.id); toast("Alcancía guardada"); }
   else { const a = alcCrear(d); toast(`🐷 «${a.nombre}» lista: toca «+» cuando guardes`); }
   ALC_BORRADOR = null; saveState(); closeModal(); if (typeof rerender === "function") rerender();
@@ -363,6 +371,7 @@ function alcAccion(a, d, el) {
     const D = alcDatos(); D.borradas.push(x.id); D.lista = D.lista.filter(y => y.id !== x.id);
     if (ledgerVigente(STATE, "alc:" + x.id)) anularMovimiento("alc:" + x.id);
     [25, 50, 75].forEach(p => { if (ledgerVigente(STATE, `alc-parada:${x.id}:${p}`)) anularMovimiento(`alc-parada:${x.id}:${p}`); });
+    if (typeof deseosAlcSuelta === "function") deseosAlcSuelta(x.id);
     alcRevisarRacha(); ALC_BORRADOR = null; saveState(); closeModal(); if (typeof rerender === "function") rerender(); return toast("Alcancía borrada");
   }
   if (a === "alc-otra") { const x = alcPorId(d.id); if (!x) return; return openAlcNueva({ nombre: x.nombre, meta: x.meta, estilo: alcEstiloVer(x), destino: x.destino || "" }); }

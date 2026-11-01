@@ -7,7 +7,8 @@
    Cada lienzo canvas[data-jardin="<estilo>"] se monta solo con jardinEscena() (jardin.js);
    data-modo="muestra" dibuja un jardín de ejemplo (la Tienda).
    regar(id): tu elefante riega esa maceta (al marcar el hábito). trasplantar(id): el árbol nuevo brota.
-   Solo se anima lo que se ve, y un rato: después queda quieto y no gasta batería.
+   En las tarjetas queda quieto (no gasta batería): se mueve al regar o trasplantar, en la hoja del jardín y en la
+   muestra de la Tienda (data-vivo), un rato y solo si se ve.
    ============================================================ */
 const JARDIN_MOTOR = (() => {
   if (typeof document === "undefined") return { regar() {}, trasplantar() {}, repintar() {}, montar() {} };
@@ -341,7 +342,8 @@ const JARDIN_MOTOR = (() => {
     if (cv.dataset.listo) return; cv.dataset.listo = "1";
     if (!lienzos.size) colores();
     const [f, W, H] = ESCENAS[cv.dataset.jardin] || ESCENAS.entrada;
-    const L = { cv, ctx: cv.getContext("2d"), f, W, H, e: datosDe(cv), visible: true, hasta: ahora() + (cv.dataset.modo === "muestra" ? 6 : 20) };
+    // Quieto en las tarjetas (no gasta batería); se mueve en la hoja del jardín y en la muestra de la Tienda (data-vivo), y al regar
+    const L = { cv, ctx: cv.getContext("2d"), f, W, H, e: datosDe(cv), visible: true, hasta: cv.dataset.vivo ? ahora() + 30 : 0 };
     if (!L.ctx) return;
     lienzos.add(L); pintar(L, QUIETO ? 0 : ahora());
     if ("IntersectionObserver" in window) { L.io = new IntersectionObserver(es => { L.visible = es[es.length - 1].isIntersecting; if (L.visible) despertar(); }, { rootMargin: "40px" }); L.io.observe(cv); }
@@ -370,6 +372,6 @@ const JARDIN_MOTOR = (() => {
   let espera = null;
   new MutationObserver(() => { if (espera) return; espera = setTimeout(() => { espera = null; lienzos.forEach(L => { if (!L.cv.isConnected) soltar(L); }); document.querySelectorAll("canvas[data-jardin]:not([data-listo])").forEach(montar); }, 20); })
     .observe(document.documentElement, { childList: true, subtree: true });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) { lienzos.forEach(L => { L.hasta = Math.max(L.hasta, ahora() + 8); }); despertar(); } });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { lienzos.forEach(L => { if (L.cv.dataset.vivo) L.hasta = Math.max(L.hasta, ahora() + 8); }); despertar(); } });
   return { montar, regar, trasplantar, repintar };
 })();

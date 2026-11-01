@@ -45,7 +45,7 @@ module.exports = async ({ b, ok, errs }) => {
   await shot(p, "jardin-riego");
 
   // 4) Marcar Leer (día 66): echa raíces, se celebra y su maceta queda libre para Inglés
-  await p.locator('.hb-today[data-id="leer"]').click(); await p.waitForTimeout(1300);
+  await p.locator('.hb-today[data-id="leer"]').click(); await p.waitForSelector("#modal .jar-raices", { timeout: 6000 }).catch(() => {});
   ok(/Echó raíces/.test(await p.locator("#modal").innerText()) && /«Leer» cumplió 66 días/.test(await p.locator("#modal").innerText()), "día 66: «Echó raíces» — tu elefante trasplantó Leer al patio");
   await shot(p, "jardin-raices");
   await p.click('[data-action="jar-cerrar"]'); await p.waitForTimeout(300);

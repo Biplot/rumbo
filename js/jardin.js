@@ -151,7 +151,7 @@ function jardinCelebrar(h) {
   if (typeof openModal !== "function") return toast(`🌳 «${h.nombre}» echó raíces`);
   vibrar([20, 40, 20, 40, 60]);
   openModal("🌳 Echó raíces", `<div class="jar-raices">
-    <canvas class="jar-cv" data-jardin="${escapeAttr(jardinEstilo())}" style="aspect-ratio:${jardinEstiloDe(jardinEstilo()).w}/${jardinEstiloDe(jardinEstilo()).h}" role="img" aria-label="Tu jardín, con el árbol nuevo"></canvas>
+    <canvas class="jar-cv" data-jardin="${escapeAttr(jardinEstilo())}" data-vivo="1" style="aspect-ratio:${jardinEstiloDe(jardinEstilo()).w}/${jardinEstiloDe(jardinEstilo()).h}" role="img" aria-label="Tu jardín, con el árbol nuevo"></canvas>
     <p><b>«${escapeHtml(h.nombre)}»</b> cumplió ${JARDIN_RAICES} días. Tu elefante lo trasplantó al patio: ahora es un árbol, y su maceta quedó libre para un hábito nuevo.</p>
     <p class="text-sm muted">El árbol se queda aunque un día lo dejes: solo pierde las hojas hasta que vuelves.</p>
     <button type="button" class="btn btn--primary btn-block" data-action="jar-cerrar">¡Qué bien!</button>
@@ -189,7 +189,7 @@ function jardinHojaHtml() {
       <div class="jar-item__main"><b>${escapeHtml(a.nombre)}</b><span class="text-xs muted">${a.hojas ? "Echó raíces 🌳" : "Sin hojas por ahora: vuelve a hacerlo y reverdece"}</span></div></div>`;
   const estilos = JARDIN_ESTILOS.filter(x => jardinEstiloTuyo(x.id));
   return `<div class="jar-hoja">
-    ${jardinCanvasHtml()}
+    ${jardinCanvasHtml("jar-cv", 'data-vivo="1"')}
     <p class="jar-lectura">Esta semana: <b>${jardinCieloTxt(e.c)}</b>${e.pct != null ? ` · cumpliste el ${e.pct} % de lo que tocaba` : ""}.</p>
     <div class="agua-sec"><div class="flex-between"><span class="cj-sub">En maceta · los que estás formando</span>${e.formando.length > JARDIN_MACETAS ? `<button type="button" class="btn-link" data-action="jar-macetas">Cambiar</button>` : ""}</div>
       ${e.macetas.length ? e.macetas.map(maceta).join("") : `<p class="text-sm muted" style="margin:0">Todos tus hábitos echaron raíces. Crea uno nuevo y tendrá su maceta.</p>`}
@@ -251,4 +251,4 @@ function jardinAccion(a, d, el) {
 
 /* -------- La Tienda: miniatura de la ficha y muestra grande en el detalle -------- */
 function jardinFichaHtml(it) { const e = jardinEstiloDe(it.value); return `<canvas class="jar-ficha" data-jardin="${escapeAttr(it.value)}" data-modo="muestra" style="aspect-ratio:${e.w}/${e.h}" aria-hidden="true"></canvas>`; }
-function jardinMuestraHtml(it) { const e = jardinEstiloDe(it.value); return `<canvas class="jar-cv" data-jardin="${escapeAttr(it.value)}" data-modo="muestra" style="aspect-ratio:${e.w}/${e.h}" aria-hidden="true"></canvas>`; }
+function jardinMuestraHtml(it) { const e = jardinEstiloDe(it.value); return `<canvas class="jar-cv" data-jardin="${escapeAttr(it.value)}" data-modo="muestra" data-vivo="1" style="aspect-ratio:${e.w}/${e.h}" aria-hidden="true"></canvas>`; }

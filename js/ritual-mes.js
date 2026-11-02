@@ -24,7 +24,8 @@ function ritualMesPendientes(hoy = new Date()) {
   const out = [];
   if (d <= MES_CIERRE_HASTA) {
     const p = mesPrev(y, m), k = mesKey(p.y, p.m);
-    if (!mesCerrado(k)) out.push({ tipo: "cierre", y: p.y, m: p.m, key: k });
+    // Un mes que terminó antes de que existiera la cuenta no se pide cerrar (bienvenida.js)
+    if (!mesCerrado(k) && !(typeof mesAntesDeLaCuenta === "function" && mesAntesDeLaCuenta(p.y, p.m))) out.push({ tipo: "cierre", y: p.y, m: p.m, key: k });
   }
   if (d === daysInMonth(y, m) && !mesCerrado(mesKey(y, m))) out.push({ tipo: "cierre", y, m, key: mesKey(y, m) });
   if (d <= MES_APERTURA_HASTA && !mesAbierto(mesKey(y, m))) out.push({ tipo: "apertura", y, m, key: mesKey(y, m) });

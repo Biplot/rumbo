@@ -130,6 +130,14 @@ El descanso se decide antes, no se compra y tiene tope: es parte del plan, no un
 - **Dónde se ve:** rayitas en Hábitos › Semana, el calendario del mes y Calendario (con «Descansa: …» y «De vacaciones» en el día); «Descansan hoy» en Hábitos › Hoy y en Inicio; el paso «Descansos» del ritual de la semana (Paso 4 de 5, opcional).
 - **Datos:** `STATE.habitos.descansos = [{ id: "d:<hid>:<iso>", hid, fecha, ts, quitado? }]` y `STATE.habitos.vacaciones = [{ id, desde, hasta, habitos: null (todos) | [ids], ts, quitado? }]`. Entre equipos se juntan por id y gana el cambio más nuevo (quitar deja la marca `quitado`). Pruebas: `tests/descansos.test.mjs` y `tests/e2e/descanso.cjs`.
 
+## La primera vez en Rumbo
+Lo que vive quien recién llega (`js/bienvenida.js`, con la ayuda de `js/tutorial.js`). La auditoría que lo motivó: pedía demasiado y explicaba antes de dejar usar.
+- **El día de la cuenta** (`settings.alta`): solo en cuentas nuevas, al empezar la bienvenida (`marcarAlta`). Con él, Rumbo no pide cerrar un mes que terminó antes de la cuenta (`mesAntesDeLaCuenta` en `ritualMesPendientes`). Quien ya usaba la app no tiene alta y todo sigue igual.
+- **Momentos en fila**: el aviso de notificaciones se ofrece al terminar el recorrido (`tourIniciar(id, { alTerminar })`), nunca encima. Con una hoja, el menú Más o el recorrido abiertos, los avisos cortos van arriba (`avisoArriba`).
+- **Ayuda que no interrumpe**: las 3 primeras visitas a una pantalla con recorrido, una franja «Primera vez aquí» lo ofrece (`ayudaFranjaHtml`, visitas en `settings.tutorial.visitas`); verlo, cerrarla o la cuarta visita la dan por vista. El botón **?** está arriba también en el celular.
+- **Acceso**: en un equipo donde nunca se entró (sin `rumbo_state_*`) parte en «Crear cuenta», con una línea de qué es Rumbo y un enlace a Conoce. El saludo es para todas las personas («¡Hola, Camila!»).
+- Pruebas: `tests/bienvenida.test.mjs` y `tests/e2e/bienvenida.cjs`.
+
 ## Configuración de Supabase
 Las claves públicas van en `js/store.js` (`SUPABASE_URL`, `SUPABASE_KEY`). La `publishable key` es pública por diseño; los datos están protegidos por RLS. Esquema:
 

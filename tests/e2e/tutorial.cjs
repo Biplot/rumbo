@@ -4,6 +4,8 @@ module.exports = async ({ b, ok, errs }) => {
   // 1) Usuario nuevo: 3 láminas → formulario → recorrido guiado sobre la app real
   {
     const ctx = await nuevoContexto(b, { fecha: "2026-09-26T10:00:00", w: 390, h: 844, dpr: 2 });
+    // Un Android que aún no responde el permiso de avisos: se ofrecen al terminar el recorrido, nunca encima
+    await ctx.addInitScript(() => { try { Object.defineProperty(Notification, "permission", { get: () => "default" }); } catch (e) {} });
     const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
     await p.goto(URL);
     await p.click('[data-tab="register"]');
@@ -13,6 +15,9 @@ module.exports = async ({ b, ok, errs }) => {
     await p.fill("#ob-name", "Camila");
     await p.click('[data-action="onboarding-save"]'); await p.waitForTimeout(900);
     ok(await p.locator("#tour .tour-pop").isVisible(), "al terminar la introducción parte el recorrido guiado");
+    ok(await p.locator("#modalOverlay").isHidden(), "el aviso de notificaciones no se abre encima del recorrido");
+    const aviso = await p.locator("#toast").boundingBox().catch(() => null);
+    ok(!aviso || aviso.y < 120, "el mensaje «Ya estás en Rumbo» va arriba: no tapa la burbuja del recorrido");
     const titulos = [];
     for (let i = 0; i < 15 && await p.locator("#tour").count(); i++) {
       titulos.push(await p.locator(".tour-pop__t").innerText());
@@ -22,14 +27,19 @@ module.exports = async ({ b, ok, errs }) => {
       await p.keyboard.press(i % 2 ? "ArrowRight" : "Enter"); await p.waitForTimeout(450);
     }
     ok(titulos.length === 11 && titulos.includes("Tu semana") && titulos.includes("Tu misión: primeros pasos"), "recorre los 11 pasos (Enter y →): " + titulos.join(" · "));
+    await p.waitForTimeout(600);
+    ok((await p.locator("#modalOverlay:not([hidden]) #modal").innerText().catch(() => "")).includes("Recordatorios de tu ritual"), "al terminar el recorrido se ofrecen los avisos");
+    await p.click('#modal [data-action="close-modal"]'); await p.waitForTimeout(200);
     const s = await p.evaluate(() => STATE.settings.tutorial);
     ok(s.vistos.general > 0 && s.mision === "activa", "queda como visto y la misión Primeros pasos activa");
     await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
     ok((await p.locator("[data-tour=mision]").innerText()).includes("0/6"), "Inicio muestra la misión 0/6");
-    // En el celular no hay «?» arriba (van las puertas a Tu casa y Tu vitrina): la ayuda de cada pantalla está en Más
+    // En el celular el «?» también está arriba, y en Más › Ayuda de esta pantalla
     await p.evaluate(() => { STATE.settings.tutorial.auto = false; saveState(); });
     await p.goto(URL + "#semana"); await p.waitForTimeout(400);
-    ok(await p.locator("#helpBtn").isHidden(), "en el celular no hay «?» arriba");
+    ok(await p.locator("#helpBtn").isVisible(), "en el celular también hay «?» arriba");
+    const bar = await p.evaluate(() => [document.querySelector(".topbar__inner").scrollWidth, document.querySelector(".topbar__inner").clientWidth]);
+    ok(bar[0] <= bar[1], "el «?» cabe en la barra de arriba junto a las puertas");
     await p.click("#bbMas"); await p.waitForTimeout(300);
     await p.click('.mas-fila[data-action="tour-pantalla"]'); await p.waitForTimeout(500);
     ok((await p.locator(".tour-pop__t").innerText().catch(() => "")) === "Muévete entre semanas" && await p.evaluate(() => document.getElementById("masOverlay").hidden), "Más › Ayuda de esta pantalla abre la ayuda de Semana");
@@ -43,11 +53,19 @@ module.exports = async ({ b, ok, errs }) => {
   await registrar(p, "mision@test.cl");
   await p.evaluate(() => { STATE.settings.tutorial = { vistos: { general: 1 }, mision: "activa", auto: true, ts: 1 }; saveState(); });
   await p.goto(URL + "#semana"); await p.waitForTimeout(1100);
-  ok((await p.locator(".tour-pop__t").innerText().catch(() => "")) === "Muévete entre semanas", "la primera vez en Semana aparece su ayuda");
-  await p.keyboard.press("Escape"); await p.waitForTimeout(150);
-  ok(await p.locator("#tour").count() === 0 && await p.evaluate(() => STATE.settings.tutorial.vistos.semana > 0), "Esc la cierra y queda vista");
-  await p.goto(URL + "#habitos"); await p.waitForTimeout(100); await p.goto(URL + "#semana"); await p.waitForTimeout(1100);
-  ok(await p.locator("#tour").count() === 0, "no se repite sola");
+  ok(await p.locator(".ayuda-franja").isVisible() && await p.locator("#tour").count() === 0, "la primera vez en Semana, una franja ofrece su ayuda sin tapar nada");
+  await p.click(".ayuda-franja__ver"); await p.waitForTimeout(400);
+  ok((await p.locator(".tour-pop__t").innerText().catch(() => "")) === "Muévete entre semanas", "«Cómo funciona» abre la ayuda de Semana");
+  await p.keyboard.press("Escape"); await p.waitForTimeout(250);
+  ok(await p.locator("#tour").count() === 0 && await p.evaluate(() => STATE.settings.tutorial.vistos.semana > 0) && await p.locator(".ayuda-franja").count() === 0, "Esc la cierra, queda vista y la franja se va");
+  await p.goto(URL + "#habitos"); await p.waitForTimeout(300);
+  ok(await p.locator(".ayuda-franja").isVisible(), "en Hábitos también la ofrece");
+  await p.click(".ayuda-franja__x"); await p.waitForTimeout(200);
+  ok(await p.locator(".ayuda-franja").count() === 0 && await p.evaluate(() => STATE.settings.tutorial.vistos.habitos > 0), "✕ la da por vista");
+  for (let i = 0; i < 4; i++) { await p.goto(URL + "#diario"); await p.waitForTimeout(150); await p.goto(URL + "#metas"); await p.waitForTimeout(200); }
+  ok(await p.locator(".ayuda-franja").count() === 0 && await p.evaluate(() => STATE.settings.tutorial.vistos.metas > 0), "a la cuarta visita deja de ofrecerla sola");
+  await p.goto(URL + "#habitos"); await p.waitForTimeout(100); await p.goto(URL + "#semana"); await p.waitForTimeout(600);
+  ok(await p.locator("#tour").count() === 0 && await p.locator(".ayuda-franja").count() === 0, "no se repite sola");
   await p.click("#helpBtn"); await p.waitForTimeout(300);
   ok((await p.locator(".tour-pop__t").innerText()) === "Muévete entre semanas", "el botón ? la repite");
   await p.click('[data-action="tour-salir"]'); await p.waitForTimeout(150);

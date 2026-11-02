@@ -3,8 +3,8 @@
    1) Recorridos guiados sobre la app real: oscurece la pantalla, ilumina el elemento
       y explica con una burbuja. Si un elemento no está (módulo oculto, otra vista),
       ese paso se salta: el recorrido nunca se queda pegado.
-   2) Ayuda por pantalla: la primera vez que entras a una sección, un recorrido corto
-      (se puede apagar). El botón ? de arriba lo repite.
+   2) Ayuda por pantalla: las 3 primeras veces que entras a una sección, una franja arriba
+      ofrece su recorrido corto, sin tapar nada (se puede apagar). El botón ? de arriba lo repite.
    3) Misión "Primeros pasos" en Inicio: se marca sola al hacer cada cosa de verdad.
    4) Centro de tutoriales (Más → Ayuda, o el menú de tu cuenta).
    Lo visto vive en settings.tutorial = { vistos: {id: ts}, mision, auto, ts }.
@@ -17,7 +17,7 @@ const TOURS = {
   general: {
     icon: "🧭", titulo: "Recorrido por Rumbo", desc: "Lo esencial en un minuto: tu día, tus tareas, tus hábitos, el menú y los rituales.",
     pasos: [
-      { titulo: "Te muestro Rumbo 👋", texto: "Un recorrido de un minuto por lo esencial, sobre tu propia app. Sal cuando quieras con ✕ (o Esc)." },
+      { titulo: "Te muestro Rumbo 👋", texto: m => `Un recorrido de un minuto por lo esencial, sobre tu propia app. Sal cuando quieras con ✕${m ? "" : " (o Esc)"}.` },
       { ruta: "inicio", el: ["[data-tour=dia] .card", "[data-tour=dia]"], titulo: "Tu día empieza aquí",
         texto: "En la mañana <b>abres tu día</b> (tu enfoque, tu primer bocado y tus tareas) y en la noche lo <b>cierras</b>. ¿Día apretado? <b>⚡ Express</b> lo hace en 3 toques." },
       { ruta: "inicio", el: { sel: "#view .card", txt: "Tareas de hoy" }, titulo: "Tus tareas de hoy",
@@ -25,7 +25,7 @@ const TOURS = {
       { ruta: "inicio", el: { sel: "#view .card", txt: "Hábitos de hoy" }, titulo: "Hábitos de hoy",
         texto: "Solo aparecen los que te tocan hoy según su frecuencia. Un toque y listo." },
       { el: ".topbar__meta", titulo: "Tus lugares y tus monedas",
-        texto: m => `La cara de tu elefante abre <b>Tu casa</b> y la estrella, <b>Tu vitrina</b> con tus medallas. ⭐ son tus monedas: las ganas abriendo y cerrando días, con hábitos y objetivos, y las gastas en Recompensas.${m ? " Tu racha 🔥 de días cerrados va al pie de tu día." : " 🔥 es tu racha de días cerrados."}` },
+        texto: m => `La cara de tu elefante abre <b>Tu casa</b>. El destello ✨ abre <b>Tu vitrina</b>, donde viven tus medallas. Las ⭐ son tus monedas: las ganas abriendo y cerrando días, con hábitos y objetivos, y las gastas en Recompensas.${m ? " Tu racha 🔥 de días cerrados va al pie de tu día." : " 🔥 es tu racha de días cerrados."}` },
       { el: ["#bottombar", "#nav"], titulo: "Tu menú",
         texto: m => m ? "Abajo tienes lo del día a día y, al centro, el botón para <b>abrir o cerrar tu día</b>. En <b>Más</b> está el resto: Objetivos, Ritual, Finanzas, Recompensas, tu cuenta y la ayuda."
           : "A la izquierda: arriba el botón para abrir o cerrar tu día, luego lo del día a día y tus <b>Módulos</b> (plegables). Abajo, Recompensas y el menú de tu cuenta." },
@@ -34,8 +34,7 @@ const TOURS = {
       { ruta: "semana", el: [".week-scroll", "#view .card"], titulo: "Tu semana",
         texto: "Tu plan (foco y 3 prioridades) y tus 7 días. Lo que no alcanzas lo decides al cerrar el día: <b>&gt;</b> mañana, <b>&lt;</b> otro día, <b>@</b> delegar o <b>✕</b> soltar." },
       { el: ["#helpBtn", "#bbMas"], titulo: "¿Dudas? Hay ayuda",
-        texto: m => m ? "En <b>Más › Ayuda</b> está la ayuda de cada pantalla, y ahí repites cualquier recorrido."
-          : "Toca <b>?</b> arriba: cada pantalla tiene su propia ayuda. Y en <b>Ayuda</b> (en el menú de tu cuenta) repites cualquier recorrido." },
+        texto: m => `Toca <b>?</b> arriba: cada pantalla tiene su propia ayuda. Las primeras veces que entras a una, también te la ofrezco en una franja.${m ? " En <b>Más › Ayuda</b> repites cualquier recorrido." : " En <b>Ayuda</b> (en el menú de tu cuenta) repites cualquier recorrido."}` },
       { ruta: "inicio", el: "[data-tour=mision]", titulo: "Tu misión: primeros pasos",
         texto: "Seis cosas para arrancar. Se marcan solas cuando las haces y al completarlas ganas +100 ⭐ y la insignia Explorador." },
       { titulo: "¡Listo! 🚀", texto: "Eso es lo esencial. Parte abriendo tu día: te toma 30 segundos." },
@@ -138,10 +137,11 @@ function cambiarTutorial(campo, valor) {
 
 /* -------- Motor del recorrido -------- */
 let TOUR = null;   // { id, i, dir, n }
-function tourIniciar(id) {
+/* op.alTerminar: lo que viene después (p. ej. ofrecer los avisos), para que nada se abra encima del recorrido */
+function tourIniciar(id, op) {
   if (!TOURS[id]) return;
   closeModal(); setSidebar(false); cerrarMas(); cerrarMenuCuenta();
-  TOUR = { id, i: 0, dir: 1, n: 0 };
+  TOUR = { id, i: 0, dir: 1, n: 0, alTerminar: op && typeof op.alTerminar === "function" ? op.alTerminar : null };
   document.addEventListener("keydown", tourTeclas, true);
   window.addEventListener("resize", tourReubicar);
   tourMostrar();
@@ -149,11 +149,14 @@ function tourIniciar(id) {
 function tourTerminar() {
   if (!TOUR) return;
   marcarTourVisto(TOUR.id);
+  const despues = TOUR.alTerminar;
   TOUR = null;
   document.removeEventListener("keydown", tourTeclas, true);
   window.removeEventListener("resize", tourReubicar);
   const capa = document.getElementById("tour");
   if (capa) capa.remove();
+  if (typeof rerender === "function" && STATE) rerender();   // la franja «Primera vez aquí» de esa pantalla se va
+  if (despues) despues();
 }
 function tourMover(dir) {
   if (!TOUR) return;
@@ -276,16 +279,28 @@ function tourReubicar() {
   pop.style.left = x + "px"; pop.style.top = Math.max(M, y) + "px";
 }
 
-/* Ayuda automática la primera vez que entras a una pantalla */
-function tourAuto(ruta) {
-  if (!STATE || !STATE.settings.onboarded || TOUR) return;
-  const id = ruta === "inicio" ? null : tourDePantalla(ruta);
-  if (!id || tutorialState().auto === false || tourVisto(id)) return;
-  setTimeout(() => {
-    if (TOUR || CURRENT !== ruta || !document.getElementById("modalOverlay").hidden || ONB_ACTIVE || tourVisto(id)) return;
-    tourIniciar(id);
-  }, 700);
+/* Ayuda por pantalla, sin interrumpir: las 3 primeras veces que entras a una pantalla con
+   recorrido, una franja arriba lo ofrece. Verlo, cerrarla o entrar una cuarta vez la da por vista. */
+const AYUDA_FRANJA_VISITAS = 3;
+function ayudaDePantalla(ruta) { return ruta === "inicio" ? null : tourDePantalla(ruta); }
+function ayudaVisita(ruta) {
+  if (!STATE || !STATE.settings.onboarded) return;
+  const id = ayudaDePantalla(ruta), t = tutorialState();
+  if (!id || t.auto === false || tourVisto(id)) return;
+  t.visitas = t.visitas && typeof t.visitas === "object" ? t.visitas : {};
+  t.visitas[id] = (t.visitas[id] || 0) + 1;
+  if (t.visitas[id] > AYUDA_FRANJA_VISITAS) { t.vistos[id] = Date.now(); }
+  saveState();
 }
+function ayudaFranjaHtml(ruta) {
+  if (!STATE || !STATE.settings.onboarded || TOUR) return "";
+  const id = ayudaDePantalla(ruta), t = tutorialState();
+  if (!id || t.auto === false || tourVisto(id)) return "";
+  return `<div class="ayuda-franja" role="note"><span class="ayuda-franja__t">${iconoLinea("tutoriales", 18)} Primera vez aquí</span>
+    <button class="ayuda-franja__ver" data-action="tour-pantalla">Cómo funciona<span class="ayuda-franja__seg"> · 30 s</span></button>
+    <button class="ayuda-franja__x" data-action="ayuda-franja-x" data-id="${id}" aria-label="No mostrar más esta ayuda">${iconoLinea("cerrar", 16)}</button></div>`;
+}
+function ayudaFranjaCerrar(id) { if (TOURS[id]) { marcarTourVisto(id); rerender(); } }
 
 /* -------- Misión "Primeros pasos" -------- */
 const MISION = [
@@ -355,7 +370,7 @@ function renderTutoriales() {
     </div>
     <div class="card">
       <div class="card__title">⚙️ Preferencias</div>
-      <label class="mes-hab mt-16" style="cursor:pointer"><span class="mes-hab__n">Mostrar la ayuda la primera vez que entro a cada pantalla</span>
+      <label class="mes-hab mt-16" style="cursor:pointer"><span class="mes-hab__n">Ofrecer la ayuda las primeras veces que entro a cada pantalla</span>
         <input type="checkbox" ${t.auto === false ? "" : "checked"} onchange="tutorialAuto(this.checked)"></label>
       <p class="text-xs muted mt-8">Arriba, el botón <b>?</b> repite la ayuda de la pantalla en que estás.</p>
       <div class="divider"></div>
@@ -367,9 +382,9 @@ function renderTutoriales() {
   <div class="card">${pantallas.map(fila).join("")}</div>`;
 }
 function misionMostrar(on) { cambiarTutorial("mision", on ? "activa" : "oculta"); rerender(); }
-function tutorialAuto(on) { cambiarTutorial("auto", !!on); toast(on ? "La ayuda aparecerá en cada pantalla nueva" : "Ayuda automática apagada"); }
+function tutorialAuto(on) { cambiarTutorial("auto", !!on); toast(on ? "Te ofreceré la ayuda en cada pantalla nueva" : "Listo: no te ofreceré la ayuda (sigue en el botón ?)"); }
 function tourReiniciar() {
   const t = tutorialState();
-  t.vistos = {}; t.auto = true; t.ts = t.reset = Date.now();
-  saveState(); rerender(); toast("Listo: la ayuda volverá a aparecer en cada pantalla");
+  t.vistos = {}; t.visitas = {}; t.auto = true; t.ts = t.reset = Date.now();
+  saveState(); rerender(); toast("Listo: te volveré a ofrecer la ayuda en cada pantalla");
 }

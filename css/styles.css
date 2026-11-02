@@ -2301,7 +2301,8 @@ html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-no
   .puerta { height: 40px; min-width: 40px; font-size: 13px; }
   .puerta__cara { width: 40px; height: 40px; }
   .puerta--vitrina { padding: 0 10px 0 8px; }
-  #helpBtn, #streakPill { display: none !important; }   /* la ayuda está en Más › Ayuda y la racha en tu día */
+  #streakPill { display: none !important; }   /* la racha va en tu día */
+  #helpBtn { width: 40px; height: 40px; margin-left: 0; font-size: 15px; }   /* ? también en el celular (v120), con su zona de toque */
   .ruta-dia__racha { display: inline-flex; align-items: center; gap: 5px; }
   .ruta-dia__pie.solo-movil { display: flex; }
 }
@@ -3378,3 +3379,23 @@ body.con-agua-fab .view { padding-bottom: 96px; }
 .dj-gatillos .chip { cursor: pointer; min-height: 36px; }
 .dj-cierre { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
 .rd-dia { display: grid; gap: 8px; justify-items: center; padding: 8px 0; }
+
+/* ============================================================
+   BIENVENIDA (v120) · lo que vive quien recién llega
+   ============================================================ */
+.auth__tagline { margin-bottom: 6px; }
+.auth__que { text-align: center; color: var(--text-soft); font-size: 13.5px; line-height: 1.45; margin: 0 0 20px; }
+.auth__que a { color: var(--cian-ink); font-weight: 600; white-space: nowrap; }
+/* Con una hoja o el recorrido abiertos, los avisos van arriba: abajo taparían su texto */
+.toast--arriba, body:has(#tour) .toast, body:has(#modalOverlay:not([hidden])) .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 14px); }
+/* Ayuda por pantalla sin interrumpir: «Primera vez aquí» */
+.ayuda-franja { display: flex; align-items: center; gap: 10px; background: var(--cian-soft); color: var(--text);
+  border-radius: var(--r); padding: 8px 8px 8px 14px; margin-bottom: 16px; font-size: 14px; }
+.ayuda-franja__t { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--cian-ink); white-space: nowrap; min-width: 0; }
+.ayuda-franja__ver { white-space: nowrap; }
+@media (max-width: 420px) { .ayuda-franja__seg, .ayuda-franja__t .ico-linea { display: none; } }
+.ayuda-franja__ver { font: inherit; font-size: 13.5px; font-weight: 700; background: var(--surface); color: var(--text); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.ayuda-franja__x { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; border: 0; background: none; color: var(--text-muted);
+  display: grid; place-items: center; cursor: pointer; }
+.ayuda-franja button:focus-visible { outline: 2px solid var(--cian); outline-offset: 2px; }

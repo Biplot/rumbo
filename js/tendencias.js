@@ -377,5 +377,5 @@ function renderTendencias() {
       ${svgBar(librosMes, { color: "var(--cian)", fmt: v => v })}
     </div>
   </div>
-  <p class="text-xs muted mt-24">Los datos incluyen ejemplos precargados para que veas el panel funcionando. Edítalos o bórralos cuando quieras desde cada módulo.</p>`;
+`;
 }

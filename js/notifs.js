@@ -292,6 +292,8 @@ async function testNotification() {
 /* Ofrecer activar tras el onboarding (solo si el permiso aún no se decidió) */
 function maybePromptNotif() {
   if (notifPerm() !== "default") return;
+  // Nunca encima de otra cosa (el recorrido o una hoja abierta): se ofrece al terminar
+  if ((typeof TOUR !== "undefined" && TOUR) || !document.getElementById("modalOverlay").hidden) return;
   openModal("🔔 Recordatorios de tu ritual", `
     <p class="soft">¿Quieres que Rumbo te avise en la <b>mañana</b> para iniciar tu día y en la <b>noche</b> para cerrarlo?</p>
     <div class="row mt-16">

@@ -104,10 +104,15 @@ function showAuth() {
   // "Continuar con Google" solo si está activo en Supabase
   const g = document.getElementById("auth-google");
   if (g && BACKEND.googleDisponible) BACKEND.googleDisponible().then(ok => { g.hidden = !ok; });
-  // Quien llega desde la página de presentación (?crear=1) ve directo "Crear cuenta"
-  if (/(^|&)crear=1/.test(location.search.slice(1))) switchAuthTab("register");
+  // Quien llega desde la página de presentación (?crear=1), o a un equipo donde nunca se ha entrado, ve directo "Crear cuenta"
+  if (/(^|&)crear=1/.test(location.search.slice(1)) || !equipoConCuenta()) switchAuthTab("register");
 }
 
+/* ¿Alguien ya entró a Rumbo en este equipo? (queda su copia local rumbo_state_<id>) */
+function equipoConCuenta() {
+  try { for (let i = 0; i < localStorage.length; i++) if (String(localStorage.key(i)).startsWith("rumbo_state_")) return true; } catch (e) { return true; }
+  return false;
+}
 async function enterApp(user) {
   CURRENT_USER = user;
   await loadUserState(user);
@@ -123,7 +128,7 @@ async function enterApp(user) {
   retomarEnfoque();       // ⏱️ sesión de enfoque en curso en este equipo
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
   revisarDispositivoPush();              // 🔔 ¿este dispositivo sigue activado para esta cuenta?
-  if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
+  if (!STATE.settings.onboarded) { if (marcarAlta()) saveState(); setTimeout(() => openOnboarding("nuevo"), 350); }
   else if (amigosHayInvitacion()) { /* la invitación de un amigo va primero; las novedades, la próxima vez */ }
   else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
   else if (debeElegirElefante()) setTimeout(openElegirElefante, 600);
@@ -158,12 +163,12 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 56;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 57;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
 const ONB_SLIDES = [
-  { icon: "👋", titulo: "Bienvenido a Rumbo",
+  { icon: "👋", titulo: "Esto es Rumbo",
     cuerpo: "Tu vida en un solo lugar: un centro de control personal para tu día, tus hábitos, tus objetivos, tus finanzas y tu bienestar. Simple, privado y sincronizado entre tus dispositivos." },
   { icon: "🌅", titulo: "El ritual diario",
     cuerpo: `<b>Abre tu día</b> en la mañana: tu enfoque, tus tareas y tu <b>${BOCADO.corto.toLowerCase()}</b> ${BOCADO.emoji}, la tarea más importante (<i>¿cómo te comes un elefante? Un bocado a la vez</i>). De noche, <b>ciérralo</b>: decide qué pasa con lo pendiente y reflexiona.<br><br>La idea es usar la app lo <i>menos</i> posible: abrir y cerrar mantiene vivo todo tu sistema.` },
@@ -203,7 +208,7 @@ function renderOnboardingStep() {
         <div class="onb-grid">${areas.map(a => `<div class="onb-area"><span>${a[0]}</span>${a[1]}</div>`).join("")}</div>
         ${ONB_MODE === "nuevo" ? `<p class="text-sm muted mt-16">Al terminar te muestro la app con un recorrido guiado 🧭</p>` : ""}`;
     }
-    openModal(ONB_MODE === "nuevo" ? "Bienvenido 🎉" : "Introducción a Rumbo", `
+    openModal(ONB_MODE === "nuevo" ? saludoBienvenida() : "Introducción a Rumbo", `
       <div class="onb-slide"><div class="onb-ico">${s.icon}</div>
         <h3 class="onb-title">${s.titulo}</h3>
         <div class="onb-body">${cuerpo}</div></div>
@@ -220,7 +225,7 @@ function renderOnboardingStep() {
       <div class="field"><label>¿Cómo te llamas?</label><input class="input" id="ob-name" value="${escapeAttr(STATE.profile.name || (CURRENT_USER && CURRENT_USER.name) || "")}" placeholder="Tu nombre"></div>
       <div class="field"><label>Tu fecha de nacimiento</label><input class="input" type="date" id="ob-birth" value="${STATE.profile.birthDate || ""}">
         <div class="text-xs muted mt-8">Para tu contador de vida en la portada.</div></div>
-      <div class="field"><label>¿Qué te mueve? (tu lema)</label><input class="input" id="ob-motto" value="${escapeAttr(STATE.profile.motto || "")}" placeholder="Ej: Ser mi mejor versión"></div>
+      <div class="field"><label>¿Qué te mueve? (tu lema)</label><input class="input" id="ob-motto" value="${escapeAttr(STATE.profile.motto && STATE.profile.motto !== LEMA_DE_FABRICA ? STATE.profile.motto : "")}" placeholder="Ej: Un día a la vez"></div>
       <div class="onb-dots">${dots}</div>
       <div class="onb-nav">
         <button class="btn-ghost" data-action="onb-prev">Atrás</button>
@@ -492,6 +497,10 @@ const NOVEDADES = {
     ["⚡", "Antojos superados", "Anota el antojo que te ganaste y qué lo gatilló (+1 ⭐). Con el tiempo verás cuándo llegan, junto a tu plan para el antojo."],
     ["🐷", "Lo que te ahorras", "Si le pones cuánto te costaba al día, Rumbo suma lo que no gastas y lo pasas a una alcancía. En tu jardín, lo que dejas crece como cactus."],
   ],
+  57: [
+    ["❔", "Ayuda que no interrumpe", "La primera vez que entras a una pantalla, una franja arriba te ofrece cómo funciona. Si venías a anotar algo, sigues de largo: ya no se oscurece todo."],
+    ["📱", "El botón ? también en el celular", "Arriba, en cada pantalla que tiene ayuda. Te muestra cómo funciona cuando quieras."],
+  ],
 };
 let NOVEDADES_ABIERTAS = false;
 function openNovedades() {
@@ -515,15 +524,15 @@ function openNovedades() {
 function saveOnboarding() {
   STATE.profile.name = val("ob-name") || (CURRENT_USER && CURRENT_USER.name) || "Tú";
   STATE.profile.birthDate = val("ob-birth");
-  STATE.profile.motto = val("ob-motto") || "Construyendo mi mejor versión";
+  STATE.profile.motto = val("ob-motto");
   STATE.settings.onboarded = true;
   STATE.settings.introVersion = INTRO_VERSION;
   ONB_ACTIVE = false;
   saveState(); closeModal(); updateTopbar(); rerender();
   if (amigosHayInvitacion()) setTimeout(amigosAlEntrar, 400);   // 🤝 llegó con la invitación de un amigo: va primero
-  else setTimeout(() => tourIniciar("general"), 400);   // recorrido guiado sobre la app real
-  toast("¡Listo! Bienvenido a Rumbo 🎉");
-  if (typeof maybePromptNotif === "function") setTimeout(maybePromptNotif, 500);
+  // recorrido guiado sobre la app real; los avisos se ofrecen al terminarlo (nunca encima)
+  else setTimeout(() => tourIniciar("general", { alTerminar: () => setTimeout(() => { if (typeof maybePromptNotif === "function") maybePromptNotif(); }, 350) }), 400);
+  toast("¡Listo! Ya estás en Rumbo 🎉");
 }
 
 async function loadUserState(user) {
@@ -640,7 +649,7 @@ async function doRegister() {
   const res = await BACKEND.register({ name: val("reg-name"), email: val("reg-email"), password: document.getElementById("reg-pass").value });
   if (res.error) return authError(res.error);
   if (res.info) { switchAuthTab("login"); return authInfo(res.info); }
-  await enterApp(res); toast("¡Bienvenido, " + res.name + "! 🎉");
+  await enterApp(res);   // la bienvenida saluda por su nombre (sin un aviso encima de la primera lámina)
 }
 async function doLogin() {
   const res = await BACKEND.login({ email: val("log-email"), password: document.getElementById("log-pass").value });
@@ -701,13 +710,13 @@ function onRoute() {
   document.body.classList.toggle("en-lugar", !!ROUTE_MAP[CURRENT].lugar && !CIELO_ESTADO.sin3d);
   cerrarMas(); cerrarMenuCuenta();
   updateTopbar();
+  ayudaVisita(CURRENT);   // la franja «Primera vez aquí» se ofrece en las 3 primeras visitas (tutorial.js)
   rerender();
   entrarVista();
   marcarNavActiva();
   setSidebar(false);
   document.querySelector(".main").scrollTo?.(0, 0);
   window.scrollTo(0, 0);
-  tourAuto(CURRENT);   // ayuda la primera vez que entras a esta pantalla
 }
 
 function go(id) { location.hash = id; }
@@ -847,7 +856,7 @@ function rerender() {
   if (typeof checkBadges === "function") checkBadges();
   const route = ROUTE_MAP[CURRENT];
   const view = document.getElementById("view");
-  view.innerHTML = iconizar(route.render());
+  view.innerHTML = iconizar((typeof ayudaFranjaHtml === "function" ? ayudaFranjaHtml(CURRENT) : "") + route.render());
   unSoloCoral(view);
   mountAfterRender();
   updateFab();
@@ -1481,6 +1490,7 @@ function onClick(e) {
     case "gcal-guardar": gcalGuardarConfig(); break;
     case "gcal-desconectar": gcalDesconectar(); break;
     case "tour-pantalla": cerrarMas(); if (tourDePantalla(CURRENT)) tourIniciar(tourDePantalla(CURRENT)); break;
+    case "ayuda-franja-x": ayudaFranjaCerrar(d.id); break;
     case "tour-next": tourMover(1); break;
     case "tour-prev": tourMover(-1); break;
     case "tour-salir": tourTerminar(); break;
@@ -2105,7 +2115,7 @@ function renderInicio() {
       <div class="account__avatar avatar-lg${marcoClase()}" data-action="av-abrir" title="Cambiar avatar" role="button" tabindex="0">${avatarActualHtml(((s.profile.name || "R").trim()[0] || "R").toUpperCase())}</div>
       <div>
         <div class="card__title">${escapeHtml(s.profile.name)}</div>
-        <div class="text-sm muted">${escapeHtml(s.profile.motto)}${s.profile.birthDate ? ` · ${edadTexto(s.profile.birthDate)}` : ""}</div>
+        <div class="text-sm muted">${[s.profile.motto ? escapeHtml(s.profile.motto) : "", s.profile.birthDate ? edadTexto(s.profile.birthDate) : ""].filter(Boolean).join(" · ")}</div>
         <div class="row-wrap" style="gap:8px;margin-top:10px">
           <span class="chip chip--cian">${rankFor(s.gamif.xp || 0).cur.icon} ${rankFor(s.gamif.xp || 0).cur.nombre}</span>
           ${tituloEquipado() ? `<span class="chip">${tituloEquipado().icon} ${escapeHtml(tituloEquipado().nombre)}</span>` : ""}
@@ -2296,9 +2306,14 @@ function closeModal() { ONB_ACTIVE = false; document.getElementById("modalOverla
 document.addEventListener("click", e => { if (e.target.id === "modalOverlay") closeModal(); });
 
 let toastTimer = null;
+/* Con una hoja, el menú Más o el recorrido abiertos, el aviso va arriba: abajo taparía su texto o sus botones */
+function avisoArriba() {
+  const ov = document.getElementById("modalOverlay"), mas = document.getElementById("masOverlay");
+  return !!((ov && !ov.hidden) || (mas && !mas.hidden) || document.getElementById("tour"));
+}
 function toast(msg, coral = false) {
   const t = document.getElementById("toast");
-  t.innerHTML = iconizarTexto(msg); t.className = "toast" + (coral ? " toast--coral" : ""); t.hidden = false;
+  t.innerHTML = iconizarTexto(msg); t.className = "toast" + (coral ? " toast--coral" : "") + (avisoArriba() ? " toast--arriba" : ""); t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (t.hidden = true), 2200);
 }

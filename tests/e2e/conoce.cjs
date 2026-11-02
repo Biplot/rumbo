@@ -14,6 +14,9 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click("[data-cta] >> nth=1"); await p.waitForTimeout(400);
   ok(await p.evaluate(() => !document.getElementById("form-register").hidden && document.getElementById("form-login").hidden), "'Empieza gratis' abre la app en Crear cuenta");
   await p.goto(URL); await p.waitForTimeout(300);
-  ok(await p.evaluate(() => document.getElementById("form-register").hidden), "sin ?crear=1 la app abre en Ingresar, como siempre");
+  ok(await p.evaluate(() => !document.getElementById("form-register").hidden), "en un equipo donde nunca se entró, la app abre en Crear cuenta aunque no traiga ?crear=1");
+  await p.evaluate(() => localStorage.setItem("rumbo_state_alguien", "{}"));   // alguien ya entró en este equipo
+  await p.goto(URL); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => document.getElementById("form-register").hidden), "en un equipo donde ya se entró, sin ?crear=1 abre en Ingresar, como siempre");
   await ctx.close();
 };

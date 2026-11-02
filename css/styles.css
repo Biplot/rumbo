@@ -2302,7 +2302,7 @@ html[data-theme="norte-noche"] .brand-mark svg > rect, html[data-theme="norte-no
   .puerta__cara { width: 40px; height: 40px; }
   .puerta--vitrina { padding: 0 10px 0 8px; }
   #streakPill { display: none !important; }   /* la racha va en tu día */
-  #helpBtn { width: 36px; height: 36px; margin-left: 0; font-size: 15px; }   /* ? también en el celular (v120) */
+  #helpBtn { width: 40px; height: 40px; margin-left: 0; font-size: 15px; }   /* ? también en el celular (v120), con su zona de toque */
   .ruta-dia__racha { display: inline-flex; align-items: center; gap: 5px; }
   .ruta-dia__pie.solo-movil { display: flex; }
 }

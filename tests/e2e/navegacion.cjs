@@ -38,8 +38,8 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => document.getElementById("masOverlay").hidden), "Esc cierra la hoja");
 
   // 4) Rachas y monedas explicadas
-  ok(await p.locator("#streakPill").isHidden() && await p.locator("#helpBtn").isHidden() && await p.locator("#puertaCasa").isVisible() && await p.locator("#puertaVitrina").isVisible(),
-    "en el celular, arriba van las puertas a Tu casa y Tu vitrina (la racha y la ayuda se mueven)");
+  ok(await p.locator("#streakPill").isHidden() && await p.locator("#puertaCasa").isVisible() && await p.locator("#puertaVitrina").isVisible(),
+    "en el celular, arriba van las puertas a Tu casa y Tu vitrina (la racha se mueve a tu día)");
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
   await p.click("#view .ruta-dia__racha, #view .recibo__racha"); await p.waitForTimeout(200);
   const info = await p.locator("#modal").innerText();

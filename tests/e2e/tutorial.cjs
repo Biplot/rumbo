@@ -30,9 +30,9 @@ module.exports = async ({ b, ok, errs }) => {
     await p.waitForTimeout(600);
     ok(await p.locator("#modalOverlay").isHidden(), "al terminar no vuelve a ofrecer los avisos: ya se ofrecieron en la bienvenida");
     const s = await p.evaluate(() => STATE.settings.tutorial);
-    ok(s.vistos.general > 0 && s.mision === "activa", "queda como visto y la misión Primeros pasos activa");
+    ok(s.vistos.general > 0, "el recorrido queda como visto");
     await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
-    ok((await p.locator("[data-tour=mision]").innerText()).includes("0/6"), "Inicio muestra la misión 0/6");
+    ok((await p.locator("[data-tour=mision]").innerText()).includes("Tu primera semana"), "Inicio muestra la misión de la cuenta nueva: «Tu primera semana»");
     // En el celular el «?» también está arriba, y en Más › Ayuda de esta pantalla
     await p.evaluate(() => { STATE.settings.tutorial.auto = false; saveState(); });
     await p.goto(URL + "#semana"); await p.waitForTimeout(400);

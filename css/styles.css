@@ -3446,3 +3446,35 @@ body.con-agua-fab .view { padding-bottom: 96px; }
 .r-mas__d { font-size: 13px; color: var(--text-muted); }
 .r-mas[open] { padding-bottom: 4px; }
 @media (prefers-reduced-motion: reduce) { .r-mas > summary::after { transition: none; } }
+/* «Tu primera semana»: un paso por día */
+.ps__pasos { display: grid; gap: 6px; }
+.ps-paso { font: inherit; display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px 12px; border-radius: var(--r-sm);
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-size: 14px; }
+button.ps-paso { cursor: pointer; }
+.ps-paso.is-ahora { border-color: var(--coral-btn, var(--coral)); background: var(--coral-soft); font-weight: 700; }
+.ps-paso.is-luego { color: var(--text-muted); background: none; }
+.ps-paso.is-ok .ps-paso__t { text-decoration: line-through; color: var(--text-muted); }
+.ps-paso__t { flex: 1; min-width: 0; }
+.ps-paso__d { font-size: 12.5px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.ps-paso.is-ahora .ps-paso__d { color: var(--coral); }
+.ps-paso:focus-visible { outline: 2px solid var(--cian); outline-offset: 2px; }
+.ps-numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; }
+.ps-numeros .stat { background: var(--surface-2); border-radius: var(--r-sm); padding: 10px 12px; }
+.ps-viene { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--text-soft); font-size: 14px; }
+/* Secciones que despiertan */
+.mas-mod { position: relative; }
+.mas-mod__nuevo { position: absolute; top: 2px; right: 6px; font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  background: var(--coral-btn, var(--coral)); color: var(--on-coral); border-radius: 999px; padding: 1px 6px; }
+/* Palabras de Rumbo: «¿Qué es esto?» */
+.glosa { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: help; text-align: inherit; }
+.glosa.is-marca { text-decoration: underline dotted; text-decoration-color: var(--cian); text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
+.glosa:focus-visible { outline: 2px solid var(--cian); outline-offset: 2px; border-radius: 4px; }
+/* Pantallas vacías que enseñan */
+.ensena { display: flex; gap: 18px; align-items: stretch; flex-wrap: wrap; }
+.ensena__txt { flex: 1 1 260px; min-width: 0; }
+.ensena__ej { flex: 0 0 200px; max-width: 100%; position: relative; border: 1px dashed var(--line-strong); border-radius: var(--r); padding: 26px 12px 10px;
+  display: flex; gap: 6px; align-items: flex-end; min-height: 120px; }
+.ensena__ej b { position: absolute; top: 8px; left: 10px; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.ensena__ej span { flex: 1; background: var(--cian-soft); border-radius: 4px 4px 0 0; }
+.ensena .field { display: grid; gap: 6px; margin: 0; }
+@media (max-width: 520px) { .ensena__ej { flex-basis: 100%; min-height: 96px; } }

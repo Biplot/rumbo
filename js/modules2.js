@@ -136,7 +136,7 @@ function openRitualModal(op) {
       <div style="background:var(--coral-soft);border:1px solid var(--coral);border-radius:var(--r-sm);padding:12px;margin-bottom:10px">
         <label style="color:var(--coral);margin-bottom:6px">${BOCADO.emoji} ${BOCADO.titulo} — la tarea más importante (empieza por aquí)</label>
         <input class="input" id="r-sapo" value="${escapeAttr(sapoDefault)}" placeholder="La que más mueve la aguja hoy" oninput="ritualCapHint()">
-        ${STATE.settings.aperturaSimple ? `<div class="text-xs mt-8 soft">¿Cómo te comes un elefante? Un bocado a la vez: haz esta primero y lo demás pesa menos.</div>` : ""}
+        ${STATE.settings.aperturaSimple ? `<div class="text-xs mt-8 soft">¿Cómo te comes un elefante? Un bocado a la vez: haz esta primero y lo demás pesa menos.${typeof glosa === "function" ? " " + glosa("bocado", "¿Por qué «bocado»?") : ""}</div>` : ""}
         ${sugerido ? `<div class="text-xs mt-8" style="color:var(--coral)">↪ Ayer no alcanzaste tu primer bocado; te lo dejé como sugerencia.</div>` : ""}
         <div class="seg mt-8" style="display:inline-flex">${ambSeg("pro")}${ambSeg("per")}</div>
         <input type="hidden" id="r-sapo-amb" value="${bocadoAmb}">

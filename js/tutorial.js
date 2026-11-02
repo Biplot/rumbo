@@ -316,6 +316,7 @@ function misionPasos(S) {
 function misionCompleta(S) { return misionPasos(S).every(m => m.ok); }
 
 function renderMisionCard() {
+  if (typeof usaPrimeraSemana === "function" && usaPrimeraSemana()) return primeraSemanaCardHtml();   // cuentas nuevas: «Tu primera semana» (bienvenida.js)
   const t = tutorialState();
   if (t.mision !== "activa") return "";
   const pasos = misionPasos(), hechos = pasos.filter(m => m.ok).length;
@@ -357,13 +358,13 @@ function renderTutoriales() {
     </div>
   </div>
   <div class="grid grid-2 mt-16">
-    <div class="card">
+    ${typeof usaPrimeraSemana === "function" && usaPrimeraSemana() ? primeraSemanaAyudaHtml() : `    <div class="card">
       <div class="card__head"><div class="card__title">🚀 Primeros pasos · ${hechos}/${pasos.length}</div>
         <label class="row text-sm" style="gap:6px;cursor:pointer"><input type="checkbox" ${t.mision === "activa" ? "checked" : ""} onchange="misionMostrar(this.checked)"> En Inicio</label></div>
       ${pasos.map(m => `<div class="item-row"><span class="check ${m.ok ? "is-on" : ""}">${m.ok ? "✓" : ""}</span>
         <div class="item-row__main"><div class="item-row__title ${m.ok ? "strike" : ""}">${m.icon} ${escapeHtml(m.t)}</div></div>
         ${m.ok ? "" : `<button class="btn-ghost" data-action="mision-ir" data-ruta="${m.ruta}">Ir</button>`}</div>`).join("")}
-    </div>
+    </div>`}
     <div class="card">
       <div class="card__title">⚙️ Preferencias</div>
       <label class="mes-hab mt-16" style="cursor:pointer"><span class="mes-hab__n">Ofrecer la ayuda las primeras veces que entro a cada pantalla</span>
@@ -375,7 +376,8 @@ function renderTutoriales() {
     </div>
   </div>
   <div class="section-title mt-24">Ayuda por pantalla</div>
-  <div class="card">${pantallas.map(fila).join("")}</div>`;
+  <div class="card">${pantallas.map(fila).join("")}</div>
+  ${typeof palabrasRumboHtml === "function" ? palabrasRumboHtml() : ""}`;
 }
 function misionMostrar(on) { cambiarTutorial("mision", on ? "activa" : "oculta"); rerender(); }
 function tutorialAuto(on) { cambiarTutorial("auto", !!on); toast(on ? "Te ofreceré la ayuda en cada pantalla nueva" : "Listo: no te ofreceré la ayuda (sigue en el botón ?)"); }

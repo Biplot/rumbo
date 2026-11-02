@@ -39,7 +39,12 @@ const ROUTES = [
 const ROUTE_MAP = {};
 ROUTES.forEach(r => { if (r.id) ROUTE_MAP[r.id] = r; });
 /* Módulos ocultos por la persona (settings.menu.ocultos) */
-function moduloOculto(id) { const m = STATE && STATE.settings && STATE.settings.menu; return !!(m && (m.ocultos || []).includes(id) && ROUTE_MAP[id] && ROUTE_MAP[id].mas); }
+function moduloOculto(id) {
+  const m = STATE && STATE.settings && STATE.settings.menu;
+  if (m && (m.ocultos || []).includes(id) && ROUTE_MAP[id] && ROUTE_MAP[id].mas) return true;
+  // la primera semana de una cuenta nueva, las secciones despiertan de a una (bienvenida.js)
+  return !!(ROUTE_MAP[id] && ROUTE_MAP[id].mas && typeof seccionDormida === "function" && seccionDormida(id));
+}
 /* Orden de secciones para el gesto de deslizar (mismo orden del menú, sin las ocultas) */
 function seccionesVisibles() { return ROUTES.filter(r => r.id && !r.pie && !moduloOculto(r.id)).map(r => r.id); }
 
@@ -163,7 +168,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 58;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 59;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -509,6 +514,10 @@ const NOVEDADES = {
     ["🐘", "Ponle nombre a tu elefante", "En Tu casa, toca ✎ Nombre. Desde ahí, es tu elefante quien te explica las cosas en Rumbo."],
     ["🧭", "Un recorrido más corto", "El recorrido por Rumbo va a lo esencial en 6 pasos. Lo demás te lo explico cuando llegas a cada pantalla."],
   ],
+  59: [
+    ["📖", "Palabras de Rumbo", "Bocado, ritual, racha, vitrina, XP: en Ayuda está qué es cada una, explicada por tu elefante."],
+    ["📈", "Pantallas que enseñan", "Tendencias, Finanzas, Objetivos y la Rueda, cuando aún están vacías, te dicen qué son, cuándo se llenan y por dónde partir."],
+  ],
 };
 let NOVEDADES_ABIERTAS = false;
 function openNovedades() {
@@ -719,6 +728,7 @@ function onRoute() {
   cerrarMas(); cerrarMenuCuenta();
   updateTopbar();
   ayudaVisita(CURRENT);   // la franja «Primera vez aquí» se ofrece en las 3 primeras visitas (tutorial.js)
+  if (typeof seccionVista === "function") seccionVista(CURRENT);   // la sección recién despierta deja de ser «Nueva»
   rerender();
   entrarVista();
   marcarNavActiva();

@@ -421,6 +421,7 @@ function aguaFabVer() {
   const escribe = !!ae && ae !== document.body && !el.contains(ae) && ae.matches && ae.matches("input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=button]), textarea, select, [contenteditable=''], [contenteditable=true]");
   const tapa = document.querySelector("#modalOverlay:not([hidden]), .sheet-overlay:not([hidden]), .tour, .enfoque, .ele-escena, .ins-cerca, .auth:not([hidden])");
   const ver = !!STATE && aguaDatos().fab !== false && !!app && !app.hidden && !(ruta && ruta.lugar) && !tapa && !escribe
+    && !(typeof aguaEsperaPrimerVaso === "function" && aguaEsperaPrimerVaso())   // la primera semana, desde el primer vaso (bienvenida.js)
     && !(typeof CURRENT !== "undefined" && CURRENT === "inicio" && AGUA_FAB.card && AGUA_FAB.card.isConnected && AGUA_FAB.cardVisible);
   if (!ver && AGUA_FAB.abierta) aguaFabCerrar();
   if (ver) aguaFabLienzo(".agua-fab__btn", "boton");

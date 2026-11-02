@@ -40,8 +40,8 @@ function mesCerrable(y, m, hoy = new Date()) {
 }
 
 /* Banner/hero para Inicio y Ritual */
-function renderMesBanner() {
-  const pend = ritualMesPendientes();
+function renderMesBanner(max) {
+  const pend = ritualMesPendientes().slice(0, max || undefined);
   return pend.map(p => p.tipo === "apertura"
     ? heroCoral(`🗓️ Abre ${MESES[p.m]}`, "Mira el mes que pasó, define tu foco y tus objetivos del mes. Toma 5 minutos.", "Abrir el mes", "mes-open", { key: p.key })
     : heroCoral(`🗓️ Cierra ${MESES[p.m]}`, "Revisa tus objetivos, tus números y reflexiona antes de seguir.", "Cerrar el mes", "mes-close", { key: p.key })

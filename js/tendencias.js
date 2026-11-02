@@ -325,7 +325,9 @@ function renderTendencias() {
       <div class="row-wrap" style="gap:8px">${gratisSem.map(e => `<span class="chip chip--coral">${escapeHtml(e.gratitud)}</span>`).join("")}</div>` : ""}
   </div>`;
 
+  const aprende = typeof tendAprendiendo === "function" && tendAprendiendo();   // con menos de 7 días cerrados, primero se explica (bienvenida.js)
   return `
+  ${aprende ? tendEnsenaHtml() : ""}
   ${renderDescubrimientos()}
 
   <div class="grid grid-4 mt-24">
@@ -340,7 +342,7 @@ function renderTendencias() {
   ${renderFocoPostergacion()}
 
   ${renderFocoTendencias()}
-  ${renderCompararMeses()}
+  ${typeof compararEspera === "function" && compararEspera() ? "" : renderCompararMeses()}
 
   <div class="section-title">Tu evolución</div>
   ${selectorAnio()}

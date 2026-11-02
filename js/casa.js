@@ -242,12 +242,13 @@ function renderCuarto() {
   const nombres = ids.map(id => findBadge(id).nombre).join(", ");
   const chip = id => { const b = findBadge(id); return `<button class="med-chip" data-action="ins-ver" data-id="${id}">${medChip(b, escapeHtml(b.nombre))}</button>`; };
   const ahora = eleActividadAhora(s);
-  const cab = `<div class="hoja__t">🐘 Tu elefante · ${eleEstado().tipo ? nombreElefante() : "¡elígelo!"}</div>
+  const quien = typeof nombreDelElefante === "function" && nombreDelElefante() ? escapeHtml(nombreDelElefante()) : "Tu elefante";
+  const cab = `<div class="hoja__t">🐘 ${quien} · ${eleEstado().tipo ? nombreElefante() : "¡elígelo!"}</div>
     <div class="hoja__ahora" id="cuaAhora" aria-live="polite">${ahora.ico} Ahora ${ahora.txt}</div>
     <div class="hoja__s">${eleTexto()}</div>
     <div class="hoja__bts">${eleEstado().tipo ? "" : `<button class="btn btn--primary" data-action="ele-elegir">Elegir mi elefante</button>`}
       <button class="hb" data-action="elefante-open" data-v="ropa">👕 Vestir</button><button class="hb" data-action="elefante-open" data-v="tipo">🐘 Tipos</button>
-      <button class="hb" data-action="cuarto-decorar">🛍️ Decorar</button><button class="hb" data-action="repisa-elegir">🏅 Repisa</button></div>`;
+      ${eleEstado().tipo ? `<button class="hb" data-action="ele-nombre">✎ Nombre</button>` : ""}<button class="hb" data-action="cuarto-decorar">🛍️ Decorar</button><button class="hb" data-action="repisa-elegir">🏅 Repisa</button></div>`;
   const cuerpo = `${sig ? `<div class="hoja__k">Hacia ${sig.n}</div><div class="bar"><div class="bar__fill" style="width:${eleProgreso()}%"></div></div>` : ""}
     <div class="hoja__k">Tu repisa</div>
     <div class="recibo__meds-l">${ids.length ? ids.map(chip).join("") : `<span class="text-sm muted">Vacía por ahora: tu primera medalla llega al cerrar tu primer día.</span>`}</div>

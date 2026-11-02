@@ -39,7 +39,12 @@ const ROUTES = [
 const ROUTE_MAP = {};
 ROUTES.forEach(r => { if (r.id) ROUTE_MAP[r.id] = r; });
 /* Módulos ocultos por la persona (settings.menu.ocultos) */
-function moduloOculto(id) { const m = STATE && STATE.settings && STATE.settings.menu; return !!(m && (m.ocultos || []).includes(id) && ROUTE_MAP[id] && ROUTE_MAP[id].mas); }
+function moduloOculto(id) {
+  const m = STATE && STATE.settings && STATE.settings.menu;
+  if (m && (m.ocultos || []).includes(id) && ROUTE_MAP[id] && ROUTE_MAP[id].mas) return true;
+  // la primera semana de una cuenta nueva, las secciones despiertan de a una (bienvenida.js)
+  return !!(ROUTE_MAP[id] && ROUTE_MAP[id].mas && typeof seccionDormida === "function" && seccionDormida(id));
+}
 /* Orden de secciones para el gesto de deslizar (mismo orden del menú, sin las ocultas) */
 function seccionesVisibles() { return ROUTES.filter(r => r.id && !r.pie && !moduloOculto(r.id)).map(r => r.id); }
 
@@ -164,7 +169,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 57;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 59;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -175,7 +180,11 @@ const ONB_SLIDES = [
     cuerpo: `<b>Abre tu día</b> en la mañana: tu enfoque, tus tareas y tu <b>${BOCADO.corto.toLowerCase()}</b> ${BOCADO.emoji}, la tarea más importante (<i>¿cómo te comes un elefante? Un bocado a la vez</i>). De noche, <b>ciérralo</b>: decide qué pasa con lo pendiente y reflexiona.<br><br>La idea es usar la app lo <i>menos</i> posible: abrir y cerrar mantiene vivo todo tu sistema.` },
   { icon: "🧭", titulo: "Todo en un lugar", cuerpo: "__GRID__" },
 ];
-function openOnboarding(mode = "nuevo") { ONB_MODE = mode; ONB_STEP = 0; ONB_ACTIVE = true; renderOnboardingStep(); }
+/* Cuenta nueva: «Arma tu Rumbo» (bienvenida.js). Las láminas quedan para repasar desde Ayuda. */
+function openOnboarding(mode = "nuevo") {
+  if (mode === "nuevo" && typeof armaIniciar === "function") return armaIniciar();
+  ONB_MODE = mode; ONB_STEP = 0; ONB_ACTIVE = true; renderOnboardingStep();
+}
 function onbMover(delta) {
   const max = ONB_MODE === "nuevo" ? ONB_SLIDES.length : ONB_SLIDES.length - 1;
   ONB_STEP = Math.max(0, Math.min(max, ONB_STEP + delta));
@@ -502,6 +511,14 @@ const NOVEDADES = {
     ["❔", "Ayuda que no interrumpe", "La primera vez que entras a una pantalla, una franja arriba te ofrece cómo funciona. Si venías a anotar algo, sigues de largo: ya no se oscurece todo."],
     ["📱", "El botón ? también en el celular", "Arriba, en cada pantalla que tiene ayuda. Te muestra cómo funciona cuando quieras."],
   ],
+  58: [
+    ["🐘", "Ponle nombre a tu elefante", "En Tu casa, toca ✎ Nombre. Desde ahí, es tu elefante quien te explica las cosas en Rumbo."],
+    ["🧭", "Un recorrido más corto", "El recorrido por Rumbo va a lo esencial en 6 pasos. Lo demás te lo explico cuando llegas a cada pantalla."],
+  ],
+  59: [
+    ["📖", "Palabras de Rumbo", "Bocado, ritual, racha, vitrina, XP: en Ayuda está qué es cada una, explicada por tu elefante."],
+    ["📈", "Pantallas que enseñan", "Tendencias, Finanzas, Objetivos y la Rueda, cuando aún están vacías, te dicen qué son, cuándo se llenan y por dónde partir."],
+  ],
 };
 let NOVEDADES_ABIERTAS = false;
 function openNovedades() {
@@ -712,6 +729,7 @@ function onRoute() {
   cerrarMas(); cerrarMenuCuenta();
   updateTopbar();
   ayudaVisita(CURRENT);   // la franja «Primera vez aquí» se ofrece en las 3 primeras visitas (tutorial.js)
+  if (typeof seccionVista === "function") seccionVista(CURRENT);   // la sección recién despierta deja de ser «Nueva»
   rerender();
   entrarVista();
   marcarNavActiva();
@@ -1067,6 +1085,8 @@ function onClick(e) {
   if (a.startsWith("jar-")) { jardinAccion(a, d, el); return; }    // 🌱 tu jardín (jardin.js)
   if (a.startsWith("dsc-")) { descansoAccion(a, d, el); return; }   // 🛋 días de descanso y vacaciones (descansos.js)
   if (a.startsWith("dj-") || a.startsWith("rd-")) { dejarAccion(a, d); return; }   // 🌵 dejar y reducir hábitos (dejar.js)
+  if (a.startsWith("arma-")) { armaAccion(a, d); return; }   // 👋 «Arma tu Rumbo», la bienvenida (bienvenida.js)
+  if (a.startsWith("bv-")) { bienvenidaAccion(a, d); return; }   // 👋 la primera semana (bienvenida.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;
@@ -1188,6 +1208,8 @@ function onClick(e) {
     case "elefante-open": openElefante(d.v); break;
     case "ele-elegir": openElegirElefante(); break;
     case "ele-tipo": elegirTipoElefante(d.id); break;
+    case "ele-nombre": openNombreElefante(); break;
+    case "ele-nombre-ok": guardarNombreElefante(); break;
     case "ele-probar": probarPrenda(d.id); break;
     case "ele-comprar": comprarPrenda(d.id); break;
     case "ele-quitar": quitarEspacio(d.slot); break;
@@ -2080,15 +2102,17 @@ function renderInicio() {
     ${pieTareas}
   </div>`;
 
+  // La primera semana de una cuenta nueva (bienvenida.js): tu elefante dice qué hacer, los rituales grandes esperan y la misión va arriba
+  const primeraSemana = typeof primeraSemanaActiva === "function" && primeraSemanaActiva();
   return `
   ${avisoReinstalarHtml()}
   ${renderPendingYesterday()}
-  ${renderTrimestreBanner()}
-  ${renderMesBanner()}
-  ${renderSemanaBanner()}
+  ${primeraSemana ? inicioRitualesPrimeraSemana() : renderTrimestreBanner() + renderMesBanner() + renderSemanaBanner()}
+  ${primeraSemana ? inicioGuiaHtml() : ""}
   <div data-tour="dia">${renderDayHero()}</div>
+  ${primeraSemana ? renderMisionCard() : ""}
   ${renderAtajos()}
-  ${renderMisionCard()}
+  ${primeraSemana ? "" : renderMisionCard()}
   ${plHoyHtml()}${plDespuesInicioHtml()}${amigosCumplesHoyHtml()}
   ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
   <div class="grid grid-${Math.min(3, 2 + (metasMes.length ? 1 : 0) + (aguaCard ? 1 : 0))} inicio-main">
@@ -2097,7 +2121,7 @@ function renderInicio() {
       <div class="card__head"><div class="card__title">Hábitos de hoy${habToca.length ? ` <span class="muted" style="font-weight:500;white-space:nowrap">· ${doneToday} de ${habToca.length}</span>` : ""}</div>
         <a class="card__hint" href="#habitos">Ver panel →</a></div>
       ${typeof jardinInicioHtml === "function" ? jardinInicioHtml() : ""}
-      ${habitsToday || '<div class="empty">Agrega hábitos en el panel.</div>'}
+      ${habitsToday || (STATE.habitos.defs.length ? '<div class="empty">Hoy no te toca ninguno.</div>' : '<div class="empty">Aún no tienes hábitos. <a href="#habitos">Elige tu primero →</a></div>')}
     </div>
     ${aguaCard}
     ${metasMes.length ? `<div class="card">

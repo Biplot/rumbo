@@ -136,6 +136,7 @@ function openRitualModal(op) {
       <div style="background:var(--coral-soft);border:1px solid var(--coral);border-radius:var(--r-sm);padding:12px;margin-bottom:10px">
         <label style="color:var(--coral);margin-bottom:6px">${BOCADO.emoji} ${BOCADO.titulo} — la tarea más importante (empieza por aquí)</label>
         <input class="input" id="r-sapo" value="${escapeAttr(sapoDefault)}" placeholder="La que más mueve la aguja hoy" oninput="ritualCapHint()">
+        ${STATE.settings.aperturaSimple ? `<div class="text-xs mt-8 soft">¿Cómo te comes un elefante? Un bocado a la vez: haz esta primero y lo demás pesa menos.${typeof glosa === "function" ? " " + glosa("bocado", "¿Por qué «bocado»?") : ""}</div>` : ""}
         ${sugerido ? `<div class="text-xs mt-8" style="color:var(--coral)">↪ Ayer no alcanzaste tu primer bocado; te lo dejé como sugerencia.</div>` : ""}
         <div class="seg mt-8" style="display:inline-flex">${ambSeg("pro")}${ambSeg("per")}</div>
         <input type="hidden" id="r-sapo-amb" value="${bocadoAmb}">
@@ -151,17 +152,33 @@ function openRitualModal(op) {
       <div class="text-xs muted mt-8" id="r-cap">${capacidadHint(contarTareasRitual(sapoDefault, tareasDe("pro"), tareasDe("per"), RITUAL_VIENEN), tmCapacidad(STATE, todayISO()))}</div>
       <div class="text-xs muted mt-8">Tu primer bocado y estas tareas aparecen juntos en Inicio y en tu Semana.</div></div>
 
-    <div class="field"><label>Pilar de hoy</label>
-      <select class="select" id="r-pilar">${PILARES.map(p => `<option ${r.pilar === p ? "selected" : ""}>${p}</option>`).join("")}</select></div>
-    <div class="field"><label>Nivel de energía: <span id="r-elabel">${r.energia || 3}</span>/5</label>
-      <input type="range" min="1" max="5" step="1" id="r-energia" value="${r.energia || 3}" style="width:100%;accent-color:var(--cian)"
-        oninput="document.getElementById('r-elabel').textContent=this.value"></div>
-    <div class="field"><label>¿A quién sirves hoy?</label><input class="input" id="r-servir" value="${escapeAttr(r.servir || "")}" placeholder="Persona, equipo, cliente..."></div>
-    <div class="field"><label>Proyectos de hoy (separa con comas)</label><input class="input" id="r-proy" value="${escapeAttr((r.proyectos || []).join(", "))}" placeholder="Proyecto A, Proyecto B"></div>
+    ${aperturaExtrasHtml(r)}
     <div class="modal__cta">${r.hecho ? `<button class="btn btn--primary btn-block" data-action="ritual-save">Guardar cambios</button>`
       : `<button class="btn btn--primary btn-block btn--precio" data-action="ritual-save"><span>Abrir mi día</span><span class="btn__precio">+50 ${iconoLinea("estrella", 16)}</span></button>`}</div>`);
   if (op.foco) enfocarCampo(op.foco);
 }
+/* Pilar, energía, a quién sirves y proyectos. En las cuentas nuevas (aperturaSimple) van plegados en «Más para tu día»
+   y el pilar parte sin elegir; quien los abre una vez los encuentra abiertos la próxima (settings.aperturaMas). */
+function aperturaExtrasHtml(r) {
+  const simple = !!STATE.settings.aperturaSimple;
+  const desc = p => (PILARES_INFO[p] || {}).desc || "";
+  const campos = `
+    <div class="field"><label for="r-pilar">Pilar de hoy</label>
+      <select class="select" id="r-pilar" onchange="document.getElementById('r-pdesc').textContent=(PILARES_INFO[this.value]||{}).desc||''">
+        ${simple ? `<option value="" ${r.pilar ? "" : "selected"}>Elige uno (opcional)</option>` : ""}${PILARES.map(p => `<option ${r.pilar === p ? "selected" : ""}>${p}</option>`).join("")}</select>
+      <div class="text-xs muted mt-8" id="r-pdesc">${simple ? desc(r.pilar || "") : desc(r.pilar || PILARES[0])}</div></div>
+    <div class="field"><label>Nivel de energía: <span id="r-elabel">${r.energia || 3}</span>/5</label>
+      <input type="range" min="1" max="5" step="1" id="r-energia" value="${r.energia || 3}" style="width:100%;accent-color:var(--cian)"
+        oninput="document.getElementById('r-elabel').textContent=this.value"></div>
+    <div class="field"><label for="r-servir">¿A quién sirves hoy?</label><input class="input" id="r-servir" value="${escapeAttr(r.servir || "")}" placeholder="Persona, equipo, cliente...">
+      ${simple ? `<div class="text-xs muted mt-8">A quién le sirve lo que haces hoy: le da sentido a tu día.</div>` : ""}</div>
+    <div class="field"><label for="r-proy">Proyectos de hoy (separa con comas)</label><input class="input" id="r-proy" value="${escapeAttr((r.proyectos || []).join(", "))}" placeholder="Proyecto A, Proyecto B"></div>`;
+  if (!simple) return campos;
+  const abierto = STATE.settings.aperturaMas === true || !!(r.pilar || r.servir || (r.proyectos || []).length);
+  return `<details class="r-mas" id="r-mas" ${abierto ? "open" : ""} ontoggle="aperturaMasToggle(this.open)">
+    <summary><span class="r-mas__t">Más para tu día</span><span class="r-mas__d">tu energía, tu pilar y a quién sirves</span></summary>${campos}</details>`;
+}
+function aperturaMasToggle(open) { if (!!STATE.settings.aperturaMas !== !!open) { STATE.settings.aperturaMas = !!open; saveState(); } }
 /* Deja el cursor al final de un campo de la ventana (como al tocar la barra de búsqueda de una app de viajes) */
 function enfocarCampo(id) {
   setTimeout(() => {
@@ -233,9 +250,11 @@ function saveRitual() {
   vivas.filter(t => !vistos.has(t.txt) && !(t.migraciones > 0) && !t.bocadoSugerido).forEach(borrarTarea);
 
   if (!yaHecho) {
-    STATE.ritual.pilares[pilar] = (STATE.ritual.pilares[pilar] || 0) + 1;
+    if (pilar) STATE.ritual.pilares[pilar] = (STATE.ritual.pilares[pilar] || 0) + 1;
+    const primero = !Object.keys(STATE.ritual.dias).some(k => k !== iso && STATE.ritual.dias[k] && STATE.ritual.dias[k].hecho);
     registrarMovimiento("ritual-apertura:" + iso, 50, 50, "Ritual de apertura");
     vibrar(20);
+    if (primero && STATE.settings.aperturaSimple && typeof celebrarPrimerDia === "function") setTimeout(celebrarPrimerDia, 450);   // bienvenida.js
   }
   saveState(); closeModal(); updateTopbar(); rerender();
 }

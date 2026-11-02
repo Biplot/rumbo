@@ -5,7 +5,7 @@
 let pw;
 try { pw = require("playwright"); } catch (e) { pw = require("/opt/node22/lib/node_modules/playwright"); }
 const path = require("path");
-const URL = "http://localhost:5178/";
+const URL = process.env.E2E_URL || "http://localhost:5178/";   // E2E_URL: otro servidor (p. ej. otra copia del repo)
 const SHOTS = process.env.E2E_SHOTS || "";   // carpeta para capturas (opcional)
 
 async function nuevoContexto(browser, { w = 1360, h = 900, fecha = "2026-09-23T10:00:00", dpr = 1, ua } = {}) {
@@ -20,13 +20,14 @@ async function nuevoContexto(browser, { w = 1360, h = 900, fecha = "2026-09-23T1
   await ctx.clock.setFixedTime(new Date(fecha));
   return ctx;
 }
+/* Una cuenta como las de antes: sin pasar por la bienvenida, sin día de alta ni primera semana */
 async function registrar(page, email) {
   await page.goto(URL);
   await page.click('[data-tab="register"]');
   await page.fill("#reg-name", "Prueba"); await page.fill("#reg-email", email); await page.fill("#reg-pass", "secreto123");
   await page.click('[data-action="auth-register"]');
   await page.waitForSelector("#app:not([hidden])"); await page.waitForTimeout(500);
-  await page.evaluate(() => { try { localStorage.setItem("rumbo-sin-escenas", "1"); } catch (e) {} STATE.settings.onboarded = true; STATE.settings.introVersion = INTRO_VERSION; STATE.agua.fab = false; STATE.gamif.equipped.ele = { tipo: "clasico", ropa: {}, ts: 1 }; STATE.settings.tutorial = { vistos: {}, mision: "oculta", auto: false, ts: 0 }; ONB_ACTIVE = false; closeModal(); saveState(); });
+  await page.evaluate(() => { try { localStorage.setItem("rumbo-sin-escenas", "1"); } catch (e) {} STATE.settings.onboarded = true; delete STATE.settings.alta; delete STATE.settings.bienvenida; STATE.settings.introVersion = INTRO_VERSION; STATE.agua.fab = false; STATE.gamif.equipped.ele = { tipo: "clasico", ropa: {}, ts: 1 }; STATE.settings.tutorial = { vistos: {}, mision: "oculta", auto: false, ts: 0 }; ONB_ACTIVE = false; closeModal(); saveState(); });
   await page.addStyleTag({ content: ".toast{display:none!important}" });
 }
 async function shot(page, nombre, op = {}) {

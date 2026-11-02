@@ -85,6 +85,9 @@ function defaultState() {
       log: {}, // ej: { "2026-9": { habitId: {5:true, 6:true} } }
       descansos: [],   // v116 · descanso de un hábito: [{ id: "d:<hid>:<iso>", hid, fecha, ts, quitado? }]
       vacaciones: [],  // v116 · [{ id, desde, hasta, habitos: null (todos) | [ids], ts, quitado? }]
+      caidas: [],      // v117 · hábitos para dejar: [{ id: "c:<hid>:<iso>", hid, fecha, ts, quitado? }]
+      cuentas: [],     // v117 · hábitos para reducir: [{ id: "n:<hid>:<iso>", hid, fecha, n, ts }]
+      antojos: [],     // v117 · antojos superados: [{ id, hid, fecha, hora, gatillo, ts }]
     },
 
     // rueda de la vida: por mes, 8 áreas 0-10
@@ -271,6 +274,7 @@ function migrate(s) {
   if (s.habitos && typeof s.habitos === "object") {   // v116 · días de descanso y vacaciones
     if (!Array.isArray(s.habitos.descansos)) s.habitos.descansos = [];
     if (!Array.isArray(s.habitos.vacaciones)) s.habitos.vacaciones = [];
+    ["caidas", "cuentas", "antojos"].forEach(k => { if (!Array.isArray(s.habitos[k])) s.habitos[k] = []; });   // v117 · dejar y reducir
   }
   // Las listas de deseos de antes (Listas) pasan a Tus deseos: cada ítem, un deseo sin espera (id fijo: idempotente, y lo que
   // un equipo viejo agregue después también pasa); los conseguidos quedan en «Lo tienes». La lista queda marcada (migrada) y no se borra.

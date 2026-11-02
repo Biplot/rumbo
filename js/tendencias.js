@@ -85,6 +85,7 @@ function computeInsights() {
   //    desde su creación: un hábito semanal no "falta" los días que no le tocan.
   let best = null;
   (S.habitos.defs || []).forEach(h => {
+    if (typeof hmMeta === "function" && hmMeta(h) !== "hacer") return;   // «los días que haces…»: solo los de hacer
     const con = [], sin = [];
     moodDates.forEach(f => {
       if (f < hmCreado(h)) return;
@@ -149,7 +150,7 @@ function computeInsights() {
 
   // 9) El hábito que más te ayuda a cumplir tus tareas
   { let mejor = null;
-    (S.habitos.defs || []).forEach(h => { if (h.pausado) return; const con = [], sin = [];
+    (S.habitos.defs || []).forEach(h => { if (h.pausado || (typeof hmMeta === "function" && hmMeta(h) !== "hacer")) return; const con = [], sin = [];
       diasPlan.forEach(f => { if (f < hmCreado(h)) return; const p = tmDia(S, f).pct;
         if (hmDone(h, f, S)) con.push(p); else if (hmProgramado(h, f)) sin.push(p); });
       if (con.length >= 4 && sin.length >= 4) { const d = avg(con) - avg(sin); if (d >= 15 && (!mejor || d > mejor.d)) mejor = { h, d }; } });

@@ -24,13 +24,14 @@ function dscDiaTxt(iso, conMes) {
 }
 function dscDef(id) { return (STATE.habitos.defs || []).find(h => h.id === id) || null; }
 /* Los hábitos que pueden tener descanso de un día: activos, diarios o de días fijos */
-function dscElegibles(S) { return ((S || STATE).habitos.defs || []).filter(h => hmActivo(h) && ["diario", "dias"].includes(hmFreq(h).tipo)); }
+function dscElegibles(S) { return ((S || STATE).habitos.defs || []).filter(h => hmActivo(h) && hmMeta(h) === "hacer" && ["diario", "dias"].includes(hmFreq(h).tipo)); }
 
 /* -------- Las reglas: ¿se puede descansar ese día? { ok, quitar, motivo } -------- */
 function dscPuede(h, iso, S) {
   S = S || STATE;
   const hoy = hmHoy(), f = hmFreq(h);
   if (!h || h.pausado) return { ok: false, motivo: "Ese hábito está en pausa." };
+  if (hmMeta(h) !== "hacer") return { ok: false, motivo: "Lo que dejas no se toma vacaciones: los descansos no aplican a «Dejar» ni a «Reducir»." };
   if (f.tipo === "semanal" || f.tipo === "mensual") return { ok: false, motivo: `Los de «${hmFreqLabel(h)}» no necesitan descanso de un día: ya eliges cuándo.` };
   if (hmDescansoDia(h, iso, S)) return iso > hoy ? { ok: true, quitar: true } : { ok: false, motivo: "Ese día ya llegó: el descanso queda." };
   if (iso <= hoy) return { ok: false, motivo: iso === hoy ? "Hoy ya no: el descanso se decide desde el día anterior." : "Ese día ya pasó: el descanso se decide antes." };
@@ -161,7 +162,7 @@ function vacFilaHtml(v) {
     <button class="btn-ghost" data-action="dsc-vac-fin" data-id="${escapeAttr(v.id)}">${ya ? "Volví antes" : "Cancelar"}</button></div>`;
 }
 function openVacaciones() {
-  const hoy = hmHoy(), manana = hmAdd(hoy, 1), activos = (STATE.habitos.defs || []).filter(hmActivo);
+  const hoy = hmHoy(), manana = hmAdd(hoy, 1), activos = (STATE.habitos.defs || []).filter(h => hmActivo(h) && hmMeta(h) === "hacer");
   const vigentes = hmVacaciones().filter(v => v.hasta >= hoy).sort((a, b) => a.desde.localeCompare(b.desde));
   openModal("🌴 Vacaciones", `
     <p class="text-sm muted">Elige cuándo te vas y los hábitos que descansan. Esos días no cortan tu racha ni suman; los de «X por semana» piden en proporción. Al volver, todo sigue solo.</p>

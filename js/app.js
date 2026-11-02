@@ -158,7 +158,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 55;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 56;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -485,6 +485,12 @@ const NOVEDADES = {
     ["🌴", "Vacaciones", "Elige cuándo te vas (hasta 21 días) y qué hábitos descansan. Tu racha te espera y, al volver, todo sigue solo."],
     ["🗓️", "Descansos en tu ritual", "Al planificar la semana hay un paso nuevo y opcional: ¿qué días vas a descansar?"],
     ["🌱", "Tu jardín también descansa", "La maceta del hábito que descansa tiene su hamaquita y, en vacaciones, un letrero dice cuándo vuelves."],
+  ],
+  56: [
+    ["🚭", "Dejar un hábito", "Al crear un hábito elige «Dejarlo»: Rumbo cuenta tus días sin y tú solo avisas si caes. Confirma el día con un toque (+5 ⭐). Caer no borra lo avanzado."],
+    ["☕", "Reducir con límite", "Para lo que quieres menos, no cero: «Café, máximo 2 al día». Cada vez, un toque; el día es verde mientras no pases el límite."],
+    ["⚡", "Antojos superados", "Anota el antojo que te ganaste y qué lo gatilló (+1 ⭐). Con el tiempo verás cuándo llegan, junto a tu plan para el antojo."],
+    ["🐷", "Lo que te ahorras", "Si le pones cuánto te costaba al día, Rumbo suma lo que no gastas y lo pasas a una alcancía. En tu jardín, lo que dejas crece como cactus."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -955,7 +961,7 @@ function computeClosedStreak() {
 function dayAutoSummary() {
   const mIdx = new Date().getMonth(), day = new Date().getDate();
   // Hábitos de hoy: los que tocan + los que marcaste hoy aunque no tocaran
-  const hoyHabs = STATE.habitos.defs.filter(h => !h.pausado && (tocaHoy(h) || habitDone(h.id, mIdx, day) || (hmProgramado(h, todayISO()) && hmCreado(h) <= todayISO())));
+  const hoyHabs = STATE.habitos.defs.filter(h => !h.pausado && hmMeta(h) !== "reducir" && (tocaHoy(h) || habitDone(h.id, mIdx, day) || (hmProgramado(h, todayISO()) && hmCreado(h) <= todayISO())));
   const habTotal = hoyHabs.length;
   const habDone = hoyHabs.filter(h => habitDone(h.id, mIdx, day)).length;
   const rd = resumenDia(STATE, todayISO());
@@ -1050,6 +1056,7 @@ function onClick(e) {
   if (a.startsWith("des-")) { deseosAccion(a, d); return; }        // 💎 tus deseos (deseos.js)
   if (a.startsWith("jar-")) { jardinAccion(a, d, el); return; }    // 🌱 tu jardín (jardin.js)
   if (a.startsWith("dsc-")) { descansoAccion(a, d, el); return; }   // 🛋 días de descanso y vacaciones (descansos.js)
+  if (a.startsWith("dj-") || a.startsWith("rd-")) { dejarAccion(a, d); return; }   // 🌵 dejar y reducir hábitos (dejar.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;
@@ -1705,6 +1712,7 @@ function setMonthNav(name, m) {
 /* -------- Hábitos: toggle celda -------- */
 let HABIT_MONTH = new Date().getMonth();
 function toggleHabitDate(habitId, year, monthIdx, day) {
+  if (typeof djBloqueaMarca === "function" && djBloqueaMarca(habitId, isoLocal(new Date(year, monthIdx, day)))) return;   // un día con caída no se confirma
   const key = monthKey(year, monthIdx);
   STATE.habitos.log[key] = STATE.habitos.log[key] || {};
   STATE.habitos.log[key][habitId] = STATE.habitos.log[key][habitId] || {};
@@ -2004,15 +2012,17 @@ function renderInicio() {
   const pesoActual = pesos.length ? pesos[pesos.length - 1] : null;
 
   const habBtn = h => {
+    if (hmMeta(h) !== "hacer") return djChipHtml(h);   // dejar o reducir: días sin o cuántos van (dejar.js)
     const on = habitDone(h.id, mIdx, day);
     const prog = progresoPeriodoActual(h);
     return `<button class="hab-chip${on ? " is-on" : ""}" data-action="quick-habit" data-id="${h.id}" aria-pressed="${on}"
       title="${escapeAttr(h.nombre + " · " + prog.texto)}"><span class="hab-chip__i">${icoHab(h.icon, 20)}</span><span class="hab-chip__n">${escapeHtml(h.nombre)}</span></button>`;
   };
-  const { toca: habToca, cumplidos: habCumplidos, descansan: habDescansan } = habitosHoy();
+  const { toca: habToca, cumplidos: habCumplidos, descansan: habDescansan, limites: habLimites } = habitosHoy();
   // Los hábitos en conjunto van aparte, con cómo va cada uno (conjunto.js)
   const propios = l => l.filter(h => !h.conjunto), propiosToca = propios(habToca), propiosCumplidos = propios(habCumplidos);
   const habitsToday = (propiosToca.length ? `<div class="hab-chips">${propiosToca.map(habBtn).join("")}</div>` : "")
+    + (habLimites.length ? `<div class="hab-chips mt-8">${habLimites.map(habBtn).join("")}</div>` : "")
     + (propiosCumplidos.length ? `<details class="hb-more"><summary>${icoHab("✅", 15)} Ya cumplidos este período (${propiosCumplidos.length})</summary>
       <div class="hab-chips mt-8">${propiosCumplidos.map(habBtn).join("")}</div></details>` : "")
     + cjInicioHtml(habToca.concat(habCumplidos).filter(h => h.conjunto))

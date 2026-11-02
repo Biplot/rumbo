@@ -251,8 +251,9 @@ function habitosHoy() {
   const activos = STATE.habitos.defs.filter(h => !h.pausado), hoy = hmHoy();
   const toca = activos.filter(h => tocaHoy(h));
   const descansan = activos.filter(h => !toca.includes(h) && hmCreado(h) <= hoy && hmDescanso(h, hoy) && !hmDone(h, hoy));
-  const cumplidos = activos.filter(h => !toca.includes(h) && !descansan.includes(h) && hmCreado(h) <= hoy);
-  return { toca, cumplidos, descansan };
+  const limites = activos.filter(h => hmMeta(h) === "reducir" && hmCreado(h) <= hoy);   // para reducir: van aparte (dejar.js)
+  const cumplidos = activos.filter(h => !toca.includes(h) && !descansan.includes(h) && !limites.includes(h) && hmCreado(h) <= hoy);
+  return { toca, cumplidos, descansan, limites };
 }
 
 function renderHabitos() {
@@ -279,6 +280,7 @@ function renderHabitos() {
 }
 
 function habitTodayCard(h) {
+  if (hmMeta(h) !== "hacer") return djCardHtml(h);   // para dejar o reducir (dejar.js)
   const now = new Date();
   const on = habitDoneDate(h.id, now);
   const prog = progresoPeriodoActual(h), hoy = todayISO();
@@ -303,8 +305,13 @@ function habitViewDiario() {
     const dias = Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
     const rows = defs.map(h => {
       const cells = dias.map(d => {
-        const on = habitDoneDate(h.id, d);
         const iso = isoLocal(d);
+        if (hmMeta(h) !== "hacer") {   // dejar: limpio, caída o por confirmar; reducir: cuántos ese día
+          const c = djCelda(h, iso);
+          return `<button class="hb-day ${c.cls} ${iso === todayISO() ? "today" : ""}" ${c.act || "disabled"} aria-label="${escapeAttr(DIAS_CORTO[d.getDay()] + " " + d.getDate() + ": " + c.label)}">
+            <span class="hb-day__dow">${DIAS_CORTO[d.getDay()]}</span><span class="hb-day__n">${d.getDate()}</span>${c.txt ? `<span class="hb-day__c">${c.txt}</span>` : ""}</button>`;
+        }
+        const on = habitDoneDate(h.id, d);
         const isT = iso === todayISO();
         const prog = hmFreq(h).tipo === "dias" && hmProgramado(h, iso);
         // Descanso (rayitas) y vacaciones; un día que viene se toca para descansar (habitos de cuota: avisa por qué no)
@@ -314,7 +321,8 @@ function habitViewDiario() {
           ${desc ? `aria-label="${escapeAttr(DIAS_CORTO[d.getDay()] + " " + d.getDate() + ": " + (hmVacacion(h, iso) ? "vacaciones" : "descanso"))}"` : ""}>
           <span class="hb-day__dow">${DIAS_CORTO[d.getDay()]}</span><span class="hb-day__n">${d.getDate()}</span></button>`;
       }).join("");
-      const meta = hmFreq(h).tipo === "mensual" ? progresoPeriodoActual(h).texto : `${hmMetaPeriodo(h, todayISO()).hecho}/${hmMetaPeriodo(h, todayISO()).esperado} esta semana`;
+      const meta = hmMeta(h) === "reducir" ? progresoPeriodoActual(h).texto : hmMeta(h) === "dejar" ? `${rachaPeriodos(h).n} ${djSinTxt(h, rachaPeriodos(h).n)}`
+        : hmFreq(h).tipo === "mensual" ? progresoPeriodoActual(h).texto : `${hmMetaPeriodo(h, todayISO()).hecho}/${hmMetaPeriodo(h, todayISO()).esperado} esta semana`;
       return `<div class="card hb-week ${h.pausado ? "is-paused" : ""}"><div class="hb-week__name">${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)} ${freqChip(h)}
         <span class="text-xs muted" style="margin-left:auto">${h.pausado ? "" : meta}</span>
         <button class="icon-btn" data-action="habit-edit" data-id="${h.id}" title="Editar">✎</button></div><div class="hb-week__days">${cells}</div></div>`;
@@ -323,11 +331,12 @@ function habitViewDiario() {
   }
 
   // Hoy: solo los que tocan hoy; los que descansan y los demás en un colapsable
-  const { toca, cumplidos, descansan } = habitosHoy();
+  const { toca, cumplidos, descansan, limites } = habitosHoy();
   const done = toca.filter(h => habitDoneDate(h.id, now)).length;
   const pausados = defs.filter(h => h.pausado);
   return sub + `<div class="text-sm muted" style="margin-bottom:12px">Hoy llevas <b>${done}/${toca.length}</b> hábitos que tocan hoy</div>
     <div class="hb-grid">${toca.map(habitTodayCard).join("") || '<div class="empty">Nada pendiente hoy 🎉</div>'}</div>
+    ${limites.length ? `<div class="section-title">Con límite</div><div class="hb-grid">${limites.map(habitTodayCard).join("")}</div>` : ""}
     ${descansan.length ? `<details class="hb-more mt-16"><summary>${icoUI("moon")} Descansan hoy (${descansan.length})</summary>
       <p class="text-xs muted mt-8">No cortan tu racha. Si igual lo haces, tócalo: cuenta como siempre.</p>
       <div class="hb-grid mt-8">${descansan.map(habitTodayCard).join("")}</div></details>` : ""}
@@ -353,6 +362,7 @@ function habitGrid(m) {
     const cells = Array.from({ length: nDays }, (_, k) => {
       const d = k + 1; const on = habitDone(h.id, m, d, year);
       const iso = isoLocal(new Date(year, m, d));
+      if (hmMeta(h) !== "hacer") { const c = djCelda(h, iso); return `<td><span class="cell ${c.cls} ${d === todayD ? "today" : ""}" ${c.act} title="${escapeAttr(c.label)}">${c.txt && c.txt !== "0" ? c.txt : ""}</span></td>`; }
       const prog = esDias && hmProgramado(h, iso) && iso >= hmCreado(h);
       const desc = !on && hmDescanso(h, iso), act = iso > todayISO() ? `data-action="dsc-dia" data-id="${h.id}" data-f="${iso}"` : `data-action="habit-cell" data-id="${h.id}" data-day="${d}"`;
       return `<td><span class="cell ${on ? "on" : ""} ${d === todayD ? "today" : ""} ${prog && !desc ? "prog" : ""} ${desc ? "rest" : ""}" ${act}${desc ? ` title="${hmVacacion(h, iso) ? "Vacaciones" : "Descanso"}"` : ""}></span></td>`;
@@ -434,7 +444,8 @@ function openHabitModal(id, op) {
         return `<button type="button" class="btn--soft btn ico-pick ${ic === icon || (m && sel && m[0] === sel[0]) ? "btn--cian" : ""}" data-ic="${ic}" aria-label="${escapeAttr(nombre)}" title="${escapeAttr(nombre)}" onclick="pickIcon(this)">${icoHab(ic, 22)}</button>`; }).join("")}</div>
       <input type="hidden" id="h-icon" value="${icon}">
       ${PACKS_ICONOS.some(p => !funcion("iconos-" + p.id)) ? `<div class="text-xs muted mt-8">${iconoSvg("palette", 14)} Más íconos (deporte, estudio, hogar, bienestar) en la Tienda.</div>` : ""}</div>
-    <div class="field"><label>Frecuencia objetivo</label>
+    ${djFormHtml(h)}
+    <div class="field" id="h-freq-box" ${h && hmMeta(h) !== "hacer" ? "hidden" : ""}><label>Frecuencia objetivo</label>
       <div class="seg" id="h-tipo-seg" style="flex-wrap:wrap">${tipos.map(([k, l]) => `<button type="button" class="${f.tipo === k ? "is-active" : ""}" data-v="${k}" onclick="habitTipoPick(this)">${l}</button>`).join("")}</div>
       <input type="hidden" id="h-tipo" value="${f.tipo}">
       <div id="h-veces-box" class="mt-8" ${f.tipo === "semanal" || f.tipo === "mensual" ? "" : "hidden"}>
@@ -443,8 +454,8 @@ function openHabitModal(id, op) {
       <div id="h-dias-box" class="mt-8" ${f.tipo === "dias" ? "" : "hidden"}>
         <div class="row-wrap" id="h-dias">${HM_DIAS.map((d, i) => `<label class="dia-pick"><input type="checkbox" value="${i}" ${dias.includes(i) ? "checked" : ""}> ${["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][i]}</label>`).join("")}</div></div>
       <div class="text-xs muted mt-8">Se mide contra este objetivo, no contra 7 días. La semana va de lunes a domingo.</div></div>
-    ${cjSeccionModal(h, op && op.amigos)}
-    ${h ? dscHojaHtml(h) : ""}
+    <div id="h-cj-box" ${h && hmMeta(h) !== "hacer" ? "hidden" : ""}>${cjSeccionModal(h, op && op.amigos)}</div>
+    ${h && hmMeta(h) === "hacer" ? dscHojaHtml(h) : ""}
     ${h && !h.conjunto ? `<label class="row" style="gap:8px;margin-bottom:14px"><input type="checkbox" id="h-pausado" ${h.pausado ? "checked" : ""}> ⏸ Pausar este hábito (no se mide mientras esté pausado)</label>` : ""}
     <button class="btn btn--primary btn-block mt-8" data-action="habit-save">${h ? "Guardar cambios" : "Crear hábito"}</button>
     ${h ? `<button class="btn-ghost btn-block mt-8" data-action="habit-del" data-id="${h.id}" style="color:var(--coral);border-color:var(--coral)">🗑 Eliminar hábito</button>` : ""}`);
@@ -478,9 +489,10 @@ function leerFrecuencia() {
 }
 async function saveHabit() {
   const nombre = val("h-nombre"); if (!nombre) return toast("Ponle un nombre", true);
-  const frecuencia = leerFrecuencia();
+  const dj = typeof djLeerForm === "function" ? djLeerForm() : null;   // para dejar o reducir (dejar.js)
+  const frecuencia = dj ? dj.frecuencia : leerFrecuencia();
   const h = HABIT_EDIT && STATE.habitos.defs.find(x => x.id === HABIT_EDIT);
-  const amigos = cjAmigosElegidos();
+  const amigos = dj ? [] : cjAmigosElegidos();
   if ((h && h.conjunto) || amigos.length) {   // en conjunto: primero el servidor (el cambio es para todos)
     if (CONJ.guardando) return;
     CONJ.guardando = true;
@@ -493,10 +505,11 @@ async function saveHabit() {
   }
   if (h) {
     h.nombre = nombre; h.icon = val("h-icon") || h.icon; h.frecuencia = frecuencia;
+    if (dj) Object.assign(h, dj);
     const p = document.getElementById("h-pausado"); h.pausado = !!(p && p.checked);
     h.ts = Date.now();   // en la fusión gana la edición más reciente
   } else {
-    STATE.habitos.defs.push({ id: uid(), nombre, icon: val("h-icon") || "✅", frecuencia, creado: todayISO(), ts: Date.now() });
+    STATE.habitos.defs.push(Object.assign({ id: uid(), nombre, icon: val("h-icon") || "✅", frecuencia, creado: todayISO(), ts: Date.now() }, dj || {}));
   }
   HABIT_EDIT = null;
   saveState(); closeModal(); rerender(); toast(h ? "Hábito actualizado" : "Hábito creado");

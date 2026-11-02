@@ -3329,3 +3329,52 @@ body.con-agua-fab .view { padding-bottom: 96px; }
 .dsc-hoy { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
 .dsc-hoy svg { width: 14px; height: 14px; }
 .dsc-vac .item-row__sub { text-wrap: pretty; }
+
+/* ============================================================
+   v117 · 🌵 Dejar y reducir (dejar.js): la tarjeta con los días sin y sus botones, la de límite con
+   − y +, las celdas (limpio sin confirmar, caída, cuántos), la hoja del hábito y el cierre del día
+   ============================================================ */
+.hb-dejar__n { font-size: 14px; color: var(--text-soft); text-align: center; }
+.hb-dejar__n b { font-family: var(--font-display, inherit); font-size: 26px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; margin-right: 2px; }
+.hb-dejar__acc { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.hb-dejar__acc .chip { cursor: pointer; font-size: 12.5px; min-height: 32px; display: inline-flex; align-items: center; gap: 4px; }
+.hb-dejar__acc .chip svg { width: 14px; height: 14px; }
+.chip--oro { background: var(--coral-soft); color: var(--coral); border-color: transparent; font-weight: 700; }
+.hb-today.is-caida { border-color: var(--coral); border-style: dashed; }
+.hb-lim { cursor: default; }
+.hb-lim.is-pasado { border-color: var(--coral); }
+.hb-lim__cont { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.hb-lim__cont b { font-family: var(--font-display, inherit); font-size: 30px; font-weight: 800; min-width: 2ch; text-align: center; font-variant-numeric: tabular-nums; }
+.hb-lim__b { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font: inherit; font-size: 20px; font-weight: 800; cursor: pointer; }
+.hb-lim__b:disabled { opacity: .4; cursor: default; }
+.hb-lim.is-pasado .hb-lim__cont b { color: var(--coral); }
+.hab-chip small { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.hab-chip--lim.is-pasado { border-color: var(--coral); }
+.hb-day.cae, .cell.cae { background: var(--coral-soft); border-color: var(--coral); }
+.hb-day.sin:not(.cae), .cell.sin { opacity: .62; }
+.hb-day__c { font-size: 11px; font-weight: 700; color: var(--text-muted); line-height: 1; }
+.hb-day.on .hb-day__c { color: var(--on-cian); }
+.hb-day:disabled { cursor: default; opacity: .5; }
+.cell { font-size: 10px; font-weight: 700; display: inline-grid; place-items: center; color: var(--text); }
+.cell.on { color: var(--on-cian); }
+.dj-hoja { display: grid; gap: 12px; }
+.dj-hoja__n { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.dj-hoja__n b { font-family: var(--font-display, inherit); font-size: 48px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.dj-hoja__n span { font-size: 15px; color: var(--text-soft); font-weight: 600; }
+.dj-hoja__mini { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-muted); }
+.dj-hoja__mini b { color: var(--text); }
+.dj-tira { display: grid; grid-template-columns: repeat(15, minmax(0, 1fr)); gap: 4px; }
+.dj-tira i { aspect-ratio: 1; border-radius: 5px; background: var(--surface-2); display: block; }
+.dj-tira i.on { background: var(--cian); }
+.dj-tira i.on.sin { opacity: .55; }
+.dj-tira i.cae { background: var(--coral); }
+.dj-tira i.hoy { box-shadow: inset 0 0 0 2px var(--coral-soft); }
+.dj-hoja__sec { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+.dj-hoja__sec > b { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.dj-hoja__sec > b svg { width: 16px; height: 16px; }
+.dj-hoja__sec p { margin: 0; }
+.dj-plata { font-size: 18px; }
+.dj-gatillos { gap: 6px; }
+.dj-gatillos .chip { cursor: pointer; min-height: 36px; }
+.dj-cierre { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
+.rd-dia { display: grid; gap: 8px; justify-items: center; padding: 8px 0; }

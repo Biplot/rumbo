@@ -188,5 +188,26 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('#modal [data-action="alb-comp-enviar"]');
   ok((await descarga).suggestedFilename() === "rumbo-album-octubre-2026-1.jpg", "sin el menú de compartir del teléfono, se descarga: rumbo-album-octubre-2026-1.jpg");
   ok(await p.evaluate(() => (STATE.gamif.ledger || []).some(x => String(x.id).startsWith("hito:compartir:"))), "y cuenta para la insignia Embajador");
+
+  // 13) Todas las fotos salen: cada una se prepara como imagen propia y, si alguna queda en blanco al dibujar
+  //     (pasaba en algunos teléfonos), la página se dibuja de nuevo
+  const r13 = await p.evaluate(async () => {
+    const orig = window.html2canvas; let llamadas = 0;
+    const normal = (await albumPaginasImagen("2026-10")).length;
+    window.html2canvas = async (el, o) => {
+      llamadas++;
+      if (llamadas !== 1) return orig(el, o);
+      const img = el.querySelector(".ft-marco img"); img.style.visibility = "hidden";   // el primer dibujo «pierde» una foto
+      try { return await orig(el, o); } finally { img.style.visibility = ""; }
+    };
+    try { const pags = await albumPaginasImagen("2026-10"); return { normal, pags: pags.length, llamadas }; } finally { window.html2canvas = orig; }
+  });
+  ok(r13.pags === r13.normal && r13.llamadas === r13.pags + 1, `una foto en blanco al dibujar: la página se dibuja otra vez (${r13.llamadas} dibujos para ${r13.pags} página${r13.pags === 1 ? "" : "s"})`);
+  const r13b = await p.evaluate(async () => {
+    const host = document.createElement("div"); host.className = "alb-lienzo"; host.innerHTML = albumPaginasHtml("2026-10"); await albumPintar(host);
+    await Promise.all([...host.querySelectorAll("img[data-foto]")].map(albumFotoLista));
+    return [...host.querySelectorAll("img[data-foto]")].every(i => i.src.startsWith("data:image/jpeg"));
+  });
+  ok(r13b, "cada foto va como imagen propia (data:), achicada, sin depender de blobs ni direcciones firmadas");
   await ctx.close();
 };

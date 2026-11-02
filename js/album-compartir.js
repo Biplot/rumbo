@@ -5,6 +5,8 @@
    (1080 × 1350, el carrusel de Instagram) o historia (1080 × 1920). Se comparte con el menú
    del teléfono o, en el computador, se descarga. Las imágenes se arman en tu equipo y solo
    salen de la app si tú las compartes.
+   Para que salgan todas las fotos: cada una se prepara antes como imagen propia (achicada) y, si al
+   dibujar una página alguna queda en blanco (pasaba en algunos teléfonos), se dibuja de nuevo.
    ============================================================ */
 const ALBUM_FORMATOS = {
   post: { nombre: "Publicación", ayuda: "4:5 · para el carrusel de Instagram", ancho: 1080, alto: 1350, arriba: 54, abajo: 112, lado: 54 },
@@ -39,6 +41,42 @@ function albumH2C() {
   });
   return ALBUM_H2C_CARGA;
 }
+/* Cada foto, lista para dibujarse: la de este equipo (o la del servidor) achicada a lo que se ve y como imagen
+   propia (data:). Así el dibujo no depende de blobs, direcciones firmadas ni de que el navegador ya la haya
+   decodificado: en Safari (iPhone) html2canvas a veces dejaba fotos en blanco, sobre todo las grandes. */
+const ALBUM_FOTO_MAX = 1400;   // la página se dibuja a 1080 px de ancho: más no se nota
+async function albumFotoLista(img) {
+  if (!img || img.classList.contains("is-sin")) return;
+  let blob = null;
+  try { const loc = await FOTOS_DB.get(img.dataset.foto); blob = loc && loc.full; } catch (e) { /* abajo, de la dirección */ }
+  if (!blob && img.src && !img.src.startsWith("data:")) { try { const r = await fetch(img.src); if (r.ok) blob = await r.blob(); } catch (e) { /* queda como estaba */ } }
+  if (!blob) return;
+  try {
+    const bm = await albumImagen(blob), k = Math.min(1, ALBUM_FOTO_MAX / Math.max(bm.width, bm.height));
+    const cv = document.createElement("canvas"); cv.width = Math.max(1, Math.round(bm.width * k)); cv.height = Math.max(1, Math.round(bm.height * k));
+    cv.getContext("2d").drawImage(bm, 0, 0, cv.width, cv.height);
+    if (bm.close) bm.close();
+    img.src = cv.toDataURL("image/jpeg", 0.9);
+    if (img.decode) await img.decode().catch(() => {});
+  } catch (e) { /* queda como estaba */ }
+}
+/* ¿Cuántas fotos quedaron sin dibujar en el lienzo de una página? (en su marco se ve el fondo o nada) */
+function albumRgb(c) { const m = String(c || "").match(/rgba?\(([^)]+)\)/); if (!m) return null; const v = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return v.length >= 3 && (v.length < 4 || v[3] > 0.5) ? v.slice(0, 3) : null; }
+function albumFotosFaltan(pg, cv, k) {
+  const ctx = cv.getContext("2d"), base = pg.getBoundingClientRect(); let n = 0;
+  pg.querySelectorAll(".ft-marco").forEach(m => {
+    const img = m.querySelector("img"); if (!img || img.classList.contains("is-sin")) return;
+    const bg = albumRgb(getComputedStyle(m).backgroundColor), r = m.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const vacio = [[0.5, 0.5], [0.3, 0.35], [0.7, 0.65]].every(([fx, fy]) => {
+      const x = Math.min(cv.width - 1, Math.max(0, Math.round((r.left - base.left + r.width * fx) * k))), y = Math.min(cv.height - 1, Math.max(0, Math.round((r.top - base.top + r.height * fy) * k)));
+      const d = ctx.getImageData(x, y, 1, 1).data;
+      return d[3] < 10 || (!!bg && Math.abs(d[0] - bg[0]) < 6 && Math.abs(d[1] - bg[1]) < 6 && Math.abs(d[2] - bg[2]) < 6);
+    });
+    if (vacio) n++;
+  });
+  return n;
+}
 /* Las páginas del mes como imágenes: se arman fuera de la pantalla (540 px de ancho, al doble) */
 async function albumPaginasImagen(key, avance) {
   await albumH2C();
@@ -46,13 +84,9 @@ async function albumPaginasImagen(key, avance) {
   const host = document.createElement("div");
   host.className = "alb-lienzo"; host.setAttribute("aria-hidden", "true");
   host.innerHTML = albumPaginasHtml(key);
-  host.querySelectorAll("img").forEach(img => { img.loading = "eager"; });   // fuera de la pantalla, las «lazy» no cargarían nunca
+  host.querySelectorAll("img").forEach(img => { img.loading = "eager"; img.decoding = "sync"; });   // fuera de la pantalla, las «lazy» no cargarían nunca
   await albumPintar(host);   // las fotos, antes de entrar al documento (así no las toma otro pintado)
-  // las que vienen del servidor se traen como blob: así el dibujo no depende de los permisos (CORS) de la dirección firmada
-  const propias = [];
-  await Promise.all([...host.querySelectorAll("img[src^='http']")].map(async img => {
-    try { const r = await fetch(img.src); if (r.ok) { const u = URL.createObjectURL(await r.blob()); propias.push(u); img.src = u; } } catch (e) { /* queda la dirección firmada */ }
-  }));
+  await Promise.all([...host.querySelectorAll("img[data-foto]")].map(albumFotoLista));
   document.body.appendChild(host);
   try {
     await Promise.all([...host.querySelectorAll("img")].map(img => (img.complete && img.naturalWidth) || img.classList.contains("is-sin") ? null
@@ -61,13 +95,20 @@ async function albumPaginasImagen(key, avance) {
     const pags = [...host.querySelectorAll(".alb")], out = [];
     for (let i = 0; i < pags.length; i++) {
       if (avance) avance(i, pags.length);
-      const pg = pags[i];
-      out.push(await html2canvas(pg, { scale: 2, backgroundColor: null, logging: false, useCORS: true,
+      const pg = pags[i], dibujar = () => html2canvas(pg, { scale: 2, backgroundColor: null, logging: false, useCORS: true, imageTimeout: 30000,
         // solo se copia lo que hace falta: los estilos y la página (el resto de la app no)
-        ignoreElements: el => el.nodeType === 1 && !(el.contains(pg) || pg.contains(el) || el.closest("head")) }));
+        ignoreElements: el => el.nodeType === 1 && !(el.contains(pg) || pg.contains(el) || el.closest("head")) });
+      // Si alguna foto quedó en blanco (pasa en algunos teléfonos), la página se dibuja de nuevo (hasta dos veces más)
+      let cv = await dibujar();
+      for (let intento = 0; intento < 2 && albumFotosFaltan(pg, cv, 2); intento++) {
+        await new Promise(ok => setTimeout(ok, 350));
+        await Promise.all([...pg.querySelectorAll("img[data-foto]")].map(img => img.decode ? img.decode().catch(() => {}) : null));
+        cv = await dibujar();
+      }
+      out.push(cv);
     }
     return out;
-  } finally { host.remove(); propias.forEach(u => URL.revokeObjectURL(u)); }
+  } finally { host.remove(); }
 }
 /* Una página en su marco: el fondo del estilo, la página con sombra y el nombre del mes */
 function albumEnmarcar(pagina, i, n, key, formato, estilo) {

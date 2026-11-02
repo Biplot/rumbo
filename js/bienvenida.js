@@ -435,14 +435,14 @@ function primeraSemanaCardHtml() {
     const ico = p.ok ? "✓" : "";
     const der = p.ok ? "" : p.estado === "ahora" ? (p.premio ? `+${p.premio} ⭐` : "") : psCuando(p, S);
     const tag = p.estado === "ahora" ? "button" : "div";
-    return `<${tag} class="ps-paso is-${p.estado}" ${p.estado === "ahora" ? `data-action="bv-ir" data-id="${p.id}"` : ""}>
-      <span class="check ${p.ok ? "is-on" : ""}">${ico}</span><span class="ps-paso__t">${escapeHtml(p.t)}</span>${der ? `<span class="ps-paso__d">${escapeHtml(der)}</span>` : ""}</${tag}>`;
+    return `<${tag} class="psem-paso is-${p.estado}" ${p.estado === "ahora" ? `data-action="bv-ir" data-id="${p.id}"` : ""}>
+      <span class="check ${p.ok ? "is-on" : ""}">${ico}</span><span class="psem-paso__t">${escapeHtml(p.t)}</span>${der ? `<span class="psem-paso__d">${escapeHtml(der)}</span>` : ""}</${tag}>`;
   };
-  return `<div class="card mision ps" data-tour="mision" style="margin-bottom:20px">
+  return `<div class="card mision psem" data-tour="mision" style="margin-bottom:20px">
     <div class="card__head"><div class="card__title">🚀 Tu primera semana <span class="muted" style="font-weight:500">· día ${dia} de 7</span></div>
       <button class="btn-ghost" data-action="bv-ocultar" title="Puedes volver a mostrarla en Ayuda">Ocultar</button></div>
     <div class="bar"><div class="bar__fill" style="width:${Math.round((hechos / pasos.length) * 100)}%"></div></div>
-    <div class="ps__pasos mt-16">${pasos.map(fila).join("")}</div>
+    <div class="psem__pasos mt-16">${pasos.map(fila).join("")}</div>
     <div class="text-xs muted mt-8">Se marcan solos cuando los haces, y cada uno abre su sección. Si te saltas un día, la misión te espera. Al terminarla: +100 ⭐ e insignia Explorador.</div>
   </div>`;
 }
@@ -467,9 +467,9 @@ function openResumenPrimeraSemana() {
   const n = (v, t) => `<div class="stat"><div class="stat__value">${v}</div><div class="stat__label">${t}</div></div>`;
   openModal("Tu primera semana", `
     <div class="arma-dice"><span class="arma-cara">${eleEstado().tipo ? elefanteCaraSVG() : icoHab("🐘", 22)}</span><div class="arma-burbuja"><b>${escapeHtml(quien)}</b>Mira todo lo que hiciste en tu primera semana. Lo que viene es lo mismo: abrir, hacer lo importante y cerrar.</div></div>
-    <div class="ps-numeros mt-16">${n(r.abiertos, "días abiertos")}${n(r.cerrados, "días cerrados")}${n(r.marcas, "hábitos marcados")}${n(r.tareas, "tareas hechas")}${n(r.estrellas + " ⭐", "ganadas")}</div>
+    <div class="psem-numeros mt-16">${n(r.abiertos, "días abiertos")}${n(r.cerrados, "días cerrados")}${n(r.marcas, "hábitos marcados")}${n(r.tareas, "tareas hechas")}${n(r.estrellas + " ⭐", "ganadas")}</div>
     <div class="section-title mt-24">Lo que viene</div>
-    <ul class="ps-viene">
+    <ul class="psem-viene">
       <li>En <b>Tendencias</b> ya empiezas a ver tus gráficos: cada día cerrado suma un punto.</li>
       <li>El domingo (o el lunes) cierras tu semana y planificas la siguiente: +75 ⭐ cada uno.</li>
       ${STATE.profile.birthDate ? "" : `<li>Si quieres, pon tu fecha de nacimiento en <b>Editar perfil</b> para ver tu contador de vida.</li>`}

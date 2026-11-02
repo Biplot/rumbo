@@ -24,8 +24,8 @@ module.exports = async ({ b, ok, errs }) => {
   // 1) La misión: día 1 de 7, un paso a la vez
   const card = p.locator("[data-tour=mision]");
   ok(/Tu primera semana/.test(await card.innerText()) && /día 1 de 7/.test(await card.innerText()), "Inicio: «Tu primera semana · día 1 de 7»");
-  ok(await card.locator(".ps-paso.is-ahora").count() === 1 && /Abre tu día/.test(await card.locator(".ps-paso.is-ahora").innerText()) && /\+50/.test(await card.locator(".ps-paso.is-ahora").innerText()), "lo que toca ahora: abrir tu día (+50 ⭐)");
-  ok(/mañana/.test(await card.locator('.ps-paso', { hasText: "Marca un hábito" }).innerText()), "lo que viene dice cuándo: el hábito, mañana");
+  ok(await card.locator(".psem-paso.is-ahora").count() === 1 && /Abre tu día/.test(await card.locator(".psem-paso.is-ahora").innerText()) && /\+50/.test(await card.locator(".psem-paso.is-ahora").innerText()), "lo que toca ahora: abrir tu día (+50 ⭐)");
+  ok(/mañana/.test(await card.locator('.psem-paso', { hasText: "Marca un hábito" }).innerText()), "lo que viene dice cuándo: el hábito, mañana");
   await shot(p, "semana-mision");
 
   // 2) Más: lo que siempre se ve, lo que eligió y «Ver todo»
@@ -36,12 +36,12 @@ module.exports = async ({ b, ok, errs }) => {
   await p.evaluate(() => cerrarMas());
 
   // 3) Abrir el día desde la misión; el día 3, la semana despierta Calendario, con «Nuevo»
-  await card.locator('.ps-paso.is-ahora').click(); await p.waitForTimeout(400);
+  await card.locator('.psem-paso.is-ahora').click(); await p.waitForTimeout(400);
   await p.fill("#r-sapo", "Enviar la propuesta"); await p.click('[data-action="ritual-save"]'); await p.waitForTimeout(700);
-  ok(/Esta noche, ciérralo/.test(await p.locator("[data-tour=mision] .ps-paso.is-ahora").innerText()), "abierto: ahora toca cerrarlo esta noche");
+  ok(/Esta noche, ciérralo/.test(await p.locator("[data-tour=mision] .psem-paso.is-ahora").innerText()), "abierto: ahora toca cerrarlo esta noche");
   await p.evaluate(() => { const S = STATE; S.settings.alta = "2026-10-31"; S.ritual.dias["2026-11-02"].cerrado = true; S.habitos.log["2026-11"] = { [S.habitos.defs[0].id]: { 2: true } }; saveState(); go("inicio"); rerender(); });
   await p.waitForTimeout(300);
-  ok(/Planifica tu semana/.test(await p.locator("[data-tour=mision] .ps-paso.is-ahora").innerText()), "el día 3 toca planificar la semana");
+  ok(/Planifica tu semana/.test(await p.locator("[data-tour=mision] .psem-paso.is-ahora").innerText()), "el día 3 toca planificar la semana");
   await p.click("#bbMas"); await p.waitForTimeout(300);
   ok(await p.locator('.mas-mod.is-nuevo[data-route="calendario"]').count() === 1, "despertó Calendario, con «Nuevo»");
   await p.click('.mas-mod[data-route="calendario"]'); await p.waitForTimeout(400);
@@ -89,11 +89,11 @@ module.exports = async ({ b, ok, errs }) => {
     saveState(); go("inicio"); rerender();
   });
   await p.waitForTimeout(400);
-  ok(/Elige qué más quieres ver/.test(await p.locator("[data-tour=mision] .ps-paso.is-ahora").innerText()), "con lo hecho, toca elegir qué más ver (la plata ya la anotó)");
-  await p.locator("[data-tour=mision] .ps-paso.is-ahora").click(); await p.waitForTimeout(500);
+  ok(/Elige qué más quieres ver/.test(await p.locator("[data-tour=mision] .psem-paso.is-ahora").innerText()), "con lo hecho, toca elegir qué más ver (la plata ya la anotó)");
+  await p.locator("[data-tour=mision] .psem-paso.is-ahora").click(); await p.waitForTimeout(500);
   ok(await p.evaluate(() => !document.getElementById("masOverlay").hidden) && await p.locator('.mas-mod[data-route="listas"]').count() === 1 && await p.locator('[data-action="bv-ver-todo"]').count() === 0, "«Elige qué más ver» abre Más con todas las secciones");
   await p.evaluate(() => { cerrarMas(); go("inicio"); }); await p.waitForTimeout(300);
-  await p.locator("[data-tour=mision] .ps-paso.is-ahora").click(); await p.waitForTimeout(300);
+  await p.locator("[data-tour=mision] .psem-paso.is-ahora").click(); await p.waitForTimeout(300);
   ok((await p.locator("#modalTitle").innerText()) === "Tu primera semana" && /días abiertos/.test(await p.locator("#modal").innerText()), "el día 7: tu primera semana, en números");
   await shot(p, "semana-resumen");
   await p.click('[data-action="bv-resumen-ok"]'); await p.waitForTimeout(500);

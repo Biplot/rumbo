@@ -3447,20 +3447,20 @@ body.con-agua-fab .view { padding-bottom: 96px; }
 .r-mas[open] { padding-bottom: 4px; }
 @media (prefers-reduced-motion: reduce) { .r-mas > summary::after { transition: none; } }
 /* «Tu primera semana»: un paso por día */
-.ps__pasos { display: grid; gap: 6px; }
-.ps-paso { font: inherit; display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px 12px; border-radius: var(--r-sm);
+.psem__pasos { display: grid; gap: 6px; }
+.psem-paso { font: inherit; display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px 12px; border-radius: var(--r-sm);
   border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-size: 14px; }
-button.ps-paso { cursor: pointer; }
-.ps-paso.is-ahora { border-color: var(--coral-btn, var(--coral)); background: var(--coral-soft); font-weight: 700; }
-.ps-paso.is-luego { color: var(--text-muted); background: none; }
-.ps-paso.is-ok .ps-paso__t { text-decoration: line-through; color: var(--text-muted); }
-.ps-paso__t { flex: 1; min-width: 0; }
-.ps-paso__d { font-size: 12.5px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
-.ps-paso.is-ahora .ps-paso__d { color: var(--coral); }
-.ps-paso:focus-visible { outline: 2px solid var(--cian); outline-offset: 2px; }
-.ps-numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; }
-.ps-numeros .stat { background: var(--surface-2); border-radius: var(--r-sm); padding: 10px 12px; }
-.ps-viene { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--text-soft); font-size: 14px; }
+button.psem-paso { cursor: pointer; }
+.psem-paso.is-ahora { border-color: var(--coral-btn, var(--coral)); background: var(--coral-soft); font-weight: 700; }
+.psem-paso.is-luego { color: var(--text-muted); background: none; }
+.psem-paso.is-ok .psem-paso__t { text-decoration: line-through; color: var(--text-muted); }
+.psem-paso__t { flex: 1; min-width: 0; }
+.psem-paso__d { font-size: 12.5px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.psem-paso.is-ahora .psem-paso__d { color: var(--coral); }
+.psem-paso:focus-visible { outline: 2px solid var(--cian); outline-offset: 2px; }
+.psem-numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; }
+.psem-numeros .stat { background: var(--surface-2); border-radius: var(--r-sm); padding: 10px 12px; }
+.psem-viene { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--text-soft); font-size: 14px; }
 /* Secciones que despiertan */
 .mas-mod { position: relative; }
 .mas-mod__nuevo { position: absolute; top: 2px; right: 6px; font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;

@@ -533,6 +533,13 @@ function tendEnsenaHtml() {
       <div class="bar mt-8"><div class="bar__fill" style="width:${Math.round((n / TEND_DIAS) * 100)}%"></div></div>
       ${btn ? `<div class="mt-16">${btn}</div>` : ""}</div></div>`;
 }
+/* «Comparar meses» (500 ⭐) se ofrece a una cuenta nueva cuando ya tiene dos meses que comparar */
+function compararEspera(S) {
+  S = S || STATE;
+  if (!usaPrimeraSemana(S) || (typeof funcion === "function" && funcion("comparar", S))) return false;
+  const meses = new Set(Object.keys(S.ritual.dias || {}).filter(k => S.ritual.dias[k] && S.ritual.dias[k].hecho).map(k => k.slice(0, 7)));
+  return meses.size < 2;
+}
 function finSinDatos(S) {
   S = S || STATE;
   const f = S.finanzas, fy = typeof datosAnio === "function" ? datosAnio(S, new Date().getFullYear()).finanzas : f;

@@ -342,7 +342,7 @@ function renderTendencias() {
   ${renderFocoPostergacion()}
 
   ${renderFocoTendencias()}
-  ${aprende && !funcion("comparar") ? "" : renderCompararMeses()}
+  ${typeof compararEspera === "function" && compararEspera() ? "" : renderCompararMeses()}
 
   <div class="section-title">Tu evolución</div>
   ${selectorAnio()}

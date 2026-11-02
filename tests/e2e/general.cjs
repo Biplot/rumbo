@@ -52,6 +52,7 @@ module.exports = async ({ b, ok, errs }) => {
     }
     ok(titulos[0].includes("¡Hola, Nueva!") && titulos.includes("Tus primeros hábitos") && titulos.includes("Te presento a tu compañero") && titulos.length <= 4,
       "la bienvenida pregunta en vez de explicar: " + titulos.join(" · "));
+    await p.waitForTimeout(700);   // el recorrido parte al terminar la bienvenida
     await p.evaluate(() => { if (TOUR) tourTerminar(); openOnboarding("repetir"); }); await p.waitForTimeout(200);
     const laminas = [];
     for (let i = 0; i < 6; i++) {

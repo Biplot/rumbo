@@ -75,7 +75,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(/Abriste tu primer día/.test(await p.locator("#eleEscena").innerText().catch(() => "")), "Tito celebra el primer día y cuenta qué hacer con las ⭐");
   await p.click('#eleEscena [data-cerrar]').catch(() => {}); await p.waitForTimeout(200);
   ok(/a tu primer bocado/.test(await p.locator(".guia").innerText()), "después, Tito apunta al primer bocado");
-  await p.click("#bbDia"); await p.waitForTimeout(400);
+  await p.evaluate(() => openRitualModal()); await p.waitForTimeout(400);   // editar la apertura de hoy
   await p.click("#r-mas > summary"); await p.waitForTimeout(150);
   ok(await p.evaluate(() => STATE.settings.aperturaMas === true), "abrir «Más para tu día» se recuerda para la próxima");
   await p.evaluate(() => closeModal());

@@ -333,19 +333,20 @@ function celebrarPrimerDia() {
 /* ============================================================
    «Tu primera semana»: la misión de las cuentas nuevas (reemplaza a «Primeros pasos»)
    Un paso por día, en orden. Cada paso se marca solo con lo que la persona hace de verdad y
-   despierta su sección en Más. Si se salta un día, la misión espera: no hay castigo.
+   despierta su sección en Más (solo las de Más: Objetivos, Ritual, Diario y Amigos siempre se ven).
+   Si se salta un día, la misión espera: no hay castigo.
    Al completarla: +100 ⭐ e insignia Explorador (recompensas.js).
    ============================================================ */
 const PS_PASOS = [
-  { id: "abrir", dia: 1, t: "Abre tu día", premio: 50, despierta: ["ritual"],
+  { id: "abrir", dia: 1, t: "Abre tu día", premio: 50, despierta: [],
     check: S => Object.values(S.ritual.dias || {}).some(r => r && r.hecho) },
-  { id: "cerrar", dia: 1, t: "Esta noche, ciérralo", premio: 40, despierta: ["diario"],
+  { id: "cerrar", dia: 1, t: "Esta noche, ciérralo", premio: 40, despierta: [],
     check: S => Object.values(S.ritual.dias || {}).some(r => r && r.cerrado) },
   { id: "habito", dia: 2, t: "Marca un hábito", premio: 5, despierta: [],
     check: S => Object.values((S.habitos && S.habitos.log) || {}).some(m => Object.values(m || {}).some(h => Object.values(h || {}).some(Boolean))) },
   { id: "semana", dia: 3, t: "Planifica tu semana (la versión corta)", premio: 75, despierta: ["calendario"],
     check: S => Object.values((S.ritual && S.ritual.semanas) || {}).some(w => w && w.apertura) },
-  { id: "objetivo", dia: 4, t: "Un objetivo para este mes", despierta: ["metas"],
+  { id: "objetivo", dia: 4, t: "Un objetivo para este mes", despierta: [],
     check: S => typeof todosLosMensuales === "function" && todosLosMensuales(S).flat().some(o => o && o.texto) },
   { id: "plata", dia: 5, t: "Tu plata: una alcancía o un gasto del mes", despierta: ["finanzas"],
     check: S => !!((S.alcancias && Array.isArray(S.alcancias.lista) && S.alcancias.lista.length) || (S.finanzas && (S.finanzas.gastos || []).length)
@@ -395,6 +396,7 @@ function seccionDormida(id, S) {
 /* Recién despierta: punto «Nuevo» en Más hasta que la visitas */
 function seccionNueva(id, S) {
   S = S || STATE;
+  if (typeof ROUTE_MAP !== "undefined" && !(ROUTE_MAP[id] && ROUTE_MAP[id].mas)) return false;   // las que siempre se ven no son «nuevas»
   if (!usaPrimeraSemana(S) || seccionDormida(id, S)) return false;
   const b = S.settings.bienvenida, vistas = b.vistas || {};
   if (vistas[id]) return false;

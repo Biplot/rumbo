@@ -5,7 +5,7 @@
 let pw;
 try { pw = require("playwright"); } catch (e) { pw = require("/opt/node22/lib/node_modules/playwright"); }
 const path = require("path");
-const URL = "http://localhost:5178/";
+const URL = process.env.E2E_URL || "http://localhost:5178/";   // E2E_URL: otro servidor (p. ej. otra copia del repo)
 const SHOTS = process.env.E2E_SHOTS || "";   // carpeta para capturas (opcional)
 
 async function nuevoContexto(browser, { w = 1360, h = 900, fecha = "2026-09-23T10:00:00", dpr = 1, ua } = {}) {

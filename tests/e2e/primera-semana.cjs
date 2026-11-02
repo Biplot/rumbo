@@ -17,7 +17,7 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('.arma-chip[data-id="leer"]');
   await p.click('#modal [data-action="arma-sig"]'); await p.waitForTimeout(200);
   await p.fill("#arma-nombre", "Tito");
-  while (await p.locator("#modal .arma").count()) { await p.click('#modal [data-action="arma-sig"], #modal [data-action="arma-fin"]'); await p.waitForTimeout(250); }
+  while (await p.locator("#modalOverlay:not([hidden]) #modal .arma").count()) { await p.click('#modal [data-action="arma-sig"], #modal [data-action="arma-fin"]'); await p.waitForTimeout(250); }
   await p.waitForTimeout(600);
   await p.evaluate(() => { if (TOUR) tourTerminar(); STATE.settings.tutorial.auto = false; saveState(); go("inicio"); rerender(); }); await p.waitForTimeout(400);
 
@@ -28,23 +28,26 @@ module.exports = async ({ b, ok, errs }) => {
   ok(/mañana/.test(await card.locator('.ps-paso', { hasText: "Marca un hábito" }).innerText()), "lo que viene dice cuándo: el hábito, mañana");
   await shot(p, "semana-mision");
 
-  // 2) Más: solo lo suyo y «Ver todo»
+  // 2) Más: lo que siempre se ve, lo que eligió y «Ver todo»
   await p.click("#bbMas"); await p.waitForTimeout(300);
   const mas = await p.evaluate(() => [...document.querySelectorAll(".mas-mod[data-route]")].map(b => b.dataset.route));
-  ok(mas.includes("ritual") && mas.includes("finanzas") && !mas.includes("listas") && !mas.includes("diario") && await p.locator('.mas-mod[data-action="bv-ver-todo"]').count() === 1,
-    "Más muestra lo suyo (Ritual y Finanzas) y «Ver todo»: " + mas.join(", "));
+  ok(mas.includes("finanzas") && mas.includes("metas") && !mas.includes("listas") && !mas.includes("calendario") && !mas.includes("tendencias") && await p.locator('.mas-mod[data-action="bv-ver-todo"]').count() === 1,
+    "Más muestra lo suyo (Finanzas, porque eligió su plata), lo de siempre y «Ver todo»: " + mas.join(", "));
   await p.evaluate(() => cerrarMas());
 
-  // 3) Abrir el día desde la misión: despierta Diario, con «Nuevo»
+  // 3) Abrir el día desde la misión; el día 3, la semana despierta Calendario, con «Nuevo»
   await card.locator('.ps-paso.is-ahora').click(); await p.waitForTimeout(400);
   await p.fill("#r-sapo", "Enviar la propuesta"); await p.click('[data-action="ritual-save"]'); await p.waitForTimeout(700);
   ok(/Esta noche, ciérralo/.test(await p.locator("[data-tour=mision] .ps-paso.is-ahora").innerText()), "abierto: ahora toca cerrarlo esta noche");
+  await p.evaluate(() => { const S = STATE; S.settings.alta = "2026-10-31"; S.ritual.dias["2026-11-02"].cerrado = true; S.habitos.log["2026-11"] = { [S.habitos.defs[0].id]: { 2: true } }; saveState(); go("inicio"); rerender(); });
+  await p.waitForTimeout(300);
+  ok(/Planifica tu semana/.test(await p.locator("[data-tour=mision] .ps-paso.is-ahora").innerText()), "el día 3 toca planificar la semana");
   await p.click("#bbMas"); await p.waitForTimeout(300);
-  ok(await p.locator('.mas-mod.is-nuevo[data-route="diario"]').count() === 1, "despertó Diario, con «Nuevo»");
-  await p.click('.mas-mod[data-route="diario"]'); await p.waitForTimeout(400);
+  ok(await p.locator('.mas-mod.is-nuevo[data-route="calendario"]').count() === 1, "despertó Calendario, con «Nuevo»");
+  await p.click('.mas-mod[data-route="calendario"]'); await p.waitForTimeout(400);
   await p.click("#bbMas"); await p.waitForTimeout(300);
-  ok(await p.locator('.mas-mod.is-nuevo[data-route="diario"]').count() === 0, "visitarlo le quita el «Nuevo»");
-  await p.evaluate(() => cerrarMas());
+  ok(await p.locator('.mas-mod.is-nuevo[data-route="calendario"]').count() === 0 && await p.locator('.mas-mod[data-route="calendario"]').count() === 1, "visitarlo le quita el «Nuevo»");
+  await p.evaluate(() => { cerrarMas(); STATE.settings.alta = "2026-11-02"; STATE.ritual.dias["2026-11-02"].cerrado = false; saveState(); });   // de vuelta al día 1, con el día abierto
 
   // 4) Palabras de Rumbo: «primer bocado» se explica a un toque
   await p.evaluate(() => { go("inicio"); }); await p.waitForTimeout(300);
@@ -74,7 +77,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(/Tu vida, área por área/.test(await p.locator("#view").innerText()), "Rueda: «Tu vida, área por área»");
   await p.evaluate(() => go("tutoriales")); await p.waitForTimeout(400);
   const ay = await p.locator("#view").innerText();
-  ok(/Palabras de Rumbo/.test(ay) && /Tu primera semana/.test(ay), "en Ayuda: Tu primera semana y las Palabras de Rumbo");
+  ok(/Palabras de Rumbo/i.test(ay) && /Tu primera semana/i.test(ay), "en Ayuda: Tu primera semana y las Palabras de Rumbo");
 
   // 6) La semana entera: se salta días y la misión espera; al terminar, Explorador
   await p.evaluate(() => {

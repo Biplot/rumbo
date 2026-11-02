@@ -46,7 +46,7 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('[data-action="auth-register"]'); await p.waitForTimeout(900);
     // Cuenta nueva: «Arma tu Rumbo» (4 preguntas, o 3 si el navegador no tiene avisos); las láminas quedan para Ayuda
     const titulos = [];
-    for (let i = 0; i < 6 && await p.locator("#modal .arma").count(); i++) {
+    for (let i = 0; i < 6 && await p.locator("#modalOverlay:not([hidden]) #modal .arma").count(); i++) {
       titulos.push(await p.locator("#modalTitle").innerText());
       await p.click('#modal [data-action="arma-sig"], #modal [data-action="arma-fin"]'); await p.waitForTimeout(250);
     }

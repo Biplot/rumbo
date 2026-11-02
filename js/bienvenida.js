@@ -419,7 +419,7 @@ function verTodasLasSecciones() {
 function psCuando(p, S) {
   const a = cuentaAlta(S); if (!a) return "";
   const f = agSumar(a, p.dia - 1), hoy = todayISO();
-  if (f <= hoy) return "cuando quieras";
+  if (f <= hoy) return "";   // ya es su día: espera solo al paso anterior
   if (f === agSumar(hoy, 1)) return "mañana";
   return new Date(f + "T12:00:00").toLocaleDateString("es-CL", { weekday: "long" });
 }

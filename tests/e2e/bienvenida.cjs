@@ -21,6 +21,7 @@ module.exports = async ({ b, ok, errs }) => {
   const textos = await p.evaluate(() => document.getElementById("modal").innerText);
   ok(!/Bienvenido/.test(textos), "sin «Bienvenido» en la bienvenida");
   ok(await p.evaluate(() => STATE.settings.alta) === "2026-11-02", "la cuenta guarda su día: 2 de noviembre");
+  ok(!/Cierra Octubre/i.test(await p.locator("#view").innerText()), "detrás de la bienvenida, Inicio ya no pide cerrar octubre");
 
   // 3) Inicio: no pide cerrar octubre (no lo vivió); sí abrir noviembre
   await p.evaluate(() => { closeModal(); ONB_ACTIVE = false; STATE.settings.onboarded = true; STATE.settings.tutorial.auto = false; saveState(); go("inicio"); rerender(); });

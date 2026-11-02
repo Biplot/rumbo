@@ -1070,6 +1070,8 @@ function mergeStates(server, local) {
     // Días de descanso y vacaciones: por id; gana el cambio más nuevo (quitar deja la marca «quitado»)
     out.habitos.descansos = byId(local.habitos.descansos, server.habitos.descansos);
     out.habitos.vacaciones = byId(local.habitos.vacaciones, server.habitos.vacaciones);
+    // Dejar y reducir: caídas, lo de cada día y los antojos, por id (gana el más nuevo)
+    ["caidas", "cuentas", "antojos"].forEach(k => { out.habitos[k] = byId(local.habitos[k], server.habitos[k]); });
   }
 
   // gamif: el saldo se DERIVA del libro de movimientos (ledger), fusionado por id.

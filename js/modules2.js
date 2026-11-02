@@ -275,6 +275,7 @@ function openCierreModal(date) {
         ${segBtn("c-mision", "parcial", "Parcial", c.mision)}
         ${segBtn("c-mision", "no", "No", c.mision)}
       </div><input type="hidden" id="c-mision-v" value="${c.mision || "si"}"></div>
+    ${typeof djCierreHtml === "function" ? djCierreHtml(iso) : ""}
     ${sapoTask ? `<div class="field"><label>${BOCADO.emoji} Tu primer bocado</label>
         <div class="text-sm">${escapeHtml(sapoTask.txt)} ${estadoTarea(sapoTask) === "hecha" ? '<span class="chip chip--done">✓ hecho</span>'
           : tareaAbierta(sapoTask) ? '<span class="chip chip--coral">pendiente · decide abajo qué hacer</span>' : `<span class="chip">${signoTarea(sapoTask)}</span>`}</div></div>`
@@ -321,6 +322,7 @@ function saveCierre() {
   const r = diaParaCerrar(iso);
   if (!r) return toast("Primero abre tu día 🌅", true);
   const yaCerrado = r.cerrado;
+  if (typeof djCierreGuardar === "function") djCierreGuardar(iso);   // lo que estás dejando: confirmar o caí (dejar.js)
   // Decisiones sobre las pendientes (mañana, otro día, delegar, soltar, la hice)
   const trCont = document.getElementById("c-triage");
   const decid = trCont ? aplicarTriage(STATE, leerTriage(trCont), Object.assign({ base: iso }, triageCierreCfg(iso))) : null;

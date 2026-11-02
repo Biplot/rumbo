@@ -50,6 +50,8 @@ function jardinEstilo(S) {
 function jardinConteo(S) {
   S = S || STATE;
   const out = {}, log = (S.habitos && S.habitos.log) || {};
+  // Dejar y reducir: sus días cumplidos son los días sin caer o dentro del límite (no las marcas)
+  const otros = ((S.habitos && S.habitos.defs) || []).filter(h => hmMeta(h) !== "hacer");
   Object.entries(log).forEach(([mk, mes]) => {
     const [y, m] = mk.split("-").map(Number); if (!y || !m) return;
     Object.entries(mes || {}).forEach(([hid, dias]) => {
@@ -57,6 +59,7 @@ function jardinConteo(S) {
       Object.entries(dias || {}).forEach(([d, v]) => { if (!v) return; o.dias++; const iso = `${y}-${String(m).padStart(2, "0")}-${String(+d).padStart(2, "0")}`; if (iso > o.ultimo) o.ultimo = iso; });
     });
   });
+  otros.forEach(h => { out[h.id] = hmDiasCumplidos(h, S); });
   return out;
 }
 function jardinDiasDe(hid, S) { return (jardinConteo(S)[hid] || { dias: 0 }).dias; }
@@ -81,7 +84,7 @@ function jardinCrecer(dias) { return 0.08 + 0.92 * Math.min(1, Math.max(0, dias)
 function jardinCielo(S, hoyIso) {
   S = S || STATE;
   const hoy = hoyIso || hmHoy(), lunes = hmLunes(hoy), PESO = 3;
-  const defs = (S.habitos.defs || []).filter(h => hmActivo(h) && hmFreq(h).tipo !== "mensual" && hmCreado(h) <= hoy);
+  const defs = (S.habitos.defs || []).filter(h => hmActivo(h) && hmFreq(h).tipo !== "mensual" && hmCreado(h) <= hoy && !(hmMeta(h) === "reducir" && hmFreq(h).tipo === "semanal"));
   let esp = 0, hecho = 0;
   defs.forEach(h => {
     const f = hmFreq(h), desde = hmMax(lunes, hmCreado(h));
@@ -110,7 +113,9 @@ function jardinEscena(S, hoyIso) {
   S = S || STATE;
   const hoy = hoyIso || hmHoy(), j = jardinDatos(S), cuenta = jardinConteo(S), defs = S.habitos.defs || [];
   const diasDe = h => (cuenta[h.id] || { dias: 0 }).dias;
-  const arboles = defs.filter(h => diasDe(h) >= JARDIN_RAICES).map(h => ({ id: h.id, nombre: h.nombre, icon: h.icon, hojas: !jardinDejado(h, cuenta[h.id], hoy, S), color: jardinColor(h.id) }));
+  // Los hábitos para dejar o reducir crecen como cactus (cierran su flor el día que caíste o te pasaste)
+  const cactus = h => hmMeta(h) !== "hacer", cerrada = h => hmMeta(h) === "dejar" ? hmCaida(h, hoy, S) : hmMeta(h) === "reducir" && hmSePaso(h, hoy, S);
+  const arboles = defs.filter(h => diasDe(h) >= JARDIN_RAICES).map(h => ({ id: h.id, nombre: h.nombre, icon: h.icon, hojas: !jardinDejado(h, cuenta[h.id], hoy, S), color: jardinColor(h.id), cactus: cactus(h) }));
   const formando = defs.filter(h => hmActivo(h) && diasDe(h) < JARDIN_RAICES);
   const tuyas = j.macetas.map(id => formando.find(h => h.id === id)).filter(Boolean).slice(0, JARDIN_MACETAS);
   // Las que elegiste van primero y en su lugar (las plantas no saltan de maceta); si falta alguna (no elegiste
@@ -123,7 +128,7 @@ function jardinEscena(S, hoyIso) {
   const vac = hmVacaciones(S).filter(v => v.desde <= hoy && hoy <= v.hasta).sort((a, b) => b.hasta.localeCompare(a.hasta))[0];
   return {
     macetas: enMaceta.map(h => ({ id: h.id, nombre: h.nombre, icon: h.icon, dias: diasDe(h), t: jardinCrecer(diasDe(h)), color: jardinColor(h.id),
-      descansa: hmDescanso(h, hoy, S) && !hmDone(h, hoy, S) })),
+      descansa: hmDescanso(h, hoy, S) && !hmDone(h, hoy, S), cactus: cactus(h), cerrada: cerrada(h) })),
     vuelve: vac ? hmAdd(vac.hasta, 1) : null,
     arboles, formando: formando.map(h => ({ id: h.id, nombre: h.nombre, icon: h.icon, dias: diasDe(h) })),
     sinMaceta: Math.max(0, formando.length - JARDIN_MACETAS), elegir: formando.length > JARDIN_MACETAS && tuyas.length < JARDIN_MACETAS,

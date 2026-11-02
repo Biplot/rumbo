@@ -56,8 +56,11 @@ function lg_capacidadReal_(s) {
 function lg_habitoHierro(s) {
   const n = {};
   Object.values(s.habitos.log || {}).forEach(mes => Object.entries(mes || {}).forEach(([hid, dias]) => { n[hid] = (n[hid] || 0) + Object.keys(dias || {}).length; }));
-  return Object.values(n).some(x => x >= 66);
+  // Dejar y reducir: 66 días sin caer (o dentro del límite)
+  return Object.values(n).some(x => x >= 66) || (s.habitos.defs || []).some(h => typeof hmMeta === "function" && hmMeta(h) !== "hacer" && hmDiasCumplidos(h, s).dias >= 66);
 }
+/* Libre: 100 días seguidos sin un hábito que dejaste */
+function lg_libre(s) { return typeof hmMeta === "function" && (s.habitos.defs || []).some(h => hmMeta(h) === "dejar" && !h.pausado && rachaPeriodos(h, s).n >= 100); }
 /* Todo Verde: un mes ya terminado con todos tus hábitos en su objetivo */
 function lg_todoVerde(s) { return lg_memo(s, "verde", lg_todoVerde_); }
 function lg_todoVerde_(s) {
@@ -125,6 +128,7 @@ const LOGROS = [
   { id: "soltar", icon: "✕", nombre: "Soltar es Avanzar", desc: "Suelta 10 tareas a conciencia", reward: 60, check: s => lg_soltadas(s) >= 10 },
   { id: "capacidad-real", icon: "🎯", nombre: "Capacidad Real", desc: "Planifica dentro de tu capacidad y cúmplela 5 días seguidos", reward: 150, check: lg_capacidadReal },
   { id: "habito-hierro", icon: "🧱", nombre: "Hábito de Hierro", desc: "Cumple un mismo hábito 66 días", reward: 300, check: lg_habitoHierro },
+  { id: "libre", icon: "🕊️", nombre: "Libre", desc: "100 días seguidos sin un hábito que dejaste", reward: 400, check: lg_libre },
   { id: "todo-verde", icon: "🟩", nombre: "Todo Verde", desc: "Un mes con todos tus hábitos en su objetivo", reward: 250, check: lg_todoVerde },
   { id: "mes-perfecto", icon: "🏁", nombre: "Mes Perfecto", desc: "Cumple el 100% de tus objetivos del mes", reward: 300, check: lg_mesPerfecto },
   { id: "meta-anual", icon: "🏆", nombre: "Meta Anual", desc: "Llega al 100% de tu meta de ahorro del año", reward: 500, check: lg_metaAnual },

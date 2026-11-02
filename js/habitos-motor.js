@@ -16,6 +16,9 @@
      · Días de descanso (v55): un día de descanso no se espera; no corta la racha
        ni suma (si igual lo hiciste, cuenta como siempre). En vacaciones, los de
        X por semana o al mes piden en proporción a los días que estás.
+     · Dejar y reducir (v56): h.meta "dejar" (cada día sin caer cumple; el de hoy, al
+       confirmarlo) o "reducir" (cumple el día o la semana que no pasaste tu límite).
+       Ver hmMeta más abajo.
    ============================================================ */
 
 let HM_HOY = null;   // solo para tests: fija "hoy"
@@ -34,6 +37,9 @@ const HM_DIAS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
 
 /* Frecuencia normalizada (hábitos viejos = diario) */
 function hmFreq(h) {
+  const meta = hmMeta(h);
+  if (meta === "dejar") return { tipo: "diario" };
+  if (meta === "reducir") return hmLimite(h).per === "semana" ? { tipo: "semanal", veces: 1 } : { tipo: "diario" };
   const f = (h && h.frecuencia) || {};
   if (f.tipo === "semanal") return { tipo: "semanal", veces: Math.min(6, Math.max(1, +f.veces || 1)) };
   if (f.tipo === "mensual") return { tipo: "mensual", veces: Math.min(25, Math.max(1, +f.veces || 1)) };
@@ -41,6 +47,8 @@ function hmFreq(h) {
   return { tipo: "diario" };
 }
 function hmFreqLabel(h) {
+  if (hmMeta(h) === "dejar") return "Dejar";
+  if (hmMeta(h) === "reducir") { const l = hmLimite(h); return `Máx. ${l.n}/${l.per === "semana" ? "semana" : "día"}`; }
   const f = hmFreq(h);
   if (f.tipo === "semanal") return f.veces + "×/semana";
   if (f.tipo === "mensual") return f.veces + "×/mes";
@@ -73,9 +81,9 @@ function hmDescansosIdx(st) {
 }
 function hmVacaciones(S) { const st = hmEstado(S), vs = st && st.habitos && st.habitos.vacaciones; return Array.isArray(vs) ? vs.filter(v => v && !v.quitado && v.desde && v.hasta) : []; }
 /* ¿Ese día es descanso de un hábito (marcado a mano)? */
-function hmDescansoDia(h, iso, S) { const idx = hmDescansosIdx(hmEstado(S)); return !!idx && !!h && idx.has(h.id + "|" + iso); }
+function hmDescansoDia(h, iso, S) { const idx = hmDescansosIdx(hmEstado(S)); return !!idx && !!h && hmMeta(h) === "hacer" && idx.has(h.id + "|" + iso); }
 /* Las vacaciones que cubren ese día para ese hábito (o null) */
-function hmVacacion(h, iso, S) { return (h && hmVacaciones(S).find(v => v.desde <= iso && iso <= v.hasta && (!Array.isArray(v.habitos) || v.habitos.includes(h.id)))) || null; }
+function hmVacacion(h, iso, S) { return (h && hmMeta(h) === "hacer" && hmVacaciones(S).find(v => v.desde <= iso && iso <= v.hasta && (!Array.isArray(v.habitos) || v.habitos.includes(h.id)))) || null; }
 function hmDescanso(h, iso, S) { return hmDescansoDia(h, iso, S) || !!hmVacacion(h, iso, S); }
 function hmDiasVacacion(h, desde, hasta, S) {
   const vs = hmVacaciones(S); if (!vs.length) return 0;
@@ -92,16 +100,72 @@ function hmDescansosDelMes(h, iso, S) {
   return ds.filter(x => x && !x.quitado && x.hid === h.id && String(x.fecha).slice(0, 7) === mes).length;
 }
 
-/* Hecho = marcado, o cubierto con un pase de hábito (cuenta sin pagar monedas) */
+/* -------- Dejar y reducir (v56) --------
+   h.meta: "hacer" (de siempre) | "dejar" | "reducir". Los descansos y las vacaciones no aplican.
+   · dejar: cada día sin caer cumple; el de hoy, solo si lo confirmaste (habitos.log, que da las ⭐).
+     Caídas: habitos.caidas = [{ id: "c:<hid>:<iso>", hid, fecha, ts, quitado? }]. Una caída corta la racha
+     (la de hoy, al tiro), no borra lo demás. Desde h.creado («¿desde cuándo?»).
+   · reducir: h.limite = { n, per: "dia" | "semana" }; lo de cada día: habitos.cuentas = [{ id: "n:<hid>:<iso>",
+     hid, fecha, n, ts }]. Cumple el día (o la semana) que no pasaste el límite; el de hoy (o la semana en curso)
+     cuenta cuando termina, salvo que ya lo pasaste.
+   · Antojos superados: habitos.antojos = [{ id, hid, fecha, hora, gatillo, ts }] (descansos.js no; dejar.js). */
+function hmMeta(h) { const m = h && h.meta; return m === "dejar" || m === "reducir" ? m : "hacer"; }
+function hmLimite(h) { const l = (h && h.limite) || {}; return { n: Math.max(0, Math.min(999, Math.round(+l.n) || 0)), per: l.per === "semana" ? "semana" : "dia" }; }
+const HM_IDX_CAIDAS = new WeakMap(), HM_IDX_CUENTAS = new WeakMap();
+function hmCaidasIdx(st) {
+  const xs = st && st.habitos && st.habitos.caidas;
+  if (!Array.isArray(xs) || !xs.length) return null;
+  let idx = HM_IDX_CAIDAS.get(xs);
+  if (!idx) { idx = new Set(); xs.forEach(x => { if (x && !x.quitado && x.hid && x.fecha) idx.add(x.hid + "|" + x.fecha); }); HM_IDX_CAIDAS.set(xs, idx); }
+  return idx;
+}
+function hmCaida(h, iso, S) { const idx = hmCaidasIdx(hmEstado(S)); return !!idx && !!h && idx.has(h.id + "|" + iso); }
+function hmCuentasIdx(st) {
+  const xs = st && st.habitos && st.habitos.cuentas;
+  if (!Array.isArray(xs) || !xs.length) return null;
+  let idx = HM_IDX_CUENTAS.get(xs);
+  if (!idx) { idx = new Map(); xs.forEach(x => { if (x && x.hid && x.fecha) idx.set(x.hid + "|" + x.fecha, Math.max(0, Math.round(+x.n) || 0)); }); HM_IDX_CUENTAS.set(xs, idx); }
+  return idx;
+}
+function hmCuenta(h, iso, S) { const idx = hmCuentasIdx(hmEstado(S)); return (idx && h && idx.get(h.id + "|" + iso)) || 0; }
+function hmCuentaRango(h, desde, hasta, S) { let n = 0; for (let d = desde; d <= hasta; d = hmAdd(d, 1)) n += hmCuenta(h, d, S); return n; }
+/* ¿Hoy (o esta semana) ya pasó su límite? */
+function hmSePaso(h, iso, S) {
+  const l = hmLimite(h);
+  return l.per === "semana" ? hmCuentaRango(h, hmLunes(iso), hmAdd(hmLunes(iso), 6), S) > l.n : hmCuenta(h, iso, S) > l.n;
+}
+/* Marcado en el registro (hábitos de hacer, y la confirmación del día en los de dejar) */
+function hmMarcado(h, iso, st) {
+  const d = hmDate(iso), log = st && st.habitos && st.habitos.log && st.habitos.log[`${d.getFullYear()}-${d.getMonth() + 1}`];
+  return !!(log && log[h.id] && log[h.id][d.getDate()]);
+}
+
+/* Hecho = marcado, o cubierto con un pase de hábito (cuenta sin pagar monedas).
+   Dejar: un día sin caer (hoy, si lo confirmaste). Reducir: un día que terminó sin pasar el límite. */
 function hmDone(h, iso, S) {
-  const st = S || STATE; const d = hmDate(iso);
-  const log = st.habitos.log[`${d.getFullYear()}-${d.getMonth() + 1}`];
-  return !!(log && log[h.id] && log[h.id][d.getDate()]) || hmPase(h, iso, st);
+  const st = S || STATE, meta = hmMeta(h);
+  if (meta === "dejar") {
+    const hoy = hmHoy();
+    if (iso > hoy || iso < hmCreado(h) || hmCaida(h, iso, st)) return false;
+    return iso < hoy || hmMarcado(h, iso, st);
+  }
+  if (meta === "reducir") {
+    if (hmLimite(h).per === "semana") return false;   // se mide por semana (hmHechoPeriodo)
+    return iso < hmHoy() && iso >= hmCreado(h) && hmCuenta(h, iso, st) <= hmLimite(h).n;
+  }
+  return hmMarcado(h, iso, st) || hmPase(h, iso, st);
+}
+/* Lo hecho en un período: las marcas (o, en los de reducir por semana, 1 si la semana terminó sin pasar el límite) */
+function hmHechoPeriodo(h, p, S) {
+  if (hmMeta(h) === "reducir" && hmLimite(h).per === "semana")
+    return p.hasta < hmHoy() && hmCuentaRango(h, p.desde, p.hasta, S) <= hmLimite(h).n ? 1 : 0;
+  return hmContar(h, p.desde, p.hasta, S);
 }
 /* ¿Es un día programado? (solo diario / días fijos; los de cuota no tienen días).
    Un día libre o de descanso no se programa: no exige ni corta (si igual lo hiciste, cuenta). */
 function hmProgramado(h, iso, S) {
   const f = hmFreq(h);
+  if (hmMeta(h) !== "hacer") return f.tipo === "diario";   // dejar y reducir: todos los días, sin descansos
   if (f.tipo !== "diario" && f.tipo !== "dias") return false;
   if (hmLibre(iso, S)) return false;
   if (f.tipo === "dias" && !f.dias.includes(hmDow(iso))) return false;
@@ -167,7 +231,7 @@ function cumplimiento(h, desde, hasta, S) {
   const hoy = hmHoy();
   hmPeriodos(h, desde, hasta, S).forEach(p => {
     if (p.desde > hoy) return;                                   // futuro
-    const n = hmContar(h, p.desde, p.hasta, S);
+    const n = hmHechoPeriodo(h, p, S);
     if (p.hasta >= hoy) {                                        // en curso: no penaliza
       res.enCurso = { hecho: n, meta: p.esperado };
       if (n < p.esperado) return;
@@ -189,7 +253,15 @@ function cumplimientoGrupo(defs, desde, hasta, S) {
 
 /* Progreso del período actual: { hecho, meta, cumplido, texto } */
 function progresoPeriodoActual(h, S) {
-  const f = hmFreq(h), hoy = hmHoy();
+  const f = hmFreq(h), hoy = hmHoy(), meta = hmMeta(h);
+  if (meta === "reducir") {
+    const l = hmLimite(h), n = l.per === "semana" ? hmCuentaRango(h, hmLunes(hoy), hmAdd(hmLunes(hoy), 6), S) : hmCuenta(h, hoy, S);
+    return { hecho: n, meta: l.n, cumplido: n <= l.n, texto: `${n} de ${l.n} ${l.per === "semana" ? "esta semana" : "hoy"}`, sePaso: n > l.n };
+  }
+  if (meta === "dejar") {
+    const cae = hmCaida(h, hoy, S), ok = !cae && hmMarcado(h, hoy, S || STATE);
+    return { hecho: ok ? 1 : 0, meta: 1, cumplido: ok, texto: cae ? "caíste hoy" : ok ? "confirmado hoy" : "por confirmar hoy", caida: cae };
+  }
   if (f.tipo === "semanal" || f.tipo === "mensual") {
     const p = hmMetaPeriodo(h, hoy, S);
     const cuenta = `${p.hecho}/${p.esperado} ${f.tipo === "semanal" ? "esta semana" : "este mes"}`, vac = !!hmVacacion(h, hoy, S);
@@ -203,6 +275,8 @@ function progresoPeriodoActual(h, S) {
 /* ¿Toca hoy? diarios, días fijos si hoy corresponde, y cuotas aún no cumplidas */
 function tocaHoy(h, S) {
   if (!hmActivo(h) || hmCreado(h) > hmHoy()) return false;
+  if (hmMeta(h) === "reducir") return false;                   // los de límite van aparte
+  if (hmMeta(h) === "dejar") return true;                       // siempre a la vista: por confirmar, confirmado o «caíste hoy»
   if (hmDescanso(h, hmHoy(), S) && !hmDone(h, hmHoy(), hmEstado(S))) return false;   // hoy descansa
   const f = hmFreq(h);
   if (f.tipo === "diario" || f.tipo === "dias") return hmProgramado(h, hmHoy(), S);
@@ -215,16 +289,49 @@ function rachaPeriodos(h, S) {
   const f = hmFreq(h), hoy = hmHoy();
   const unidad = f.tipo === "semanal" ? "sem" : f.tipo === "mensual" ? "meses" : "días";
   const desde = hmMax(hmCreado(h), hmAdd(hoy, f.tipo === "mensual" ? -1100 : f.tipo === "semanal" ? -800 : -400));
+  const meta = hmMeta(h);
+  if (meta === "dejar" && hmCaida(h, hoy, S)) return { n: 0, unidad };     // caer hoy corta al tiro
+  if (meta === "reducir" && hmSePaso(h, hoy, S)) return { n: 0, unidad };  // pasarse hoy (o esta semana), también
   const ps = hmPeriodos(h, desde, f.tipo === "semanal" ? hmAdd(hmLunes(hoy), 3) : hoy, S).filter(p => p.desde <= hoy);
   let n = 0;
   for (let i = ps.length - 1; i >= 0; i--) {
-    const p = ps[i], ok = hmContar(h, p.desde, p.hasta, S) >= p.esperado;
+    const p = ps[i], ok = hmHechoPeriodo(h, p, S) >= p.esperado;
     if (ok) n++;
     else if (p.hasta >= hoy) continue;   // en curso sin cumplir: no corta
     else break;
   }
   return { n, unidad };
 }
+
+/* La mejor racha de la historia (para los de dejar y reducir): períodos seguidos cumplidos */
+function hmMejorRacha(h, S) {
+  const hoy = hmHoy(), f = hmFreq(h);
+  const ps = hmPeriodos(h, hmCreado(h), f.tipo === "semanal" ? hmAdd(hmLunes(hoy), 3) : hoy, S).filter(p => p.desde <= hoy);
+  let mejor = 0, run = 0;
+  ps.forEach(p => { if (hmHechoPeriodo(h, p, S) >= p.esperado) { run++; if (run > mejor) mejor = run; } else if (p.hasta < hoy) run = 0; });
+  return Math.max(mejor, rachaPeriodos(h, S).n);
+}
+/* Días cumplidos de un hábito y el último (el jardín, la medalla Hábito de Hierro y los días limpios):
+   hacer, las marcas; dejar, los días sin caer; reducir, los días (o semanas, ×7) que terminaron dentro del límite */
+function hmDiasCumplidos(h, S) {
+  const st = hmEstado(S), hoy = hmHoy(), meta = hmMeta(h);
+  let dias = 0, ultimo = "";
+  if (meta === "reducir" && hmLimite(h).per === "semana") {
+    for (let l = hmLunes(hmCreado(h)); hmAdd(l, 6) < hoy; l = hmAdd(l, 7)) if (hmHechoPeriodo(h, { desde: l, hasta: hmAdd(l, 6) }, st)) { dias += 7; ultimo = hmAdd(l, 6); }
+    return { dias, ultimo };
+  }
+  if (meta !== "hacer") {
+    for (let d = hmCreado(h) < "2000-01-01" ? hoy : hmCreado(h); d <= hoy; d = hmAdd(d, 1)) if (hmDone(h, d, st)) { dias++; ultimo = d; }
+    return { dias, ultimo };
+  }
+  Object.entries((st && st.habitos && st.habitos.log) || {}).forEach(([mk, mes]) => {
+    const [y, m] = mk.split("-").map(Number), xs = (mes || {})[h.id]; if (!y || !m || !xs) return;
+    Object.entries(xs).forEach(([d, v]) => { if (!v) return; dias++; const iso = `${y}-${String(m).padStart(2, "0")}-${String(+d).padStart(2, "0")}`; if (iso > ultimo) ultimo = iso; });
+  });
+  return { dias, ultimo };
+}
+/* ¿Le falta algo hoy? (avisos de hábitos pendientes: solo los de hacer) */
+function hmPendienteHoy(h, S) { return hmMeta(h) === "hacer" && tocaHoy(h, S) && !hmDone(h, hmHoy(), S); }
 
 /* Cuota de la SEMANA (diario, días fijos, semanal) o del MES (mensual) que contiene iso.
    Se usa para el premio "habito-meta" y para la insignia Semana Perfecta.
@@ -243,7 +350,7 @@ function hmMetaPeriodo(h, iso, S) {
   let esperado, hecho;
   if (f.tipo === "semanal") {
     esperado = hmCuotaSemana(h, l, S);
-    hecho = hmContar(h, l, dom, S);
+    hecho = hmHechoPeriodo(h, { desde: l, hasta: dom }, S);
   } else {
     esperado = 0; for (let d = hmMax(l, cre); d <= dom; d = hmAdd(d, 1)) if (hmProgramado(h, d, S)) esperado++;
     hecho = hmContar(h, hmMax(l, cre), dom, S, true);

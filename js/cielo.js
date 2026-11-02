@@ -14,7 +14,7 @@ const CIELO_FAMILIAS = [
   { id: "hitos", n: "Grandes hitos", fig: "La Brújula", ic: "brujula", ids: ["explorador", "estratega", "cuatro-semanas", "trimestre-rumbo", "mes-perfecto", "anio-rumbo"] },
   { id: "foco", n: "Tareas y foco", fig: "El Elefante", ic: "elefante", ids: ["cazador-sapos", "elefante-domado", "elefante-domado-p", "elefante-domado-o", "delegador-b", "delegador-p", "delegador-o", "soltar", "bandeja-cero", "capacidad-real", "enfocado-b", "enfocado-p", "enfocado-o"] },
   { id: "rituales", n: "Rituales", fig: "El Sol", ic: "sol", ids: ["madrugador", "alba-b", "alba-p", "alba-o", "noche-serena-b", "noche-serena-p", "noche-serena-o", "semana-redonda", "mes-redondo", "salvavidas"] },
-  { id: "habitos", n: "Hábitos", fig: "La Columna", ic: "brote", ids: ["centurion", "semana-perfecta", "guerrero", "todo-verde", "habito-hierro"] },
+  { id: "habitos", n: "Hábitos", fig: "La Columna", ic: "brote", ids: ["centurion", "semana-perfecta", "guerrero", "todo-verde", "habito-hierro", "libre"] },
   { id: "vida", n: "Tu vida", fig: "La Medalla", ic: "medalla", ids: ["primer-peso", "medio-camino", "ahorrador-b", "ahorrador-p", "ahorrador-o", "meta-anual", "pagina-uno", "devorador", "biblioteca-b", "biblioteca-p", "biblioteca-o", "peso-pluma", "buen-amigo", "embajador", "en-equipo", "primera-alcancia"] },
   { id: "secretas", n: "Secretas", fig: "", ic: "?", ids: ["buho", "aniversario", "anio-nuevo", "remontada"] },
 ];

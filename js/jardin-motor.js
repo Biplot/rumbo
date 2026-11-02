@@ -56,8 +56,36 @@ const JARDIN_MOTOR = (() => {
   }
   function flor(ctx, x, y, r, color) { ctx.fillStyle = color; for (let i = 0; i < 5; i++) { const an = i / 5 * 6.283; ctx.beginPath(); ctx.ellipse(x + Math.cos(an) * r, y + Math.sin(an) * r, r * 0.85, r * 0.6, an, 0, 6.3); ctx.fill(); } ctx.fillStyle = "#F7C948"; ctx.beginPath(); ctx.arc(x, y, r * 0.55, 0, 6.3); ctx.fill(); }
   function hoja(ctx, x, y, s, dir, color) { ctx.fillStyle = color; ctx.save(); ctx.translate(x, y); ctx.rotate(dir * -0.6); ctx.beginPath(); ctx.ellipse(dir * s, 0, s, s * 0.45, 0, 0, 6.3); ctx.fill(); ctx.restore(); }
+  /* -------- Lo que dejas o reduces crece como cactus (cierra su flor el día que caíste o te pasaste) -------- */
+  function rrect(ctx, x, y, w, h, r) { r = Math.min(r, w / 2, h / 2); ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+  function cactus(ctx, base, t, cerrada, dk) {
+    t = Math.max(0.05, Math.min(1, t));
+    const v = dk ? "#3F9A63" : "#3E9C57", v2 = mezcla(v, "#FFFFFF", 0.24), h = 8 + t * 40, w = 3.5 + t * 3.2;
+    const brazo = (lado, yy, largo) => { ctx.fillStyle = v; rrect(ctx, lado > 0 ? w - 2 : -w - 6, base - yy - 2.5, 8, 5, 2.5); ctx.fill(); rrect(ctx, lado > 0 ? w + 2 : -w - 6, base - yy - largo, 4.5, largo, 2.25); ctx.fill(); };
+    if (t > 0.3) brazo(1, h * 0.45, 5 + t * 8);
+    if (t > 0.55) brazo(-1, h * 0.62, 4 + t * 6);
+    ctx.fillStyle = v; rrect(ctx, -w, base - h, w * 2, h + 1, w); ctx.fill();
+    ctx.fillStyle = v2; ctx.fillRect(-w * 0.35, base - h + 3, 1.2, Math.max(1, h - 6));
+    ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 0.6;
+    for (let yy = base - h + 5; yy < base - 3; yy += 6) [-w * 0.7, w * 0.55].forEach((dx, i) => { ctx.beginPath(); ctx.moveTo(dx, yy + i * 2); ctx.lineTo(dx + (dx < 0 ? -1.6 : 1.6), yy + i * 2 - 1.2); ctx.stroke(); });
+    if (t >= 0.35) {
+      if (cerrada) { ctx.fillStyle = "#E8606B"; ctx.beginPath(); ctx.ellipse(0, base - h - 2.5, 2, 3.4, 0, 0, 6.3); ctx.fill(); ctx.fillStyle = v; ctx.beginPath(); ctx.ellipse(0, base - h, 2.6, 1.4, 0, 0, 6.3); ctx.fill(); }
+      else flor(ctx, 0, base - h - 1.5, 2.2 + t * 1.4, "#F28CB0");
+    }
+  }
+  /* El que echó raíces: un saguaro en el patio (gris si lo dejaste) */
+  function saguaro(ctx, x, y, s, dk, hojas) {
+    const v = hojas === false ? (dk ? "#5E6B5A" : "#8FA08A") : (dk ? "#3F9A63" : "#4FA463"), v2 = mezcla(v, "#FFFFFF", 0.2);
+    ctx.fillStyle = "rgba(0,0,0,.14)"; ctx.beginPath(); ctx.ellipse(x, y, 16 * s, 3.5 * s, 0, 0, 6.3); ctx.fill();
+    ctx.fillStyle = v;
+    rrect(ctx, x - 6 * s, y - 64 * s, 12 * s, 64 * s, 6 * s); ctx.fill();
+    rrect(ctx, x - 18 * s, y - 32 * s, 14 * s, 8 * s, 4 * s); ctx.fill(); rrect(ctx, x - 18 * s, y - 50 * s, 8 * s, 24 * s, 4 * s); ctx.fill();
+    rrect(ctx, x + 4 * s, y - 42 * s, 14 * s, 8 * s, 4 * s); ctx.fill(); rrect(ctx, x + 10 * s, y - 60 * s, 8 * s, 24 * s, 4 * s); ctx.fill();
+    ctx.fillStyle = v2; ctx.fillRect(x - 2 * s, y - 60 * s, 1.6 * s, 54 * s); ctx.fillRect(x - 15 * s, y - 47 * s, 1.4 * s, 16 * s); ctx.fillRect(x + 13 * s, y - 57 * s, 1.4 * s, 16 * s);
+    if (hojas !== false) [[0, -66], [-14, -51], [14, -61]].forEach(([dx, dy]) => flor(ctx, x + dx * s, y + dy * s, 2.4 * s, "#F28CB0"));
+  }
   /* Una maceta con su planta (de lado): t es lo que lleva hacia echar raíces. Devuelve dónde cae el agua */
-  function maceta(ctx, x, y, k, t, color, dk, c, salto) {
+  function maceta(ctx, x, y, k, t, color, dk, c, salto, M) {
     ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
     ctx.fillStyle = "rgba(0,0,0,.16)"; ctx.beginPath(); ctx.ellipse(0, 1, 14, 3, 0, 0, 6.3); ctx.fill();
     ctx.fillStyle = lg(ctx, -12, 0, 12, 0, [[0, "#E39A62"], [0.5, "#C4682F"], [1, "#8C3E18"]]); ctx.beginPath(); ctx.moveTo(-12, -18); ctx.lineTo(12, -18); ctx.lineTo(9, 0); ctx.lineTo(-9, 0); ctx.closePath(); ctx.fill();
@@ -65,7 +93,8 @@ const JARDIN_MOTOR = (() => {
     ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.fillRect(-9, -15, 2.5, 12);
     const base = -21, verde = verdeDe(c, dk), verde2 = mezcla(verde, "#FFFFFF", 0.18), sy = 1 + (salto || 0) * 0.08;
     ctx.save(); ctx.translate(0, base); ctx.scale(1, sy); ctx.translate(0, -base);
-    if (t < 0.15) { ctx.strokeStyle = verde; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, base); ctx.lineTo(0, base - 6); ctx.stroke(); hoja(ctx, 0, base - 6, 3.6, -1, verde2); hoja(ctx, 0, base - 6, 3.6, 1, verde2); }
+    if (M && M.cactus) cactus(ctx, base, t, M.cerrada, dk);
+    else if (t < 0.15) { ctx.strokeStyle = verde; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, base); ctx.lineTo(0, base - 6); ctx.stroke(); hoja(ctx, 0, base - 6, 3.6, -1, verde2); hoja(ctx, 0, base - 6, 3.6, 1, verde2); }
     else {
       const h = 10 + t * 46, pares = 1 + Math.floor(t * 5);
       ctx.strokeStyle = verde; ctx.lineWidth = 1.6 + t * 1.6; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(0, base); ctx.quadraticCurveTo(-3, base - h / 2, 0, base - h); ctx.stroke();
@@ -77,7 +106,8 @@ const JARDIN_MOTOR = (() => {
     return { x, y: y - 21 * k, k };
   }
   /* Un árbol: con hojas (y flores si tu semana va bien) o sin hojas, si dejaste ese hábito */
-  function arbol(ctx, x, y, s, dk, c, color, hojas) {
+  function arbol(ctx, x, y, s, dk, c, color, hojas, cac) {
+    if (cac) return saguaro(ctx, x, y, s, dk, hojas);
     const tronco = dk ? "#5E3D27" : "#8A5A36", verde = verdeDe(c, dk, dk ? "#2F7A52" : "#4FA463");
     ctx.fillStyle = "rgba(0,0,0,.14)"; ctx.beginPath(); ctx.ellipse(x, y, 22 * s, 4 * s, 0, 0, 6.3); ctx.fill();
     ctx.fillStyle = tronco; ctx.beginPath(); ctx.moveTo(x - 5 * s, y); ctx.lineTo(x - 3 * s, y - 34 * s); ctx.lineTo(x + 3 * s, y - 34 * s); ctx.lineTo(x + 5 * s, y); ctx.closePath(); ctx.fill();
@@ -114,7 +144,7 @@ const JARDIN_MOTOR = (() => {
   }
   function saltoDe(M, t) { if (!M || M.id !== riego.id) return 0; const d = t - riego.t0 - 0.6; return Math.max(0, Math.sin(d * 8)) * Math.max(0, 1 - d); }
   function plantar(ctx, pots, e, dk, t) {
-    pots.forEach(([x, y, k], j) => { const M = e.macetas[j]; if (!M) return; const p = maceta(ctx, x, y, k, M.t, M.color, dk, e.c, saltoDe(M, t)); anotar(M, p); if (M.id === riego.id) regadera(ctx, p, t); });
+    pots.forEach(([x, y, k], j) => { const M = e.macetas[j]; if (!M) return; const p = maceta(ctx, x, y, k, M.t, M.color, dk, e.c, saltoDe(M, t), M); anotar(M, p); if (M.id === riego.id) regadera(ctx, p, t); });
   }
   /* -------- Días de descanso: dónde quedó cada maceta (al dibujar), la hamaquita y el letrero de vacaciones -------- */
   let POTS = [];
@@ -161,7 +191,7 @@ const JARDIN_MOTOR = (() => {
     cielo(ctx, 0, 0, W, H, e.c, dk, t, [56, 34]);
     ctx.fillStyle = verdeDe(e.c, dk, dk ? "#24503E" : "#A6D89A"); ctx.beginPath(); ctx.moveTo(0, 128); ctx.bezierCurveTo(70, 104, 140, 126, 200, 112); ctx.bezierCurveTo(250, 100, 300, 112, W, 108); ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
     const A = ultimos(e), n = A.length, s = n <= 3 ? 0.78 : n <= 5 ? 0.66 : 0.55;
-    A.forEach((a, i) => arbol(ctx, n === 1 ? 70 : 18 + i * (136 / Math.max(1, n - 1)), 152 - (i % 2) * 6, s * (0.92 + (i % 3) * 0.06) * brota(a, t), dk, e.c, a.color, a.hojas));
+    A.forEach((a, i) => arbol(ctx, n === 1 ? 70 : 18 + i * (136 / Math.max(1, n - 1)), 152 - (i % 2) * 6, s * (0.92 + (i % 3) * 0.06) * brota(a, t), dk, e.c, a.color, a.hojas, a.cactus));
     ctx.fillStyle = dk ? "#6B5640" : "#D9B88E"; ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 2.2;
     ctx.beginPath(); ctx.moveTo(0, 144); ctx.lineTo(168, 144); ctx.moveTo(0, 152); ctx.lineTo(168, 152); ctx.stroke();
     for (let x = 6; x < 168; x += 16) { ctx.beginPath(); ctx.moveTo(x - 2.5, 160); ctx.lineTo(x - 2.5, 138); ctx.lineTo(x, 135); ctx.lineTo(x + 2.5, 138); ctx.lineTo(x + 2.5, 160); ctx.closePath(); ctx.fill(); }
@@ -197,7 +227,7 @@ const JARDIN_MOTOR = (() => {
     cielo(ctx, X0, Y0, X1 - X0, Y1 - Y0, e.c, dk, t, [X1 - 34, Y0 + 26]);
     ctx.fillStyle = verdeDe(e.c, dk, dk ? "#24503E" : "#A6D89A"); ctx.beginPath(); ctx.moveTo(X0, 128); ctx.bezierCurveTo(120, 112, 180, 130, X1, 118); ctx.lineTo(X1, Y1); ctx.lineTo(X0, Y1); ctx.fill();
     const A = ultimos(e), n = A.length;
-    A.forEach((a, i) => arbol(ctx, n === 1 ? 130 : X0 + 18 + i * ((X1 - X0 - 36) / Math.max(1, n - 1)), 144 + (i % 2) * 4, 0.5 * brota(a, t), dk, e.c, a.color, a.hojas));
+    A.forEach((a, i) => arbol(ctx, n === 1 ? 130 : X0 + 18 + i * ((X1 - X0 - 36) / Math.max(1, n - 1)), 144 + (i % 2) * 4, 0.5 * brota(a, t), dk, e.c, a.color, a.hojas, a.cactus));
     ctx.fillStyle = dk ? "#6B5640" : "#D9B88E"; for (let x = X0 + 4; x < X1; x += 12) ctx.fillRect(x, 142, 2.4, 14); ctx.fillRect(X0, 146, X1 - X0, 2);
     ctx.fillStyle = verdeDe(e.c, dk, dk ? "#2C5A40" : "#9FD48A"); ctx.fillRect(X0, 154, X1 - X0, 12);
     if (e.c > 0.8) mariposas(ctx, [[110, 112, "#F28CB0"], [200, 104, "#FFD24A"]], t);
@@ -251,7 +281,7 @@ const JARDIN_MOTOR = (() => {
     if (n < 6) [[cx - rx + 14, suelo + 2], [cx + rx - 16, suelo + 3]].forEach(([x, y]) => { ctx.fillStyle = "#F4EFE6"; ctx.fillRect(x - 1, y - 6, 2, 6); ctx.fillStyle = "#E8606B"; ctx.beginPath(); ctx.arc(x, y - 6, 4, Math.PI, 0); ctx.fill(); ctx.fillStyle = "#FFFFFF"; ctx.beginPath(); ctx.arc(x - 1.5, y - 8, 0.9, 0, 6.3); ctx.fill(); });
     const s = n <= 2 ? 0.62 : n <= 4 ? 0.52 : 0.44, filas = n > 4 ? [Math.ceil(n / 2), Math.floor(n / 2)] : [n, 0];
     let k = 0;
-    filas.forEach((cant, f) => { const paso = (rx * 2 - 34) / Math.max(1, cant); for (let i = 0; i < cant; i++, k++) { const a = A[k]; arbol(ctx, cx + (i - (cant - 1) / 2) * paso + (n > 4 ? (f ? 0.25 : -0.25) * paso : 0), suelo + 3 + f * 9, s * brota(a, t), dk, e.c, a.color, a.hojas); } });
+    filas.forEach((cant, f) => { const paso = (rx * 2 - 34) / Math.max(1, cant); for (let i = 0; i < cant; i++, k++) { const a = A[k]; arbol(ctx, cx + (i - (cant - 1) / 2) * paso + (n > 4 ? (f ? 0.25 : -0.25) * paso : 0), suelo + 3 + f * 9, s * brota(a, t), dk, e.c, a.color, a.hojas, a.cactus); } });
     if (dk && e.c > 0.5) for (let i = 0; i < 6; i++) { const x = cx + Math.sin(t * 0.7 + i * 2.1) * rx * 0.7, y = top + 74 + Math.cos(t * 0.9 + i) * 26, a = 0.5 + 0.5 * Math.sin(t * 3 + i); ctx.fillStyle = rg(ctx, x, y, 0, 7, [[0, `rgba(255,236,140,${0.8 * a})`], [1, "rgba(255,236,140,0)"]]); ctx.beginPath(); ctx.arc(x, y, 7, 0, 6.3); ctx.fill(); }
     if (e.c < 0.55) { const r2 = semilla(33), a = Math.min(0.75, (0.55 - e.c) * 2.2); ctx.fillStyle = `rgba(255,255,255,${a * 0.5})`; ctx.fillRect(cx - rx, top, rx * 2, bot - top); ctx.fillStyle = `rgba(255,255,255,${a})`; for (let i = 0; i < 34; i++) { ctx.beginPath(); ctx.ellipse(cx - rx + 6 + r2() * (rx * 2 - 12), top + 34 + r2() * (bot - top - 70), 1.4, 1.9, 0, 0, 6.3); ctx.fill(); } }
     ctx.restore();
@@ -301,7 +331,12 @@ const JARDIN_MOTOR = (() => {
       const y = 56, riega = M.id === riego.id, sube = riega && d > 0.6 && d < 1.2 && ((d * 10) | 0) % 2 ? 1 : 0, yb = y - sube;
       px(x - 1, y + 1, 8, 1, "rgba(0,0,0,.18)"); px(x, y - 5, 6, 1, "#D27A45"); px(x + 1, y - 4, 4, 4, "#C4682F"); px(x + 4, y - 4, 1, 4, "#8C3E18"); px(x + 1, y - 6, 4, 1, "#5A3418");
       const tal = dk ? "#3FA36A" : "#3E9C57", hj = mezcla(tal, "#FFFFFF", 0.25), col = M.color, tt = M.t;
-      if (tt < 0.15) { px(x + 2, yb - 7, 1, 1, tal); px(x + 3, yb - 8, 1, 1, hj); }
+      if (M.cactus) { const hh = 2 + Math.round(tt * 8), b = yb - 6, a1 = Math.round(hh * 0.55), a2 = Math.round(hh * 0.7);
+        px(x + 2, b - hh, 2, hh, tal); px(x + 2, b - hh + 1, 1, Math.max(1, hh - 2), hj);
+        if (tt > 0.3) { px(x + 4, b - a1, 1, 1, tal); px(x + 5, b - a1 - 2, 1, 3, tal); }
+        if (tt > 0.55) { px(x + 1, b - a2, 1, 1, tal); px(x, b - a2 - 2, 1, 3, tal); }
+        if (tt >= 0.35) px(x + 2, b - hh - 1, 2, 1, M.cerrada ? "#E8606B" : "#F28CB0"); }
+      else if (tt < 0.15) { px(x + 2, yb - 7, 1, 1, tal); px(x + 3, yb - 8, 1, 1, hj); }
       else if (tt < 0.45) { px(x + 2, yb - 9, 1, 3, tal); px(x + 1, yb - 9, 1, 1, hj); px(x + 3, yb - 10, 1, 1, hj); }
       else { const hh = tt < 0.62 ? 6 : 8; px(x + 2, yb - 6 - hh, 1, hh, tal); px(x, yb - 9, 2, 1, hj); px(x + 3, yb - 11, 2, 1, hj); px(x + 1, yb - 13, 1, 1, hj);
         if (tt < 0.62) px(x + 2, yb - 13, 1, 1, mezcla(col, tal, 0.4)); else { px(x + 1, yb - 15, 3, 1, col); px(x + 2, yb - 16, 1, 3, col); px(x + 2, yb - 15, 1, 1, "#FFD24A"); if (tt > 0.8) { px(x + 4, yb - 11, 1, 1, col); px(x, yb - 12, 1, 1, col); } } }
@@ -349,7 +384,7 @@ const JARDIN_MOTOR = (() => {
     ctx.strokeStyle = dk ? "rgba(200,210,240,.25)" : "rgba(255,255,255,.5)"; ctx.lineWidth = 1.2; for (let i = 0; i < 12; i++) { const x = (i * 61 + t * 5) % W, y = 136 + (i * 17) % 50; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 10, y); ctx.stroke(); }
     if (e.c > 0.75) { const x = 190 + (QUIETO ? 0 : Math.sin(t * 0.25) * 16), y = 142; ctx.fillStyle = "#FFFFFF"; ctx.beginPath(); ctx.ellipse(x, y, 9, 3.6, 0, 0, 6.3); ctx.fill(); ctx.beginPath(); ctx.moveTo(x - 9, y); ctx.quadraticCurveTo(x - 12, y - 4, x - 7, y - 2); ctx.fill(); ctx.strokeStyle = "#1E2433"; ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x + 6, y - 2); ctx.quadraticCurveTo(x + 10, y - 10, x + 7, y - 14); ctx.stroke(); ctx.fillStyle = "#E8606B"; ctx.beginPath(); ctx.arc(x + 5.4, y - 14, 1.4, 0, 6.3); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.25)"; ctx.beginPath(); ctx.ellipse(x, y + 5, 9, 2, 0, 0, 6.3); ctx.fill(); }
     ctx.fillStyle = verdeDe(e.c, dk, dk ? "#24503E" : "#8DC77A"); ctx.beginPath(); ctx.moveTo(176, H); ctx.lineTo(196, 166); ctx.bezierCurveTo(240, 156, 300, 162, 360, 156); ctx.bezierCurveTo(410, 152, 450, 156, W, 152); ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
-    const A = ultimos(e), n = A.length; A.forEach((a, i) => araucaria(ctx, 302 + (i - (n - 1) / 2) * 21, 166 + (i % 2) * 4, 0.8 * brota(a, t), dk, e.c, a.hojas));
+    const A = ultimos(e), n = A.length; A.forEach((a, i) => { const x = 302 + (i - (n - 1) / 2) * 21, y = 166 + (i % 2) * 4; if (a.cactus) saguaro(ctx, x, y, 0.6 * brota(a, t), dk, a.hojas); else araucaria(ctx, x, y, 0.8 * brota(a, t), dk, e.c, a.hojas); });
     { const x0 = 398, cw = 66, cb = 164, ch = 26;
       ctx.fillStyle = dk ? "#5A4A3A" : "#E2A94A"; ctx.fillRect(x0, cb - ch, cw, ch);
       ctx.strokeStyle = "rgba(0,0,0,.16)"; ctx.lineWidth = 1; for (let yy = cb - ch + 4, f = 0; yy < cb; yy += 5, f++) for (let xx = x0 + (f % 2) * 2.5; xx < x0 + cw - 2; xx += 5) { ctx.beginPath(); ctx.arc(xx + 2.5, yy, 2.5, 0, Math.PI); ctx.stroke(); }
@@ -444,13 +479,13 @@ const JARDIN_MOTOR = (() => {
       if (t >= 0.62) { const n = Math.min(4, 1 + Math.floor((t - 0.62) * 9)), rr = 3 + t * 2.4; flor(ctx, 0, base - h - 2, rr, color); for (let i = 1; i < n; i++) flor(ctx, (i % 2 ? 1 : -1) * (6 + t * 6), base - h * (0.62 - i * 0.12), rr * 0.8, color); }
       else if (t >= 0.45) { ctx.fillStyle = mezcla(color, verde, 0.4); ctx.beginPath(); ctx.ellipse(0, base - h - 2, 2.6, 4, 0, 0, 6.3); ctx.fill(); }
     }
-    function capsula(ctx, x, y, k, t, color, c, salto) {
+    function capsula(ctx, x, y, k, t, color, c, salto, M) {
       ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
       ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(0, 1, 13, 2.6, 0, 0, 6.3); ctx.fill();
       ctx.fillStyle = lg(ctx, -11, 0, 11, 0, [[0, "#F6F8FC"], [0.6, "#D6DBE5"], [1, "#9EA6B6"]]); ctx.beginPath(); ctx.moveTo(-11, -18); ctx.lineTo(11, -18); ctx.lineTo(9, 0); ctx.lineTo(-9, 0); ctx.closePath(); ctx.fill();
       ctx.fillStyle = "rgba(92,225,230,.9)"; ctx.fillRect(-10.4, -11, 20.8, 2.2); ctx.fillStyle = "rgba(92,225,230,.25)"; ctx.fillRect(-12, -13, 24, 6);
       ctx.fillStyle = "#E6E9F0"; ctx.fillRect(-12.5, -21, 25, 4); ctx.fillStyle = "#26304A"; ctx.beginPath(); ctx.ellipse(0, -21, 11, 2.2, 0, 0, 6.3); ctx.fill();
-      ctx.save(); ctx.translate(0, -21); ctx.scale(1, 1 + (salto || 0) * 0.08); ctx.translate(0, 21); planta(ctx, -21, t, color, c); ctx.restore();
+      ctx.save(); ctx.translate(0, -21); ctx.scale(1, 1 + (salto || 0) * 0.08); ctx.translate(0, 21); if (M && M.cactus) cactus(ctx, -21, t, M.cerrada, false); else planta(ctx, -21, t, color, c); ctx.restore();
       ctx.restore();
       return { x, y: y - 21 * k, k };
     }
@@ -664,7 +699,7 @@ const JARDIN_MOTOR = (() => {
     /* Las macetas de la app: cada una con su planta; tu elefante riega la que marcaste */
     function saltoDe(M, t) { if (!M || M.id !== riego.id) return 0; const d = t - riego.t0 - 0.6; return Math.max(0, Math.sin(d * 8)) * Math.max(0, 1 - d); }
     function macetas(ctx, pos, e, t) {
-      pos.forEach(([x, y, k], j) => { const M = e.macetas[j]; if (!M) return; const p = capsula(ctx, x, y, k, M.t, M.color, e.c, saltoDe(M, t)); anotar(M, p); if (M.id === riego.id) regadera(ctx, p, t); });
+      pos.forEach(([x, y, k], j) => { const M = e.macetas[j]; if (!M) return; const p = capsula(ctx, x, y, k, M.t, M.color, e.c, saltoDe(M, t), M); anotar(M, p); if (M.id === riego.id) regadera(ctx, p, t); });
     }
     /* Cada árbol en su cúpula: su color, sin hojas si dejaste el hábito, y brota al trasplantarlo */
     function cup(ctx, P, i, s, e, t) { const a = e.arboles[i]; if (!a || !P[i]) return; cupula(ctx, P[i][0], P[i][1], s * brota(a, t), e.c, a.color, a.hojas); }

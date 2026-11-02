@@ -22,7 +22,7 @@ export function motorHabitos(data, hoy) {
   return {
     hecho: (h, iso) => !!ctx.hmDone(h, iso, S),
     /* Los que tocan hoy (activos, ya creados, del día o con la cuota sin cumplir) y aún no se marcan */
-    pendientesHoy: () => S.habitos.defs.filter(h => h && ctx.tocaHoy(h, S) && !ctx.hmDone(h, hoy, S)),
+    pendientesHoy: () => S.habitos.defs.filter(h => h && ctx.hmPendienteHoy(h, S)),
   };
 }
 

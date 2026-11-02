@@ -121,6 +121,7 @@ function equipoConCuenta() {
 async function enterApp(user) {
   CURRENT_USER = user;
   await loadUserState(user);
+  if (!STATE.settings.onboarded && marcarAlta()) saveState();   // el día de la cuenta, antes de pintar Inicio (bienvenida.js)
   applyTheme(STATE.settings.theme);
   applyCosmetics();
   buildNav();
@@ -133,7 +134,7 @@ async function enterApp(user) {
   retomarEnfoque();       // ⏱️ sesión de enfoque en curso en este equipo
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
   revisarDispositivoPush();              // 🔔 ¿este dispositivo sigue activado para esta cuenta?
-  if (!STATE.settings.onboarded) { if (marcarAlta()) saveState(); setTimeout(() => openOnboarding("nuevo"), 350); }
+  if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
   else if (amigosHayInvitacion()) { /* la invitación de un amigo va primero; las novedades, la próxima vez */ }
   else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
   else if (debeElegirElefante()) setTimeout(openElegirElefante, 600);

@@ -22,6 +22,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok((await p.locator("#modalTitle").innerText()).includes("¡Hola, Camila!") && /¿Qué quieres ordenar primero\?/.test(await p.locator("#modal").innerText()), "«¡Hola, Camila!» y la primera pregunta: ¿qué quieres ordenar primero?");
   ok(await p.locator("#toast").isHidden() && !/Bienvenido/.test(await p.locator("#modal").innerText()), "sin «Bienvenido» y sin un aviso encima");
   ok(await p.evaluate(() => STATE.settings.alta) === "2026-11-02", "la cuenta guarda su día: 2 de noviembre");
+  ok(!/Cierra Octubre/i.test(await p.locator("#view").innerText()), "detrás de la bienvenida, Inicio ya no pide cerrar octubre");
   ok(await p.locator('.arma-chip.is-on').count() === 2, "parten marcados «Mi día» y «Mis hábitos»");
   await p.click('.arma-chip[data-id="plata"]'); await p.waitForTimeout(100);
   await shot(p, "bienvenida-ordenar");

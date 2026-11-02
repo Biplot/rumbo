@@ -314,8 +314,7 @@ function openGcalConfig() {
   openModal("📆 Google Calendar", `
     <p class="text-sm soft">Rumbo <b>solo lee</b> tus eventos: nunca crea ni cambia nada en tu calendario. Tus eventos quedan guardados solo en este equipo.</p>
     <div class="text-xs muted mt-16" style="text-transform:uppercase;letter-spacing:.06em">Calendarios que quieres ver</div>
-    ${lista.length ? lista.map(c => `<label class="mes-hab" style="cursor:pointer"><span class="mes-hab__n"><span class="gcal-dot" style="background:${escapeAttr(c.color || "var(--cian)")}"></span>${escapeHtml(c.nombre)}</span>
-      <input type="checkbox" class="gcal-cal" value="${escapeAttr(c.id)}" ${elegidos.has(c.id) ? "checked" : ""}></label>`).join("")
+    ${lista.length ? `<div class="mt-8">${elCasillas(lista.map(c => [c.id, `<span class="gcal-dot" style="background:${escapeAttr(c.color || "var(--cian)")}"></span>${escapeHtml(c.nombre)}`]), lista.filter(c => elegidos.has(c.id)).map(c => c.id), { cls: "gcal-cal", label: "Calendarios que quieres ver" })}</div>`
     : `<div class="empty">Toca 🔄 Actualizar para traer tus calendarios.</div>`}
     <button class="btn btn--primary btn-block mt-16" data-action="gcal-guardar">Guardar</button>
     <div class="row mt-8" style="gap:8px">

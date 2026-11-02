@@ -210,7 +210,7 @@ function atHojaPlanes(amigos) {
   const abiertos = l.filter(p => p.respuesta === "abierto").sort(orden), prox = mios.filter(p => p.fecha && p.fecha >= hoy).sort(orden);
   const pordef = mios.filter(p => !p.fecha), pasaron = l.filter(p => plVa(p) && p.fecha < hoy).sort((a, b) => b.fecha.localeCompare(a.fecha)).slice(0, 10);
   const tabs = [["proximos", "Próximos", abiertos.length + prox.length], ["pordefinir", "Por definir", pordef.length], ["pasaron", "Pasaron", pasaron.length]];
-  const seg = `<div class="seg seg--full at-tabs" role="tablist" aria-label="Planes">${tabs.map(([v, t, n]) => `<button role="tab" aria-selected="${AT.pestana === v}" class="${AT.pestana === v ? "is-active" : ""}" data-action="am-pestana" data-v="${v}">${t}${n ? ` <em>${n}</em>` : ""}</button>`).join("")}</div>`;
+  const seg = `<div class="filtros at-tabs" role="tablist" aria-label="Planes">${tabs.map(([v, t, n]) => `<button role="tab" aria-selected="${AT.pestana === v}" class="${AT.pestana === v ? "is-active" : ""}" data-action="am-pestana" data-v="${v}">${t}${n ? ` <em>${n}</em>` : ""}</button>`).join("")}</div>`;
   let cuerpo;
   if (AT.pestana === "pordefinir") cuerpo = pordef.map(plFila).join("") || atVacio("Nada por definir. Para que voten la fecha, al proponer un plan elige «Que voten».");
   else if (AT.pestana === "pasaron") cuerpo = pasaron.map(plFila).join("") || atVacio("Aquí quedan los planes que ya fueron, para contar cómo estuvieron y sacar la cuenta.");

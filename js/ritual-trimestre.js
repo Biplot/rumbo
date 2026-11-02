@@ -140,8 +140,7 @@ function triCierrePaso(w) {
   if (w.paso === 2) return `<div class="field"><label>🏆 Tu logro principal del trimestre</label><textarea class="input" id="tc-logro">${escapeHtml(d.logro)}</textarea></div>
     <div class="field"><label>🧠 Lo que aprendiste</label><textarea class="input" id="tc-apr">${escapeHtml(d.aprendizaje)}</textarea></div>
     <div class="field"><label>🔧 Qué cambiarías el próximo trimestre</label><input class="input" id="tc-cambiar" value="${escapeAttr(d.cambiar)}" placeholder="Lo verás al abrir el siguiente"></div>`;
-  return `<div class="field"><label>Nota del trimestre: <b id="tc-nl" style="font-size:20px">${d.nota}</b>/10</label>
-    <input type="range" min="1" max="10" step="1" id="tc-nota" value="${d.nota}" style="width:100%;accent-color:var(--cian)" oninput="document.getElementById('tc-nl').textContent=this.value"></div>
+  return `<div class="field"><label for="tc-nota">Nota del trimestre</label>${elNota("tc-nota", d.nota, { label: "Nota del trimestre" })}</div>
     <p class="text-xs muted">📔 El cierre queda también en tu Diario.${w.siguiente ? " Al guardar, abres el trimestre siguiente." : ""}</p>`;
 }
 function triAperturaPaso(w) {
@@ -168,7 +167,7 @@ function triAperturaPaso(w) {
     ${filas}
     ${d.metas.length < 5 ? `<button type="button" class="btn-ghost mt-8" data-action="triw-mas">+ Otra meta</button>` : ""}
     ${arrastrables.length ? `<div class="divider"></div><div class="text-xs muted" style="margin-bottom:8px">↪ Traer metas no cumplidas del trimestre anterior</div>
-      ${arrastrables.map(o => `<label class="row" style="gap:8px;padding:4px 0"><input type="checkbox" class="ta-arr" value="${o.id}" ${d.arrastrar.includes(o.id) ? "checked" : ""}> ${escapeHtml(o.texto)}</label>`).join("")}` : ""}`;
+      ${elCasillas(arrastrables.map(o => [o.id, escapeHtml(o.texto)]), d.arrastrar, { cls: "ta-arr", label: "Metas para traer" })}` : ""}`;
 }
 function triWizLeer() {
   const w = TRI_WIZ; if (!w) return;

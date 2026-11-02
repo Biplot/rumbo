@@ -368,7 +368,7 @@ function openPlan(id) {
     ${mio ? `<p class="text-xs muted" style="margin:0">Cuando quieras, toca «Elegir» en la fecha que quede: el plan pasa a la agenda de todos.</p>` : ""}` : "";
   const abierto = p.respuesta === "abierto";
   const responder = abierto ? `<button class="btn btn--primary" data-action="pl-sumarme" data-id="${escapeHtml(p.id)}">${icoUI("plus")} Me sumo</button>`
-    : !mio && !p.cancelado && !plPaso(p) ? `<div class="pl-rsvp">${["voy", "quizas", "no"].map(v => `<button class="${p.respuesta === v ? "btn btn--primary" : "btn btn--soft"}" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="${v}">${PL_RESPUESTAS[v]}</button>`).join("")}</div>` : "";
+    : !mio && !p.cancelado && !plPaso(p) ? `<div class="cj-sub">Tu respuesta</div><div class="seg pl-rsvp" role="group" aria-label="Tu respuesta">${["voy", "quizas", "no"].map(v => `<button class="${p.respuesta === v ? "is-active" : ""}" aria-pressed="${p.respuesta === v}" data-action="pl-resp" data-id="${escapeHtml(p.id)}" data-v="${v}">${PL_RESPUESTAS[v]}</button>`).join("")}</div>` : "";
   openModal(p.titulo, `<div class="pl-det">
     <div class="pl-det__cab"><span class="pl-ico pl-ico--${p.tipo} pl-ico--xl">${plIcono(p)}</span>
       <span><b>${escapeHtml(plCuando(p)).replace(/^./, c => c.toUpperCase())}</b><span class="text-sm muted">${mio ? "Lo propusiste tú" + (p.abierto ? " · abierto a tus amigos" : "") : escapeHtml(plQuienPropone(p)) + (p.abierto ? " pregunta quién se suma" : " te invita")}</span></span></div>

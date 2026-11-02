@@ -176,7 +176,7 @@ function aguaCiudadBuscar(q) {
       AGUA_CIUDADES = ((j && j.results) || []).filter(x => isFinite(x.latitude) && isFinite(x.longitude)).slice(0, 5)
         .map(x => ({ ciudad: [x.name, x.admin1 && x.admin1 !== x.name ? x.admin1 : "", x.country].filter(Boolean).join(", "), lat: Math.round(x.latitude * 100) / 100, lon: Math.round(x.longitude * 100) / 100 }));
       if (!caja()) return;
-      caja().innerHTML = AGUA_CIUDADES.length ? AGUA_CIUDADES.map((x, i) => `<button type="button" class="chip" data-action="agua-ciudad" data-i="${i}">${escapeHtml(x.ciudad)}</button>`).join("")
+      caja().innerHTML = AGUA_CIUDADES.length ? AGUA_CIUDADES.map((x, i) => `<button type="button" data-action="agua-ciudad" data-i="${i}">${escapeHtml(x.ciudad)}</button>`).join("")
         : `<small class="text-xs muted">No encontré «${escapeHtml(q)}». Prueba con otro nombre.</small>`;
     })
     .catch(() => { if (caja()) caja().innerHTML = `<small class="text-xs muted">No pude buscar: revisa tu conexión.</small>`; });
@@ -274,10 +274,8 @@ function aguaSemanaHtml() {
       <small>${["D", "L", "M", "M", "J", "V", "S"][new Date(f + "T12:00").getDay()]}</small></div>`).join("")}</div>`;
 }
 function openAgua() {
-  const a = aguaDatos(), e = aguaEstado(), estilo = aguaEstilo(), sabor = aguaSabor(), auto = aguaMetaAuto();
-  const tuyos = AGUA_ESTILOS.filter(x => aguaEstiloTuyo(x.id)), faltan = AGUA_ESTILOS.length - tuyos.length;
-  const sabores = AGUA_SABORES.filter(x => aguaSaborTuyo(x.id)), peso = typeof pesoActualGlobal === "function" ? pesoActualGlobal(STATE) : null;
-  const chip = (accion, v, txt, on) => `<button type="button" class="chip${on ? " chip--cian" : ""}" data-action="${accion}" data-v="${v}" aria-pressed="${on}">${txt}</button>`;
+  const a = aguaDatos(), e = aguaEstado(), estilo = aguaEstilo(), auto = aguaMetaAuto();
+  const peso = typeof pesoActualGlobal === "function" ? pesoActualGlobal(STATE) : null;
   openModal("Tu agua", `<div class="agua-hoja" id="agua-hoja">
     <div class="agua-card__c agua-hoja__c">
       <canvas class="agua-cv" data-agua="${estilo}" data-modo="hoja" style="aspect-ratio:140/200" role="img" aria-label="Tu agua de hoy"></canvas>
@@ -289,17 +287,62 @@ function openAgua() {
       </div>
     </div>
     <div class="agua-sec"><span class="cj-sub">Hoy</span><div id="agua-hoy-lista" class="agua-lista">${aguaListaHtml()}</div></div>
-    <div class="agua-sec"><span class="cj-sub">Esta semana</span>${aguaSemanaHtml()}</div>
-    <div class="agua-sec"><span class="cj-sub">Tu meta</span><div class="agua-chips">
-      ${chip("agua-meta", 0, `Automática · ${litrosTxt(auto)} L`, !(a.meta > 0))}${[1500, 2000, 2500, 3000, 3500].map(v => chip("agua-meta", v, litrosTxt(v) + " L", a.meta === v)).join("")}</div>
+    <div class="agua-sec"><span class="cj-sub">Esta semana</span><div id="agua-semana">${aguaSemanaHtml()}</div></div>
+    <div class="agua-sec"><span class="cj-sub">Tu meta</span>
+      ${elContador("agua-meta-v", a.meta > 0 ? a.meta : auto, { min: AGUA_META_MIN, max: AGUA_META_MAX, paso: 100, fmtFn: "aguaLitrosFmt", fmt: aguaLitrosFmt, unidad: "L",
+        auto: { on: !(a.meta > 0), texto: `Automática · ${litrosTxt(auto)} L`, valor: auto }, fn: "aguaMetaElegir", label: "Tu meta diaria de agua" })}
       <small class="text-xs muted">${peso ? `La automática sale de tu peso en Salud (${String(peso).replace(".", ",")} kg × 35 ml).` : "Con tu peso en Salud, la automática se calcula sola (35 ml por kilo)."} Al cumplirla: +${AGUA_PREMIO} ⭐ y el hábito «Agua» marcado.</small></div>
     <div class="agua-sec"><span class="cj-sub">Días de calor</span>${aguaCalorAjusteHtml()}</div>
-    <div class="agua-sec"><span class="cj-sub">Tu vaso</span><div class="agua-chips">${[200, 250, 300, 350].map(v => chip("agua-vaso", v, v + " ml", aguaVaso() === v)).join("")}</div></div>
-    <div class="agua-sec"><span class="cj-sub">Estilo</span><div class="agua-chips">${tuyos.map(x => chip("agua-estilo", x.id, x.nombre, x.id === estilo)).join("")}
-      ${faltan ? `<button type="button" class="btn-link" data-action="agua-tienda">${faltan === 1 ? "1 estilo más" : faltan + " estilos más"} en la Tienda</button>` : ""}</div>
-      ${sabores.length > 1 ? `<div class="agua-chips">${sabores.map(x => chip("agua-sabor", x.id, `<i class="agua-gota" style="background:${x.c ? x.c[1] : "#2E9BDB"}"></i>${x.nombre}`, x.id === sabor)).join("")}</div>` : ""}</div>
+    <div class="agua-sec"><span class="cj-sub">Cómo se ve</span>${aguaComoSeVeFila()}</div>
     <label class="agua-inicio"><input type="checkbox" data-action="agua-inicio" ${a.inicio !== false ? "checked" : ""}> Mostrar «Agua de hoy» en Inicio</label>
     <label class="agua-inicio"><input type="checkbox" data-action="agua-fab" ${a.fab !== false ? "checked" : ""}> Botón de agua abajo a la derecha</label>
+  </div>`, { ancho: true });
+}
+/* La meta: un contador de a 100 ml (de 1 a 6 L), con «Automática» como interruptor encima */
+const AGUA_META_MIN = 1000, AGUA_META_MAX = 6000;
+function aguaLitrosFmt(ml) { return (ml / 1000).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+let AGUA_META_T = null;
+function aguaMetaElegir(v) {
+  Object.assign(aguaDatos(), { meta: +v > 0 ? Math.round(+v) : 0, ts: Date.now() });
+  saveState();
+  // «Automática» de vuelta: la hoja se dibuja de nuevo con lo que sale de tu peso de hoy
+  if (!(+v > 0)) { clearTimeout(AGUA_META_T); aguaRevisar(todayISO()); openAgua(); if (typeof rerender === "function") rerender(); return; }
+  aguaPintar(0);
+  const sem = document.getElementById("agua-semana"); if (sem) sem.innerHTML = aguaSemanaHtml();
+  // con el contador apretado llegan varios seguidos: la meta (⭐ y hábito) y la pantalla de atrás, al soltar
+  clearTimeout(AGUA_META_T);
+  AGUA_META_T = setTimeout(() => { aguaRevisar(todayISO()); aguaPintar(0); if (typeof rerender === "function") rerender(); }, 450);
+}
+/* «Cómo se ve»: vaso, estilo y sabor en una fila con la miniatura de tu estilo; abre el probador */
+function aguaComoSeVeFila() {
+  const estilo = aguaEstilo(), sabor = aguaSabor(), e = AGUA_ESTILOS.find(x => x.id === estilo), s = AGUA_SABORES.find(x => x.id === sabor);
+  return `<button type="button" class="agua-fila" data-action="agua-probador" aria-label="Cómo se ve: ${escapeAttr(e.nombre)}, sabor ${escapeAttr(s.nombre)}, vaso de ${aguaVaso()} ml. Cambiar">
+    <i class="agua-fila__img"><canvas class="agua-cv" data-agua="${estilo}" data-modo="muestra" data-frac="0.62" data-sabor="${sabor}" style="aspect-ratio:140/200" aria-hidden="true"></canvas></i>
+    <span class="agua-fila__t"><b>${escapeHtml(e.nombre)}</b><small>${escapeHtml(s.nombre)} · vaso de ${aguaVaso()} ml</small></span><span class="agua-fila__f" aria-hidden="true">›</span></button>`;
+}
+/* El probador: arriba cómo queda; abajo los estilos en miniatura (ya con tu sabor), las gotas de sabor y los vasos
+   que crecen. Se elige con un toque y se guarda solo. Lo que aún no tienes va al final, con candado y su precio. */
+const AGUA_NATURAL = "#8CCBF2";
+function aguaCosto(cos) { const it = typeof COSMETICOS !== "undefined" ? COSMETICOS.find(x => x.id === cos) : null; return it ? it.costo : 0; }
+function openAguaProbador() {
+  const estilo = aguaEstilo(), sabor = aguaSabor(), vaso = aguaVaso(), s = AGUA_SABORES.find(x => x.id === sabor), color = s && s.c ? s.c[1] : AGUA_NATURAL;
+  const lock = cos => cos && !(typeof isOwned === "function" && isOwned(cos)) ? { precio: aguaCosto(cos), key: "cos:" + cos } : null;
+  const estilos = AGUA_ESTILOS.map(x => ({ v: x.id, nombre: x.nombre, desc: x.desc, lock: lock(x.cos),
+    thumb: `<canvas class="agua-cv" data-agua="${x.id}" data-modo="muestra" data-frac="0.62" data-sabor="${sabor}" style="aspect-ratio:140/200" aria-hidden="true"></canvas>` }));
+  const sabores = AGUA_SABORES.map(x => ({ v: x.id, nombre: x.nombre, color: x.c ? x.c[1] : AGUA_NATURAL, lock: lock(x.cos) }));
+  const actual = AGUA_ESTILOS.find(x => x.id === estilo);
+  openModal("Cómo se ve tu agua", `<div class="agua-prob" id="agua-probador">
+    <button type="button" class="btn-ghost ficha-volver" data-action="agua-abrir">‹ Tu agua</button>
+    <div class="agua-prob__vista">
+      <canvas class="agua-cv" data-agua="${estilo}" data-modo="muestra" data-frac="0.62" data-sabor="${sabor}" style="aspect-ratio:140/200" role="img" aria-label="${escapeAttr(actual.nombre)} con ${escapeAttr(s.nombre.toLowerCase())}"></canvas>
+      <div class="agua-prob__tx"><b>${escapeHtml(actual.nombre)}</b><small>${escapeHtml(actual.desc)}</small></div></div>
+    <div class="agua-sec"><span class="cj-sub">Estilo</span>${elGaleria(estilos, estilo, { accion: "agua-estilo", fila: true, label: "Estilo del agua" })}</div>
+    <div class="agua-sec"><span class="cj-sub">Sabor</span>${elMuestras(sabores, sabor, { accion: "agua-sabor", label: "Sabor del agua" })}</div>
+    <div class="agua-sec"><span class="cj-sub">Tu vaso</span>
+      <div class="agua-vasos-el" role="group" aria-label="Tu vaso">${[200, 250, 300, 350].map((v, i) => `<button type="button" class="${v === vaso ? "is-on" : ""}" aria-pressed="${v === vaso}" data-action="agua-vaso" data-v="${v}" aria-label="Vaso de ${v} ml">
+        <svg viewBox="0 0 40 56" style="height:${34 + i * 7}px" aria-hidden="true"><path d="M6 4h28l-3.6 46.5a3 3 0 0 1-3 2.5H12.6a3 3 0 0 1-3-2.5L6 4Z" fill="${v === vaso ? color : "none"}" fill-opacity="${v === vaso ? ".85" : "0"}" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>${v === vaso ? "" : `<path d="M8.4 20h23.2" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 3" opacity=".5"/>`}</svg>
+        <span>${v} ml</span></button>`).join("")}</div>
+      <small class="text-xs muted">El vaso es lo que suma «+ Vaso» cada vez.</small></div>
   </div>`, { ancho: true });
 }
 function aguaCalorAjusteHtml() {
@@ -314,19 +357,22 @@ function aguaCalorAjusteHtml() {
     <div class="agua-ciudad"><input class="input" id="agua-ciudad-q" placeholder="Tu ciudad" autocomplete="address-level2" aria-label="Tu ciudad"
         onkeydown="if(event.key==='Enter'){event.preventDefault();aguaCiudadBuscar(this.value)}">
       <button type="button" class="btn btn--soft" data-action="agua-ciudad-buscar">Buscar</button></div>
-    <div class="agua-chips" id="agua-ciudades"></div>
+    <div class="rapidas" id="agua-ciudades" role="group" aria-label="Ciudades encontradas"></div>
     ${cl && cl.on && cl.ciudad && AGUA_CIUDAD_BUSCAR ? `<button type="button" class="btn-link" data-action="agua-ciudad-volver">Seguir con ${escapeHtml(cl.ciudad)}</button>` : ""}`;
 }
+/* Después de elegir en el probador: se vuelve a dibujar donde estabas (el probador o «Tu agua») */
+function aguaVolverA() { (document.getElementById("agua-probador") ? openAguaProbador : openAgua)(); if (typeof rerender === "function") rerender(); }
 function aguaAjuste(cambio) { Object.assign(aguaDatos(), cambio, { ts: Date.now() }); saveState(); aguaRevisar(todayISO()); openAgua(); if (typeof rerender === "function") rerender(); }
 function aguaAccion(a, d, el) {
   if (a === "agua-sumar") return aguaSumar(+d.ml);
   if (a === "agua-deshacer") return aguaQuitar();
   if (a === "agua-quitar") return aguaQuitar(d.id);
   if (a === "agua-abrir") return openAgua();
+  if (a === "agua-probador") return openAguaProbador();
   if (a === "agua-meta") return aguaAjuste({ meta: +d.v || 0 });
-  if (a === "agua-vaso") return aguaAjuste({ vaso: +d.v || 250 });
-  if (a === "agua-estilo") { if (!aguaEstiloTuyo(d.v)) return; eqCos().agua = d.v === "botella" ? null : d.v; saveState(); openAgua(); if (typeof rerender === "function") rerender(); return; }
-  if (a === "agua-sabor") { if (!aguaSaborTuyo(d.v)) return; eqCos().sabor = d.v === "natural" ? null : d.v; saveState(); openAgua(); if (typeof rerender === "function") rerender(); return; }
+  if (a === "agua-vaso") { Object.assign(aguaDatos(), { vaso: +d.v || 250, ts: Date.now() }); saveState(); aguaRevisar(todayISO()); aguaVolverA(); return; }
+  if (a === "agua-estilo") { if (!aguaEstiloTuyo(d.v)) return; eqCos().agua = d.v === "botella" ? null : d.v; saveState(); aguaVolverA(); return; }
+  if (a === "agua-sabor") { if (!aguaSaborTuyo(d.v)) return; eqCos().sabor = d.v === "natural" ? null : d.v; saveState(); aguaVolverA(); return; }
   if (a === "agua-inicio") { aguaAjuste({ inicio: !!(el && el.checked) }); return; }
   if (a === "agua-fab") { aguaAjuste({ fab: !!(el && el.checked) }); aguaFabActualizar(); return; }
   if (a === "agua-tienda") { closeModal(); if (typeof TIENDA_SEC !== "undefined") TIENDA_SEC = "estilo"; return go("recompensas"); }

@@ -31,9 +31,10 @@ module.exports = async ({ b, ok, errs }) => {
   // 2) Elegir las macetas: hasta 3
   await card.locator('[data-action="jar-macetas"]').click(); await p.waitForTimeout(300);
   ok(await p.locator("#jar-elegir input").count() === 4, "elegir: aparecen los 4 hábitos que se están formando");
-  await p.evaluate(() => document.querySelectorAll("#jar-elegir input").forEach(i => { i.checked = false; }));
-  for (const id of ["leer", "meditar", "estirar", "ingles"]) await p.click(`#jar-elegir input[value="${id}"]`);
-  ok(await p.locator("#jar-elegir input:checked").count() === 3 && !(await p.locator('#jar-elegir input[value="ingles"]').isChecked()), "no deja marcar una cuarta");
+  await p.evaluate(() => document.querySelectorAll("#jar-elegir input").forEach(i => { i.checked = false; i.dispatchEvent(new Event("change", { bubbles: true })); }));
+  for (const id of ["leer", "meditar", "estirar"]) await p.click(`#jar-elegir input[value="${id}"]`);
+  ok(await p.locator("#jar-elegir input:checked").count() === 3 && await p.locator('#jar-elegir input[value="ingles"]').isDisabled() && (await p.locator("#jar-elegir .el-fichas__tope").innerText()) === "3 de 3",
+    "no deja marcar una cuarta: «3 de 3» y la otra espera");
   await p.click('[data-action="jar-macetas-ok"]'); await p.waitForTimeout(400);
   let e = await escena();
   ok(e.m.join(",") === "Leer,Meditar,Estirar" && !e.elegir && await p.locator(".jar-aviso").count() === 0, "guardar: Leer, Meditar y Estirar quedan en maceta y el aviso se va");

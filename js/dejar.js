@@ -159,7 +159,7 @@ function openDejarHoja(id) {
       ${h.plan ? `<p class="text-sm">Tu plan para el antojo: <b>«${escapeHtml(h.plan)}»</b></p>` : `<p class="text-xs muted">Escribe tu plan para el antojo en Editar hábito (por ejemplo, «salgo a caminar 5 minutos»).</p>`}</div>` : ""}
     ${ah ? `<div class="dj-hoja__sec"><b>${icoUI("piggy-bank")} Lo que te ahorras</b>
       <p class="text-sm"><b class="dj-plata">${fmtCLP(ah.total)}</b> desde que empezaste (${fmtCLP(+h.costo)} por día)${ah.pasado ? `; ya pasaste ${fmtCLP(ah.pasado)} a tus alcancías` : ""}.</p>
-      ${ah.disponible && alc.length ? `<div class="row" style="gap:8px;flex-wrap:wrap"><select class="select" id="dj-alc" style="flex:1;min-width:0">${alc.map(a => `<option value="${escapeAttr(a.id)}">${escapeHtml(a.nombre)}</option>`).join("")}</select>
+      ${ah.disponible && alc.length ? `<div class="dj-pasar">${elLista("dj-alc", alc.map(a => ({ v: a.id, t: a.nombre })), alc[0].id, { label: "A qué alcancía" })}
         <button class="btn btn--soft" data-action="dj-ahorro-pasar" data-id="${h.id}">Pasar ${fmtCLP(ah.disponible)}</button></div>`
       : ah.disponible ? `<p class="text-xs muted">Crea una alcancía en Finanzas para pasarle lo que te ahorras.</p>` : ""}</div>` : ""}
     <p class="text-xs muted">Es privado: tus amigos no ven tus hábitos.${h.discreto ? ` En Inicio se llama «${escapeHtml(h.discreto)}».` : ""}</p>
@@ -171,8 +171,8 @@ function openAntojo(id) {
   const h = djDef(id); if (!h) return;
   openModal("Antojo superado", `<p class="text-sm">Bien ahí. ${h.plan ? `Tu plan: <b>«${escapeHtml(h.plan)}»</b>.` : "Respira: el antojo pasa en unos minutos."}</p>
     <div class="field mt-16"><label>¿Qué lo gatilló?</label>
-      <div class="row-wrap dj-gatillos">${DJ_GATILLOS.map(g => `<button type="button" class="chip" data-action="dj-antojo-ok" data-id="${h.id}" data-g="${escapeAttr(g)}">${escapeHtml(g)}</button>`).join("")}</div></div>
-    <p class="text-xs muted">+1 ⭐ por antojo, hasta ${DJ_ANTOJOS_DIA} al día. Con el tiempo verás cuándo y por qué llegan.</p>`);
+      <div class="rapidas dj-gatillos" role="group" aria-label="Qué lo gatilló">${DJ_GATILLOS.map(g => `<button type="button" data-action="dj-antojo-ok" data-id="${h.id}" data-g="${escapeAttr(g)}">${escapeHtml(g)}</button>`).join("")}</div></div>
+    <p class="text-xs muted">Toca uno y queda anotado. +1 ⭐ por antojo, hasta ${DJ_ANTOJOS_DIA} al día. Con el tiempo verás cuándo y por qué llegan.</p>`);
 }
 function djAntojoOk(id, gatillo) {
   const h = djDef(id); if (!h) return;
@@ -245,8 +245,8 @@ function djAhorroPasar(id) {
 function djFormHtml(h) {
   const meta = h ? hmMeta(h) : "hacer", l = h ? hmLimite(h) : { n: 2, per: "dia" }, hoy = hmHoy();
   const seg = h ? `<span class="chip chip--freq">${meta === "dejar" ? "Para dejar" : meta === "reducir" ? "Para reducir" : "Para hacer"}</span>`
-    : `<div class="seg" id="h-meta-seg">${[["hacer", "Hacerlo"], ["dejar", "Dejarlo"], ["reducir", "Reducirlo"]].map(([k, t]) => `<button type="button" class="${meta === k ? "is-active" : ""}" data-v="${k}" onclick="djMetaPick(this)">${t}</button>`).join("")}</div>`;
-  return `<div class="field"><label>¿Qué quieres?</label>${seg}<input type="hidden" id="h-meta" value="${meta}"></div>
+    : elTramos("h-meta", [["hacer", "Hacerlo"], ["dejar", "Dejarlo"], ["reducir", "Reducirlo"]], meta, { label: "¿Qué quieres?", fn: "djMetaElegir", attrs: 'id="h-meta-seg"' });
+  return `<div class="field"><label>¿Qué quieres?</label>${seg}${h ? `<input type="hidden" id="h-meta" value="${meta}">` : ""}</div>
     <div id="dj-box-dejar" ${meta === "dejar" ? "" : "hidden"}>
       <div class="field"><label for="h-desde">¿Desde cuándo?</label><input class="input" type="date" id="h-desde" max="${hoy}" min="${hmAdd(hoy, -365)}" value="${h && meta === "dejar" ? hmCreado(h) : hoy}">
         <div class="text-xs muted mt-8">Si ya llevas días sin, parte desde ahí.</div></div>
@@ -255,25 +255,24 @@ function djFormHtml(h) {
       <div class="field"><label for="h-plan">Tu plan para el antojo (opcional)</label><input class="input" id="h-plan" maxlength="80" value="${escapeAttr((h && h.plan) || "")}" placeholder="Ej: salgo a caminar 5 minutos"></div>
     </div>
     <div id="dj-box-reducir" ${meta === "reducir" ? "" : "hidden"}>
-      <div class="field"><label>Tu límite</label><div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
-        <input class="input" type="number" id="h-lim-n" min="0" max="999" value="${l.n}" style="max-width:90px" inputmode="numeric">
-        <input class="input" id="h-unidad" maxlength="20" value="${escapeAttr((h && h.unidad) || "")}" placeholder="Ej: cafés" style="max-width:150px">
-        <div class="seg" id="h-lim-seg">${[["dia", "al día"], ["semana", "por semana"]].map(([k, t]) => `<button type="button" class="${l.per === k ? "is-active" : ""}" data-v="${k}" onclick="segPick(this,'h-lim-per')">${t}</button>`).join("")}</div>
-        <input type="hidden" id="h-lim-per" value="${l.per}"></div>
+      <div class="field"><label>Tu límite</label><div class="dj-limite">
+        ${elContador("h-lim-n", l.n, { min: 0, max: 99, label: "Tu límite" })}
+        <input class="input" id="h-unidad" maxlength="20" value="${escapeAttr((h && h.unidad) || "")}" placeholder="Ej: cafés" aria-label="Qué cuentas (por ejemplo, cafés)"></div>
+        <div class="mt-8">${elTramos("h-lim-per", [["dia", "Al día"], ["semana", "Por semana"]], l.per, { label: "Cada cuánto", attrs: 'id="h-lim-seg"' })}</div>
         <div class="text-xs muted mt-8">Cada vez, un toque (+1). Mientras no pases el límite, el día es verde.</div></div>
     </div>
     <div id="dj-box-discreto" ${meta === "hacer" ? "hidden" : ""}><div class="field"><label for="h-discreto">Nombre en Inicio (opcional)</label>
       <input class="input" id="h-discreto" maxlength="30" value="${escapeAttr((h && h.discreto) || "")}" placeholder="Ej: Mi reto">
       <div class="text-xs muted mt-8">Es privado: tus amigos no ven tus hábitos. Con un nombre discreto, en Inicio se ve así.</div></div></div>`;
 }
-function djMetaPick(btn) {
-  segPick(btn, "h-meta");
-  const m = btn.dataset.v, ver = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
+function djMetaPick(btn) { if (btn) btn.click(); }
+function djMetaElegir(m) {
+  const ver = (id, on) => { const el = document.getElementById(id); if (el) el.hidden = !on; };
   ver("dj-box-dejar", m === "dejar"); ver("dj-box-reducir", m === "reducir"); ver("dj-box-discreto", m !== "hacer");
   ver("h-freq-box", m === "hacer"); ver("h-cj-box", m === "hacer");
   // Un ícono que calce, si no elegiste otro: el cigarro tachado para dejar
   const ic = document.getElementById("h-icon");
-  if (ic && m === "dejar" && ic.value === "🏋️") { ic.value = "🚭"; document.querySelectorAll("#h-iconos .btn").forEach(x => x.classList.toggle("btn--cian", x.dataset.ic === "🚭")); }
+  if (ic && m === "dejar" && ic.value === "🏋️") elMarcar(document.getElementById("h-iconos"), "🚭");
   const nom = document.getElementById("h-nombre");
   if (nom && !nom.value.trim()) nom.placeholder = m === "dejar" ? "Ej: Dejar de fumar" : m === "reducir" ? "Ej: Café" : "Ej: Meditar";
 }
@@ -297,9 +296,8 @@ function djCierreHtml(iso) {
   return `<div class="field"><label>${icoUI("ban")} Lo que estás dejando</label>${hs.map(h => {
     const cae = hmCaida(h, iso), conf = hmMarcado(h, iso, STATE);
     if (cae || conf) return `<div class="text-sm">${escapeHtml(h.nombre)}: ${cae ? "caíste, mañana parte otra racha" : "confirmado ✓"}</div>`;
-    return `<div class="dj-cierre"><span class="text-sm">${escapeHtml(h.nombre)}</span><div class="seg">
-      <button type="button" data-v="si" onclick="segPick(this,'dj-c-${h.id}')">Hoy sin ✓ (+5 ⭐)</button><button type="button" data-v="cai" onclick="segPick(this,'dj-c-${h.id}')">Caí</button></div>
-      <input type="hidden" class="dj-c" id="dj-c-${h.id}" data-id="${h.id}" value=""></div>`;
+    return `<div class="dj-cierre"><span class="text-sm">${escapeHtml(h.nombre)}</span>${elTramos("dj-c-" + h.id, [["si", "Hoy sin ✓ (+5 ⭐)"], ["cai", "Caí"]], "", { label: h.nombre })
+      .replace('<input type="hidden" id="dj-c-', '<input type="hidden" class="dj-c" data-id="' + h.id + '" id="dj-c-')}</div>`;
   }).join("")}<p class="text-xs muted">Si no eliges, el día cuenta igual como limpio; las ⭐ esperan a que lo confirmes.</p></div>`;
 }
 function djCierreGuardar(iso) {

@@ -1,5 +1,5 @@
 /* Pruebas en navegador · Ritual semanal */
-const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
+const { URL, nuevoContexto, registrar, shot, elegirEn, opcionesDe, triageElegido } = require("./lib.cjs");
 /* Fase 4 · Ritual semanal: domingo 27 de septiembre, cierre + apertura seguidos */
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { fecha: "2026-09-27T20:00:00" });
@@ -43,7 +43,7 @@ module.exports = async ({ b, ok, errs }) => {
   const filas = p.locator("#sem-wiz .triage-row");
   ok(await filas.count() === 3, "migración semanal con las 3 pendientes: " + await filas.count());
   const fila = t => p.locator("#sem-wiz .triage-row", { hasText: t });
-  ok(await fila("Revisar contrato").locator("button.is-active").innerText() === "> Próx. semana", "por defecto: próxima semana");
+  ok(await fila("Revisar contrato").locator("button.is-active").innerText() === ">" && await triageElegido(fila("Revisar contrato")) === "Próx. semana", "por defecto: próxima semana (el signo y su nombre abajo)");
   await fila("Ordenar bodega").locator('button[data-v="soltar"]').click();
   await fila("Pagar patente").locator('button[data-v="otro"]').click();
   await fila("Pagar patente").locator(".tr-fecha").fill("2026-10-02");
@@ -81,14 +81,14 @@ module.exports = async ({ b, ok, errs }) => {
   const paso = await p.locator(".modal__body .text-xs.muted").first().innerText();
   ok(titulo.includes("Planificar la semana") && /Paso 2 de 5/i.test(paso), "tras cerrar, se abre la planificación de la próxima: " + titulo + " · " + paso);
   ok((await p.locator("#sem-wiz").innerText()).includes("Menos reuniones"), "muestra lo que anotaste para ajustar");
-  const opciones = await p.locator("#sp-o-0 option").allInnerTexts();
+  const opciones = await opcionesDe(p, "sp-o-0");
   ok(opciones.some(o => o.includes("Primeros 10 clientes")), "las prioridades se vinculan a los objetivos de octubre (mes de su jueves)");
   await p.fill("#sw-foco", "Clientes");
-  await p.fill("#sp-t-0", "Cerrar 3 reuniones"); await p.selectOption("#sp-o-0", "obj-oct");
+  await p.fill("#sp-t-0", "Cerrar 3 reuniones"); await elegirEn(p, "sp-o-0", "obj-oct");
   await p.fill("#sp-t-1", "Correr 3 veces");
   await p.click('[data-action="semw-next"]'); await p.waitForTimeout(150);
   // Paso: tus días
-  await p.selectOption("#sp-d-0", "2026-09-29"); await p.waitForTimeout(150);
+  await elegirEn(p, "sp-d-0", "2026-09-29"); await p.waitForTimeout(150);
   ok(await p.locator(".semw-dia", { hasText: "Martes 29" }).locator(".chip", { hasText: "Cerrar 3 reuniones" }).count() === 1, "la prioridad aparece en el martes");
   ok(await p.locator(".semw-dia", { hasText: "Lunes 28" }).locator(".chip", { hasText: "Revisar contrato" }).count() === 1, "el lunes muestra lo que viene migrado");
   await p.fill("#sw-in-2", "Preparar propuesta"); await p.press("#sw-in-2", "Enter"); await p.waitForTimeout(150);
@@ -105,8 +105,8 @@ module.exports = async ({ b, ok, errs }) => {
   // Paso: premio y hábitos (máx 3)
   await p.fill("#sw-premio", "Película con palomitas");
   const cbs = p.locator(".sw-hab");
-  for (let i = 0; i < 4; i++) await cbs.nth(i).check().catch(() => {});
-  ok(await p.locator(".sw-hab:checked").count() === 3, "hábitos en foco: máximo 3");
+  for (let i = 0; i < 3; i++) await cbs.nth(i).check();
+  ok(await p.locator(".sw-hab:checked").count() === 3 && await cbs.nth(3).isDisabled() && (await p.locator(".el-fichas__tope").innerText()) === "3 de 3", "hábitos en foco: máximo 3 («3 de 3» y el resto espera)");
   await p.click('[data-action="semw-finish"]'); await p.waitForTimeout(300);
 
   s = await p.evaluate(() => STATE);

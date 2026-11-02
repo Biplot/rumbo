@@ -5,6 +5,8 @@
 
 const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const PILARES = ["Psicología", "Fisiología", "Productividad", "Magnetismo", "Presencia", "Propósito"];
+/* La energía, de 1 a 5 rayos: los mismos nombres en el ritual completo y en el express */
+const ENERGIA_ETI = ["Sin pilas", "Poca", "Normal", "Buena", "A tope"];
 const PILARES_INFO = {
   "Psicología": { icon: "🧠", desc: "Tu mentalidad y claridad: cómo te hablas, tu actitud y dónde pones el foco mental." },
   "Fisiología": { icon: "⚡", desc: "Tu energía física: sueño, movimiento, alimentación e hidratación." },
@@ -27,8 +29,7 @@ function openPilaresInfo() {
    ============================================================ */
 let RITUAL_VIEW = "dia";   // dia | semana | mes
 function renderRitual() {
-  const seg = `<div class="seg" style="margin-bottom:16px">${[["dia", "🌅 Día"], ["semana", "📅 Semana"], ["mes", "🗓️ Mes"], ["trimestre", "🧭 Trimestre"]].map(([k, l]) =>
-    `<button class="${RITUAL_VIEW === k ? "is-active" : ""}" data-action="ritual-view" data-v="${k}">${l}</button>`).join("")}</div>`;
+  const seg = elFiltros([["dia", "🌅 Día"], ["semana", "📅 Semana"], ["mes", "🗓️ Mes"], ["trimestre", "🧭 Trimestre"]], RITUAL_VIEW, { accion: "ritual-view", label: "Ritual" });
   const avisos = renderTrimestreBanner() + renderMesBanner() + renderSemanaBanner();
   if (RITUAL_VIEW === "trimestre") return seg + avisos + renderRitualTrimestre();
   if (RITUAL_VIEW === "mes") return seg + avisos + renderRitualMes();
@@ -126,7 +127,6 @@ function openRitualModal(op) {
   RITUAL_VIENEN = vivas.filter(t => t.migraciones > 0 || t.bocadoSugerido).map(t => t.txt);
   const sapoDefault = r.sapo || (bocadoPrev && bocadoPrev.txt) || (sugerido && sugerido.txt) || "";
   const bocadoAmb = r.sapoAmbito || (bocadoPrev ? ambitoDe(bocadoPrev) : sugerido ? ambitoDe(sugerido) : "pro");
-  const ambSeg = (v) => `<button type="button" class="${bocadoAmb === v ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'r-sapo-amb')">${AMBITOS[v].icon} ${AMBITOS[v].corto}</button>`;
   openModal("Ritual de apertura", `
     ${gcalAperturaHtml()}${plAperturaHtml()}
     <div class="field"><label>Misión de hoy</label><input class="input" id="r-mision" value="${escapeAttr(misionDefault)}" placeholder="¿Qué hará hoy un gran día?"></div>
@@ -138,8 +138,7 @@ function openRitualModal(op) {
         <input class="input" id="r-sapo" value="${escapeAttr(sapoDefault)}" placeholder="La que más mueve la aguja hoy" oninput="ritualCapHint()">
         ${STATE.settings.aperturaSimple ? `<div class="text-xs mt-8 soft">¿Cómo te comes un elefante? Un bocado a la vez: haz esta primero y lo demás pesa menos.${typeof glosa === "function" ? " " + glosa("bocado", "¿Por qué «bocado»?") : ""}</div>` : ""}
         ${sugerido ? `<div class="text-xs mt-8" style="color:var(--coral)">↪ Ayer no alcanzaste tu primer bocado; te lo dejé como sugerencia.</div>` : ""}
-        <div class="seg mt-8" style="display:inline-flex">${ambSeg("pro")}${ambSeg("per")}</div>
-        <input type="hidden" id="r-sapo-amb" value="${bocadoAmb}">
+        <div class="mt-8">${elAmbito("r-sapo-amb", bocadoAmb, { label: "Tu primer bocado: ¿profesional o personal?" })}</div>
       </div>
       <div class="grid grid-2" style="gap:10px">
         <div><label class="text-xs muted" style="display:block;margin-bottom:6px">${AMBITOS.pro.icon} ${AMBITOS.pro.label} (una por línea)</label>
@@ -161,15 +160,11 @@ function openRitualModal(op) {
    y el pilar parte sin elegir; quien los abre una vez los encuentra abiertos la próxima (settings.aperturaMas). */
 function aperturaExtrasHtml(r) {
   const simple = !!STATE.settings.aperturaSimple;
-  const desc = p => (PILARES_INFO[p] || {}).desc || "";
   const campos = `
-    <div class="field"><label for="r-pilar">Pilar de hoy</label>
-      <select class="select" id="r-pilar" onchange="document.getElementById('r-pdesc').textContent=(PILARES_INFO[this.value]||{}).desc||''">
-        ${simple ? `<option value="" ${r.pilar ? "" : "selected"}>Elige uno (opcional)</option>` : ""}${PILARES.map(p => `<option ${r.pilar === p ? "selected" : ""}>${p}</option>`).join("")}</select>
-      <div class="text-xs muted mt-8" id="r-pdesc">${simple ? desc(r.pilar || "") : desc(r.pilar || PILARES[0])}</div></div>
-    <div class="field"><label>Nivel de energía: <span id="r-elabel">${r.energia || 3}</span>/5</label>
-      <input type="range" min="1" max="5" step="1" id="r-energia" value="${r.energia || 3}" style="width:100%;accent-color:var(--cian)"
-        oninput="document.getElementById('r-elabel').textContent=this.value"></div>
+    <div class="field"><label>Pilar de hoy${simple ? ` <span class="text-xs muted">(opcional)</span>` : ""}</label>
+      ${elLista("r-pilar", PILARES.map(p => ({ v: p, t: p, d: (PILARES_INFO[p] || {}).desc || "" })), simple ? (r.pilar || "") : (r.pilar || PILARES[0]), { label: "Pilar de hoy" })}</div>
+    <div class="field"><label>Tu energía</label>
+      ${elEscala("r-energia", r.energia || 3, { ico: "rayo", etiquetas: ENERGIA_ETI, label: "Tu energía, de 1 a 5" })}</div>
     <div class="field"><label for="r-servir">¿A quién sirves hoy?</label><input class="input" id="r-servir" value="${escapeAttr(r.servir || "")}" placeholder="Persona, equipo, cliente...">
       ${simple ? `<div class="text-xs muted mt-8">A quién le sirve lo que haces hoy: le da sentido a tu día.</div>` : ""}</div>
     <div class="field"><label for="r-proy">Proyectos de hoy (separa con comas)</label><input class="input" id="r-proy" value="${escapeAttr((r.proyectos || []).join(", "))}" placeholder="Proyecto A, Proyecto B"></div>`;
@@ -280,37 +275,27 @@ function openCierreModal(date) {
   const sapoCur = sapoDone ? "1" : "0";
   const titulo = esHoy ? "Cierra tu " + dObj.toLocaleDateString("es-CL", { weekday: "long" }) : "Cerrar el " + dObj.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
   const mananaLabel = esHoy ? "Una cosa para mañana" : "Una cosa para el día siguiente";
-  const segBtn = (grupo, v, label, cur) =>
-    `<button type="button" class="${cur === v ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'${grupo}-v')">${label}</button>`;
   openModal(titulo, `
     ${finRecorridoHtml(iso, r, sapoTask)}
     <div class="field"><label>¿Cómo te sentiste hoy? <b class="mood-eti" id="c-mood-eti">${MOOD_ETI[moodCur - 1] || ""}</b></label>
       <div class="row mt-8" id="c-moods" style="gap:8px">
-        ${MOODS.map((m, i) => `<button type="button" class="mood-btn ${i + 1 === moodCur ? "is-on" : ""}" data-v="${i + 1}" aria-label="${MOOD_ETI[i]}" onclick="cierreMoodPick(this)">${m}</button>`).join("")}
+        ${MOODS.map((m, i) => `<button type="button" class="mood-btn ${i + 1 === moodCur ? "is-on" : ""}" data-v="${i + 1}" aria-label="${MOOD_ETI[i]}" title="${MOOD_ETI[i]}" aria-pressed="${i + 1 === moodCur}" onclick="cierreMoodPick(this)">${m}</button>`).join("")}
       </div><input type="hidden" id="c-mood" value="${moodCur}"></div>
     <div class="field"><label>¿Cumpliste tu misión?</label>
-      <div class="seg" id="c-mision">
-        ${segBtn("c-mision", "si", "Sí", c.mision || "si")}
-        ${segBtn("c-mision", "parcial", "Parcial", c.mision)}
-        ${segBtn("c-mision", "no", "No", c.mision)}
-      </div><input type="hidden" id="c-mision-v" value="${c.mision || "si"}"></div>
+      ${elTramos("c-mision-v", [["si", "Sí"], ["parcial", "Parcial"], ["no", "No"]], c.mision || "si", { label: "¿Cumpliste tu misión?", attrs: 'id="c-mision"' })}</div>
     ${typeof djCierreHtml === "function" ? djCierreHtml(iso) : ""}
     ${sapoTask ? `<div class="field"><label>${BOCADO.emoji} Tu primer bocado</label>
         <div class="text-sm">${escapeHtml(sapoTask.txt)} ${estadoTarea(sapoTask) === "hecha" ? '<span class="chip chip--done">✓ hecho</span>'
           : tareaAbierta(sapoTask) ? '<span class="chip chip--coral">pendiente · decide abajo qué hacer</span>' : `<span class="chip">${signoTarea(sapoTask)}</span>`}</div></div>`
     : `<div class="field"><label>${BOCADO.emoji} ¿Diste tu primer bocado?${r.sapo ? ` <span class="text-xs muted">(${escapeHtml(r.sapo)})</span>` : ""}</label>
-      <div class="seg" id="c-sapo">
-        ${segBtn("c-sapo", "1", "Sí", sapoCur)}
-        ${segBtn("c-sapo", "0", "No", sapoCur)}
-      </div><input type="hidden" id="c-sapo-v" value="${sapoCur}"></div>`}
+      ${elTramos("c-sapo-v", [["1", "Sí"], ["0", "No"]], sapoCur, { label: "¿Diste tu primer bocado?", attrs: 'id="c-sapo"' })}</div>`}
     ${tr && (tr.pro[1] || tr.per[1]) ? `<div class="field"><label>📋 Tus tareas del día</label>
       <div class="row-wrap"><span class="chip">${AMBITOS.pro.icon} ${AMBITOS.pro.label} ${tr.pro[0]}/${tr.pro[1]}</span>
         <span class="chip">${AMBITOS.per.icon} ${AMBITOS.per.label} ${tr.per[0]}/${tr.per[1]}</span></div></div>` : ""}
     ${pendientes.length ? `<div class="field"><label>↪ Tus pendientes de ${esHoy ? "hoy" : "ese día"} (${pendientes.length})</label>
       <div id="c-triage">${triageHtml(pendientes.map(t => ({ t, iso })), Object.assign({ base: iso }, triageCierreCfg(iso)))}</div></div>` : ""}
-    <div class="field"><label>Energía con la que terminas: <span id="c-elabel">${c.energia || 3}</span>/5</label>
-      <input type="range" min="1" max="5" step="1" id="c-energia" value="${c.energia || 3}" style="width:100%;accent-color:var(--cian)"
-        oninput="document.getElementById('c-elabel').textContent=this.value"></div>
+    <div class="field"><label>Energía con la que terminas</label>
+      ${elEscala("c-energia", c.energia || 3, { ico: "rayo", etiquetas: ENERGIA_ETI, label: "Energía con la que terminas, de 1 a 5" })}</div>
     <div class="field"><label>Lo mejor del día / gratitud</label><textarea class="input" id="c-mejor" placeholder="¿Qué agradeces de hoy?">${escapeHtml(c.mejor || "")}</textarea></div>
     <div class="field"><label>${mananaLabel}</label><input class="input" id="c-manana" value="${escapeAttr(c.manana || "")}" placeholder="Se sembrará como tu misión del día siguiente"></div>
     <div class="field"><label>Nota de cierre (libre)</label><textarea class="input" id="c-nota" placeholder="¿Cómo estuvo el día?">${escapeHtml(c.nota || "")}</textarea></div>

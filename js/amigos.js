@@ -208,14 +208,19 @@ function openAnimo(id) {
   const cumple = amigoCumpleEn(a) === 0, frases = cumple ? ["¡Feliz cumpleaños!"].concat(AMIGOS_FRASES) : AMIGOS_FRASES;   // hoy está de cumpleaños: el saludo primero
   AMIGOS.msg = frases[0];
   openModal(cumple ? `🎂 Un saludo para ${a.nombre || "tu amigo"}` : `🎉 Ánimo para ${a.nombre || "tu amigo"}`, `<div class="am-animo-m">
-      <div class="row-wrap" style="gap:6px">${frases.map((f, i) => `<button type="button" class="chip am-frase ${i === 0 ? "chip--cian" : ""}" data-action="am-frase" data-v="${escapeHtml(f)}">${escapeHtml(f)}</button>`).join("")}</div>
-      <div class="field mt-16"><label for="am-msg">O escribe el tuyo</label><input class="input" id="am-msg" maxlength="120" placeholder="Máximo 120 letras"></div>
-      <button class="btn btn--primary" data-action="am-animo-enviar" data-id="${escapeHtml(id)}">Mandar ánimo</button>
+      <p class="text-sm muted" style="margin:0 0 8px">Toca una frase y se la mandas.</p>
+      <div class="rapidas" role="group" aria-label="Mandar una frase">${frases.map(f => `<button type="button" class="am-frase" data-action="am-frase" data-id="${escapeHtml(id)}" data-v="${escapeHtml(f)}">${escapeHtml(f)}</button>`).join("")}</div>
+      <div class="field mt-16"><label for="am-msg">O escribe el tuyo</label><input class="input" id="am-msg" maxlength="120" placeholder="Máximo 120 letras"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();amigosAnimoEnviar('${escapeHtml(id)}', true)}"></div>
+      <button class="btn btn--primary" data-action="am-animo-enviar" data-id="${escapeHtml(id)}">Mandar el mío</button>
       <p class="text-xs muted mt-8">Le llega como aviso a su celular (nunca de noche). Puedes mandarle hasta 3 al día.</p></div>`);
 }
-async function amigosAnimoEnviar(id) {
+/* frase: la que tocaste (un toque y listo) · sin frase, lo que escribiste */
+async function amigosAnimoEnviar(id, frase) {
   const propio = ((document.getElementById("am-msg") || {}).value || "").trim();
-  const r = await BACKEND.amigosAnimo(id, propio || AMIGOS.msg);
+  const msg = typeof frase === "string" ? frase : propio;
+  if (!msg) return toast("Escribe tu mensaje o toca una frase", true);
+  const r = await BACKEND.amigosAnimo(id, msg);
   if (r && r.error) return toast(amigosTextoError(r.error), true);
   closeModal();
   const a = amigoPorId(id);
@@ -269,7 +274,7 @@ function amigosAccion(a, d, el) {
   if (a === "am-rechazar") return amigosResponder(d.id, false);
   if (a === "am-ver") return openAmigo(d.id);
   if (a === "am-animo") return openAnimo(d.id);
-  if (a === "am-frase") { AMIGOS.msg = d.v; document.querySelectorAll(".am-frase").forEach(b => b.classList.toggle("chip--cian", b === el)); const i = document.getElementById("am-msg"); if (i) i.value = ""; return; }
+  if (a === "am-frase") { AMIGOS.msg = d.v; return amigosAnimoEnviar(d.id, d.v); }   // respuesta rápida: un toque y se manda
   if (a === "am-animo-enviar") return amigosAnimoEnviar(d.id);
   if (a === "am-gracias") return amigosGracias();
   if (a === "am-quitar") return amigosQuitar(d.id);

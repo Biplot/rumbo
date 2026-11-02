@@ -334,8 +334,9 @@ function triageHtml(items, cfg) {
     return `<div class="triage-row" data-iso="${iso}" data-id="${t.id}">
       <div class="triage-t">${t.esSapo ? BOCADO.emoji + " " : AMBITOS[ambitoDe(t)].icon + " "}${escapeHtml(t.txt)} ${chipMigraciones(t)}
         ${cfg.conDia || iso !== cfg.base ? `<span class="text-xs muted">· ${diaCorto(iso)}</span>` : ""}</div>
-      <div class="seg seg--triage" role="group" aria-label="Qué hacer con esta tarea">${opciones.map(v =>
-        `<button type="button" class="${v === cfg.mover ? "is-active" : ""}" data-v="${v}" onclick="triagePick(this)"><b>${TRIAGE_OPC[v].sig}</b> ${v === cfg.mover && cfg.moverLabel ? cfg.moverLabel : TRIAGE_OPC[v].label}</button>`).join("")}</div>
+      <div class="seg seg--triage" role="group" aria-label="Qué hacer con esta tarea">${opciones.map(v => { const nom = v === cfg.mover && cfg.moverLabel ? cfg.moverLabel : TRIAGE_OPC[v].label;
+        return `<button type="button" class="${v === cfg.mover ? "is-active" : ""}" aria-pressed="${v === cfg.mover}" data-v="${v}" data-nombre="${escapeAttr(nom)}" aria-label="${escapeAttr(nom)}" title="${escapeAttr(nom)}" onclick="triagePick(this)"><b aria-hidden="true">${TRIAGE_OPC[v].sig}</b></button>`; }).join("")}</div>
+      <div class="tramos__nombre tr-nombre" aria-hidden="true">${escapeHtml(cfg.moverLabel || TRIAGE_OPC[cfg.mover].label)}</div>
       <input type="hidden" class="tr-v" value="${cfg.mover}">
       <div class="triage-extra tr-otro" hidden><label class="text-xs muted">¿Para qué día?</label>
         <input type="date" class="input tr-fecha" min="${cfg.min}" value="${agSumar(cfg.min, 1)}"></div>
@@ -351,7 +352,8 @@ function triageHtml(items, cfg) {
 function triagePick(btn) {
   const row = btn.closest(".triage-row");
   row.querySelectorAll(".seg--triage button").forEach(b => b.classList.toggle("is-active", b === btn));
-  const v = btn.dataset.v;
+  const v = btn.dataset.v, nom = row.querySelector(".tr-nombre");
+  if (nom) nom.textContent = btn.dataset.nombre || "";
   row.querySelector(".tr-v").value = v;
   row.querySelector(".tr-otro").hidden = v !== "otro";
   row.querySelector(".tr-delegar").hidden = v !== "delegar";

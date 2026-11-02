@@ -77,8 +77,8 @@ module.exports = async ({ b, ok, errs }) => {
   await ir("inicio");
   ok((await p.locator(".am-cumples").innerText().catch(() => "")).includes("Hoy está de cumpleaños Ana"), "en Inicio: «Hoy está de cumpleaños Ana»");
   await p.click('.am-cumples [data-action="am-animo"]'); await p.waitForTimeout(300);
-  ok((await modal()).includes("¡Feliz cumpleaños!") && await p.locator(".am-frase.chip--cian").innerText() === "¡Feliz cumpleaños!", "«Saludar» abre el ánimo con «¡Feliz cumpleaños!» elegido");
-  await p.click('[data-action="am-animo-enviar"]'); await p.waitForTimeout(600);
+  ok((await modal()).includes("¡Feliz cumpleaños!") && await p.locator(".rapidas .am-frase").first().innerText() === "¡Feliz cumpleaños!", "«Saludar» abre el ánimo con «¡Feliz cumpleaños!» primero");
+  await p.locator(".rapidas .am-frase").first().click(); await p.waitForTimeout(600);
   ok(await p.evaluate(() => JSON.parse(localStorage.getItem("rumbo_amigos")).animos.some(a => a.mensaje === "¡Feliz cumpleaños!")), "y le llega a Ana");
   await ir("calendario"); await p.click('[data-action="cal-dia"][data-date="2026-11-04"]'); await p.waitForTimeout(400);
   ok((await vista()).includes("Cumpleaños de Ana"), "en el Calendario: «Cumpleaños de Ana»");

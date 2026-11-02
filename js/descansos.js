@@ -175,8 +175,7 @@ function openVacaciones() {
       <div class="seg" role="radiogroup" aria-label="Qué hábitos descansan">
         <button type="button" class="is-active" data-action="dsc-vac-todos" data-v="1" aria-pressed="true">Todos</button>
         <button type="button" data-action="dsc-vac-todos" data-v="0" aria-pressed="false">Elegir</button></div>
-      <div id="vac-habs" class="mt-8" hidden>${activos.map(h => `<label class="mes-hab" style="cursor:pointer"><span class="mes-hab__n">${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)} <span class="text-xs muted">· ${escapeHtml(hmFreqLabel(h))}</span></span>
-        <input type="checkbox" class="vac-hab" value="${escapeAttr(h.id)}" checked onchange="vacResumen()"></label>`).join("")}</div></div>
+      <div id="vac-habs" class="mt-8" hidden>${elCasillas(activos.map(h => [h.id, `${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)}`, { sub: escapeHtml(hmFreqLabel(h)) }]), activos.map(h => h.id), { cls: "vac-hab", attrs: 'onchange="vacResumen()"', label: "Qué hábitos descansan" })}</div></div>
     <p class="text-sm" id="vac-resumen" aria-live="polite"></p>
     <p class="text-xs muted">Hasta ${HM_VACACIONES_MAX} días seguidos, desde mañana. Para un solo día, usa el descanso del hábito.</p>
     <button class="btn btn--primary btn-block mt-8" data-action="dsc-vac-ok">Guardar vacaciones</button>`);

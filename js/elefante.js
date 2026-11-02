@@ -471,7 +471,7 @@ function openElefante(tab) {
   const prueba = tab === "ropa" && ELE_PRUEBA ? prendaElefante(ELE_PRUEBA) : null;
   if (prueba) ropa[prueba.slot] = prueba.id;
   const T = TIPOS_ELEFANTE[tipoElefante()], animo = animoElefante();
-  const tabs = `<div class="seg vest-tabs"><button class="${tab === "ropa" ? "is-active" : ""}" data-action="elefante-open" data-v="ropa">👕 Ropa</button><button class="${tab === "tipo" ? "is-active" : ""}" data-action="elefante-open" data-v="tipo">🐘 Tipos</button></div>`;
+  const tabs = elFiltros([["ropa", "👕 Ropa"], ["tipo", "🐘 Tipos"]], tab, { accion: "elefante-open", cls: "vest-tabs", label: "Tu elefante" });
   const escenario = `<div class="vest-escena ele-toca ${T.papel ? "papel" : ""}" data-action="ele-toca" title="Tócalo">${elefanteSVG({ ropa })}</div>
     <div class="vest-nombre"><b>${nombreElefante()}</b><span class="chip">${animo === "feliz" ? "😊 Feliz" : animo === "sueno" ? "😴 Con sueño" : icoUI("face-neutral") + " Normal"}</span></div>`;
   let panel;

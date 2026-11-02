@@ -92,7 +92,7 @@ function tiendaHtml() {
   const cuerpo = TIENDA_SUBS[sec].map(grupo).join("");
   return `<section class="tienda" id="tienda" aria-label="Tienda">
     <div class="tienda__cab"><h2 class="section-title tienda__t">Tienda</h2>
-      <div class="seg tienda-seg" role="tablist" aria-label="Secciones de la Tienda">${TIENDA_SECS.map(([id, l]) =>
+      <div class="filtros tienda-seg" role="tablist" aria-label="Secciones de la Tienda">${TIENDA_SECS.map(([id, l]) =>
         `<button role="tab" aria-selected="${id === sec}" class="${id === sec ? "is-active" : ""}" data-action="tienda-sec" data-v="${id}">${l}</button>`).join("")}</div></div>
     ${alcanza.length ? `<section class="tienda-sec"><div class="section-title">✨ Te alcanza</div><div class="fichas">${alcanza.map(fichaHtml).join("")}</div></section>` : ""}
     ${cuerpo || (alcanza.length ? "" : `<div class="card mt-16"><div class="empty">Ya tienes todo lo de esta sección. 🎉</div></div>`)}

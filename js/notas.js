@@ -21,7 +21,7 @@ function renderNotas() {
   vivas.forEach(n => (n.etiquetas || []).forEach(e => { conteo[e] = (conteo[e] || 0) + 1; }));
   const tags = Object.keys(conteo).sort((a, b) => conteo[b] - conteo[a] || a.localeCompare(b)).slice(0, 10);
   const nArch = postits().filter(n => n.archivada).length;
-  const chip = (v, t) => `<button class="chip-f${NOTA_FILTRO === v ? " is-on" : ""}" data-action="nota-filtro" data-v="${escapeAttr(v)}">${t}</button>`;
+  const chip = (v, t, n) => `<button role="tab" class="chip-f${NOTA_FILTRO === v ? " is-on" : ""}" data-action="nota-filtro" data-v="${escapeAttr(v)}">${t}${n ? ` <em>${n}</em>` : ""}</button>`;
   return `
   <div class="nota-cap">
     <textarea class="input" id="nota-nueva" rows="1" placeholder="Escribe una nota… #etiqueta" aria-label="Nueva nota"
@@ -29,7 +29,7 @@ function renderNotas() {
     <button class="btn btn--cian nota-cap__b" data-action="nota-crear" aria-label="Guardar nota">+</button>
   </div>
   <div class="row mt-8" style="gap:8px"><input class="input" id="nota-busca" placeholder="Buscar en tus notas…" value="${escapeAttr(NOTA_BUSCA)}" oninput="notaBuscar(this.value)" aria-label="Buscar en tus notas" style="flex:1;min-width:0"></div>
-  <div class="chips-f mt-8">${chip("todas", "Todas")}${tags.map(t => chip(t, "#" + escapeHtml(t))).join("")}${nArch ? chip("archivadas", `Archivadas (${nArch})`) : ""}</div>
+  <div class="filtros chips-f mt-8" role="tablist" aria-label="Qué notas ver">${chip("todas", "Todas", vivas.length)}${tags.map(t => chip(t, "#" + escapeHtml(t), conteo[t])).join("")}${nArch ? chip("archivadas", "Archivadas", nArch) : ""}</div>
   <div id="notas-lista">${notasListaHtml()}</div>`;
 }
 function notasListaHtml() {
@@ -70,7 +70,7 @@ function notaAbrir(id) {
     <div class="field"><input class="input" id="ne-titulo" value="${escapeAttr(n.titulo || "")}" placeholder="Título (opcional)" aria-label="Título"></div>
     <div class="field"><textarea class="input" id="ne-texto" style="min-height:140px" aria-label="Texto">${escapeHtml(n.texto || "")}</textarea>
       <div class="text-xs muted mt-8">Etiquetas: escribe #palabra en el texto.</div></div>
-    <div class="field"><label>Color</label><div class="row" style="gap:8px" id="ne-colores">${NOTA_COLORES.map(c => `<button type="button" class="nota-color${(n.color || "") === c ? " is-on" : ""}" data-c="${c}" style="background:${c || "var(--surface-3)"}" onclick="notaColor(this)" aria-label="${c ? "Color" : "Sin color"}"></button>`).join("")}</div></div>
+    <div class="field"><label>Color</label>${elMuestras(NOTA_COLORES.map((c, i) => ({ v: c, color: c, nombre: ["Sin color", "Amarillo", "Turquesa", "Rojo", "Lavanda", "Verde"][i] })), n.color || "", { id: "ne-color", contId: "ne-colores", attr: "c", label: "Color de la nota" })}</div>
     <button class="btn btn--primary btn-block" data-action="nota-guardar">Guardar</button>
     <div class="row mt-8" style="gap:8px;flex-wrap:wrap">
       <button class="btn-ghost" data-action="nota-fijar">${n.fijada ? "📌 Desfijar" : "📌 Fijar"}</button>
@@ -78,16 +78,13 @@ function notaAbrir(id) {
       <button class="btn-ghost" data-action="nota-archivar">${n.archivada ? "↩ Sacar del archivo" : "🗄 Archivar"}</button>
       <button class="btn-ghost" data-action="nota-borrar" style="color:var(--coral)">🗑 Borrar</button></div>`);
 }
-function notaColor(btn) {
-  document.querySelectorAll("#ne-colores .nota-color").forEach(b => b.classList.remove("is-on"));
-  btn.classList.add("is-on");
-}
+function notaColor(btn) { if (btn) btn.click(); }
 function notaActual() { return postits().find(x => x.id === NOTA_EDIT); }
 function notaGuardar() {
   const n = notaActual(); if (!n) return;
   const texto = document.getElementById("ne-texto").value.trim(), titulo = val("ne-titulo");
   if (!texto && !titulo) return notaBorrar(true);
-  const color = (document.querySelector("#ne-colores .nota-color.is-on") || {}).dataset;
+  const color = { c: (document.getElementById("ne-color") || {}).value || "" };
   // Conserva las etiquetas que vinieron de una categoría y suma las del texto
   const deCat = (n.etiquetas || []).filter(e => !etiquetasDe(n.texto).includes(e));
   Object.assign(n, { titulo, texto, etiquetas: [...new Set([...deCat, ...etiquetasDe(texto)])], color: color ? color.c : n.color, ts: Date.now() });

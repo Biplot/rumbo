@@ -204,6 +204,7 @@ function objetivosAccion(a, d) {
   if (a === "oj-salir") return objetivoSalir(d.id);
 }
 /* Al cambiar qué suman: la unidad propia aparece con «Otra…», y la meta dice en qué va */
+function ojUnidadElegir(v) { ojUnidadCambia({ value: v }); }
 function ojUnidadCambia(sel) {
   const otra = document.getElementById("oj-otra-box"); if (otra) otra.hidden = sel.value !== "otra";
   const m = document.getElementById("oj-meta-u"); if (m) m.textContent = sel.value === "otra" ? "" : sel.value === "$" ? "en pesos" : "en " + sel.value;
@@ -270,7 +271,7 @@ function openObjetivoForm(id, pre) {
   openModal(o ? "Editar objetivo" : "🎯 Objetivo con amigos", `
     <div class="field"><label for="oj-nombre">Nombre</label><input class="input" id="oj-nombre" maxlength="60" value="${escapeHtml(o ? o.nombre : "")}" placeholder="Ej: Viaje a Chiloé"></div>
     <div class="oj-form2">
-      <div class="field"><label for="oj-unidad">Qué suman</label><select class="input" id="oj-unidad" onchange="ojUnidadCambia(this)">${OJ_UNIDADES.map(([k, l]) => `<option value="${k}" ${k === uSel ? "selected" : ""}>${l}</option>`).join("")}</select>
+      <div class="field"><label>Qué suman</label>${elLista("oj-unidad", OJ_UNIDADES.map(([k, l]) => ({ v: k, t: l })), uSel, { label: "Qué suman", fn: "ojUnidadElegir", hoja: true })}
         <div id="oj-otra-box" class="mt-8" ${uSel === "otra" ? "" : "hidden"}><input class="input" id="oj-unidad-otra" maxlength="12" placeholder="Ej: páginas" value="${escapeHtml(uSel === "otra" ? o.unidad : "")}"></div></div>
       <div class="field"><label for="oj-meta">Meta <span class="muted" id="oj-meta-u" style="font-weight:500">${metaU}</span></label><input class="input" id="oj-meta" inputmode="decimal" value="${o ? escapeHtml(String(o.meta).replace(".", ",")) : ""}" placeholder="Ej: 600000"></div>
     </div>

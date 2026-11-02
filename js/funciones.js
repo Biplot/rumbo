@@ -99,22 +99,22 @@ function openEnfoque() {
   openModal("⏱️ Modo enfoque", `
     <p class="text-sm soft">Elige una tarea y una duración. La pantalla mostrará solo esa tarea hasta que termines.</p>
     <div class="field mt-16"><label>Tarea</label>
-      <select class="input" id="enf-tarea">${pend.map(t => `<option value="${t.id}">${t.esSapo ? BOCADO.emoji + " " : ""}${escapeHtml(t.txt)}</option>`).join("")}
-        <option value="">Otra cosa (sin tarea)</option></select></div>
+      ${elLista("enf-tarea", pend.map(t => ({ v: t.id, t: (t.esSapo ? BOCADO.emoji + " " : "") + t.txt, d: t.esSapo ? "tu primer bocado" : "" })).concat([{ v: "", t: "Otra cosa", d: "sin una tarea de la lista" }]),
+        pend.length ? pend[0].id : "", { label: "La tarea", fn: "enfTareaElegir", hoja: pend.length > 5 })}</div>
     <div class="field" id="enf-libre-f" ${pend.length ? "hidden" : ""}><label>¿En qué te vas a enfocar?</label><input class="input" id="enf-libre" placeholder="Ej: Preparar la presentación"></div>
     <div class="field"><label>Duración</label>
-      <div class="seg" id="enf-min">${[25, 50].map((m, i) => `<button type="button" class="${i === 0 ? "is-active" : ""}" data-m="${m}" onclick="this.parentNode.querySelectorAll('button').forEach(b=>b.classList.remove('is-active'));this.classList.add('is-active')">${m} min</button>`).join("")}</div></div>
+      ${elTramos("enf-min-v", [["25", "25 min"], ["50", "50 min"]], "25", { label: "Duración", attrs: 'id="enf-min"' })}</div></div>
     <button class="btn btn--primary btn-block mt-16" data-action="enfoque-iniciar">Empezar</button>
     <p class="text-xs muted mt-8">Esta semana llevas <b>${fmtFoco(minutosFoco(STATE, agLunes(hoy), agSumar(agLunes(hoy), 6)))}</b> de foco.</p>`);
-  const sel = document.getElementById("enf-tarea");
-  if (sel) sel.onchange = () => { document.getElementById("enf-libre-f").hidden = !!sel.value; };
 }
+function enfTareaElegir(v) { const f = document.getElementById("enf-libre-f"); if (f) f.hidden = !!v; }
+function compararElegir(v, btn, cont) { COMPARAR[String(cont.dataset.elId).slice(4)] = v; rerender(); }
 function iniciarEnfoque() {
   const sel = document.getElementById("enf-tarea"), hoy = todayISO();
   const tareaId = sel ? sel.value : "";
   const t = tareaId ? buscarTarea(STATE, hoy, tareaId) : null;
   const titulo = t ? t.txt : ((document.getElementById("enf-libre") || {}).value || "").trim() || "Tiempo de foco";
-  const b = document.querySelector("#enf-min .is-active"), min = b ? +b.dataset.m : 25;
+  const min = +val("enf-min-v") || 25;
   const ahora = Date.now();
   enfoqueGuardar({ id: uid(), tareaId, fecha: hoy, titulo, bocado: !!(t && t.esSapo), min, ini: ahora, fin: ahora + min * 60000, pausa: false, restante: 0, pausadoMs: 0 });
   closeModal(); mostrarEnfoque();
@@ -278,7 +278,7 @@ function renderCompararMeses() {
     <button class="btn btn--primary" data-action="fun-buy" data-id="fun:comparar">Desbloquear · 500 ⭐</button></div></div>`;
   COMPARAR = COMPARAR || { a: keys[0], b: keys[1] };
   const nom = k => { const { y, m } = mesDeKey(k); return `${MESES[m]} ${y}`; };
-  const sel = (lado) => `<select class="input" onchange="COMPARAR.${lado}=this.value;rerender()">${keys.map(k => `<option value="${k}" ${COMPARAR[lado] === k ? "selected" : ""}>${nom(k)}</option>`).join("")}</select>`;
+  const sel = (lado) => elLista("cmp-" + lado, keys.map(k => ({ v: k, t: nom(k) })), COMPARAR[lado], { hoja: true, label: lado === "a" ? "Primer mes" : "Segundo mes", fn: "compararElegir" });
   const A = datosComparar(COMPARAR.a), B = datosComparar(COMPARAR.b);
   const fila = (ico, label, k, fmt, mejorAlto = true) => {
     const a = A[k], b = B[k]; if (a == null && b == null) return "";

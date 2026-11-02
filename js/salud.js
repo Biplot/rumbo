@@ -15,7 +15,7 @@ const dowLunes = iso => (agDate(iso).getDay() + 6) % 7;   // lunes = 0
 
 function renderSalud() {
   const t = (id, txt) => `<button class="tabs__b${SALUD_TAB === id ? " is-active" : ""}" role="tab" aria-selected="${SALUD_TAB === id}" data-action="salud-tab" data-v="${id}">${txt}</button>`;
-  const tabs = `<div class="tabs" role="tablist" aria-label="Salud">${t("resumen", "Resumen")}${t("recetas", "Recetas")}${t("entrenar", "Entrenar")}</div>`;
+  const tabs = `<div class="filtros tabs" role="tablist" aria-label="Salud">${t("resumen", "Resumen")}${t("recetas", "Recetas")}${t("entrenar", "Entrenar")}</div>`;
   return tabs + (SALUD_TAB === "recetas" ? saludRecetas() : SALUD_TAB === "entrenar" ? saludEntrenar() : saludResumen());
 }
 /* La ruta antigua #entrenamiento abre Salud en Entrenar */
@@ -97,12 +97,12 @@ function saludRecetas() {
     (RECETA_FILTRO === "todas" || (RECETA_FILTRO === "favoritas" && r.favorita) || (RECETA_FILTRO === "rapidas" && r.minutos && r.minutos <= 20) || (r.etiquetas || []).includes(RECETA_FILTRO))
     && (!q || [r.nombre, r.ingredientes, (r.etiquetas || []).join(" ")].join(" ").toLowerCase().includes(q)))
     .sort((a, b) => (b.favorita - a.favorita) || a.nombre.localeCompare(b.nombre));
-  const chip = (v, t) => `<button class="chip-f${RECETA_FILTRO === v ? " is-on" : ""}" data-action="receta-filtro" data-v="${escapeAttr(v)}">${t}</button>`;
+  const chip = (v, t) => `<button role="tab" class="chip-f${RECETA_FILTRO === v ? " is-on" : ""}" data-action="receta-filtro" data-v="${escapeAttr(v)}">${t}</button>`;
   return `
   <div class="row" style="gap:8px"><input class="input" id="receta-busca" placeholder="Buscar receta o ingrediente…" value="${escapeAttr(RECETA_BUSCA)}"
       oninput="recetaBuscar(this.value)" aria-label="Buscar receta" style="flex:1;min-width:0">
     <button class="btn btn--primary" data-action="receta-nueva">+ Nueva</button></div>
-  <div class="chips-f mt-8">${chip("todas", "Todas")}${chip("favoritas", "★ Favoritas")}${chip("rapidas", "Rápidas")}${etiquetas.map(e => chip(e, escapeHtml(e))).join("")}</div>
+  <div class="filtros chips-f mt-8" role="tablist" aria-label="Qué recetas ver">${chip("todas", "Todas")}${chip("favoritas", "★ Favoritas")}${chip("rapidas", "Rápidas")}${etiquetas.map(e => chip(e, escapeHtml(e))).join("")}</div>
   <div id="recetas-lista">${recetasHtml(lista, todas.length)}</div>`;
 }
 function recetasHtml(lista, total) {
@@ -141,8 +141,8 @@ function openRecetaForm(id) {
   const ico = (r && r.icon) || "🍽️";
   openModal(r ? "Editar receta" : "Nueva receta", `
     <div class="field"><label>Nombre</label><input class="input" id="rc-nombre" value="${escapeAttr(r ? r.nombre : "")}" placeholder="Ej: Ensalada de quinoa"></div>
-    <div class="field"><label>Ícono</label><div class="row-wrap" style="gap:6px" id="rc-iconos">${ICONOS_RECETA.map(i => `<button type="button" class="mood-btn ${i === ico ? "is-on" : ""}" onclick="recetaIcono(this)">${emoLit(i)}</button>`).join("")}</div>
-      <input type="hidden" id="rc-icon" value="${ico}"></div>
+    <div class="field"><label>Ícono</label>
+      ${elGaleria(ICONOS_RECETA.map(i => ({ v: i, nombre: i, thumb: emoLit(i) })), ico, { id: "rc-icon", contId: "rc-iconos", cls: "el-gal--ico", label: "Ícono de la receta" })}</div>
     <div class="row" style="gap:10px"><div class="field" style="flex:1"><label>Minutos</label><input class="input" id="rc-min" inputmode="numeric" value="${r && r.minutos ? r.minutos : ""}" placeholder="20"></div>
       <div class="field" style="flex:1"><label>Porciones</label><input class="input" id="rc-por" inputmode="numeric" value="${r && r.porciones ? r.porciones : ""}" placeholder="2"></div></div>
     <div class="field"><label>Etiquetas (separadas por coma)</label><input class="input" id="rc-tags" value="${escapeAttr(r ? (r.etiquetas || []).join(", ") : "")}" placeholder="Desayunos, Saludable"></div>
@@ -150,10 +150,7 @@ function openRecetaForm(id) {
     <div class="field"><label>Preparación (un paso por línea)</label><textarea class="input" id="rc-pasos" style="min-height:90px">${escapeHtml(r ? r.pasos || "" : "")}</textarea></div>
     <button class="btn btn--primary btn-block" data-action="receta-guardar">Guardar receta</button>`);
 }
-function recetaIcono(btn) {
-  document.querySelectorAll("#rc-iconos .mood-btn").forEach(b => b.classList.remove("is-on"));
-  btn.classList.add("is-on"); document.getElementById("rc-icon").value = btn.textContent;
-}
+function recetaIcono(btn) { if (btn) btn.click(); }
 function guardarReceta() {
   const nombre = val("rc-nombre"); if (!nombre) return toast("Ponle un nombre a la receta", true);
   STATE.recetas = STATE.recetas || [];
@@ -208,8 +205,8 @@ function saludEntrenar() {
     <div class="big-num" style="font-size:24px">${rh ? escapeHtml(rh.nombre.replace(/^D[ií]a \d+ · /, "")) : "Descanso"}</div>
     <div class="text-sm muted">${rh ? `${rh.bloques.length} ejercicio${rh.bloques.length === 1 ? "" : "s"} · la última vez: ${ultima(rh.id)}` : "No tienes una rutina para hoy. Igual puedes hacer cualquiera."}</div>
   </div>
-  <div class="chips-f mt-16">${rs.map(r => `<button class="chip-f${r.id === RUTINA_VER ? " is-on" : ""}" data-action="rutina-ver" data-id="${r.id}">${escapeHtml(r.nombre.replace(/^D[ií]a \d+ · /, ""))}${r.dow != null ? ` · ${"LMMJVSD"[r.dow]}` : ""}</button>`).join("")}
-    <button class="chip-f" data-action="rutina-nueva">+ Rutina</button></div>
+  <div class="filtros-fila mt-16"><div class="filtros chips-f" role="tablist" aria-label="Qué rutina ver">${rs.map(r => `<button role="tab" class="chip-f${r.id === RUTINA_VER ? " is-on" : ""}" data-action="rutina-ver" data-id="${r.id}">${escapeHtml(r.nombre.replace(/^D[ií]a \d+ · /, ""))}${r.dow != null ? ` · ${"LMMJVSD"[r.dow]}` : ""}</button>`).join("")}</div>
+    <button class="btn-ghost" data-action="rutina-nueva">+ Rutina</button></div>
   ${ver ? `<div class="card mt-8" style="padding:4px 0">
     <div class="rutina-head"><b>${escapeHtml(ver.nombre)}</b><span class="text-sm muted">${ver.dow != null ? "Los " + DIAS_LARGO[ver.dow].toLowerCase() : "Cualquier día"} · ${hechos}/${total} hoy</span></div>
     ${ver.bloques.map(b => `<div class="ejercicio${ejercicioHoy(b) ? " is-hecho" : ""}">
@@ -285,8 +282,7 @@ function openRutina(id) {
   const dow = r && r.dow != null ? r.dow : "";
   openModal(r ? "Editar rutina" : "Nueva rutina", `
     <div class="field"><label>Nombre</label><input class="input" id="ru-nombre" value="${escapeAttr(r ? r.nombre : "")}" placeholder="Ej: Piernas y core"></div>
-    <div class="field"><label>¿Qué día la haces?</label><select class="select input" id="ru-dow"><option value="">Cualquier día (se turnan)</option>
-      ${DIAS_LARGO.map((d, i) => `<option value="${i}" ${dow === i ? "selected" : ""}>${d}</option>`).join("")}</select></div>
+    <div class="field"><label>¿Qué día la haces?</label>${elLista("ru-dow", [{ v: "", t: "Cualquier día", d: "se turnan con tus otras rutinas" }].concat(DIAS_LARGO.map((d, i) => ({ v: String(i), t: d }))), dow == null ? "" : String(dow), { label: "¿Qué día la haces?", vacio: "Cualquier día" })}</div>
     <button class="btn btn--primary btn-block" data-action="rutina-guardar">Guardar</button>
     ${r ? `<button class="btn-ghost btn-block mt-8" data-action="rutina-borrar" style="color:var(--coral)">🗑 Borrar rutina</button>` : ""}`);
 }

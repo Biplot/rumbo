@@ -68,12 +68,13 @@ module.exports = async ({ b, ok, errs }) => {
   // 4) Ana le manda ánimo (hasta 3 al día)
   for (let i = 0; i < 3; i++) {
     await hoja("amigos"); await p.click('.am-fila [data-action="am-animo"]'); await p.waitForTimeout(300);
-    if (i === 0) await p.click('[data-action="am-frase"][data-v="¡Bien hecho!"]');
-    if (i === 1) await p.fill("#am-msg", "Mañana corremos");
-    await p.click('[data-action="am-animo-enviar"]'); await p.waitForTimeout(400);
+    if (i === 0) await p.click('[data-action="am-frase"][data-v="¡Bien hecho!"]');   // respuesta rápida: un toque y se manda
+    else if (i === 1) { await p.fill("#am-msg", "Mañana corremos"); await p.click('[data-action="am-animo-enviar"]'); }
+    else await p.click('[data-action="am-frase"][data-v="¡Vamos, tú puedes!"]');
+    await p.waitForTimeout(400);
   }
   await hoja("amigos"); await p.click('.am-fila [data-action="am-animo"]'); await p.waitForTimeout(300);
-  await p.click('[data-action="am-animo-enviar"]'); await p.waitForTimeout(400);
+  await p.click('[data-action="am-frase"][data-v="¡Vamos, tú puedes!"]'); await p.waitForTimeout(400);
   ok(await p.locator("#modalOverlay").isVisible(), "el cuarto ánimo del día no sale (máximo 3)");
   await p.evaluate(() => closeModal());
 

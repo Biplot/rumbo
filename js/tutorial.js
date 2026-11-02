@@ -15,29 +15,19 @@
 // Un paso sin "el" se muestra al centro.
 const TOURS = {
   general: {
-    icon: "🧭", titulo: "Recorrido por Rumbo", desc: "Lo esencial en un minuto: tu día, tus tareas, tus hábitos, el menú y los rituales.",
+    icon: "🧭", titulo: "Recorrido por Rumbo", desc: "Lo esencial en un minuto: tu día, el botón del día, tus lugares y tus monedas, y tu misión.",
+    // Corto a propósito: lo demás se explica cuando llegas a cada pantalla (la franja «Primera vez aquí»)
     pasos: [
-      { titulo: "Te muestro Rumbo 👋", texto: m => `Un recorrido de un minuto por lo esencial, sobre tu propia app. Sal cuando quieras con ✕${m ? "" : " (o Esc)"}.` },
+      { titulo: "Te muestro Rumbo 👋", texto: m => `${eleSoy()}Un minuto por lo esencial, sobre tu propia app. Sal cuando quieras con ✕${m ? "" : " (o Esc)"}.` },
       { ruta: "inicio", el: ["[data-tour=dia] .card", "[data-tour=dia]"], titulo: "Tu día empieza aquí",
-        texto: "En la mañana <b>abres tu día</b> (tu enfoque, tu primer bocado y tus tareas) y en la noche lo <b>cierras</b>. ¿Día apretado? <b>⚡ Express</b> lo hace en 3 toques." },
-      { ruta: "inicio", el: { sel: "#view .card", txt: "Tareas de hoy" }, titulo: "Tus tareas de hoy",
-        texto: m => `Separadas en 💼 profesionales y 🏠 personales, con tu <b>${BOCADO.corto.toLowerCase()}</b> ${BOCADO.emoji} arriba: la más importante del día.${m ? " Desliza una tarea → para marcarla o ← para posponerla." : ""} Toca su texto para editarla.` },
-      { ruta: "inicio", el: { sel: "#view .card", txt: "Hábitos de hoy" }, titulo: "Hábitos de hoy",
-        texto: "Solo aparecen los que te tocan hoy según su frecuencia. Un toque y listo." },
+        texto: `En la mañana <b>abres tu día</b>: eliges lo más importante, tu <b>${BOCADO.corto.toLowerCase()}</b> ${BOCADO.emoji}. En la noche lo <b>cierras</b>: decides qué pasa con lo pendiente. ¿Día apretado? <b>⚡ Express</b> lo hace en 3 toques.` },
+      { el: ["#bbDia", "#navDia"], titulo: "El botón del día",
+        texto: m => `${m ? "Al centro de la barra de abajo" : "Arriba del menú"}: abre o cierra tu día desde cualquier pantalla. De noche, late suave para recordarte cerrarlo.` },
       { el: ".topbar__meta", titulo: "Tus lugares y tus monedas",
         texto: m => `La cara de tu elefante abre <b>Tu casa</b>. El destello ✨ abre <b>Tu vitrina</b>, donde viven tus medallas. Las ⭐ son tus monedas: las ganas abriendo y cerrando días, con hábitos y objetivos, y las gastas en Recompensas.${m ? " Tu racha 🔥 de días cerrados va al pie de tu día." : " 🔥 es tu racha de días cerrados."}` },
-      { el: ["#bottombar", "#nav"], titulo: "Tu menú",
-        texto: m => m ? "Abajo tienes lo del día a día y, al centro, el botón para <b>abrir o cerrar tu día</b>. En <b>Más</b> está el resto: Objetivos, Ritual, Finanzas, Recompensas, tu cuenta y la ayuda."
-          : "A la izquierda: arriba el botón para abrir o cerrar tu día, luego lo del día a día y tus <b>Módulos</b> (plegables). Abajo, Recompensas y el menú de tu cuenta." },
-      { ruta: "ritual", prep: () => { RITUAL_VIEW = "dia"; }, el: "#view .seg", titulo: "Tus rituales",
-        texto: "<b>Día</b>, <b>Semana</b>, <b>Mes</b> y <b>Trimestre</b>: abrir y cerrar cada ciclo mantiene vivo todo tu sistema. Cada ritual da ⭐." },
-      { ruta: "semana", el: [".week-scroll", "#view .card"], titulo: "Tu semana",
-        texto: "Tu plan (foco y 3 prioridades) y tus 7 días. Lo que no alcanzas lo decides al cerrar el día: <b>&gt;</b> mañana, <b>&lt;</b> otro día, <b>@</b> delegar o <b>✕</b> soltar." },
-      { el: ["#helpBtn", "#bbMas"], titulo: "¿Dudas? Hay ayuda",
-        texto: m => `Toca <b>?</b> arriba: cada pantalla tiene su propia ayuda. Las primeras veces que entras a una, también te la ofrezco en una franja.${m ? " En <b>Más › Ayuda</b> repites cualquier recorrido." : " En <b>Ayuda</b> (en el menú de tu cuenta) repites cualquier recorrido."}` },
-      { ruta: "inicio", el: "[data-tour=mision]", titulo: "Tu misión: primeros pasos",
-        texto: "Seis cosas para arrancar. Se marcan solas cuando las haces y al completarlas ganas +100 ⭐ y la insignia Explorador." },
-      { titulo: "¡Listo! 🚀", texto: "Eso es lo esencial. Parte abriendo tu día: te toma 30 segundos." },
+      { ruta: "inicio", el: "[data-tour=mision]", titulo: "Tu misión para arrancar",
+        texto: "Unos pasos chicos, de a uno. Se marcan solos cuando los haces y al completarlos ganas +100 ⭐ y la insignia Explorador." },
+      { titulo: "¡Listo! 🚀", texto: "Eso es lo esencial. Lo demás te lo explico cuando llegues: las primeras veces que entres a una pantalla te ofrezco su ayuda, y el <b>?</b> de arriba la repite. Parte abriendo tu día: te toma 30 segundos." },
     ],
   },
   ritual: {
@@ -238,7 +228,7 @@ function tourPintar(p, el) {
   const ultimo = TOUR.i === t.pasos.length - 1;
   const texto = typeof p.texto === "function" ? p.texto(movil) : p.texto;
   capa.querySelector(".tour-pop").innerHTML = iconizar(`
-    <div class="flex-between"><span class="text-xs muted">${escapeHtml(t.titulo)} · ${n} de ${total}</span>
+    <div class="flex-between"><span class="tour-quien">${tourCara()}<span class="text-xs muted">${escapeHtml((typeof nombreDelElefante === "function" && nombreDelElefante() ? nombreDelElefante() + " · " : "") + t.titulo)} · ${n} de ${total}</span></span>
       <button class="icon-btn" data-action="tour-salir" aria-label="Salir del recorrido">✕</button></div>
     <div class="tour-pop__t">${p.titulo}</div>
     <div class="tour-pop__b">${texto}</div>
@@ -252,6 +242,12 @@ function tourPintar(p, el) {
   const btn = capa.querySelector('[data-action="tour-next"]');
   if (btn) btn.focus({ preventScroll: true });
 }
+/* Quien explica es tu elefante: su cara en la burbuja (si ya lo elegiste) */
+function tourCara() {
+  try { if (typeof eleEstado === "function" && eleEstado().tipo && typeof elefanteCaraSVG === "function") return `<span class="tour-cara">${elefanteCaraSVG()}</span>`; } catch (e) {}
+  return "";
+}
+function eleSoy() { const n = typeof nombreDelElefante === "function" ? nombreDelElefante() : ""; return n ? `Soy ${escapeHtml(n)}, tu elefante. ` : ""; }
 /* Pone el hueco sobre el elemento y la burbuja arriba o abajo, sin salirse de la pantalla */
 function tourReubicar() {
   const capa = document.getElementById("tour");

@@ -38,4 +38,44 @@ export default async function ({ G, test, assert, clone }) {
     delete S.settings.alta;
     assert.deepEqual(clone(pendientes(new Date(2026, 10, 2, 9)).map(p => p.tipo)), ["cierre", "apertura"], "sin alta (quien ya usaba la app), como siempre");
   });
+
+  test("los 8 hábitos de fábrica se van al terminar la bienvenida, salvo los que ya marcó o los que creó"
+    , () => {
+    const S = nuevo(), quitar = G("quitarHabitosDeFabrica");
+    assert.equal(S.habitos.defs.length, 8, "defaultState sigue trayendo los 8 (las pruebas y quien no pasó la bienvenida)");
+    const lectura = S.habitos.defs.find(h => h.nombre === "Lectura");
+    S.habitos.log["2026-11"] = { [lectura.id]: { 2: true } };
+    S.habitos.defs.push({ id: "mio", nombre: "Agua", icon: "💧", frecuencia: { tipo: "diario" }, creado: "2026-11-02", ts: 5 });
+    assert.equal(quitar(S), 7, "se van 7: Lectura ya tiene una marca");
+    assert.deepEqual(clone(S.habitos.defs.map(h => h.nombre)), ["Lectura", "Agua"], "queda Lectura y el «Agua» que creó (con ts)");
+    const viejo = migrate(defaultState()); viejo.settings.onboarded = true;
+    assert.equal(quitar(viejo), 0, "a quien ya pasó la bienvenida no se le toca nada");
+  });
+
+  test("«Arma tu Rumbo»: hábitos elegidos (hasta 3), rutina de regalo, elefante con nombre y apertura corta", () => {
+    const S = nuevo(), aplicar = G("armaAplicar"), funcion = G("funcion");
+    aplicar(S, { areas: ["dia", "habitos", "plata"], habitos: ["leer", "caminar", "fumar", "dormir"], plantilla: "finanzas", tipo: "asiatico", nombre: "  Tito ", verTodo: false }, "2026-11-02");
+    const nombres = S.habitos.defs.map(h => h.nombre);
+    assert.deepEqual(clone(nombres.slice(0, 3)), ["Leer 10 minutos", "Caminar 20 minutos", "Dejar de fumar"], "las 3 primeras sugerencias, sin los de fábrica");
+    assert.equal(nombres.includes("Dormir antes de las 12"), false, "la cuarta no entra: con 3 basta para partir");
+    const fumar = S.habitos.defs.find(h => h.nombre === "Dejar de fumar");
+    assert.deepEqual([fumar.meta, fumar.creado], ["dejar", "2026-11-02"], "«Dejar de fumar» es un hábito para dejar, desde hoy");
+    assert.deepEqual(clone(S.habitos.defs.find(h => h.nombre === "Leer 10 minutos").frecuencia), { tipo: "semanal", veces: 3 });
+    assert.equal(funcion("plantilla-finanzas", S), true, "la rutina armada queda como suya (de regalo)");
+    assert.equal(S.gamif.puntos, 0, "sin gastar ⭐");
+    assert.ok(nombres.includes("Anotar mis gastos"), "y sus hábitos se suman");
+    assert.deepEqual([S.gamif.equipped.ele.tipo, S.gamif.equipped.ele.nombre], ["asiatico", "Tito"], "el elefante y su nombre (sin espacios)");
+    assert.deepEqual(clone(S.settings.bienvenida.areas), ["dia", "habitos", "plata"]);
+    assert.equal(S.settings.aperturaSimple, true, "la primera semana abre el día en versión corta");
+    assert.equal(S.profile.motto, "", "sin el lema de fábrica");
+  });
+
+  test("la primera semana: del día de la cuenta al séptimo; las cuentas de antes no la tienen", () => {
+    const S = nuevo(); S.settings.alta = "2026-11-02";
+    const dia = G("primeraSemanaDia"), activa = G("primeraSemanaActiva");
+    assert.deepEqual([dia(S, "2026-11-02"), dia(S, "2026-11-08"), dia(S, "2026-11-09")], [1, 7, 8]);
+    assert.deepEqual([activa(S, "2026-11-02"), activa(S, "2026-11-08"), activa(S, "2026-11-09")], [true, true, false]);
+    delete S.settings.alta;
+    assert.equal(activa(S, "2026-11-02"), false);
+  });
 }

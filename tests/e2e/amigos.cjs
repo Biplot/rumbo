@@ -113,9 +113,8 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('[data-tab="register"]');
   await p.fill("#reg-name", "Cami"); await p.fill("#reg-email", "cami@test.cl"); await p.fill("#reg-pass", "secreto123");
   await p.click('[data-action="auth-register"]'); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(800);
-  ok(await p.locator(".onb-title").count() === 1 && !(await p.locator("#modal").innerText()).includes("Mandar solicitud"), "primero la bienvenida");
-  await p.evaluate(() => { ONB_STEP = 99; }); await p.evaluate(() => openOnboarding("nuevo")).catch(() => {});
-  await p.evaluate(() => { document.getElementById("modalBody").innerHTML += '<input id="ob-name" value="Cami">'; saveOnboarding(); });
+  ok(await p.locator("#modal .arma").count() === 1 && !(await p.locator("#modal").innerText()).includes("Mandar solicitud"), "primero la bienvenida");
+  await p.click('#modal [data-action="arma-saltar"]');
   await p.waitForTimeout(1200);
   ok((await p.locator("#modal").innerText()).includes("Ana") && await p.locator('[data-action="am-pedir"]').count() === 1, "al terminarla, la invitación de Ana va primero");
   await p.click('[data-action="am-pedir"]'); await p.waitForTimeout(700);

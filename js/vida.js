@@ -360,7 +360,7 @@ function openRelModal(id) {
     <div class="field"><label>Vínculo</label><input class="input" id="rel-vinculo" placeholder="Ej: Pareja, amigo, mamá..." value="${p ? escapeAttr(p.vinculo || "") : ""}"></div>
     <div class="field"><label>Cumpleaños</label><input class="input" type="date" id="rel-cumple" value="${p ? (p.cumple || "") : ""}"></div>
     <div class="field"><label>¿Cada cuánto quieres hablarle?</label>
-      <select class="input" id="rel-frecuencia">${freqs.map(([v, l]) => `<option value="${v}" ${v === curFreq ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+      ${elLista("rel-frecuencia", freqs.map(([v, l]) => ({ v: String(v), t: l })), String(curFreq), { label: "¿Cada cuánto quieres hablarle?" })}</div>
     <div class="field"><label>Notas</label><textarea class="input" id="rel-notas" style="min-height:80px" placeholder="Lo que quieras recordar de esta persona...">${p ? escapeHtml(p.notas || "") : ""}</textarea></div>
     <button class="btn btn--primary btn-block" data-action="rel-save">${p ? "Guardar" : "Agregar"}</button>`);
 }
@@ -435,9 +435,9 @@ function openListaModal() {
   openModal("Nueva lista", `
     <input type="hidden" id="lst-tipo" value="normal">
     <div class="field"><label>Nombre</label><input class="input" id="lst-nombre" placeholder="Ej: Compras"></div>
-    <div class="field" id="lst-icon-field"><label>Ícono</label><div class="row-wrap" id="lst-iconos">${iconos.map(ic =>
-      `<button type="button" class="btn btn--soft" style="padding:8px 12px" data-ic="${ic}" onclick="listaIconPick(this)">${emoLit(ic)}</button>`).join("")}</div>
-      <input type="hidden" id="lst-icon" value="🛒"></div>
+    <div class="field" id="lst-icon-field"><label>Ícono</label>
+      ${elGaleria(iconos.map((ic, i) => ({ v: ic, nombre: ["Compras", "Películas", "Viajes", "Libros", "Música", "Regalos", "Comida", "Ejercicio", "Ideas", "Tareas"][i], thumb: emoLit(ic) })), "🛒",
+        { id: "lst-icon", contId: "lst-iconos", cls: "el-gal--ico", attr: "ic", label: "Ícono de la lista" })}</div>
     <p class="text-xs muted" style="margin:-4px 0 12px">💎 ¿Algo que quieres comprarte? Anótalo en Finanzas › Tus deseos: te ayuda a esperarlo y a ahorrar para eso.</p>
     <button class="btn btn--primary btn-block" data-action="lista-save">Crear lista</button>`);
 }
@@ -449,11 +449,7 @@ function listaTipoPick(btn) {
   document.getElementById("lst-icon-field").hidden = esDeseos;
   document.getElementById("lst-deseo-hint").hidden = !esDeseos;
 }
-function listaIconPick(btn) {
-  document.getElementById("lst-icon").value = btn.dataset.ic;
-  document.querySelectorAll("#lst-iconos .btn").forEach(b => b.classList.remove("btn--cian"));
-  btn.classList.add("btn--cian");
-}
+function listaIconPick(btn) { if (btn) btn.click(); }
 function saveLista() {
   const nombre = val("lst-nombre"); if (!nombre) return toast("Ponle un nombre", true);
   const tipo = (document.getElementById("lst-tipo") || {}).value || "normal";

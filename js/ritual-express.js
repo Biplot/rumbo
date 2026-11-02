@@ -97,18 +97,17 @@ function openExpressApertura() {
   const energia = r.energia || 3;
   openModal("⚡ Abre tu día · express", `
     <div class="field"><label>${BOCADO.emoji} Tu primer bocado</label>
-      ${cands.length ? `<div class="row-wrap" style="gap:6px;margin-bottom:8px">${cands.map(c => `<button type="button" class="chip xp-cand" data-txt="${escapeAttr(c.txt)}" data-amb="${c.ambito}" onclick="expressElegir(this)">${AMBITOS[c.ambito].icon} ${escapeHtml(c.txt)}</button>`).join("")}</div>` : ""}
-      <div class="row" style="gap:8px">${ambitoPicker("xp-amb", amb, true)}<input class="input" id="xp-sapo" value="${escapeAttr(sapo)}" placeholder="La tarea que más mueve la aguja hoy" style="flex:1;min-width:0"></div></div>
+      ${cands.length ? `<div class="rapidas" style="margin-bottom:8px" role="group" aria-label="Usar una sugerida">${cands.map(c => `<button type="button" class="xp-cand" data-txt="${escapeAttr(c.txt)}" data-amb="${c.ambito}" onclick="expressElegir(this)">${AMBITOS[c.ambito].icon} ${escapeHtml(c.txt)}</button>`).join("")}</div>` : ""}
+      <div class="row" style="gap:8px">${elAmbito("xp-amb", amb, { compacto: true, label: "Tu primer bocado: ¿profesional o personal?" })}<input class="input" id="xp-sapo" value="${escapeAttr(sapo)}" placeholder="La tarea que más mueve la aguja hoy" aria-label="Tu primer bocado" style="flex:1;min-width:0"></div></div>
     <div class="field"><label>⚡ Tu energía</label>
-      <div class="seg" id="xp-energia">${[1, 2, 3, 4, 5].map(v => `<button type="button" class="${v === energia ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'xp-energia-v')">${v}</button>`).join("")}</div>
-      <input type="hidden" id="xp-energia-v" value="${energia}"></div>
+      ${elEscala("xp-energia-v", energia, { contId: "xp-energia", ico: "rayo", etiquetas: ENERGIA_ETI, label: "Tu energía, de 1 a 5" })}</div>
     <p class="text-xs muted" style="margin:-4px 0 12px">Tus tareas de hoy quedan como están. Puedes completar tu misión y tus tareas después, con el ritual completo.</p>
     <div class="modal__cta"><button class="btn btn--primary btn-block btn--precio" data-action="express-apertura-save"><span>Abrir mi día</span><span class="btn__precio">+${EXPRESS_MONEDAS.apertura} ${iconoLinea("estrella", 16)}</span></button></div>`);
 }
 function expressElegir(btn) {
   document.getElementById("xp-sapo").value = btn.dataset.txt;
-  const h = document.getElementById("xp-amb");
-  if (h.value !== btn.dataset.amb) h.nextElementSibling.click();   // alterna el chip de ámbito
+  const b = document.querySelector(`[data-el-id="xp-amb"] > button[data-v="${btn.dataset.amb}"]`);
+  if (b && val("xp-amb") !== btn.dataset.amb) b.click();   // el ámbito de la sugerida
 }
 function saveExpressApertura() {
   const iso = todayISO();
@@ -133,14 +132,14 @@ function openExpressCierre(date) {
   const esHoy = iso === todayISO();
   const cuando = esHoy ? "mañana" : "hoy";
   openModal(esHoy ? "⚡ Cierra tu día · express" : "⚡ Cerrar el " + agDate(iso).toLocaleDateString("es-CL", { weekday: "long", day: "numeric" }), `
-    <div class="field"><label>¿Cómo te sentiste?</label>
+    <div class="field"><label>¿Cómo te sentiste? <b class="mood-eti" id="xc-mood-eti">${MOOD_ETI[mood - 1] || ""}</b></label>
       <div class="row mt-8" id="xc-moods" style="gap:8px">
-        ${MOODS.map((m, i) => `<button type="button" class="mood-btn ${i + 1 === mood ? "is-on" : ""}" data-v="${i + 1}" onclick="expressMood(this)">${m}</button>`).join("")}
+        ${MOODS.map((m, i) => `<button type="button" class="mood-btn ${i + 1 === mood ? "is-on" : ""}" data-v="${i + 1}" aria-label="${MOOD_ETI[i]}" title="${MOOD_ETI[i]}" aria-pressed="${i + 1 === mood}" onclick="expressMood(this)">${m}</button>`).join("")}
       </div><input type="hidden" id="xc-mood" value="${mood}"></div>
     ${cronicas.length ? `<div class="field"><label>⚠ ${cronicas.length === 1 ? "Ya la postergaste varias veces: ¿vale la pena?" : "Ya las postergaste varias veces: ¿valen la pena?"}</label>
       ${cronicas.map(t => `<div class="flex-between" style="gap:8px;padding:6px 0;flex-wrap:wrap"><span class="text-sm">${escapeHtml(t.txt)} ${chipMigraciones(t)}</span>
-        <div class="seg" style="display:inline-flex"><button type="button" class="is-active" data-v="manana" onclick="segPick(this,'xc-c-${t.id}')">&gt; ${cuando === "mañana" ? "Mañana" : "Hoy"}</button><button type="button" data-v="soltar" onclick="segPick(this,'xc-c-${t.id}')">✕ Soltar</button></div>
-        <input type="hidden" class="xc-cron" id="xc-c-${t.id}" data-id="${t.id}" value="manana"></div>`).join("")}</div>` : ""}
+        ${elTramos("xc-c-" + t.id, [["manana", `&gt; ${cuando === "mañana" ? "Mañana" : "Hoy"}`], ["soltar", "✕ Soltar"]], "manana", { label: t.txt })
+          .replace('<input type="hidden" id="xc-c-', `<input type="hidden" class="xc-cron" data-id="${t.id}" id="xc-c-`)}</div>`).join("")}</div>` : ""}
     ${resto.length ? `<div class="field"><label>↪ Pasan a ${cuando} (${resto.length})</label>
       <div class="row-wrap" style="gap:6px">${resto.map(t => `<span class="chip">${t.esSapo ? BOCADO.emoji : AMBITOS[ambitoDe(t)].icon} ${escapeHtml(t.txt)}</span>`).join("")}</div>
       <button type="button" class="btn-ghost mt-8" data-action="day-close" data-date="${iso}">Decidir una por una (cierre completo)</button></div>`
@@ -151,6 +150,7 @@ function openExpressCierre(date) {
 function expressMood(btn) {
   document.getElementById("xc-mood").value = btn.dataset.v;
   document.querySelectorAll("#xc-moods .mood-btn").forEach(b => b.classList.toggle("is-on", b === btn));
+  const eti = document.getElementById("xc-mood-eti"); if (eti) eti.textContent = MOOD_ETI[+btn.dataset.v - 1] || "";
 }
 function saveExpressCierre() {
   const iso = EXPRESS_FECHA || todayISO();

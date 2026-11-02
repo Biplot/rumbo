@@ -169,7 +169,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 59;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 60;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -519,6 +519,12 @@ const NOVEDADES = {
     ["📖", "Palabras de Rumbo", "Bocado, ritual, racha, vitrina, XP: en Ayuda está qué es cada una, explicada por tu elefante."],
     ["📈", "Pantallas que enseñan", "Tendencias, Finanzas, Objetivos y la Rueda, cuando aún están vacías, te dicen qué son, cuándo se llenan y por dónde partir."],
   ],
+  60: [
+    ["👆", "Elegir, igual en todas partes", "Lo que eliges se marca siempre en índigo, cada opción es del tamaño de un dedo y nada se parte en dos líneas. La energía son 5 rayos, igual en el ritual completo y en el express."],
+    ["💧", "Cómo se ve tu agua", "En «Tu agua», la fila «Cómo se ve» abre el probador: tu estilo en grande, los demás en miniatura con tu sabor, las gotas de sabor y los vasos que crecen. Tu meta, con − y + de a 100 ml."],
+    ["🖼️", "Elegir viendo", "El jardín, el álbum, el informe, los íconos y tu avatar se eligen mirando cómo quedan. Lo que aún no tienes sale al final, con candado y su precio."],
+    ["📋", "Listas en vez de desplegables", "El pilar, cada cuánto hablarle a alguien, la tarea del enfoque y los meses se eligen en listas propias, con una línea que explica cada opción."],
+  ],
 };
 let NOVEDADES_ABIERTAS = false;
 function openNovedades() {
@@ -746,8 +752,7 @@ function openPersonalizarMenu() {
   const ocultos = new Set(((STATE.settings.menu || {}).ocultos) || []);
   openModal("Personalizar menú", `
     <p class="text-sm muted" style="margin-bottom:12px">Elige qué módulos ver en el menú. Ocultar uno no borra nada: vuelve a mostrarlo cuando quieras y todo seguirá ahí.</p>
-    ${ROUTES.filter(r => r.mas).map(r => `<label class="mes-hab" style="cursor:pointer"><span class="mes-hab__n">${r.icon} ${r.label}</span>
-      <input type="checkbox" class="menu-mod" value="${r.id}" ${ocultos.has(r.id) ? "" : "checked"}></label>`).join("")}
+    ${elCasillas(ROUTES.filter(r => r.mas).map(r => [r.id, `${r.icon} ${r.label}`]), ROUTES.filter(r => r.mas && !ocultos.has(r.id)).map(r => r.id), { cls: "menu-mod", label: "Módulos del menú" })}
     <p class="text-xs muted mt-8">Inicio, Semana, Hábitos, Objetivos, Ritual y Diario siempre se ven.</p>
     <button class="btn btn--primary btn-block mt-16" data-action="menu-guardar">Guardar</button>`);
 }
@@ -1713,8 +1718,9 @@ function openThemePreview(id) {
     : f.solo
       ? (actual === f.solo ? `<button class="btn btn--soft btn-block" data-action="close-modal">Ya es tu tema actual</button>`
         : `<button class="btn btn--cian btn-block" data-action="set-theme" data-theme="${f.solo}">Aplicar este tema</button>`)
-      : `<div class="tema-modos">${[["auto", "Automático", "Sigue el modo claro u oscuro de tu teléfono"], ["dia", "Siempre de día", ""], ["noche", "Siempre de noche", ""]].map(([k, l, sub]) =>
-          `<button class="tema-modo${actual === f[k] ? " is-on" : ""}" data-action="set-theme" data-theme="${f[k]}" aria-pressed="${actual === f[k]}"><b>${l}</b>${sub ? `<small>${sub}</small>` : ""}${actual === f[k] ? "<span>✓</span>" : ""}</button>`).join("")}</div>`;
+      : `<div class="seg" role="group" aria-label="Modo de ${escapeAttr(f.nombre)}">${[["auto", "Auto"], ["dia", "Día"], ["noche", "Noche"]].map(([k, l]) =>
+          `<button class="${actual === f[k] ? "is-active" : ""}" data-action="set-theme" data-theme="${f[k]}" aria-pressed="${actual === f[k]}">${l}</button>`).join("")}</div>
+        <p class="text-xs muted mt-8">Auto sigue el modo claro u oscuro de tu teléfono.</p>`;
   const concepto = f.concepto || (THEMES.find(x => x.id === f.solo) || {}).concepto || "";
   openModal(f.nombre, `
     <p class="text-sm muted" style="margin-bottom:14px">${escapeHtml(concepto)}</p>
@@ -1985,11 +1991,9 @@ function ambitoChip(t, iso, compacto) {
   const a = ambitoDe(t);
   return `<button class="chip chip--amb" data-action="tarea-ambito" data-fecha="${iso}" data-id="${t.id}" title="${AMBITOS[a].label} · clic para cambiar">${AMBITOS[a].icon}${compacto ? "" : " " + AMBITOS[a].corto}</button>`;
 }
-/* Toggle Pro/Personal para inputs de nueva tarea (guarda el valor en un input oculto) */
+/* Pro / Personal para una tarea nueva: los mismos tramos en todas partes (elegir.js); el valor va en un input oculto */
 function ambitoPicker(hiddenId, cur, compacto) {
-  const a = cur === "pro" ? "pro" : "per";
-  return `<input type="hidden" id="${hiddenId}" value="${a}"><button type="button" class="chip chip--amb amb-pick" title="Ámbito de la nueva tarea: ${AMBITOS[a].label}"
-    ${compacto ? 'data-compacto="1"' : ""} onclick="ambFlip(this,'${hiddenId}')">${AMBITOS[a].icon}${compacto ? "" : " " + AMBITOS[a].corto}</button>`;
+  return elAmbito(hiddenId, cur === "pro" ? "pro" : "per", { compacto, label: "La tarea nueva: ¿profesional o personal?" });
 }
 function ambFlip(btn, hiddenId) {
   const el = document.getElementById(hiddenId);

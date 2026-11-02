@@ -123,16 +123,16 @@ module.exports = async ({ b, ok, errs }) => {
   ok(d.includes("Álbum de octubre") && d.includes("3 fotos") && d.includes("Maitencillo"), "el Diario muestra el álbum de octubre, con la portada primero");
   ok(await blobs(".alb-diario img") === 3, "con sus fotos");
   await p.click('.alb-diario [data-action="alb-ver"].btn'); await p.waitForTimeout(500);
-  ok((await p.locator("#modal .alb .ft-marco img").first().getAttribute("style") || "").includes("scale(1.5)"), "en la página del álbum, la foto sale con su encuadre");
-  ok(await p.locator("#modal .alb .alb--clasico").count() === 1 && await blobs("#modal .alb img") === 3 && (await modal()).includes("Maitencillo"), "el álbum: una página en estilo Clásico, con las 3 fotos y sus comentarios");
+  ok((await p.locator("#modal .alb-paginas .alb .ft-marco img").first().getAttribute("style") || "").includes("scale(1.5)"), "en la página del álbum, la foto sale con su encuadre");
+  ok(await p.locator("#modal .alb-paginas .alb .alb--clasico").count() === 1 && await blobs("#modal .alb-paginas .alb img") === 3 && (await modal()).includes("Maitencillo"), "el álbum: una página en estilo Clásico, con las 3 fotos y sus comentarios");
   // las notas se ven enteras: dentro de la página y sin cortar (antes, las de las fotos chicas del Clásico quedaban fuera)
-  const notasVisibles = () => p.evaluate(() => [...document.querySelectorAll("#modal .alb")].every(pg => {
+  const notasVisibles = () => p.evaluate(() => [...document.querySelectorAll("#modal .alb-paginas .alb")].every(pg => {
     const R = pg.getBoundingClientRect();
     return [...pg.querySelectorAll("figcaption, .rv-tit b")].every(c => { const r = c.getBoundingClientRect();
       return r.height > 0 && c.scrollHeight <= c.clientHeight + 1 && r.top >= R.top - .5 && r.bottom <= R.bottom + .5 && r.left >= R.left - .5 && r.right <= R.right + .5; });
   }));
-  ok(await p.locator("#modal .alb figcaption").count() === 3 && await notasVisibles(), "en el Clásico se ven las 3 notas enteras, también las de las fotos de abajo");
-  ok((await p.locator("#modal .alb-estilos").innerText()).includes("7 estilos más en la Tienda"), "y la invitación a los otros estilos");
+  ok(await p.locator("#modal .alb-paginas .alb figcaption").count() === 3 && await notasVisibles(), "en el Clásico se ven las 3 notas enteras, también las de las fotos de abajo");
+  ok(await p.locator("#modal .alb-estilos .el-gal__op.is-lock").count() === 7 && await p.locator("#modal .alb-estilos .el-gal__op.is-on[data-v='clasico'] .alb-mini img").count() === 3, "los estilos en miniatura, con tus fotos; los 7 que faltan, con candado y su precio");
   ok(await p.evaluate(() => document.documentElement.scrollWidth) <= 390, "sin moverse de lado en el celular");
   await shot(p, "album-clasico");
 
@@ -141,7 +141,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => isOwned("alb-bujo")), "en la Tienda se compra «Álbum Bullet journal»");
   await p.evaluate(() => openAlbum("2026-10")); await p.waitForTimeout(300);
   await p.click('#modal .alb-estilos [data-v="bujo"]'); await p.waitForTimeout(400);
-  ok(await p.locator("#modal .alb--bujo").count() === 1 && await p.evaluate(() => STATE.album.meses["2026-10"].estilo) === "bujo", "octubre pasa a Bullet journal");
+  ok(await p.locator("#modal .alb-paginas .alb--bujo").count() === 1 && await p.evaluate(() => STATE.album.meses["2026-10"].estilo) === "bujo", "octubre pasa a Bullet journal");
   await shot(p, "album-bujo");
   ok(await notasVisibles(), "en Bullet journal, las notas también se ven enteras");
 
@@ -150,10 +150,10 @@ module.exports = async ({ b, ok, errs }) => {
   await p.waitForTimeout(300);
   await p.click('#modal .alb-estilos [data-v="revista"]'); await p.waitForTimeout(400);
   const titular = await p.evaluate(() => { const a = STATE.album.meses["2026-10"]; return a.fotos.find(f => f.id === a.portada).comentario; });
-  ok(await p.locator("#modal .alb--revista .rv-fondo img").count() === 1 && (await p.locator("#modal .rv-tit b").innerText()).toLowerCase() === titular.toLowerCase()
-    && await p.locator("#modal .rv-nota").count() === 2 && await notasVisibles(), "Revista: la portada de fondo, su nota de titular y las otras dos «en este número»");
+  ok(await p.locator("#modal .alb-paginas .alb--revista .rv-fondo img").count() === 1 && (await p.locator("#modal .alb-paginas .rv-tit b").innerText()).toLowerCase() === titular.toLowerCase()
+    && await p.locator("#modal .alb-paginas .rv-nota").count() === 2 && await notasVisibles(), "Revista: la portada de fondo, su nota de titular y las otras dos «en este número»");
   await p.click('#modal .alb-estilos [data-v="noche"]'); await p.waitForTimeout(400);
-  ok(await p.locator("#modal .alb--noche .no-f").count() === 3 && await p.locator("#modal .no-lineas polyline").count() === 1 && await notasVisibles(), "Noche estrellada: 3 estrellas unidas por la constelación, con sus notas");
+  ok(await p.locator("#modal .alb-paginas .alb--noche .no-f").count() === 3 && await p.locator("#modal .alb-paginas .no-lineas polyline").count() === 1 && await notasVisibles(), "Noche estrellada: 3 estrellas unidas por la constelación, con sus notas");
   await p.click('#modal .alb-estilos [data-v="bujo"]'); await p.waitForTimeout(300);
 
   // 9) La estantería del año

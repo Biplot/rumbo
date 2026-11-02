@@ -1,5 +1,5 @@
 /* Pruebas en navegador · Rediseño de módulos: Calendario, Diario, Salud (recetas y entrenar), Notas y Tienda */
-const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
+const { URL, nuevoContexto, registrar, shot, elegirEn } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { fecha: "2026-09-23T10:00:00", w: 390, h: 844 });
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message)); p.on("dialog", d => d.accept());
@@ -74,7 +74,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.locator('.mas-mod[data-route="entrenamiento"]').count() === 0, "Entrenamiento ya no aparece como módulo aparte");
   await p.keyboard.press("Escape");
   await p.click('[data-action="rutina-nueva"]'); await p.waitForTimeout(200);
-  await p.fill("#ru-nombre", "Piernas"); await p.selectOption("#ru-dow", "2"); await p.click('[data-action="rutina-guardar"]'); await p.waitForTimeout(250);
+  await p.fill("#ru-nombre", "Piernas"); await elegirEn(p, "ru-dow", "2"); await p.click('[data-action="rutina-guardar"]'); await p.waitForTimeout(250);
   ok((await p.locator(".hoy-entreno").innerText()).includes("Piernas"), "una rutina asignada al miércoles aparece como la de hoy");
   await p.click('[data-action="ejercicio-nuevo"]'); await p.waitForTimeout(200);
   await p.fill("#ej-nombre", "Sentadilla"); await p.fill("#ej-series", "4 × 10"); await p.fill("#ej-peso", "60 kg"); await p.click('[data-action="ejercicio-guardar"]'); await p.waitForTimeout(250);

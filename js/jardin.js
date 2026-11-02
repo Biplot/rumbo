@@ -208,7 +208,9 @@ function jardinHojaHtml() {
       <span class="jar-barra" aria-hidden="true"><i style="width:${Math.round(Math.min(1, m.dias / JARDIN_RAICES) * 100)}%;background:${m.color}"></i></span></div></div>`; };
   const arbol = a => `<div class="jar-item"><span class="hab-ico">${typeof icoHab === "function" ? icoHab(a.icon, 18) : ""}</span>
       <div class="jar-item__main"><b>${escapeHtml(a.nombre)}</b><span class="text-xs muted">${a.hojas ? "Echó raíces 🌳" : "Sin hojas por ahora: vuelve a hacerlo y reverdece"}</span></div></div>`;
-  const estilos = JARDIN_ESTILOS.filter(x => jardinEstiloTuyo(x.id));
+  const costo = cos => { const it = typeof COSMETICOS !== "undefined" ? COSMETICOS.find(x => x.id === cos) : null; return it ? it.costo : 0; };
+  const estilos = JARDIN_ESTILOS.map(x => ({ v: x.id, nombre: x.nombre, desc: x.desc, lock: jardinEstiloTuyo(x.id) ? null : { precio: costo(x.cos), key: "cos:" + x.cos },
+    thumb: `<canvas class="jar-ficha" data-jardin="${x.id}" data-modo="muestra" style="aspect-ratio:${x.w}/${x.h}" aria-hidden="true"></canvas>` }));
   return `<div class="jar-hoja">
     ${jardinCanvasHtml("jar-cv", 'data-vivo="1"')}
     <p class="jar-lectura">Esta semana: <b>${jardinCieloTxt(e.c)}</b>${e.pct != null ? ` · cumpliste el ${e.pct} % de lo que tocaba` : ""}.</p>
@@ -218,8 +220,7 @@ function jardinHojaHtml() {
     <div class="agua-sec"><span class="cj-sub">En el patio · los que echaron raíces</span>
       ${e.arboles.length ? e.arboles.map(arbol).join("") : `<p class="text-sm muted" style="margin:0">Cuando un hábito cumpla ${JARDIN_RAICES} días, tu elefante lo trasplanta aquí como árbol.</p>`}</div>
     <div class="agua-sec"><span class="cj-sub">Estilo</span>
-      <div class="jar-estilos">${estilos.map(x => `<button type="button" class="chip${x.id === est ? " is-on" : ""}" data-action="jar-estilo" data-v="${x.id}" aria-pressed="${x.id === est}">${escapeHtml(x.nombre)}</button>`).join("")}
-        ${estilos.length < JARDIN_ESTILOS.length ? `<button type="button" class="chip" data-action="jar-tienda">＋ Más estilos en la Tienda</button>` : ""}</div></div>
+      ${elGaleria(estilos, est, { accion: "jar-estilo", cls: "el-gal--ancha jar-estilos", label: "Estilo del jardín" })}</div>
     <label class="jar-check"><input type="checkbox" id="jar-inicio" data-action="jar-inicio" ${j.inicio !== false ? "checked" : ""}> Mostrarlo en Inicio, sobre tus hábitos de hoy</label>
     <details class="jar-como"><summary>Cómo funciona</summary>
       <ul><li><b>${JARDIN_MACETAS} macetas</b> para los hábitos que estás formando. Si tienes más, eliges cuáles; los demás siguen en Hábitos.</li>
@@ -235,8 +236,7 @@ function jardinMacetasHtml() {
   const e = jardinEscena(), sel = new Set(e.macetas.map(m => m.id));
   return `<div class="jar-hoja" id="jar-elegir">
     <p class="text-sm muted" style="margin:0">Elige hasta ${JARDIN_MACETAS} hábitos para formar ahora. Los demás siguen en Hábitos como siempre; la planta guarda lo que creció si la cambias.</p>
-    <div class="jar-opciones">${e.formando.map(h => `<label class="jar-opcion"><input type="checkbox" value="${escapeAttr(h.id)}" ${sel.has(h.id) ? "checked" : ""} data-action="jar-marca">
-      <span class="hab-ico">${typeof icoHab === "function" ? icoHab(h.icon, 18) : ""}</span><span class="jar-opcion__n">${escapeHtml(h.nombre)}</span><span class="text-xs muted">${h.dias} de ${JARDIN_RAICES} días</span></label>`).join("")}</div>
+    ${elCasillas(e.formando.map(h => [h.id, `${typeof icoHab === "function" ? icoHab(h.icon, 18) : ""} ${escapeHtml(h.nombre)}`, { sub: `${h.dias} de ${JARDIN_RAICES} días`, attrs: 'data-action="jar-marca"' }]), [...sel], { tope: JARDIN_MACETAS, label: "Tus macetas" })}
     <button type="button" class="btn btn--primary btn-block" data-action="jar-macetas-ok">Guardar mis macetas</button>
   </div>`;
 }

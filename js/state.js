@@ -23,6 +23,7 @@ function ambitoDe(t) { return t && t.ambito === "pro" ? "pro" : "per"; }
 
 /* Colores de lomo para los libros de la biblioteca (paleta BiPlot + armónicos) */
 const LECT_COLORS = ["#17C3B2", "#FF6B4A", "#0E2A47", "#6C63FF", "#F4A63B", "#2E9E7B", "#E5527A", "#3E8BD6"];
+const LECT_COLORES_NOMBRES = ["Turquesa", "Coral", "Azul noche", "Violeta", "Ámbar", "Verde", "Frambuesa", "Azul"];
 
 /* -------- Datos por defecto (precargados desde tu bullet journal) -------- */
 function defaultState() {

@@ -8,20 +8,21 @@ let CAL_MONTH = new Date().getMonth();
 
 /* Selector de meses reutilizable */
 function monthsSelector(current, action) {
-  return `<div class="months">${MESES_CORTO.map((m, i) =>
-    `<button class="${i === current ? "is-active" : ""}" data-action="${action}" data-m="${i}" title="${MESES[i]}">${m}</button>`).join("")}</div>`;
+  return `<div class="filtros months" role="tablist" aria-label="Mes">${MESES_CORTO.map((m, i) =>
+    `<button role="tab" class="${i === current ? "is-active" : ""}" aria-selected="${i === current}" data-action="${action}" data-m="${i}" aria-label="${MESES[i]}" title="${MESES[i]}">${m}</button>`).join("")}</div>`;
 }
 // Navegador de mes compacto: ‹ [mes ▾] año › — mucho más limpio en móvil que la tira de 12 botones.
 // `action` = acción de click para las flechas (data-m); `sel` = nombre para el <select> (data-month-nav).
+function monthNavElegir(v, btn, cont) { setMonthNav(cont.dataset.monthNav, +v); }
 function monthNav(current, action, sel) {
   const prev = (current + 11) % 12, next = (current + 1) % 12;
-  const opts = MESES.map((m, i) => `<option value="${i}" ${i === current ? "selected" : ""}>${m}</option>`).join("");
+  EL_LISTAS["mnav-" + sel] = { ops: MESES.map((m, i) => ({ v: String(i), t: m })), label: "Elegir mes", fn: "monthNavElegir" };
   return `<div class="mnav">
     <button class="mnav__arrow" data-action="${action}" data-m="${prev}" aria-label="Mes anterior">‹</button>
-    <label class="mnav__center">
-      <select class="mnav__sel" data-month-nav="${sel}" aria-label="Elegir mes">${opts}</select>
-      <span class="mnav__year">${anioVista()}</span>
-    </label>
+    <input type="hidden" id="mnav-${sel}" value="${current}">
+    <button type="button" class="mnav__center" data-el="lista-fila" data-el-id="mnav-${sel}" data-el-fn="monthNavElegir" data-month-nav="${sel}" aria-haspopup="dialog" aria-label="Elegir mes: ${MESES[current]} ${anioVista()}">
+      <span class="mnav__sel el-fila__t">${MESES[current]}</span><span class="mnav__year">${anioVista()}</span>
+    </button>
     <button class="mnav__arrow" data-action="${action}" data-m="${next}" aria-label="Mes siguiente">›</button>
   </div>`;
 }
@@ -270,7 +271,7 @@ function renderHabitos() {
   const racha = computeStreak();
   const head = `
   <div class="hab-head">
-    <div class="seg seg--full" role="tablist" aria-label="Vista">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${vista === k}" class="${vista === k ? "is-active" : ""}" data-action="habit-vista" data-v="${k}">${l}</button>`).join("")}</div>
+    <div class="filtros hab-vista" role="tablist" aria-label="Vista">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${vista === k}" class="${vista === k ? "is-active" : ""}" data-action="habit-vista" data-v="${k}">${l}</button>`).join("")}</div>
     <div class="row" style="gap:8px;flex-wrap:wrap">
       <button class="btn-ghost" data-action="dsc-vacaciones" title="Días de vacaciones: no cortan tu racha">${icoUI("tree-palm")} Vacaciones</button>
       <button class="btn-ghost" data-action="plantillas-open" title="Plantillas de rutina">${icoHab("📋", 16)} Plantillas</button>
@@ -437,28 +438,26 @@ function openHabitModal(id, op) {
   const h = id ? STATE.habitos.defs.find(x => x.id === id) : null;
   HABIT_EDIT = h ? h.id : null;
   const f = h ? hmFreq(h) : { tipo: "diario" };
-  const icon = h ? h.icon : "🏋️", sel = iconoDeEmoji(icon);
+  const icon = h ? h.icon : "🏋️";
   // Los íconos de línea (iconos.js), sin repetir dibujo; cada uno guarda su emoji de siempre
   const vistos = new Set(), iconos = [icon].concat(["🏋️","📖","✏️","🎵","🥗","💧","🧘","💊","🏃","☀️","🛏️","🚭","🧹","💻","📞","🙏"], iconosExtra())
     .filter(ic => { const m = iconoDeEmoji(ic), k = m ? m[0] : ic; if (vistos.has(k)) return false; vistos.add(k); return true; });
-  const tipos = [["diario", "Diario"], ["semanal", "X por semana"], ["dias", "Días fijos"], ["mensual", "X al mes"]];
-  const dias = f.tipo === "dias" ? f.dias : [0, 2, 4];
+  const tipos = [["diario", "Diario"], ["semanal", "Por semana"], ["dias", "Días fijos"], ["mensual", "Al mes"]];
+  const dias = f.tipo === "dias" ? f.dias : [0, 2, 4], mensual = f.tipo === "mensual";
+  const DIAS_L = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
   openModal(h ? "Editar hábito" : "Nuevo hábito", `
-    <div class="field"><label>Nombre del hábito</label><input class="input" id="h-nombre" value="${escapeAttr(h ? h.nombre : "")}" placeholder="Ej: Meditar"></div>
+    <div class="field"><label for="h-nombre">Nombre del hábito</label><input class="input" id="h-nombre" value="${escapeAttr(h ? h.nombre : "")}" placeholder="Ej: Meditar"></div>
     <div class="field"><label>Ícono</label>
-      <div class="row-wrap ico-picks" id="h-iconos">${iconos.map(ic => { const m = iconoDeEmoji(ic), nombre = m ? m[1] : ic;
-        return `<button type="button" class="btn--soft btn ico-pick ${ic === icon || (m && sel && m[0] === sel[0]) ? "btn--cian" : ""}" data-ic="${ic}" aria-label="${escapeAttr(nombre)}" title="${escapeAttr(nombre)}" onclick="pickIcon(this)">${icoHab(ic, 22)}</button>`; }).join("")}</div>
-      <input type="hidden" id="h-icon" value="${icon}">
+      ${elGaleria(iconos.map(ic => { const m = iconoDeEmoji(ic); return { v: ic, nombre: m ? m[1] : ic, thumb: icoHab(ic, 22) }; }), icon, { id: "h-icon", contId: "h-iconos", cls: "el-gal--ico", attr: "ic", label: "Ícono del hábito" })}
       ${PACKS_ICONOS.some(p => !funcion("iconos-" + p.id)) ? `<div class="text-xs muted mt-8">${iconoSvg("palette", 14)} Más íconos (deporte, estudio, hogar, bienestar) en la Tienda.</div>` : ""}</div>
     ${djFormHtml(h)}
     <div class="field" id="h-freq-box" ${h && hmMeta(h) !== "hacer" ? "hidden" : ""}><label>Frecuencia objetivo</label>
-      <div class="seg" id="h-tipo-seg" style="flex-wrap:wrap">${tipos.map(([k, l]) => `<button type="button" class="${f.tipo === k ? "is-active" : ""}" data-v="${k}" onclick="habitTipoPick(this)">${l}</button>`).join("")}</div>
-      <input type="hidden" id="h-tipo" value="${f.tipo}">
+      ${elTramos("h-tipo", tipos, f.tipo, { label: "Frecuencia objetivo", fn: "habitTipoElegir", attrs: 'id="h-tipo-seg"' })}
       <div id="h-veces-box" class="mt-8" ${f.tipo === "semanal" || f.tipo === "mensual" ? "" : "hidden"}>
-        <label class="text-xs muted">Veces por <span id="h-veces-per">${f.tipo === "mensual" ? "mes (1–25)" : "semana (1–6)"}</span></label>
-        <input class="input" type="number" id="h-veces" min="1" max="${f.tipo === "mensual" ? 25 : 6}" value="${f.veces || 3}" style="max-width:120px"></div>
+        <label class="text-xs muted">Veces <span id="h-veces-per">${mensual ? "al mes" : "por semana"}</span></label>
+        ${elContador("h-veces", f.veces || 3, { min: 1, max: mensual ? 25 : 6, label: "Veces", unidad: "veces" })}</div>
       <div id="h-dias-box" class="mt-8" ${f.tipo === "dias" ? "" : "hidden"}>
-        <div class="row-wrap" id="h-dias">${HM_DIAS.map((d, i) => `<label class="dia-pick"><input type="checkbox" value="${i}" ${dias.includes(i) ? "checked" : ""}> ${["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][i]}</label>`).join("")}</div></div>
+        ${elFichas(HM_DIAS.map((d, i) => [i, DIAS_L[i][0], { aria: DIAS_L[i] }]), dias, { id: "h-dias", dias: true, label: "Días fijos" })}</div>
       <div class="text-xs muted mt-8">Se mide contra este objetivo, no contra 7 días. La semana va de lunes a domingo.</div></div>
     <div id="h-cj-box" ${h && hmMeta(h) !== "hacer" ? "hidden" : ""}>${cjSeccionModal(h, op && op.amigos)}</div>
     ${h && hmMeta(h) === "hacer" ? dscHojaHtml(h) : ""}
@@ -466,20 +465,15 @@ function openHabitModal(id, op) {
     <button class="btn btn--primary btn-block mt-8" data-action="habit-save">${h ? "Guardar cambios" : "Crear hábito"}</button>
     ${h ? `<button class="btn-ghost btn-block mt-8" data-action="habit-del" data-id="${h.id}" style="color:var(--coral);border-color:var(--coral)">🗑 Eliminar hábito</button>` : ""}`);
 }
-function habitTipoPick(btn) {
-  segPick(btn, "h-tipo");
-  const t = btn.dataset.v;
+function habitTipoElegir(t) {
   document.getElementById("h-veces-box").hidden = !(t === "semanal" || t === "mensual");
   document.getElementById("h-dias-box").hidden = t !== "dias";
-  const v = document.getElementById("h-veces");
-  v.max = t === "mensual" ? 25 : 6;
-  document.getElementById("h-veces-per").textContent = t === "mensual" ? "mes (1–25)" : "semana (1–6)";
+  const c = document.querySelector('[data-el="contador"][data-el-id="h-veces"]');
+  if (c) { const max = t === "mensual" ? 25 : 6; c.dataset.max = max; if (+c.dataset.v > max) { c.dataset.v = max; document.getElementById("h-veces").value = max; } elContadorPintar(c); }
+  document.getElementById("h-veces-per").textContent = t === "mensual" ? "al mes" : "por semana";
 }
-function pickIcon(btn) {
-  document.getElementById("h-icon").value = btn.dataset.ic;
-  document.querySelectorAll("#h-iconos .btn").forEach(b => b.classList.remove("btn--cian"));
-  btn.classList.add("btn--cian");
-}
+/* (antes: los tramos llamaban a esto al tocarlos; se deja para quien lo use desde fuera) */
+function habitTipoPick(btn) { if (btn) btn.click(); }
 /* Lee la frecuencia del formulario del modal */
 function leerFrecuencia() {
   const tipo = val("h-tipo") || "diario";
@@ -628,8 +622,7 @@ function renderLecturas() {
   /* Filtros */
   const conteo = { todos: libros.length, leyendo: leyendo.length, "por-leer": porLeer.length, terminado: terminados.length };
   const tabs = [["todos", "Todos"], ["leyendo", "Leyendo"], ["por-leer", "Por leer"], ["terminado", "Terminados"]];
-  const filtros = `<div class="seg lect-seg mt-24">${tabs.map(([k, lbl]) =>
-    `<button class="${LECT_FILTER === k ? "is-active" : ""}" data-action="lect-filter" data-f="${k}">${lbl} <span class="seg-count">${conteo[k]}</span></button>`).join("")}</div>`;
+  const filtros = `<div class="mt-24">${elFiltros(tabs.map(([k, lbl]) => [k, lbl, conteo[k]]), LECT_FILTER, { accion: "lect-filter", attr: "f", label: "Qué libros ver", cls: "lect-seg" })}</div>`;
 
   /* Grilla de libros */
   const visibles = LECT_FILTER === "todos" ? libros : libros.filter(l => l.estado === LECT_FILTER);
@@ -660,20 +653,14 @@ function renderLecturas() {
 function openLibroModal(id) {
   const l = id ? STATE.lecturas.find(x => x.id === id) : null;
   const colorSel = l ? l.color : LECT_COLORS[0];
-  const colores = LECT_COLORS.map(c =>
-    `<button type="button" class="swatch ${c === colorSel ? "is-on" : ""}" data-action="libro-color" data-c="${c}" style="background:${c}"></button>`).join("");
-  const opt = (v, lbl) => `<option value="${v}" ${l && l.estado === v ? "selected" : ""}>${lbl}</option>`;
-  const optStar = n => `<option value="${n}" ${l && +l.valoracion === n ? "selected" : ""}>${n === 0 ? "Sin valorar" : "★".repeat(n) + " (" + n + ")"}</option>`;
+  const colores = elMuestras(LECT_COLORS.map((c, i) => ({ v: c, color: c, nombre: LECT_COLORES_NOMBRES[i] || "Color" })), colorSel, { id: "lb-color", label: "Color del lomo" });
   openModal(id ? "Editar libro" : "Nuevo libro", `
     <input type="hidden" id="lb-id" value="${id || ""}">
-    <input type="hidden" id="lb-color" value="${colorSel}">
     <div class="field"><label>Título</label><input class="input" id="lb-titulo" placeholder="Ej: Hábitos atómicos" value="${l ? escapeAttr(l.titulo) : ""}"></div>
     <div class="field"><label>Autor</label><input class="input" id="lb-autor" placeholder="Ej: James Clear" value="${l ? escapeAttr(l.autor) : ""}"></div>
+    <div class="field"><label>Estado</label>${elTramos("lb-estado", [["por-leer", "Por leer"], ["leyendo", "Leyendo"], ["terminado", "Terminado"]], l ? l.estado : "por-leer", { label: "Estado del libro" })}</div>
+    <div class="field"><label>Valoración <span class="text-xs muted">(toca de nuevo para quitarla)</span></label>${elEscala("lb-valoracion", l ? +l.valoracion || 0 : 0, { ico: "estrella", cero: true, label: "Valoración, de 1 a 5 estrellas", etiquetas: ["1 estrella", "2 estrellas", "3 estrellas", "4 estrellas", "5 estrellas"] })}</div>
     <div class="row">
-      <div class="field" style="flex:1;margin-bottom:0"><label>Estado</label><select class="select" id="lb-estado">${opt("por-leer", "Por leer")}${opt("leyendo", "Leyendo")}${opt("terminado", "Terminado")}</select></div>
-      <div class="field" style="flex:1;margin-bottom:0"><label>Valoración</label><select class="select" id="lb-valoracion">${optStar(0)}${optStar(1)}${optStar(2)}${optStar(3)}${optStar(4)}${optStar(5)}</select></div>
-    </div>
-    <div class="row mt-16">
       <div class="field" style="flex:1;margin-bottom:0"><label>Página actual</label><input class="input" type="number" min="0" id="lb-pagina" value="${l ? (l.pagina || 0) : 0}"></div>
       <div class="field" style="flex:1;margin-bottom:0"><label>Páginas totales</label><input class="input" type="number" min="0" id="lb-paginas" placeholder="Ej: 296" value="${l && l.paginas ? l.paginas : ""}"></div>
     </div>
@@ -689,7 +676,7 @@ function openLibroModal(id) {
         </div>
       </div>
     </div>
-    <div class="field"><label>Color del lomo <span class="text-xs muted">(si no pones portada)</span></label><div class="swatches">${colores}</div></div>
+    <div class="field"><label>Color del lomo <span class="text-xs muted">(si no pones portada)</span></label>${colores}</div>
     ${l ? ljLibroHtml(l) : ""}
     <div class="row" style="margin-top:6px">
       <button class="btn btn--primary" style="flex:1" data-action="libro-save">${id ? "Guardar cambios" : "Agregar a mi biblioteca"}</button>
@@ -742,11 +729,8 @@ function renderRueda() {
   const prom = (vals.reduce((a, b) => a + b, 0) / areas.length).toFixed(1);
 
   const sliders = areas.map((a, k) => `
-    <div class="field" style="margin-bottom:12px">
-      <div class="flex-between"><label style="margin:0">${a}</label><span class="chip chip--cian" id="rv-${k}">${vals[k]}</span></div>
-      <input type="range" min="0" max="10" step="1" style="width:100%;accent-color:var(--cian)"
-        data-bind="${pre}rueda.meses.${i}.${k}" data-type="num" data-live value="${vals[k]}">
-    </div>`).join("");
+    <div class="field" style="margin-bottom:8px">${elNota("rv-r-" + k, vals[k], { min: 0, max: 10, titulo: escapeHtml(a), label: a,
+      attrs: `data-bind="${pre}rueda.meses.${i}.${k}" data-type="num" data-live` })}<span id="rv-${k}" hidden>${vals[k]}</span></div>`).join("");
 
   return `
   ${selectorAnio()}

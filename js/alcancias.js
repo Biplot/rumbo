@@ -335,7 +335,7 @@ function openAlcOtro(id) {
   const a = alcPorId(id); if (!a) return;
   openModal("¿Cuánto guardaste?", `<div class="alc-otro" id="alc-otro">
     <p class="text-sm muted" style="margin:0 0 10px">En «${escapeHtml(a.nombre)}».</p>
-    <div class="agua-chips">${alcRapidos().map(v => `<button type="button" class="chip" data-action="alc-otro-ok" data-id="${escapeAttr(id)}" data-monto="${v}">${fmtCLP(v)}</button>`).join("")}</div>
+    <div class="rapidas" role="group" aria-label="Guardar un monto">${alcRapidos().map(v => `<button type="button" data-action="alc-otro-ok" data-id="${escapeAttr(id)}" data-monto="${v}">+ ${fmtCLP(v)}</button>`).join("")}</div>
     <div class="alc-otro__f"><input class="input" id="alc-otro-monto" type="text" inputmode="numeric" placeholder="Otro monto" aria-label="Monto"
       onkeydown="if(event.key==='Enter'){event.preventDefault();alcAccion('alc-otro-ok',{id:'${escapeAttr(id)}'})}">
       <button type="button" class="btn btn--cian" data-action="alc-otro-ok" data-id="${escapeAttr(id)}">Guardar</button></div>

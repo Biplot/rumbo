@@ -243,7 +243,8 @@ function semAperturaPaso(w) {
         <input type="hidden" id="sp-id-${i}" value="${escapeAttr(p.id || "")}">
         <div class="row" style="gap:8px">${ambitoPicker("sp-a-" + i, p.ambito, true)}
           <input class="input" id="sp-t-${i}" value="${escapeAttr(p.texto)}" placeholder="Prioridad ${i + 1}${i ? " (opcional)" : ""}" style="flex:1;min-width:0"></div>
-        ${objs.length ? `<select class="select" id="sp-o-${i}"><option value="">— Sin vínculo con un objetivo de ${MESES[m]} —</option>${objs.filter(o => !o.done || o.id === p.objId).map(o => `<option value="${o.id}" ${p.objId === o.id ? "selected" : ""}>🎯 ${escapeHtml(o.texto)}</option>`).join("")}</select>` : ""}
+        ${objs.length ? elLista("sp-o-" + i, [{ v: "", t: `Sin vínculo con un objetivo de ${MESES[m]}` }].concat(objs.filter(o => !o.done || o.id === p.objId).map(o => ({ v: o.id, t: "🎯 " + o.texto }))), p.objId || "",
+          { hoja: true, label: `Prioridad ${i + 1}: ¿a qué objetivo de ${MESES[m]} apunta?`, vacio: `Sin vínculo con un objetivo de ${MESES[m]}` }) : ""}
       </div>`).join("");
     return `<div class="field"><label>Foco de la semana (una palabra o tema)</label>
         <input class="input" id="sw-foco" value="${escapeAttr(d.foco)}" placeholder="Ej: Cerrar el proyecto, Descanso, Ventas">
@@ -258,8 +259,8 @@ function semAperturaPaso(w) {
     const lim = cap ? Math.ceil(cap.hechasProm) + 1 : null;
     const fechas = Array.from({ length: 7 }, (_, i) => agSumar(w.lunes, i));
     const conTexto = d.prioridades.map((p, i) => ({ p, i })).filter(x => x.p.texto);
-    const selDia = ({ p, i }) => `<div class="row" style="gap:8px;margin-bottom:6px"><span class="text-sm" style="flex:1;min-width:0">🎯 ${escapeHtml(p.texto)}</span>
-      <select class="select" id="sp-d-${i}" style="max-width:130px" onchange="semWizDiaPrioridad(${i}, this.value)"><option value="">Sin día</option>${fechas.filter(iso => iso >= hoy).map(iso => `<option value="${iso}" ${p.dia === iso ? "selected" : ""}>${diaCorto(iso)}</option>`).join("")}</select></div>`;
+    const selDia = ({ p, i }) => `<div class="semw-prio"><span class="text-sm">🎯 ${escapeHtml(p.texto)}</span>
+      ${elLista("sp-d-" + i, [{ v: "", t: "Sin día" }].concat(fechas.filter(iso => iso >= hoy).map(iso => ({ v: iso, t: diaCorto(iso) }))), p.dia || "", { hoja: true, label: `¿Qué día avanzas «${p.texto}»?`, vacio: "Sin día", fn: "semWizDiaElegir" })}</div>`;
     const dias = fechas.map((iso, i) => {
       const ex = tareasDelDia(iso).filter(t => tareaAbierta(t) || estadoTarea(t) === "hecha");
       const prios = conTexto.filter(({ p }) => p.dia === iso && !ex.some(t => t.prioridad === p.id || t.txt === p.texto)).map(x => x.p);
@@ -289,11 +290,12 @@ function semAperturaPaso(w) {
   return `<div class="field"><label>🏆 Tu premio de la semana</label>
       <input class="input" id="sw-premio" value="${escapeAttr(d.premio)}" placeholder="¿Con qué te vas a premiar al cumplir tus prioridades?"></div>
     <div class="field"><label>✨ Hábitos en foco (elige hasta 3)</label>
-      ${activos.length ? activos.map(h => `<label class="mes-hab" style="cursor:pointer"><span class="mes-hab__n">${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)} <span class="text-xs muted">· ${hmFreqLabel(h)}</span></span>
-        <input type="checkbox" class="sw-hab" value="${h.id}" ${d.habitosFoco.includes(h.id) ? "checked" : ""} onchange="semHabLimite(this)"></label>`).join("")
+      ${activos.length ? elFichas(activos.map(h => [h.id, `${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)}`, { aria: `${h.nombre} · ${hmFreqLabel(h)}` }]), d.habitosFoco, { cls: "sw-hab", tope: 3, label: "Hábitos en foco, hasta 3" })
       : `<div class="empty">No tienes hábitos activos.</div>`}
       <p class="text-xs muted mt-8">Los verás con su avance de la semana en Ritual → Semana.</p></div>`;
 }
+/* El día de una prioridad, elegido en su lista */
+function semWizDiaElegir(v, btn, cont) { semWizDiaPrioridad(+String(cont.dataset.elId).split("-").pop(), v); }
 function semHabLimite(cb) {
   if (cb.checked && document.querySelectorAll(".sw-hab:checked").length > 3) { cb.checked = false; toast("Elige hasta 3 hábitos en foco", true); }
 }
@@ -335,9 +337,7 @@ function semCierrePaso(w) {
         <div class="seg">${segP(true, "🎉 ¡Sí!")}${segP(false, "Esta vez no")}</div>
         <input type="hidden" id="sc-premio" value="${d.premioGanado == null ? "" : d.premioGanado ? 1 : 0}"></div>` : ""}`;
   }
-  return `<div class="field"><label>Nota de la semana: <b id="sc-nl" style="font-size:20px">${d.nota}</b>/10</label>
-    <input type="range" min="1" max="10" step="1" id="sc-nota" value="${d.nota}" style="width:100%;accent-color:var(--cian)"
-      oninput="document.getElementById('sc-nl').textContent=this.value"></div>
+  return `<div class="field"><label for="sc-nota">Nota de la semana</label>${elNota("sc-nota", d.nota, { label: "Nota de la semana" })}</div>
     <p class="text-xs muted">📔 El cierre queda también en tu Diario.${w.siguiente ? " Al guardar, sigues con la planificación de la próxima semana." : ""}</p>`;
 }
 
@@ -503,20 +503,16 @@ function openRecurrentes() {
     <div class="field"><label>Nueva tarea recurrente</label>
       <div class="row" style="gap:8px">${ambitoPicker("rec-amb", "pro", true)}<input class="input" id="rec-txt" placeholder="Ej: Pagar el arriendo" style="flex:1;min-width:0"></div></div>
     <div class="field"><label>¿Cada cuánto?</label>
-      <div class="seg" id="rec-tipo-seg" style="display:inline-flex">
-        <button type="button" data-v="semanal" class="is-active" onclick="recTipo(this)">Días de la semana</button>
-        <button type="button" data-v="diaria" onclick="recTipo(this)">Todos los días</button>
-        <button type="button" data-v="mensual" onclick="recTipo(this)">Una vez al mes</button></div>
-      <input type="hidden" id="rec-tipo" value="semanal">
-      <div class="row-wrap mt-8" id="rec-dias" style="gap:6px">${dias.map((d, i) => `<label class="chip" style="cursor:pointer"><input type="checkbox" class="rec-dia" value="${i}" ${i === 0 ? "checked" : ""}> ${d}</label>`).join("")}</div>
-      <div class="row mt-8" id="rec-mes" hidden style="gap:8px"><span class="text-sm">El día</span><input class="input" id="rec-dia-mes" type="number" min="1" max="31" value="5" style="width:80px"><span class="text-sm">de cada mes</span></div></div>
+      ${elTramos("rec-tipo", [["semanal", "Algunos días"], ["diaria", "Todos los días"], ["mensual", "Una vez al mes"]], "semanal", { label: "¿Cada cuánto?", fn: "recTipoElegir", attrs: 'id="rec-tipo-seg"' })}
+      <div class="mt-8" id="rec-dias">${elFichas(dias.map((d, i) => [i, d, { aria: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"][i] }]), [0], { cls: "rec-dia", dias: true, label: "Qué días" })}</div>
+      <div class="mt-8" id="rec-mes" hidden><span class="text-xs muted">El día de cada mes</span>${elContador("rec-dia-mes", 5, { min: 1, max: 31, label: "El día de cada mes" })}</div></div>
     <button class="btn btn--primary btn-block" data-action="rec-save">Agregar</button>`);
 }
-function recTipo(btn) {
-  segPick(btn, "rec-tipo");
-  document.getElementById("rec-dias").hidden = btn.dataset.v !== "semanal";
-  document.getElementById("rec-mes").hidden = btn.dataset.v !== "mensual";
+function recTipoElegir(v) {
+  document.getElementById("rec-dias").hidden = v !== "semanal";
+  document.getElementById("rec-mes").hidden = v !== "mensual";
 }
+function recTipo(btn) { if (btn) btn.click(); }
 function guardarRecurrente() {
   const txt = val("rec-txt");
   if (!txt) return toast("Escribe la tarea", true);
@@ -649,7 +645,7 @@ function renderSemana() {
     <div class="card mt-16">${registroFuturoHtml(agSumar(L, 7), 6)}</div>
   </details>
   <details class="hb-more mt-16"><summary>⚙️ Tu día de ritual semanal${hist ? " y semanas anteriores" : ""}</summary>
-    <div class="card mt-16"><div class="seg" style="display:inline-flex">${segDia}</div>
+    <div class="card mt-16"><div class="seg" role="group" aria-label="Tu día de ritual semanal" style="max-width:320px">${segDia}</div>
       <p class="text-xs muted mt-16">Ese día cierras la semana y planificas la siguiente, todo seguido. Puedes cerrar desde el viernes en la tarde.
         ${STATE.settings.notif && STATE.settings.notif.enabled && avisosActivos(STATE.settings.notif).semana ? `Te avisaremos el ${dia ? "lunes en la mañana" : "domingo en la noche"}${dia ? " y el martes" : " y el lunes en la mañana"} si aún no planificas.` : "Activa las notificaciones para que te lo recordemos."}</p></div>
     ${hist ? `<div class="card mt-16">${hist}</div>` : ""}

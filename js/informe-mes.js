@@ -152,26 +152,36 @@ async function openInformeMes(key) {
 function renderInformeModal() {
   const op = INFORME_OP, d = datosInforme(op.key);
   const url = dibujarInforme(d, op).toDataURL("image/png");
-  const chk = (k, label, extra) => `<label class="chip" style="cursor:pointer"><input type="checkbox" ${op[k] ? "checked" : ""} onchange="informeOpcion('${k}', this.checked)"> ${label}${extra || ""}</label>`;
+  const chk = (k, label, extra) => [k, label + (extra || ""), { attrs: `onchange="informeOpcion('${k}', this.checked)"` }];
+  const ops = d.tarjetas ? [chk("nota", "Nota del año"), chk("ahorro", "Ahorro 💰")]
+    : [chk("foco", "Foco"), chk("nota", "Nota del mes", d.nota ? "" : " (al cerrar)"), chk("mejor", "Lo mejor del mes"), chk("ahorro", "Ahorro 💰")];
+  const costo = id => { const it = typeof COSMETICOS !== "undefined" ? COSMETICOS.find(x => x.id === id) : null; return it ? it.costo : 0; };
   openModal(`📤 Compartir ${d.mes}`, `
     <img src="${url}" alt="Vista previa del informe de ${d.mes}" class="informe-prev">
-    ${typeof PALETAS_INFORME !== "undefined" ? `<div class="text-xs muted mt-16">Diseño</div>
-    <div class="row-wrap mt-8" style="gap:6px">${Object.keys(PALETAS_INFORME).map(k => {
-      const tiene = k === "navy" || isOwned("pla-" + k);
-      return tiene ? `<button type="button" class="chip ${op.plantilla === k ? "chip--cian" : ""}" onclick="informeOpcion('plantilla','${k}')">${PALETAS_INFORME[k].nombre}</button>`
-        : `<a class="chip" href="#tienda" onclick="closeModal()" title="Se desbloquea en la Tienda">🔒 ${PALETAS_INFORME[k].nombre}</a>`;
-    }).join("")}</div>` : ""}
-    <div class="text-xs muted mt-16">Qué mostrar</div>
-    <div class="row-wrap mt-8" style="gap:6px">
-      ${d.tarjetas ? chk("nota", "Nota del año") + chk("ahorro", "Ahorro 💰")
-        : chk("foco", "Foco") + chk("nota", "Nota del mes", d.nota ? "" : " (al cerrar)") + chk("mejor", "Lo mejor del mes") + chk("ahorro", "Ahorro 💰")}
-    </div>
+    ${typeof PALETAS_INFORME !== "undefined" ? `<div class="cj-sub mt-16">Diseño</div>
+    <div class="mt-8">${elGaleria(Object.keys(PALETAS_INFORME).map(k => ({ v: k, nombre: PALETAS_INFORME[k].nombre,
+      lock: k === "navy" || isOwned("pla-" + k) ? null : { precio: costo("pla-" + k), key: "cos:pla-" + k },
+      thumb: `<img src="${informeMini(d, op, k)}" alt="">` })), op.plantilla, { fila: true, cls: "el-gal--alto informe-disenos", attr: "plantilla", fn: "informeDisenoElegir", id: "inf-diseno", label: "Diseño del informe" })}</div>` : ""}
+    <div class="cj-sub mt-16">Qué mostrar</div>
+    <div class="mt-8">${elFichas(ops, ops.filter(([k]) => op[k]).map(([k]) => k), { label: "Qué mostrar" })}</div>
     <div class="row mt-16" style="gap:8px">
       <button class="btn btn--primary" style="flex:1" data-action="informe-compartir">Compartir</button>
       <button class="btn btn--soft" data-action="informe-descargar">Descargar</button>
     </div>
     <p class="text-xs muted mt-8">La imagen se crea en tu equipo. Solo sale de la app si tú la compartes.</p>`);
 }
+/* Las miniaturas de cada diseño: el informe de verdad, en chico (se dibujan una vez por informe) */
+const INFORME_MINIS = {};
+function informeMini(d, op, k) {
+  const id = op.key + ":" + k;
+  if (!INFORME_MINIS[id]) {
+    const c = dibujarInforme(d, Object.assign({}, op, { plantilla: k })), w = 180, h = Math.round(c.height * w / c.width);
+    const m = document.createElement("canvas"); m.width = w; m.height = h; m.getContext("2d").drawImage(c, 0, 0, w, h);
+    INFORME_MINIS[id] = m.toDataURL("image/jpeg", .82);
+  }
+  return INFORME_MINIS[id];
+}
+function informeDisenoElegir(v) { informeOpcion("plantilla", v); }
 function informeOpcion(k, v) {
   INFORME_OP[k] = v;
   if (k === "plantilla") { STATE.gamif.equipped.plantilla = v; saveState(); }   // recuerda la última elegida

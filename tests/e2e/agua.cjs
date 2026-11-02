@@ -36,10 +36,15 @@ module.exports = async ({ b, ok, errs }) => {
     "«Tu agua»: los 5 vasos de hoy (el que deshiciste no está), los últimos 7 días y la botella grande");
   await p.locator('#modal [data-action="agua-quitar"]').first().click(); await p.waitForTimeout(400);
   ok(await p.locator("#modal .agua-reg").count() === 4 && await mov() === "anulado", "quitar un vaso de la lista lo resta (y bajo la meta, se devuelven las ⭐)");
-  await p.locator('#modal [data-action="agua-meta"][data-v="1500"]').click(); await p.waitForTimeout(400);
-  ok(await p.evaluate(() => aguaMeta()) === 1500 && await mov() === "dado" && /de 1,5 L/.test(await p.locator("#modal").innerText()), "elegir 1,5 L: ya la cumpliste, y las ⭐ se dan al tiro");
+  const meta = p.locator('#modal [data-el="contador"][data-el-id="agua-meta-v"]');
+  ok(await meta.locator('[data-d="-1"]').isDisabled() && /Automática · 2 L/.test(await p.locator("#modal").innerText()), "Tu meta: un contador; con «Automática» encendida, el − y el + esperan");
+  await p.click('#modal [data-el="auto"][data-el-cont="agua-meta-v"]'); await p.waitForTimeout(150);
+  for (let i = 0; i < 5; i++) await meta.locator('[data-d="-1"]').click();
+  await p.waitForFunction(() => aguaMeta() === 1500 && (STATE.gamif.ledger || []).some(x => x.id === "agua:" + todayISO() && !x.anulado), null, { timeout: 4000 }).catch(() => {});
+  ok(await p.evaluate(() => aguaMeta()) === 1500 && await mov() === "dado" && /de 1,5 L/.test(await p.locator("#modal").innerText()) && (await meta.locator("output").innerText()).startsWith("1,5"),
+    "apagar «Automática» y bajar de a 100 ml hasta 1,5 L: ya la cumpliste, y las ⭐ se dan al tiro · " + JSON.stringify(await p.evaluate(() => [aguaMeta(), aguaHoy()])) + " " + await mov() + " " + await meta.locator("output").innerText());
   await p.evaluate(() => { const n = new Date(); datosAnio(STATE, n.getFullYear(), true).salud.meses[n.getMonth()].peso = 80; saveState(); });
-  await p.locator('#modal [data-action="agua-meta"][data-v="0"]').click(); await p.waitForTimeout(400);
+  await p.click('#modal [data-el="auto"][data-el-cont="agua-meta-v"]'); await p.waitForTimeout(400);
   ok(await p.evaluate(() => aguaMeta()) === 2800 && /Automática · 2,8 L/.test(await p.locator("#modal").innerText()) && /80 kg/.test(await p.locator("#modal").innerText()), "la automática sale de tu peso: 80 kg × 35 ml = 2,8 L");
   ok(await ancho() <= 390, "la hoja cabe en el celular");
   await shot(p, "agua-hoja");
@@ -57,8 +62,18 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.locator(".agua-card canvas[data-agua='burbuja'][data-listo]").count() === 1 && await p.evaluate(() => aguaSabor()) === "frutilla", "Inicio: ahora la burbuja, con agua de frutilla");
   await p.locator(".agua-card").scrollIntoViewIfNeeded(); await shot(p, "agua-burbuja");
   await p.locator('.agua-card [data-action="agua-abrir"]').click(); await p.waitForTimeout(400);
-  ok(await p.locator('#modal [data-action="agua-estilo"]').count() === 2 && /6 estilos más en la Tienda/.test(await p.locator("#modal").innerText()) && await p.locator('#modal [data-action="agua-sabor"]').count() === 2,
-    "en la hoja se elige entre tus estilos (la botella y la burbuja) y tus sabores, con la invitación a los demás");
+  ok(/La burbuja/.test(await p.locator('#modal [data-action="agua-probador"]').innerText()) && /Frutilla · vaso de 250 ml/.test(await p.locator('#modal [data-action="agua-probador"]').innerText()),
+    "«Cómo se ve»: una fila con tu estilo, tu sabor y tu vaso");
+  await p.click('#modal [data-action="agua-probador"]'); await p.waitForTimeout(500);
+  ok(await p.locator('#modal [data-action="agua-estilo"]').count() === 2 && await p.locator('#modal .el-gal__op.is-lock').count() === 6 && await p.locator('#modal [data-action="agua-sabor"]').count() === 2
+    && await p.locator('#modal .el-mu__op.is-lock').count() === 3 && await p.locator('#modal .el-gal__op.is-on[data-v="burbuja"]').count() === 1 && await p.locator("#modal canvas[data-modo='muestra'][data-listo]").count() >= 8,
+    "el probador: tus estilos (la botella y la burbuja) y tus sabores, ya dibujados; los que faltan al final, con candado y su precio");
+  await p.click('#modal [data-action="agua-vaso"][data-v="300"]'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => aguaVaso()) === 300 && await p.locator('#modal .agua-vasos-el button.is-on[data-v="300"]').count() === 1, "el vaso se elige entre cuatro que crecen, y se guarda solo");
+  await p.click('#modal [data-action="agua-vaso"][data-v="250"]'); await p.waitForTimeout(300);
+  await p.locator('#modal .el-gal__op.is-lock[data-v="cantimplora"]').click(); await p.waitForTimeout(400);
+  ok(/cantimplora/i.test(await p.locator("#modalTitle").innerText()), "tocar uno con candado abre su ficha en la Tienda");
+  await p.evaluate(() => openAguaProbador()); await p.waitForTimeout(400);
   await p.locator('#modal [data-action="agua-estilo"][data-v="botella"]').click(); await p.waitForTimeout(300);
   ok(await p.evaluate(() => aguaEstilo()) === "botella", "y se vuelve a la botella cuando quieras");
 

@@ -62,7 +62,10 @@ module.exports = async ({ b, ok, errs }) => {
   await hoyVista();
   await p.click('[data-action="habit-add"]'); await p.waitForTimeout(200);
   await p.click('#h-meta-seg [data-v="reducir"]');
-  await p.fill("#h-nombre", "Café"); await p.fill("#h-lim-n", "2"); await p.fill("#h-unidad", "cafés"); await p.fill("#h-discreto", "Mi taza");
+  await p.fill("#h-nombre", "Café"); await p.fill("#h-unidad", "cafés"); await p.fill("#h-discreto", "Mi taza");
+  await p.click('[data-el-id="h-lim-n"] [data-d="1"]'); await p.click('[data-el-id="h-lim-n"] [data-d="1"]'); await p.click('[data-el-id="h-lim-n"] [data-d="-1"]');
+  ok(await p.inputValue("#h-lim-n") === "3", "el límite es un contador: − 3 +");
+  await p.click('[data-el-id="h-lim-n"] [data-d="-1"]');
   await p.click('[data-action="habit-save"]'); await p.waitForTimeout(300);
   const lim = p.locator(".hb-lim");
   ok(/Con límite/i.test(await p.locator("#view").innerText()) && await lim.count() === 1 && /de 2 cafés hoy/.test(await lim.innerText()), "Hoy › Con límite: Café, 0 de 2 cafés hoy");

@@ -341,20 +341,23 @@ function openAvatar(tab) {
   const inicial = ((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R";
   const vista = vistaId ? avatarSVG(vistaId) : `<div class="account__avatar av-grande">${escapeHtml(inicial.toUpperCase())}</div>`;
   const dv = vistaId ? (vistaId === "propio" ? { n: "Tu avatar" } : avatarDef(vistaId)) : null;
-  const tabs = `<div class="seg vest-tabs"><button class="${AV_TAB === "manada" ? "is-active" : ""}" data-action="av-tab" data-v="manada">🐾 La manada</button><button class="${AV_TAB === "propio" ? "is-active" : ""}" data-action="av-tab" data-v="propio">✏️ Arma el tuyo</button><button class="${AV_TAB === "rumbo" ? "is-active" : ""}" data-action="av-tab" data-v="rumbo">🧭 Rumbo</button></div>`;
+  const tabs = elFiltros([["manada", "🐾 La manada"], ["propio", "✏️ Arma el tuyo"], ["rumbo", "🧭 Rumbo"]], AV_TAB, { accion: "av-tab", cls: "vest-tabs", label: "Tu avatar" });
   let panel;
   if (AV_TAB === "propio") {
     const o = avPropio(), A = AVATAR_ARTE;
-    const fila = (lab, k, vals) => `<div class="av-op"><span>${lab}</span><div class="row-wrap" style="gap:6px">${vals.map(([v, t]) => `<button type="button" class="chip ${o[k] === v ? "chip--cian" : ""}" data-action="av-propio" data-k="${k}" data-v="${v}" aria-pressed="${o[k] === v}">${t}</button>`).join("")}</div></div>`;
-    const colores = (lab, k, vals) => `<div class="av-op"><span>${lab}</span><div class="row-wrap" style="gap:8px">${vals.map(v => `<button type="button" class="av-color ${o[k] === v ? "is-on" : ""}" data-action="av-propio" data-k="${k}" data-v="${v}" style="background:${v}" aria-label="Color" aria-pressed="${o[k] === v}"></button>`).join("")}</div></div>`;
-    panel = colores("Piel", "piel", A.PIELES) +
+    // Cada opción, en miniatura con tu avatar puesto; los colores, con su nombre
+    const fila = (lab, k, vals) => `<div class="av-op"><span>${lab}</span>${elGaleria(vals.map(([v, t]) => ({ v, nombre: t, thumb: A.persona(Object.assign({}, o, { [k]: v })) })), o[k],
+      { accion: "av-propio", extra: `data-k="${k}"`, cls: "el-gal--cara", label: lab })}</div>`;
+    const colores = (lab, k, vals, nombres, colorDe) => `<div class="av-op"><span>${lab}</span>${elMuestras(vals.map((v, i) => ({ v, nombre: nombres[i] || lab, color: colorDe ? colorDe(v) : v })), o[k],
+      { accion: "av-propio", extra: `data-k="${k}"`, label: lab })}</div>`;
+    panel = colores("Piel", "piel", A.PIELES, ["Muy clara", "Clara", "Media", "Morena", "Oscura", "Muy oscura"]) +
       fila("Peinado", "pelo", [["corto", "Corto"], ["largo", "Largo"], ["moño", "Moño"], ["rulos", "Rulos"], ["rapado", "Rapado"], ["calvo", "Sin pelo"]]) +
-      colores("Color de pelo", "colPelo", A.COL_PELO) +
+      colores("Color de pelo", "colPelo", A.COL_PELO, ["Negro", "Castaño oscuro", "Castaño claro", "Rubio", "Pelirrojo", "Canoso", "Ámbar", "Índigo"]) +
       fila("Lentes", "lentes", [["no", "Sin lentes"], ["redondos", "Redondos"], ["cuadrados", "Cuadrados"], ["sol", "De sol"]]) +
       fila("Barba", "barba", [["no", "Sin barba"], ["si", "Barba"], ["bigote", "Bigote"]]) +
-      colores("Ropa", "ropa", A.ROPA) +
+      colores("Ropa", "ropa", A.ROPA, ["Índigo", "Tinta", "Verde", "Ámbar", "Crema", "Violeta"]) +
       fila("Expresión", "animo", [["feliz", "Feliz"], ["normal", "Tranquila"]]) +
-      `<div class="av-op"><span>Fondo</span><div class="row-wrap" style="gap:8px">${A.FONDOS.map(f => `<button type="button" class="av-color ${o.fondo === f ? "is-on" : ""}" data-action="av-propio" data-k="fondo" data-v="${f}" style="background:${A.F[f]}" aria-label="Fondo ${AV_FONDOS[f]}" title="${AV_FONDOS[f]}" aria-pressed="${o.fondo === f}"></button>`).join("")}</div></div>` +
+      colores("Fondo", "fondo", A.FONDOS, A.FONDOS.map(f => AV_FONDOS[f]), f => A.F[f]) +
       `<p class="text-xs muted">Cada cambio se guarda al tiro y queda como tu avatar.</p>`;
   } else {
     const lista = avataresCatalogo().filter(d => d.grupo === AV_TAB);

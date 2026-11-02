@@ -241,9 +241,10 @@ function mesAperturaPaso(w) {
       return `<div class="mes-obj">
         <input type="hidden" id="mo-id-${i}" value="${escapeAttr(o.id || "")}">
         <input class="input" id="mo-t-${i}" value="${escapeAttr(o.texto)}" placeholder="Objetivo ${i + 1}${i < 3 ? "" : " (opcional)"}">
-        <div class="row" style="gap:8px">
-          <select class="select" id="mo-a-${i}" style="max-width:150px">${["pro", "per"].map(a => `<option value="${a}" ${o.ambito === a ? "selected" : ""}>${AMBITOS[a].icon} ${AMBITOS[a].corto}</option>`).join("")}</select>
-          <select class="select" id="mo-tri-${i}"><option value="">— Sin vínculo trimestral —</option>${tri.map(t => `<option value="${t.id}" ${o.triId === t.id ? "selected" : ""}>🎯 ${escapeHtml(t.texto)}</option>`).join("")}</select>
+        <div class="mes-obj__op">
+          ${elAmbito("mo-a-" + i, o.ambito === "per" ? "per" : "pro", { label: `Objetivo ${i + 1}: ¿profesional o personal?` })}
+          ${tri.length ? elLista("mo-tri-" + i, [{ v: "", t: "Sin vínculo trimestral" }].concat(tri.map(t => ({ v: t.id, t: "🎯 " + t.texto }))), o.triId || "", { hoja: true, label: `Objetivo ${i + 1}: ¿a qué meta del trimestre apunta?`, vacio: "Sin vínculo trimestral" })
+            : `<input type="hidden" id="mo-tri-${i}" value="">`}
         </div></div>`;
     }).join("");
     const prevList = (datosAnio(STATE, prev.y).metas.mensuales[prev.m] || []).filter(o => !o.done);   // diciembre → enero incluido
@@ -253,30 +254,31 @@ function mesAperturaPaso(w) {
     return `<p class="text-sm muted" style="margin-bottom:12px">Idealmente de 3 a 5. Vincúlalos a una meta del ${curTri + 1}° trimestre para que empujen en la misma dirección.</p>
       ${rows}
       ${pendientesArr.length ? `<div class="divider"></div><div class="text-xs muted" style="margin-bottom:8px">↪ Arrastrar objetivos no cumplidos de ${MESES[prev.m]}</div>
-        ${pendientesArr.map(o => `<label class="row" style="gap:8px;padding:4px 0"><input type="checkbox" class="mo-arr" value="${o.id}" ${d.arrastrar.includes(o.id) ? "checked" : ""}> ${escapeHtml(o.texto)}</label>`).join("")}` : ""}
+        ${elCasillas(pendientesArr.map(o => [o.id, escapeHtml(o.texto)]), d.arrastrar, { cls: "mo-arr", label: "Objetivos para arrastrar" })}` : ""}
       ${manuales ? `<p class="text-xs muted mt-8">Además tienes ${manuales} meta(s) de ${MESES[w.m]} agregadas a mano en Objetivos.</p>` : ""}`;
   }
   if (w.paso === 3) {
-    const tipos = [["diario", "Diario"], ["semanal", "X/semana"], ["dias", "Días fijos"], ["mensual", "X/mes"]];
+    const tipos = [["diario", "Diario"], ["semanal", "Semana"], ["dias", "Días fijos"], ["mensual", "Mes"]];
+    const veces = (id, tipo, n) => `<div class="mes-hab__veces" ${tipo === "semanal" || tipo === "mensual" ? "" : "hidden"}>
+      ${elContador(id, n || 3, { min: 1, max: tipo === "mensual" ? 25 : 6, unidad: tipo === "mensual" ? "al mes" : "por semana", label: "Veces" })}</div>`;
     const rows = STATE.habitos.defs.map(h => {
       const x = d.habitos[h.id];
       return `<div class="mes-hab ${x.pausado ? "is-paused" : ""}">
         <div class="mes-hab__n">${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)}</div>
-        <div class="row" style="gap:6px">
-          <select class="select" id="mh-tipo-${h.id}" style="max-width:130px">${tipos.filter(([k]) => k !== "dias" || x.tipo === "dias").map(([k, l]) => `<option value="${k}" ${x.tipo === k ? "selected" : ""}>${l}</option>`).join("")}</select>
-          <input class="input" type="number" min="1" max="25" id="mh-veces-${h.id}" value="${x.veces || 3}" style="width:64px" title="Veces (semanal o mensual)">
-          <label class="row text-xs" style="gap:4px"><input type="checkbox" id="mh-pausa-${h.id}" ${x.pausado ? "checked" : ""}> ⏸</label>
-        </div></div>`;
+        ${elTramos("mh-tipo-" + h.id, tipos.filter(([k]) => k !== "dias" || x.tipo === "dias"), x.tipo, { label: "Frecuencia de " + h.nombre, fn: "mesHabTipo" })}
+        ${veces("mh-veces-" + h.id, x.tipo, x.veces)}
+        ${elFichas([["1", "⏸ Pausar este mes"]], x.pausado ? ["1"] : [], { attrs: `id="mh-pausa-${h.id}"` })}
+      </div>`;
     }).join("");
     return `<p class="text-sm muted" style="margin-bottom:12px">Ajusta la frecuencia de tus hábitos para este mes, pausa los que no toquen o crea uno nuevo. (Los días fijos se editan en Hábitos.)</p>
       ${rows}
       ${d.nuevosHabitos.map(n => `<div class="mes-hab"><div class="mes-hab__n">✨ ${escapeHtml(n.nombre)}</div><span class="chip">${hmFreqLabel({ frecuencia: n.frecuencia })}</span></div>`).join("")}
       <div class="divider"></div>
-      <div class="row" style="gap:6px;flex-wrap:wrap">
-        <input class="input" id="mh-new-nombre" placeholder="Nuevo hábito" style="flex:1;min-width:140px">
-        <select class="select" id="mh-new-tipo" style="max-width:130px">${tipos.filter(([k]) => k !== "dias").map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select>
-        <input class="input" type="number" min="1" max="25" id="mh-new-veces" value="3" style="width:64px">
-        <button class="btn btn--cian" data-action="mes-hab-add">+</button>
+      <div class="mes-hab mes-hab--nuevo">
+        <input class="input" id="mh-new-nombre" placeholder="Nuevo hábito" aria-label="Nombre del hábito nuevo">
+        ${elTramos("mh-new-tipo", tipos.filter(([k]) => k !== "dias"), "diario", { label: "Frecuencia del hábito nuevo", fn: "mesHabTipo" })}
+        ${veces("mh-new-veces", "diario", 3)}
+        <button class="btn btn--cian" data-action="mes-hab-add">+ Agregar hábito</button>
       </div>`;
   }
   const fin = datosAnio(STATE, w.y).finanzas.meses[w.m] || {};
@@ -306,9 +308,8 @@ function mesCierrePaso(w) {
     + (typeof deseosCierreHtml === "function" ? deseosCierreHtml() : "")   // 💎 los deseos que esperan respuesta (deseos.js)
     + (typeof aguaAcuarioHtml === "function" ? aguaAcuarioHtml(w.y, w.m, true) : "");   // 🐠 el acuario del mes (agua.js)
   if (w.paso === 2) {
-    return STATE.rueda.areas.map((a, i) => `<div class="field"><label>${escapeHtml(a)}: <b id="mc-rl-${i}">${d.rueda[i]}</b>/10</label>
-      <input type="range" min="0" max="10" step="1" id="mc-r-${i}" value="${d.rueda[i]}" style="width:100%;accent-color:var(--cian)"
-        oninput="document.getElementById('mc-rl-${i}').textContent=this.value"></div>`).join("");
+    return `<p class="text-sm muted" style="margin-bottom:12px">De 0 a 10, ¿cómo estuvo cada área este mes?</p>` + STATE.rueda.areas.map((a, i) =>
+      `<div class="field">${elNota("mc-r-" + i, d.rueda[i], { min: 0, max: 10, titulo: escapeHtml(a), label: a })}</div>`).join("");
   }
   if (w.paso === 3) {
     return `<div class="field"><label>🌟 Lo mejor del mes</label><textarea class="input" id="mc-mejor">${escapeHtml(d.mejor)}</textarea></div>
@@ -319,12 +320,19 @@ function mesCierrePaso(w) {
   if (w.paso === 4) return albumPasoHtml(w);   // 📷 las fotos de los mejores momentos (album.js)
   if (w.paso === 6) return resumenAnioHtml(resumenAnio(STATE, w.y, d.nota))
     + (typeof medallasCierreHtml === "function" ? medallasCierreHtml(medallasDelAnio(STATE, w.y), "🏅 Tus medallas del año", "Todas brillan en tu vitrina.") : "");
-  return `<div class="field"><label>Nota de ${MESES[w.m]}: <b id="mc-nl" style="font-size:20px">${d.nota}</b>/10</label>
-    <input type="range" min="1" max="10" step="1" id="mc-nota" value="${d.nota}" style="width:100%;accent-color:var(--cian)"
-      oninput="document.getElementById('mc-nl').textContent=this.value"></div>
+  return `<div class="field"><label for="mc-nota">Nota de ${MESES[w.m]}</label>${elNota("mc-nota", d.nota, { label: "Nota de " + MESES[w.m] })}</div>
     <p class="text-xs muted">📔 El cierre queda también en tu Diario.</p>`;
 }
 
+/* La frecuencia de un hábito en el mes: «veces» aparece solo para semana o mes */
+function mesHabTipo(v, btn, cont) {
+  const fila = cont && cont.closest(".mes-hab"), caja = fila && fila.querySelector(".mes-hab__veces"); if (!caja) return;
+  caja.hidden = !(v === "semanal" || v === "mensual");
+  const c = caja.querySelector('[data-el="contador"]'); if (!c) return;
+  const max = v === "mensual" ? 25 : 6; c.dataset.max = max; c.dataset.unidad = v === "mensual" ? "al mes" : "por semana";
+  if (+c.dataset.v > max) { c.dataset.v = max; document.getElementById(c.dataset.elId).value = max; }
+  elContadorPintar(c);
+}
 /* Lee los campos del paso actual al borrador */
 function mesWizLeer() {
   const w = MES_WIZ; if (!w) return;
@@ -339,7 +347,7 @@ function mesWizLeer() {
     if (w.paso === 3) STATE.habitos.defs.forEach(h => {
       if (!el("mh-tipo-" + h.id)) return;
       const x = d.habitos[h.id];
-      x.tipo = val("mh-tipo-" + h.id); x.veces = parseNum(val("mh-veces-" + h.id)) || 1; x.pausado = el("mh-pausa-" + h.id).checked;
+      x.tipo = val("mh-tipo-" + h.id); x.veces = parseNum(val("mh-veces-" + h.id)) || 1; x.pausado = !!el("mh-pausa-" + h.id).checked;
     });
     if (w.paso === 4 && el("mw-ahorro")) d.metaAhorro = parseNum(val("mw-ahorro"));
   } else {

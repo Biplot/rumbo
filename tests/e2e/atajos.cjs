@@ -26,7 +26,8 @@ module.exports = async ({ b, ok, errs }) => {
   ok(/Norte/.test(ficha) && /En uso/.test(ficha) && await p.locator('.fam-card[data-familia="norte"] .fam-card__modos [data-theme="auto"].is-active').count() === 1, "en Apariencia, Norte aparece en uso, en Auto: " + ficha.replace(/\s+/g, " "));
   await p.click('.fam-card[data-familia="norte"] .fam-card__prev'); await p.waitForTimeout(250);
   const prev = await p.locator("#modalBody").innerText();
-  ok(/De día/.test(prev) && /De noche/.test(prev) && /Automático/.test(prev) && /Sigue el modo claro u oscuro/.test(prev), "su vista previa muestra Norte de día y de noche, y el modo Automático");
+  ok(/De día/.test(prev) && /De noche/.test(prev) && await p.locator('#modalBody .seg [data-theme="auto"].is-active').count() === 1 && /Auto sigue el modo claro u oscuro/.test(prev),
+    "su vista previa muestra Norte de día y de noche, y el modo en tramos (Auto / Día / Noche), igual que en Apariencia");
   await p.evaluate(() => closeModal());
   await p.evaluate(() => { const x = document.createElement("button"); x.dataset.action = "set-theme"; x.dataset.theme = "ruta"; document.getElementById("view").appendChild(x); x.click(); });
   await p.emulateMedia({ colorScheme: "dark" }); await p.waitForTimeout(150);

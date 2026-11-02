@@ -513,11 +513,18 @@ function albumGridHtml(key, desde) {
     ${fotos.length < ALBUM_MAX ? `<label class="alb-t alb-t--mas">${icoUI("plus")}<small>Agregar</small>
       <input type="file" accept="image/*" multiple hidden onchange="albumAgregar('${k}', this, '${desde}')"></label>` : ""}</div>`;
 }
+/* El estilo: cada uno en miniatura con tus fotos del mes (los que faltan, al final con candado y su precio) */
 function albumEstilosHtml(key, desde) {
-  const a = albumMes(key), actual = albumEstilo(a), k = escapeHtml(key);
-  const tuyos = ALBUM_ESTILOS.filter(e => albumEstiloTuyo(e.id)), faltan = ALBUM_ESTILOS.length - tuyos.length;
-  return `<div class="alb-estilos"><span class="text-xs muted">Estilo</span>${tuyos.map(e => `<button type="button" class="chip${e.id === actual ? " chip--cian" : ""}" data-action="alb-estilo" data-key="${k}" data-v="${e.id}" data-desde="${desde}">${e.nombre}</button>`).join("")}
-    ${faltan ? `<button type="button" class="btn-link" data-action="alb-tienda">${faltan === 1 ? "1 estilo más" : faltan + " estilos más"} en la Tienda</button>` : ""}</div>`;
+  const a = albumMes(key), actual = albumEstilo(a), k = escapeHtml(key), fotos = a ? albumFotos(a) : [];
+  const { y, m } = mesDeKey(key);
+  const costo = cos => { const it = typeof COSMETICOS !== "undefined" ? COSMETICOS.find(x => x.id === cos) : null; return it ? it.costo : 0; };
+  const mini = e => {
+    const items = fotos.slice(0, e.porPagina).map(f => ({ img: albumMarco(f), comentario: f.comentario, fecha: albumFechaTxt(f.fecha) }));
+    return `<div class="alb-mini" aria-hidden="true">${items.length ? albumPaginaHtml(e.id, items, { mes: MESES[m], anio: y, nro: m + 1, primera: true, n: "", cuadro: 12 }) : albumMuestraHtml(e.id)}</div>`;
+  };
+  return `<div class="alb-estilos"><span class="cj-sub">Estilo</span>${elGaleria(ALBUM_ESTILOS.map(e => ({ v: e.id, nombre: e.nombre,
+      lock: albumEstiloTuyo(e.id) ? null : { precio: costo(e.cos), key: "cos:" + e.cos }, thumb: mini(e) })), actual,
+    { accion: "alb-estilo", fila: true, cls: "el-gal--alto", extra: `data-key="${k}" data-desde="${desde}"`, label: "Estilo del álbum" })}</div>`;
 }
 function albumAvisoServidor() {
   return ALB.sinServidor ? `<p class="alb-aviso">${icoUI("cloud")} Tus fotos quedan en este equipo hasta que el álbum se active en el servidor.</p>` : "";
@@ -590,7 +597,7 @@ function openAlbumes(y) {
     return `<button type="button" class="alb-tapa alb-tapa--${albumEstilo(a)}" data-action="alb-ver" data-key="${key}">${albumMarco(fs[0], true, "alb-tapa__f")}<b>${MESES_CORTO[i]}</b><i>${fs.length === 1 ? "1 foto" : fs.length + " fotos"}</i></button>`;
   }).join("");
   openModal("Tus álbumes", `<div class="alb-est">
-    ${anios.length > 1 ? `<div class="seg">${anios.map(a => `<button type="button" class="${a === y ? "is-active" : ""}" data-action="alb-estante" data-y="${a}">${a}</button>`).join("")}</div>` : ""}
+    ${anios.length > 1 ? elFiltros(anios.map(a => [a, String(a)]), y, { accion: "alb-estante", attr: "y", label: "Año" }) : ""}
     <div class="alb-est__g">${tapas}</div>
     <p class="alb-est__t">${icoUI("camera")} ${total === 1 ? "1 momento" : total + " momentos"} en ${y}</p></div>`);
 }

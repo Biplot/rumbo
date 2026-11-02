@@ -145,6 +145,22 @@ Lo que vive quien recién llega (`js/bienvenida.js`, con la ayuda de `js/tutoria
 - **Palabras de Rumbo** (`GLOSARIO`, `glosa`): bocado, ritual, express, racha, monedas, vitrina, XP, maceta y pilares, a un toque (subrayado punteado la primera semana) y todas juntas en Ayuda.
 - Pruebas: `tests/bienvenida.test.mjs`, `tests/e2e/bienvenida.cjs` y `tests/e2e/primera-semana.cjs`.
 
+## Elegir en Rumbo
+
+Todo lo que se elige en la app usa una de 9 piezas (`js/elegir.js`). Cada pieza guarda su valor en un campo oculto con el mismo id de antes, así que el código que lee los formularios no cambió.
+
+- **Tramos**: una opción entre 2 y 5 cortas. Ocupan todo el ancho, en una sola fila, y lo elegido va en índigo. Se usan en Pro / Personal, en lo que haces con lo pendiente (> < @ ✕ ✓, con el nombre abajo) y en Cumplida / Parcial / No.
+- **Contador**: − el número +. Se usa en la meta de agua (de a 100 ml, con «Automática» como interruptor), las veces por semana o por mes y el límite de un hábito para reducir.
+- **Escala**: 5 rayos para la energía, igual en el ritual completo y en el express, y estrellas para valorar un libro. Las notas de 1 a 10 y la Rueda usan un deslizador con el número grande.
+- **Galería**: la miniatura real de cada opción. Se usa para los estilos del agua (en el probador), del jardín, del álbum (con tus fotos) y del informe, los íconos, los tipos de plan o lista y el armado del avatar. Lo que aún no tienes va al final, con candado y su precio, y abre su ficha en la Tienda.
+- **Muestras**: colores con su nombre, para el sabor del agua, el lomo de un libro, el color de una nota y la piel, el pelo, la ropa y el fondo del avatar.
+- **Fichas**: varias opciones a la vez, como los días fijos, los hábitos en foco («2 de 3») o los amigos que participan. Cuando las opciones son frases largas, van en una lista con casillas.
+- **Respuestas rápidas**: un toque hace algo al tiro, por ejemplo el gatillo de un antojo, un monto para la alcancía, una frase de ánimo o una ciudad.
+- **Filtros**: pestañas subrayadas que cambian lo que ves, no lo que tienes guardado, como en Hábitos, Ritual, Lecturas, Notas, Salud, la Tienda o los meses.
+- **Lista**: filas con una línea que explica cada opción. Si hay más de 6, se abren en su propia hoja, encima de la ventana y sin perder lo escrito. Reemplazan a los desplegables del sistema. Las fechas y las horas siguen con el selector del teléfono.
+
+Un observador copia la marca de lo elegido a `aria-pressed` o `aria-selected`, para que el lector de pantalla también lo anuncie.
+
 ## Configuración de Supabase
 Las claves públicas van en `js/store.js` (`SUPABASE_URL`, `SUPABASE_KEY`). La `publishable key` es pública por diseño; los datos están protegidos por RLS. Esquema:
 

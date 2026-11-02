@@ -249,7 +249,7 @@ function openDeseoComprar(id) {
       oninput="deseoSobraTxt()"></div>
     <small class="text-xs muted" id="des-ahorro-txt"></small>
     ${a && !d.capricho ? `<div class="field" id="des-sobra-f" ${sobra ? "" : "hidden"}><label for="des-destino">Lo que sobró (<span id="des-sobra">${fmtCLP(sobra)}</span>) va a</label>
-      <select class="input" id="des-destino"><option value="">Ninguna alcancía (queda fuera)</option>${otras.map(x => `<option value="${escapeAttr(x.id)}">${escapeHtml(x.nombre)}</option>`).join("")}</select></div>` : ""}
+      ${elLista("des-destino", [{ v: "", t: "Ninguna alcancía", d: "queda fuera de tus alcancías" }].concat(otras.map(x => ({ v: x.id, t: x.nombre }))), "", { label: "Lo que sobró va a" })}</div>` : ""}
     <label class="agua-inicio"><input type="checkbox" id="des-gasto"> Sumarlo al gasto de ${mes} en Finanzas</label>
     <button type="button" class="btn btn--primary btn-block" data-action="des-comprar-ok" data-id="${escapeAttr(d.id)}">${a && !d.capricho && alcEstiloDe(alcEstiloVer(a)).rompe ? "Romper el chanchito y listo" : "Listo"}</button>
   </div>`);

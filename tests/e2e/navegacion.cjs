@@ -67,9 +67,9 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.locator(".week-col.is-futuro .week-col__add").first().isVisible(), "tocar ＋ abre el campo para agregar una tarea ese día");
   ok(await p.locator("details.sem-numeros:not([open])").count() === 1, "los números de la semana quedan plegados en el celular");
   await p.goto(URL + "#habitos"); await p.waitForTimeout(300);
-  ok(await p.locator(".hab-head .seg button").count() === 4 && await p.locator('[data-action="habit-layout"]').count() === 0, "Hábitos tiene un solo selector: Hoy, Semana, Mes y Año");
+  ok(await p.locator(".hab-head .filtros button").count() === 4 && await p.locator('[data-action="habit-layout"]').count() === 0, "Hábitos tiene un solo selector (filtros): Hoy, Semana, Mes y Año");
   await p.click('[data-action="habit-vista"][data-v="mes"]'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => HABIT_VIEW === "mensual") && await p.locator('.hab-head .seg button.is-active[data-v="mes"]').count() === 1, "Mes abre la vista mensual");
+  ok(await p.evaluate(() => HABIT_VIEW === "mensual") && await p.locator('.hab-head .filtros button.is-active[data-v="mes"][aria-selected="true"]').count() === 1, "Mes abre la vista mensual");
   await p.click('[data-action="habit-vista"][data-v="hoy"]'); await p.waitForTimeout(200);
   await p.goto(URL + "#recompensas"); await p.waitForTimeout(300);
   ok(await p.locator("#view .tienda-seg button").count() === 2 && (await p.locator("#view .tienda-seg button.is-active").innerText()) === "Para tu día", "la Tienda tiene dos secciones: Para tu día y Para tu estilo");

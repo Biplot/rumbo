@@ -51,8 +51,9 @@ module.exports = async ({ b, ok, errs }) => {
 
   // Plantilla Cuaderno en "Comparte tu mes"
   await p.evaluate(() => openInformeMes("2026-09")); await p.waitForTimeout(800);
-  ok(await p.locator('.modal button.chip:has-text("Cuaderno")').count() === 1, "la plantilla comprada aparece al compartir");
-  await p.click('.modal button.chip:has-text("Cuaderno")'); await p.waitForTimeout(500);
+  ok(await p.locator('.modal .informe-disenos .el-gal__op:not(.is-lock)[data-plantilla="cuaderno"] img').count() === 1 && await p.locator('.modal .informe-disenos .el-gal__op.is-lock').count() === 2,
+    "la plantilla comprada aparece al compartir, en miniatura (las otras dos, con candado)");
+  await p.click('.modal .informe-disenos [data-plantilla="cuaderno"]'); await p.waitForTimeout(500);
   ok(await p.evaluate(() => INFORME_OP.plantilla === "cuaderno" && STATE.gamif.equipped.plantilla === "cuaderno"), "elige la plantilla y la recuerda");
   await shot(p, "informe-cuaderno");
   await ctx.close();

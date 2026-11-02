@@ -45,4 +45,22 @@ async function hojaAmigos(page, k, tab) {
   if (tab) { await page.click(`[data-action="am-pestana"][data-v="${tab}"]`); await page.waitForTimeout(200); }
   return page.locator("#modal").innerText();
 }
-module.exports = { chromium: pw.chromium, URL, nuevoContexto, registrar, shot, hojaAmigos };
+/* Elegir en una Lista (elegir.js): si es larga, abre su hoja; si no, toca la opción en la vista */
+async function elegirEn(page, id, v) {
+  const fila = page.locator(`[data-el="lista-fila"][data-el-id="${id}"]`);
+  if (await fila.count()) {
+    await fila.first().click(); await page.waitForTimeout(150);
+    await page.click(`#elHoja [data-el="lista"] button[data-v="${v}"]`); await page.waitForTimeout(250);
+  } else { await page.click(`[data-el="lista"][data-el-id="${id}"] > button[data-v="${v}"]`); await page.waitForTimeout(150); }
+}
+/* Los textos de las opciones de una Lista */
+async function opcionesDe(page, id) {
+  return page.evaluate(id => {
+    const L = typeof EL_LISTAS !== "undefined" && EL_LISTAS[id];
+    if (L && document.querySelector(`[data-el="lista-fila"][data-el-id="${id}"]`)) return L.ops.map(o => o.t);
+    return [...document.querySelectorAll(`[data-el="lista"][data-el-id="${id}"] > button b`)].map(b => b.textContent);
+  }, id);
+}
+/* El nombre de lo elegido en lo pendiente (> < @ ✕ ✓): va abajo de los signos */
+async function triageElegido(fila) { return (await fila.locator(".tr-nombre").innerText()).trim(); }
+module.exports = { chromium: pw.chromium, URL, nuevoContexto, registrar, shot, hojaAmigos, elegirEn, opcionesDe, triageElegido };

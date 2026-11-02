@@ -11,29 +11,28 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('[data-tab="register"]');
     await p.fill("#reg-name", "Nueva"); await p.fill("#reg-email", "tour@test.cl"); await p.fill("#reg-pass", "secreto123");
     await p.click('[data-action="auth-register"]'); await p.waitForTimeout(900);
-    for (let i = 0; i < 3; i++) { await p.click('[data-action="onb-next"]'); await p.waitForTimeout(120); }
-    await p.fill("#ob-name", "Camila");
-    await p.click('[data-action="onboarding-save"]'); await p.waitForTimeout(900);
-    ok(await p.locator("#tour .tour-pop").isVisible(), "al terminar la introducción parte el recorrido guiado");
-    ok(await p.locator("#modalOverlay").isHidden(), "el aviso de notificaciones no se abre encima del recorrido");
-    const aviso = await p.locator("#toast").boundingBox().catch(() => null);
-    ok(!aviso || aviso.y < 120, "el mensaje «Ya estás en Rumbo» va arriba: no tapa la burbuja del recorrido");
+    // «Arma tu Rumbo»: lo que quiere ordenar, sus hábitos, su elefante y los avisos («Ahora no»)
+    for (let i = 0; i < 3; i++) { await p.click('#modal [data-action="arma-sig"]'); await p.waitForTimeout(200); }
+    ok((await p.locator("#modalTitle").innerText()).includes("¿Cuándo te aviso?") && await p.locator("#arma-manana").count() === 1, "los avisos se ofrecen en la bienvenida, con su hora");
+    await p.click('#modal [data-action="arma-fin"]'); await p.waitForTimeout(900);
+    ok(await p.locator("#tour .tour-pop").isVisible(), "al terminar la bienvenida parte el recorrido guiado");
+    ok(await p.locator("#modalOverlay").isHidden(), "nada se abre encima del recorrido");
+    ok(await p.locator("#tour .tour-cara svg").count() === 1, "lo cuenta tu elefante (su cara en la burbuja)");
     const titulos = [];
-    for (let i = 0; i < 15 && await p.locator("#tour").count(); i++) {
+    for (let i = 0; i < 10 && await p.locator("#tour").count(); i++) {
       titulos.push(await p.locator(".tour-pop__t").innerText());
       const pop = await p.locator(".tour-pop").boundingBox();
       if (pop.x < 0 || pop.y < 0 || pop.x + pop.width > 390 || pop.y + pop.height > 844) ok(false, "la burbuja se sale de la pantalla en: " + titulos[titulos.length - 1]);
-      if (i === 2) await shot(p, "tour-tareas");
+      if (i === 1) await shot(p, "tour-dia");
       await p.keyboard.press(i % 2 ? "ArrowRight" : "Enter"); await p.waitForTimeout(450);
     }
-    ok(titulos.length === 11 && titulos.includes("Tu semana") && titulos.includes("Tu misión: primeros pasos"), "recorre los 11 pasos (Enter y →): " + titulos.join(" · "));
+    ok(titulos.length === 6 && titulos.includes("Tu día empieza aquí") && titulos.includes("El botón del día") && titulos.includes("Tu misión para arrancar"), "un recorrido corto, de 6 pasos (Enter y →): " + titulos.join(" · "));
     await p.waitForTimeout(600);
-    ok((await p.locator("#modalOverlay:not([hidden]) #modal").innerText().catch(() => "")).includes("Recordatorios de tu ritual"), "al terminar el recorrido se ofrecen los avisos");
-    await p.click('#modal [data-action="close-modal"]'); await p.waitForTimeout(200);
+    ok(await p.locator("#modalOverlay").isHidden(), "al terminar no vuelve a ofrecer los avisos: ya se ofrecieron en la bienvenida");
     const s = await p.evaluate(() => STATE.settings.tutorial);
-    ok(s.vistos.general > 0 && s.mision === "activa", "queda como visto y la misión Primeros pasos activa");
+    ok(s.vistos.general > 0, "el recorrido queda como visto");
     await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
-    ok((await p.locator("[data-tour=mision]").innerText()).includes("0/6"), "Inicio muestra la misión 0/6");
+    ok((await p.locator("[data-tour=mision]").innerText()).includes("Tu primera semana"), "Inicio muestra la misión de la cuenta nueva: «Tu primera semana»");
     // En el celular el «?» también está arriba, y en Más › Ayuda de esta pantalla
     await p.evaluate(() => { STATE.settings.tutorial.auto = false; saveState(); });
     await p.goto(URL + "#semana"); await p.waitForTimeout(400);

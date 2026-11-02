@@ -36,8 +36,11 @@ function renderFinanzas() {
   const ahorroAnual = fy.meses.reduce((s, m) => s + ((m.ingreso || 0) - (m.gasto || 0)), 0);
   const pctAnual = fy.metaAnual ? Math.min(100, Math.round((ahorroAnual / fy.metaAnual) * 100)) : 0;
 
+  const ensena = y === anioActual() && typeof finSinDatos === "function" && finSinDatos();   // nada anotado: primero, cómo (bienvenida.js)
+  const desde = typeof finDesdeMes === "function" ? finDesdeMes(y) : 0;   // los meses antes de la cuenta no se muestran vacíos
   return `
   ${selectorAnio()}
+  ${ensena ? `<div style="margin-bottom:18px">${finEnsenaHtml(pre)}</div>` : ""}
   <div class="grid grid-3">
     <div class="card">
       <div class="stat"><div class="stat__label">💰 Meta de ahorro ${y}</div></div>
@@ -91,11 +94,13 @@ function renderFinanzas() {
     <div class="card">
       <div class="card__head"><div class="card__title">Seguimiento mensual</div>
         <span class="card__hint">Ingreso · Gasto · Ahorro</span></div>
+      ${desde ? `<div class="text-xs muted" style="margin:-6px 0 8px">Desde ${MESES[desde].toLowerCase()}, el mes en que llegaste.</div>` : ""}
       <div class="habit-grid">
         <table>
           <thead><tr><th class="name"></th><th>Ingreso</th><th>Gasto</th><th>Ahorro</th></tr></thead>
           <tbody>
             ${fy.meses.map((m, i) => {
+              if (i < desde && !(m.ingreso || m.gasto)) return "";
               const ahorro = (m.ingreso || 0) - (m.gasto || 0);
               return `<tr>
                 <td class="name">${MESES_CORTO[i]}</td>
@@ -183,6 +188,7 @@ function renderMetas() {
   return `
   ${ojSeccionMetas()}
   ${selectorAnio()}
+  ${esActual && typeof metasSinNada === "function" && metasSinNada(metas) ? `<div style="margin-bottom:18px">${metasEnsenaHtml()}</div>` : ""}
   <div class="card" style="background:linear-gradient(120deg, var(--surface), var(--surface-2))">
     <div class="flex-between" style="flex-wrap:wrap;gap:12px">
       <div><div class="text-xs soft" style="text-transform:uppercase;letter-spacing:.08em">Resumen ${y}</div>
@@ -273,7 +279,7 @@ function renderHabitos() {
   </div>
   <div class="pill pill--streak mt-16" style="display:inline-flex" title="Días seguidos cumpliendo todos los hábitos que tocaban">${icoHab("✅", 16)} ${racha} ${racha === 1 ? "día" : "días"} de hábitos seguidos</div>
   ${vacAvisoHtml()}`;
-  if (!defs.length) return head + `<div class="card mt-16"><div class="empty">Aún no tienes hábitos. Crea el primero con “+ Nuevo hábito”.</div></div>`;
+  if (!defs.length) return head + (typeof habPrimerHtml === "function" ? habPrimerHtml() : `<div class="card mt-16"><div class="empty">Aún no tienes hábitos. Crea el primero con “+ Nuevo hábito”.</div></div>`);
   const body = HABIT_VIEW === "mensual" ? habitViewMensual() : HABIT_VIEW === "anual" ? habitViewAnual() : habitViewDiario();
   const jardin = HABIT_VIEW !== "mensual" && HABIT_VIEW !== "anual" && typeof jardinCardHtml === "function" ? jardinCardHtml() : "";   // 🌱 jardin.js
   return head + (jardin ? `<div class="mt-16">${jardin}</div>` : "") + `<div class="mt-16">${body}</div>`;
@@ -745,6 +751,7 @@ function renderRueda() {
   return `
   ${selectorAnio()}
   ${monthsSelector(i, "rueda-month")}
+  ${vals.every(v => !v) && typeof ruedaEnsenaHtml === "function" ? ruedaEnsenaHtml() : ""}
   <div class="grid grid-2">
     <div class="card">
       <div class="card__head"><div class="card__title">${MESES[i]}</div><span class="chip chip--cian">Promedio ${prom}</span></div>

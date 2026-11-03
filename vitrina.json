@@ -9,16 +9,18 @@
   "solucion": "Producto propio",
   "acento": "#3E9C95",
   "esencia": "Un rincón tranquilo donde cada día es un paso.",
-  "resumen": "Tu vida en un solo lugar. Una app de BiPlot para ordenar lo personal: ritual de mañana y de noche, hábitos, finanzas, metas, lecturas, salud y diario, con rangos e insignias para no soltarlo.",
+  "resumen": "Tu vida en un solo lugar. Una app de BiPlot para ordenar lo personal: abres y cierras tu día en dos minutos, y en el mismo lugar llevas tus hábitos (también los que quieres dejar), tus metas, finanzas, lecturas, salud y diario. Se puede hacer con amigos, con planes, hábitos y metas en conjunto. Y tu constancia hace crecer a tu elefante.",
   "puntos": [
-    { "titulo": "Ritual diario", "detalle": "apertura y cierre del día, con recordatorio" },
-    { "titulo": "Todo junto", "detalle": "hábitos, finanzas y metas en una pantalla" },
-    { "titulo": "Recompensas", "detalle": "rangos e insignias para seguir" }
+    { "titulo": "Ritual diario", "detalle": "abre y cierra tu día en dos minutos, con recordatorio" },
+    { "titulo": "Con amigos", "detalle": "planes, hábitos y metas en conjunto" },
+    { "titulo": "Un elefante que crece", "detalle": "tu constancia, en su casa, su jardín y tu vitrina" }
   ],
   "modulos": [
-    { "modulo": "Ritual diario", "titulo": "Apertura y cierre del día.", "detalle": "Con recordatorio, para no soltarlo." },
-    { "modulo": "Todo junto", "titulo": "Hábitos, finanzas y metas.", "detalle": "En una sola pantalla." },
-    { "modulo": "Recompensas", "titulo": "Rangos e insignias.", "detalle": "Para seguir un día más." }
+    { "modulo": "Ritual diario", "titulo": "Abre y cierra tu día.", "detalle": "Dos minutos en la mañana y dos en la noche, con recordatorio. También la semana, el mes y el trimestre." },
+    { "modulo": "Hábitos", "titulo": "Los que sumas y los que dejas.", "detalle": "Rachas, días de descanso que no las cortan y un jardín donde cada hábito echa raíces." },
+    { "modulo": "Metas y finanzas", "titulo": "Objetivos, alcancías y deseos.", "detalle": "Metas del año al mes, y el ahorro repartido en alcancías." },
+    { "modulo": "Con amigos", "titulo": "Planes, hábitos y metas en conjunto.", "detalle": "Votar una fecha, una racha de a dos o juntar entre todos para un viaje." },
+    { "modulo": "Recompensas", "titulo": "Estrellas, rangos y medallas.", "detalle": "Tu elefante crece de Cría a Sabio, con su casa y tu vitrina de medallas en 3D." }
   ],
   "enlaces": [
     { "texto": "Abrir Rumbo", "url": "https://rumbo.biplot.cl", "tipo": "producto" }

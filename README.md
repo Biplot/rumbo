@@ -23,6 +23,8 @@ Tests de lógica (sin dependencias): `node tests/merge.test.mjs`.
 
 Pruebas en navegador (requieren Playwright, solo para desarrollo): `node tests/e2e/run.cjs`. Levantan `serve.js` solas; con `E2E_SHOTS=carpeta` guardan capturas. Ambas corren en GitHub Actions en cada push (`.github/workflows/pruebas.yml`).
 
+Capturas de la página de presentación (`conoce/img/`): `node tests/e2e/capturas-conoce.cjs`. Arma una cuenta de ejemplo en Norte noche (el miércoles 18 de noviembre de 2026) y vuelve a sacar las siete pantallas y la imagen para compartir (`og.jpg`). Necesita salida a Google Fonts.
+
 ## Notificaciones
 - **Dispositivos:** cada navegador que activa las notificaciones queda en la tabla `suscripciones_push` (una fila por dispositivo; los que el servicio da por muertos se borran solos). Los horarios siguen en `settings.notif` del estado.
 - **Envío:** `pg_cron` llama cada 5 minutos a `rumbo_pedir_recordatorios()`, que hace un `POST` con `pg_net` a `https://rumbo.biplot.cl/api/push/` firmado con el secreto de `configuracion_push`. `api/push.js` ve a quién le toca su hora (`notifier/recordatorios.mjs` y `notifier/reglas.mjs`) y envía con `web-push`. `notif_sent` evita repetir un aviso el mismo día.

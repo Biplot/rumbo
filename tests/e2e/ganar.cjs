@@ -45,6 +45,9 @@ module.exports = async ({ b, ok, errs }) => {
     ok(await p.locator("#insAviso").isVisible() && (await p.locator("#insAviso").innerText()).includes("2 medallas nuevas"), "al ganar fuera del cierre sale un aviso de medalla nueva");
     await p.click("#insAviso"); await p.waitForTimeout(600);
     ok(await titulo(p) === "Página Uno" && (await p.locator(".ins-cerca__fam").textContent()).includes("1 de 2"), "tocarlo abre el momento de la primera (1 de 2)");
+    // Los botones de la ficha son de noche en todos los temas: «Ver en tu vitrina» no queda con letra clara sobre fondo claro
+    const boton = await p.evaluate(() => { const s = getComputedStyle(document.querySelector('#insCerca [data-c="alcielo"]')); return [s.backgroundColor, s.color, document.documentElement.dataset.theme]; });
+    ok(boton[0] === "rgba(169, 184, 232, 0.14)" && boton[1] === "rgb(238, 241, 255)", "«Ver en tu vitrina» se lee: fondo de noche y letra clara también con el tema " + boton[2] + " · " + boton.join(" / "));
     await p.click('#insCerca [data-c="siguiente"]'); await p.waitForTimeout(600);
     ok(await titulo(p) === "Devorador de Libros" && await p.locator('#insCerca [data-c="listo"]').count() === 1, "Siguiente medalla pasa a la otra y termina en Listo");
     await p.click('#insCerca [data-c="alcielo"]'); await p.waitForTimeout(800);

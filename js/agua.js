@@ -443,7 +443,7 @@ function aguaMuestraHtml(it) {
    abierto, en hojas y ventanas, en Tu casa y Tu vitrina, y en Inicio mientras se ve la tarjeta «Agua de hoy».
    Se apaga en «Tu agua». */
 const AGUA_FAB = { el: null, listo: false, pronto: 0, abierta: false, estilo: "", card: null, cardVisible: false, io: null, sorbio: -1e9, raf: 0, tecla: -1e9 };
-/* Los estilos que son una escena (con cielo, piso o cuarto) llenan todo el círculo de la portilla; los demás son un recipiente al centro */
+/* Los estilos que son una escena (con cielo, piso o cuarto) llenan todo el círculo de la portilla y del botón en chico; los demás son un recipiente al centro */
 const AGUA_REDONDAS = ["esclusa", "calor", "elefante"];
 function aguaFabHtml(estilo) {
   return `<button type="button" class="agua-fab__velo" data-action="agua-fab-cerrar" tabindex="-1" aria-hidden="true"></button>
@@ -460,7 +460,7 @@ function aguaFabHtml(estilo) {
       <button type="button" class="agua-fab__tomar" data-action="agua-fab-tomar"></button>
       <button type="button" class="agua-fab__bot" data-action="agua-fab-botella">${AGUA_FAB_BOT_SVG}<span></span></button>
     </div>
-    <button type="button" class="agua-fab__btn" data-action="agua-fab-abrir" aria-expanded="false" aria-label="Agua de hoy"></button>`;
+    <button type="button" class="agua-fab__btn${AGUA_REDONDAS.includes(estilo) ? " is-redonda" : ""}" data-action="agua-fab-abrir" aria-expanded="false" aria-label="Agua de hoy"></button>`;
 }
 const AGUA_FAB_BOT_SVG = `<svg viewBox="0 0 14 22" aria-hidden="true"><rect x="4.6" y=".6" width="4.8" height="3" rx="1" fill="currentColor"/><path d="M5.1 3.6h3.8v2c0 .9 4.1 2.3 4.1 5.6v8.6a1.6 1.6 0 0 1-1.6 1.6H2.6A1.6 1.6 0 0 1 1 19.8v-8.6c0-3.3 4.1-4.7 4.1-5.6v-2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><rect x="2.7" y="12" width="8.6" height="7.5" rx="1" fill="currentColor"/></svg>`;
 /* Lo que cambia con tus ajustes (el vaso y la botella) se escribe aparte: así sigue al día sin volver a armar la portilla */
@@ -475,7 +475,7 @@ function aguaFabTextos() {
 /* Los dibujos se crean cuando hacen falta: el chico cuando el botón se muestra, el grande la primera vez que se abre */
 function aguaFabLienzo(sel, modo) {
   const caja = AGUA_FAB.el && AGUA_FAB.el.querySelector(sel);
-  const redonda = modo === "portilla" && AGUA_REDONDAS.includes(AGUA_FAB.estilo);
+  const redonda = (modo === "portilla" || modo === "boton") && AGUA_REDONDAS.includes(AGUA_FAB.estilo);   // la escena llena el círculo, abierta y en chico
   if (caja && !caja.querySelector("canvas")) caja.innerHTML = `<canvas class="agua-cv" data-agua="${AGUA_FAB.estilo}" data-modo="${modo}"${redonda ? ' data-redonda="1" style="aspect-ratio:1"' : ' style="aspect-ratio:140/200"'}${modo === "boton" ? ' aria-hidden="true"' : ""}></canvas>`;
 }
 function aguaFabActualizar() {
@@ -540,9 +540,10 @@ function aguaFabCerrar() {
 const AGUA_MOTOR = (() => {
   if (typeof document === "undefined") return { verter() {}, montar() {} };
   const DPR = Math.min(2, window.devicePixelRatio || 1), W = 140, H = 200;
-  // redonda (en la portilla): el cuadro mide RW × RW, la escena (W × H) va al centro y el fondo llega a los bordes
-  const RW = 240, REDONDA_DX = (RW - W) / 2, REDONDA_DY = (RW - H) / 2;
-  const bordes = redonda => redonda ? [-REDONDA_DX, W + REDONDA_DX, -REDONDA_DY, H + REDONDA_DY] : [0, W, 0, H];
+  // redonda: el cuadro mide rw × rw, la escena (W × H) va al centro y el fondo llega a los bordes.
+  // En la portilla hay más aire (la cifra va encima); en el botón en chico, la escena se ve más de cerca
+  const RW = { portilla: 240, boton: 200 };
+  const bordes = rw => rw ? [-(rw - W) / 2, W + (rw - W) / 2, -(rw - H) / 2, H + (rw - H) / 2] : [0, W, 0, H];
   const QUIETO = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
   const C = { oscuro: false };
   const hex = c => { c = String(c || "#ffffff").trim(); if (c.startsWith("rgb")) return (c.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number); c = c.replace("#", ""); if (c.length === 3) c = c.split("").map(x => x + x).join(""); const n = parseInt(c, 16) || 0; return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
@@ -821,7 +822,7 @@ const AGUA_MOTOR = (() => {
           cielo.addColorStop(1, C.oscuro ? mezcla("#1D2C55", "#3A2440", calor) : mezcla("#EEF8FD", "#FFF0D8", calor));
           ctx.fillStyle = cielo; ctx.fillRect(L, T, R - L, B - T);
           // el sol: los rayos giran más rápido mientras más calor hace
-          const sx = redonda ? 4 : 26, sy = redonda ? 54 : 28, sr = 9 + calor * 4;   // en el círculo, a un lado de la cifra
+          const cifra = redonda && modo === "portilla", sx = cifra ? 4 : 26, sy = cifra ? 54 : 28, sr = 9 + calor * 4;   // en la portilla, a un lado de la cifra
           ctx.fillStyle = `rgba(255,200,90,${0.14 + calor * 0.14})`; ctx.beginPath(); ctx.arc(sx, sy, sr * 1.9, 0, 6.3); ctx.fill();
           ctx.save(); ctx.translate(sx, sy); ctx.rotate(QUIETO ? 0 : t * (0.15 + calor * 0.5)); ctx.fillStyle = `rgba(255,190,70,${0.55 + calor * 0.35})`;
           for (let i = 0; i < 12; i++) { ctx.rotate(Math.PI / 6); ctx.beginPath(); ctx.moveTo(sr + 2, -2); ctx.lineTo(sr + 8 + calor * 4 + (i % 2) * 3, 0); ctx.lineTo(sr + 2, 2); ctx.fill(); }
@@ -901,7 +902,7 @@ const AGUA_MOTOR = (() => {
           ctx.save(); if (!redonda) ctx.clip(marco);
           const cielo = ctx.createLinearGradient(0, 0, 0, 130); cielo.addColorStop(0, C.oscuro ? "#101A3C" : "#BFE3F7"); cielo.addColorStop(1, C.oscuro ? "#22305E" : "#EEF7FC");
           ctx.fillStyle = cielo; ctx.fillRect(L, T, R - L, B - T);
-          ctx.fillStyle = C.oscuro ? "#F3E6C4" : "#FFD27A"; ctx.beginPath(); ctx.arc(redonda ? 142 : 116, redonda ? 34 : 20, 7, 0, 6.3); ctx.fill();   // en el círculo, a un lado de la cifra
+          ctx.fillStyle = C.oscuro ? "#F3E6C4" : "#FFD27A"; ctx.beginPath(); ctx.arc(redonda && modo === "portilla" ? 142 : 116, redonda && modo === "portilla" ? 34 : 20, 7, 0, 6.3); ctx.fill();   // en la portilla, a un lado de la cifra
           ctx.fillStyle = C.oscuro ? "#1E3A3F" : "#9ED3A6"; ctx.beginPath(); ctx.moveTo(L, redonda ? 84 : 74); if (redonda) ctx.quadraticCurveTo(L / 2, 80, 0, 74); ctx.bezierCurveTo(30, 44, 70, 60, 100, 52); ctx.bezierCurveTo(120, 46, 132, 44, 140, 48); if (redonda) ctx.quadraticCurveTo(155, 50, R, 58); ctx.lineTo(R, 130); ctx.lineTo(L, 130); ctx.fill();
           ctx.fillStyle = C.oscuro ? "#173033" : "#7FC28C"; ctx.beginPath(); ctx.moveTo(L, redonda ? 102 : 96); if (redonda) ctx.quadraticCurveTo(L / 2, 100, 0, 96); ctx.bezierCurveTo(40, 80, 80, 92, 140, 84); if (redonda) ctx.quadraticCurveTo(155, 82, R, 88); ctx.lineTo(R, 140); ctx.lineTo(L, 140); ctx.fill();
           const ptsL = pintarAgua(ctx, { vaso: lago, x0: XB, x1: R + 8, y: ALTO, fondo: B, ola: olaLago, t, colores: cs });
@@ -923,7 +924,7 @@ const AGUA_MOTOR = (() => {
           ctx.font = "700 7px system-ui, sans-serif"; ctx.textAlign = "right"; ctx.fillStyle = C.oscuro ? "rgba(255,255,255,.75)" : "rgba(20,26,46,.6)";
           for (let v = 0; v <= N; v += paso) { const yy = yDe(v / N); ctx.fillRect(XA - 3, yy - 0.5, 3, 1); if (yy < 126) ctx.fillText(String(v), XA - 5, yy + 2.5); }
           ctx.restore();
-          if (redonda) return;   // en la portilla, el borde es el círculo y la meta la marca el anillo
+          if (redonda) return;   // en el círculo, el borde es el círculo y la meta la marca el anillo
           ctx.lineWidth = 1; ctx.strokeStyle = rgba(C.tinta, 0.12); ctx.stroke(marco);
           if (e.frac >= 1) { ctx.lineWidth = 3; ctx.strokeStyle = rgba(C.agua, 0.35); ctx.stroke(marco); }
         },
@@ -1188,9 +1189,9 @@ const AGUA_MOTOR = (() => {
     if (!C.tinta) colores();
     const estilo = ESCENAS[cv.dataset.agua] ? cv.dataset.agua : "botella", modo = cv.dataset.modo || "tarjeta";
     // en la portilla, las escenas llenan el círculo: el cuadro es de 200 × 200 y la escena (140 de ancho) va al centro
-    const redonda = modo === "portilla" && !!cv.dataset.redonda, DX = redonda ? REDONDA_DX : 0, DY = redonda ? REDONDA_DY : 0;
-    const escena = ESCENAS[estilo](cv, modo, redonda), ctx = cv.getContext("2d"), clave = modo + estilo + (redonda ? "o" : "");
-    const SW = redonda ? RW : (escena.tam || [W, H])[0], SH = redonda ? RW : (escena.tam || [W, H])[1];
+    const rw = cv.dataset.redonda ? RW[modo] || 0 : 0, redonda = rw > 0, DX = redonda ? (rw - W) / 2 : 0, DY = redonda ? (rw - H) / 2 : 0;
+    const escena = ESCENAS[estilo](cv, modo, rw), ctx = cv.getContext("2d"), clave = modo + estilo + (redonda ? "o" : "");
+    const SW = redonda ? rw : (escena.tam || [W, H])[0], SH = redonda ? rw : (escena.tam || [W, H])[1];
     const muestra = modo === "muestra", fracFija = +cv.dataset.frac || 0.62;
     const estado = () => { if (!muestra) return Object.assign(aguaEstado(), { temp: aguaTempDe() }); const meta = 2000; return { ml: meta * fracFija, meta, vaso: 250, frac: fracFija, ultimo: Date.now() - 30 * 60000, n: 1, temp: 31 }; };
     const e0 = estado(), niv = new Nivel(ultimo[clave] != null ? ultimo[clave] : estilo === "bombilla" ? Math.max(0, 1 - e0.frac) : estilo === "cantimplora" ? 1 : estilo === "reloj" ? aguaRelojQueda(e0) : Math.min(1, e0.frac));

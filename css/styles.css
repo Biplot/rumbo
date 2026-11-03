@@ -3115,6 +3115,7 @@ span.alb-tapa.is-vacia { cursor: default; opacity: .6; }
   border: 1px solid var(--line); background: var(--surface); box-shadow: 0 2px 4px rgba(22, 26, 46, .08), 0 10px 22px -8px rgba(22, 26, 46, .4);
   display: grid; place-items: center; padding: 0; cursor: pointer; transition: transform .12s, opacity .12s; -webkit-tap-highlight-color: transparent; animation: fabIn .25s ease; }
 .agua-fab__btn canvas { width: 30px; pointer-events: none; }
+.agua-fab__btn.is-redonda canvas { width: calc(100% - 6px); aspect-ratio: 1; border-radius: 50%; }   /* las escenas, también en chico, llenan el círculo */
 .agua-fab__btn:active { transform: scale(.93); }
 .agua-fab.is-open .agua-fab__btn { opacity: 0; transform: scale(.85); pointer-events: none; }
 .agua-fab__velo { position: fixed; inset: 0; z-index: 59; border: 0; padding: 0; margin: 0; background: rgba(4, 10, 24, .32); opacity: 0; pointer-events: none; transition: opacity .15s; }

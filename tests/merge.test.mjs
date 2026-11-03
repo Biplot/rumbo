@@ -171,6 +171,28 @@ test("mergeStates no usa Math.max de saldos (ambos viejos → menor)", () => {
   assert.equal(r.gamif.xp, 1000);
 });
 
+test("reiniciar en A: lo de antes que tenía B no vuelve al sincronizar (STATE.reemplazo, zona.js)", () => {
+  const viejo = migrate(defaultState());
+  viejo.vida.diario = [{ id: "d1", fecha: "2026-11-02", texto: "hola" }];
+  viejo.agua.dias["2026-11-02"] = { r: [{ id: "a1", ml: 250, ts: 1 }], b: [] };
+  const reiniciado = migrate(defaultState());
+  reiniciado.reemplazo = { ts: 1000, motivo: "reinicio" };
+  // B guarda con lo de antes contra la nube reiniciada, y al revés (A guarda contra una nube con lo de B)
+  for (const r of [cargar(reiniciado, viejo), cargar(viejo, reiniciado)]) {
+    assert.equal(r.vida.diario.length, 0);
+    assert.equal(r.agua.dias["2026-11-02"], undefined);
+    assert.equal(r.reemplazo.motivo, "reinicio");
+  }
+  // después del reinicio, dos equipos con el mismo reinicio se fusionan como siempre
+  const a = clone(reiniciado), b = clone(reiniciado);
+  a.vida.diario = [{ id: "n1", fecha: "2026-11-03", texto: "nuevo en A" }];
+  b.vida.diario = [{ id: "n2", fecha: "2026-11-03", texto: "nuevo en B" }];
+  assert.equal(cargar(a, b).vida.diario.length, 2);
+  // recuperar la copia (un reemplazo más nuevo) gana sobre lo reiniciado
+  const recuperado = clone(viejo); recuperado.reemplazo = { ts: 2000, motivo: "recuperacion" };
+  assert.equal(cargar(reiniciado, recuperado).vida.diario.length, 1);
+});
+
 /* Tests adicionales registrados por otras fases (hábitos, ritual de mes, registro diario…) */
 for (const f of ["extra.test.mjs", "agenda.test.mjs", "semana.test.mjs", "express.test.mjs", "anios.test.mjs", "trimestre.test.mjs", "tutorial.test.mjs", "notifier.test.mjs", "gcal.test.mjs", "consumibles.test.mjs", "funciones.test.mjs", "logros.test.mjs", "cielo.test.mjs", "casa.test.mjs", "elefante.test.mjs", "elefante3d.test.mjs", "avatares.test.mjs", "salud.test.mjs", "notas.test.mjs", "iconos.test.mjs", "amigos.test.mjs", "conjunto.test.mjs", "objetivos.test.mjs", "visitas.test.mjs", "planes.test.mjs", "planes-despues.test.mjs", "listas.test.mjs", "etapa4.test.mjs", "tablero.test.mjs", "album.test.mjs", "agua.test.mjs", "alcancias.test.mjs", "deseos.test.mjs", "jardin.test.mjs", "descansos.test.mjs", "dejar.test.mjs", "bienvenida.test.mjs"]) {
   const p = path.join(root, "tests", f);

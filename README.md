@@ -161,6 +161,15 @@ Todo lo que se elige en la app usa una de 9 piezas (`js/elegir.js`). Cada pieza 
 
 Un observador copia la marca de lo elegido a `aria-pressed` o `aria-selected`, para que el lector de pantalla también lo anuncie.
 
+## Borrar con seguro
+En Cuenta › Zona sensible (`js/zona.js`), las acciones que no tienen vuelta piden confirmar que son a propósito y que eres tú. Ya no se usan las ventanitas del navegador (`confirm`).
+- **Reiniciar mis datos** y **Eliminar mi cuenta** abren una hoja que dice con tus números lo que se borra (hábitos, diario, ritual, ⭐, medallas, fotos del álbum…) y ofrece descargar el respaldo. El botón rojo se enciende al escribir la palabra (REINICIAR o ELIMINAR; da igual si es con mayúsculas o tildes) y tu contraseña. Si tu cuenta entra solo con Google, se pide un código de 6 números que llega a tu correo; cualquiera puede elegir el código o la contraseña. Con 5 intentos equivocados hay que esperar 5 minutos (en ese equipo; Supabase además limita los intentos). «Reiniciar» ya no está en «Editar perfil».
+- **La copia de 30 días:** antes de reiniciar o de importar un respaldo, Rumbo guarda una copia de lo que tenías en la tabla `respaldos` (`supabase/respaldos.sql`): se guardan las 3 más nuevas y vencen a los 30 días. En Cuenta aparece «Recuperar mis datos» o «Deshacer la importación» mientras dure. Si la tabla aún no está, la copia queda en ese equipo (IndexedDB `rumbo_respaldos`); si tampoco se puede, se descarga el respaldo antes de borrar.
+- **Que no vuelva solo:** reiniciar, importar y recuperar marcan el estado con `reemplazo: { ts, motivo }`. Al fusionar dos equipos (`mergeStates`), el lado con el reemplazo más nuevo gana entero. Así, un equipo que seguía con los datos de antes ya no los devuelve al sincronizar.
+- **Importar un respaldo** muestra lo que trae el archivo antes de reemplazar.
+- **Cambiar la contraseña** pide la actual (o el código).
+- **El código al correo** usa `signInWithOtp` y `verifyOtp` de Supabase. Para que llegue un código y no solo un enlace, la plantilla **Magic Link** (Authentication › Email Templates) tiene que incluir `{{ .Token }}`. Hay un ejemplo en `supabase/respaldos.sql`.
+
 ## Configuración de Supabase
 Las claves públicas van en `js/store.js` (`SUPABASE_URL`, `SUPABASE_KEY`). La `publishable key` es pública por diseño; los datos están protegidos por RLS. Esquema:
 

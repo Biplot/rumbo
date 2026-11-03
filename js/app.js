@@ -169,7 +169,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 62;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 63;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -530,6 +530,10 @@ const NOVEDADES = {
   ],
   62: [
     ["🍶", "Tu botella en la portilla", "En el botón de agua, junto al anillo, está tu botella con su medida: un toque la suma entera. Tocar el dibujo sigue siendo un vaso, y «Deshacer» quita la botella de una vez."],
+  ],
+  63: [
+    ["🔒", "Borrar con seguro", "Reiniciar tus datos o eliminar tu cuenta ahora piden escribir una palabra y tu contraseña (o un código a tu correo si entras con Google), y te muestran lo que se borra."],
+    ["🛟", "30 días para arrepentirte", "Al reiniciar o importar un respaldo, Rumbo guarda una copia de lo que tenías: la recuperas en Cuenta › Zona sensible durante 30 días. Y lo borrado ya no vuelve desde otro equipo."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1091,6 +1095,7 @@ function onClick(e) {
   if (a.startsWith("lj-")) { lecturasAmigosAccion(a, d); return; } // leer el mismo libro (lecturas-amigos.js)
   if (a.startsWith("alb-")) { albumAccion(a, d); return; }         // 📷 álbum del mes (album.js)
   if (a.startsWith("agua-")) { aguaAccion(a, d, el); return; }     // 💧 agua para todos (agua.js)
+  if (a.startsWith("zona-")) { zonaAccion(a, d); return; }         // 🔒 zona sensible: borrar con seguro (zona.js)
   if (a.startsWith("alc-")) { alcAccion(a, d, el); return; }       // 🐷 tus alcancías (alcancias.js)
   if (a.startsWith("des-")) { deseosAccion(a, d); return; }        // 💎 tus deseos (deseos.js)
   if (a.startsWith("jar-")) { jardinAccion(a, d, el); return; }    // 🌱 tu jardín (jardin.js)
@@ -1126,9 +1131,8 @@ function onClick(e) {
     case "logout": if (confirm("¿Cerrar sesión?")) doLogout(); break;
 
     /* Cuenta */
-    case "acc-change-pass": doChangePass(); break;
     case "acc-import": { const el = document.getElementById("acc-file"); if (el) el.click(); break; }
-    case "acc-delete": doDeleteAccount(); break;
+    case "acc-delete": openZona("eliminar"); break;
 
     /* Metas */
     case "meta-add": {
@@ -1533,16 +1537,7 @@ function onClick(e) {
     case "mision-ocultar": misionMostrar(false); toast("Primeros pasos oculto · vuelve a mostrarlo en Ayuda"); break;
     case "mision-cerrar": cambiarTutorial("mision", "completada"); rerender(); break;
     case "show-tutorial": case "intro-replay": setSidebar(false); cerrarMas(); cerrarMenuCuenta(); openOnboarding(STATE.settings.onboarded ? "repetir" : "nuevo"); break;
-    case "reset-data":
-      if (confirm("¿Borrar TODOS tus datos y empezar de cero? Esto no se puede deshacer.")) {
-        const name = STATE.profile.name, birth = STATE.profile.birthDate, theme = STATE.settings.theme;
-        STATE = defaultState();
-        STATE.profile.name = name; STATE.profile.birthDate = birth;
-        STATE.settings.onboarded = true; STATE.settings.theme = theme;
-        applyTheme(theme); applyCosmetics(); saveState(); updateTopbar(); closeModal(); rerender();
-        toast("Datos reiniciados · empieza de cero ✨");
-      }
-      break;
+    case "reset-data": openZona("reiniciar"); break;   // 🔒 con la palabra y tu contraseña (zona.js)
   }
 }
 
@@ -2197,8 +2192,7 @@ function openProfileModal() {
     <div class="field"><label>Nombre de la app</label><input class="input" id="pf-app" value="${escapeAttr(STATE.settings.appName)}"></div>
     <button class="btn btn--primary btn-block" data-action="profile-save">Guardar</button>
     <div class="divider"></div>
-    <button class="btn-ghost btn-block" data-action="show-tutorial">📖 Ver introducción</button>
-    <button class="btn-ghost btn-block" data-action="reset-data" style="margin-top:6px;color:var(--coral);border-color:var(--coral)">🗑 Reiniciar mis datos (empezar de cero)</button>`);
+    <button class="btn-ghost btn-block" data-action="show-tutorial">📖 Ver introducción</button>`);
 }
 function saveProfile() {
   STATE.profile.name = val("pf-name") || STATE.profile.name || "Tú";
@@ -2233,6 +2227,7 @@ async function vincularGoogle() {
 function renderCuenta() {
   const email = (CURRENT_USER && CURRENT_USER.email) || "";
   setTimeout(cargarVinculoGoogle, 0);
+  setTimeout(() => { zonaVerifPintar("cv"); zonaCargarRespaldos(); }, 0);   // ¿eres tú? y las copias de 30 días (zona.js)
   return `
   <div class="card">
     <div class="card__title">👤 Tu cuenta</div>
@@ -2257,9 +2252,11 @@ function renderCuenta() {
 
   <div class="card mt-16">
     <div class="card__title" style="font-size:15px">🔑 Contraseña</div>
-    <div class="field mt-16"><label>Nueva contraseña</label>
-      <input class="input" type="password" id="acc-pass" placeholder="Mínimo 6 caracteres"></div>
-    <button class="btn btn--soft btn-block" data-action="acc-change-pass">Actualizar contraseña</button>
+    <div class="zona-verif mt-16" id="cv-verif"></div>
+    <div class="field"><label for="acc-pass">Nueva contraseña</label>
+      <input class="input" type="password" id="acc-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+    <p class="zona-error" id="cv-error" role="alert" hidden></p>
+    <button class="btn btn--soft btn-block" data-action="zona-cambiar-clave">Actualizar contraseña</button>
   </div>
 
   <div class="card mt-16">
@@ -2280,21 +2277,13 @@ function renderCuenta() {
 
   <div class="card mt-16" style="border-color:var(--coral)">
     <div class="card__title" style="font-size:15px">⚠️ Zona sensible</div>
+    <div id="acc-respaldos" class="zona-resps"></div>
     <div class="row-wrap mt-16">
       <button class="btn-ghost" data-action="reset-data" style="color:var(--coral);border-color:var(--coral)">🗑 Reiniciar mis datos</button>
       <button class="btn-ghost" data-action="acc-delete" style="color:var(--coral);border-color:var(--coral)">✕ Eliminar mi cuenta</button>
     </div>
-    <p class="text-xs muted mt-8">Reiniciar borra tus datos pero conserva tu cuenta. Eliminar borra todo y cierra tu cuenta para siempre.</p>
+    <p class="text-xs muted mt-8">Reiniciar borra tus datos pero conserva tu cuenta, y guarda una copia por 30 días. Eliminar borra todo y cierra tu cuenta para siempre. Las dos piden escribir una palabra y confirmar que eres tú.</p>
   </div>`;
-}
-
-async function doChangePass() {
-  const p = document.getElementById("acc-pass").value;
-  if (!p || p.length < 6) return toast("Mínimo 6 caracteres", true);
-  const res = await BACKEND.updatePassword(p);
-  if (res.error) return toast(res.error, true);
-  document.getElementById("acc-pass").value = "";
-  toast("Contraseña actualizada ✅");
 }
 
 function importBackup(input) {
@@ -2306,22 +2295,9 @@ function importBackup(input) {
     let data;
     try { data = JSON.parse(reader.result); } catch (e) { return toast("El archivo no es un respaldo válido", true); }
     if (!data || typeof data !== "object" || !data.settings || !data.profile) return toast("Ese archivo no parece un respaldo de Rumbo", true);
-    if (!confirm("Esto REEMPLAZARÁ tus datos actuales con los del respaldo. ¿Continuar?")) return;
-    STATE = migrate(data);
-    applyTheme(STATE.settings.theme); applyCosmetics();
-    saveState(); updateTopbar(); rerender();
-    toast("Datos importados ✅");
+    zonaImportarAbrir(data);   // se ve lo que trae y lo de ahora queda guardado 30 días (zona.js)
   };
   reader.readAsText(f);
-}
-
-async function doDeleteAccount() {
-  if (!confirm("¿Eliminar tu cuenta y TODOS tus datos para siempre? Esto no se puede deshacer.")) return;
-  if (!confirm("Última confirmación: se borrará todo y no podrás recuperarlo. ¿Seguro?")) return;
-  const res = await BACKEND.deleteAccount();
-  if (res.error) return toast(res.error, true);
-  CURRENT_USER = null; STATE = null; location.hash = "";
-  showAuth(); toast("Cuenta eliminada");
 }
 
 /* ============================================================

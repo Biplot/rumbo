@@ -156,6 +156,16 @@ module.exports = async ({ b, ok, errs }) => {
   // 8) Los estilos nuevos: el día de calor, la esclusa y tu elefante (3D); y el acuario del mes en Salud
   await p.evaluate(() => { closeModal(); registrarMovimiento("prueba:agua2", 3000, 0, "Para probar"); buyItem("agua-esclusa"); go("semana"); }); await p.waitForTimeout(500);
   ok(await p.locator(".agua-fab__btn canvas[data-agua='esclusa'][data-listo]").count() === 1, "al comprar la esclusa, el botón cambia al tiro");
+  // las escenas llenan el círculo de la portilla (la botella y los demás recipientes siguen al centro)
+  await p.click(".agua-fab__btn"); await p.waitForTimeout(500);
+  const redonda = await p.evaluate(() => { const port = document.querySelector("#aguaFab .agua-fab__port"), cv = port.querySelector(".agua-fab__tomar canvas"), r = cv.getBoundingClientRect(), pr = port.getBoundingClientRect();
+    return { clase: port.classList.contains("is-redonda"), cuadrado: Math.abs(r.width - r.height) < 2, lleno: r.width > pr.width * 0.85, foco: document.activeElement && document.activeElement.classList.contains("agua-fab__tomar") }; });
+  ok(redonda.clase && redonda.cuadrado && redonda.lleno, "la esclusa llena todo el círculo de la portilla");
+  ok(!redonda.foco, "al abrirla con el dedo, el foco no se va al dibujo (sin el marco del foco encima de la escena)");
+  const t3 = await p.evaluate(() => aguaHoy()); await p.click(".agua-fab__tomar"); await p.waitForTimeout(500);
+  ok((await p.evaluate(() => aguaHoy())) - t3 === 250, "y tocarla sigue siendo un vaso");
+  await shot(p, "agua-esclusa-redonda");
+  await p.mouse.click(30, 200); await p.waitForTimeout(300);
   await p.evaluate(() => { buyItem("agua-calor"); go("inicio"); }); await p.waitForTimeout(500);
   ok(await p.locator(".agua-card canvas[data-agua='calor'][data-listo]").count() === 1, "el día de calor en «Agua de hoy»");
   await p.evaluate(() => { buyItem("agua-elefante"); go("semana"); }); await p.waitForTimeout(400);

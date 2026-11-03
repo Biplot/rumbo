@@ -112,6 +112,32 @@ const LocalBackend = {
     catch (e) { return { error: "local" }; }
   },
   async resetPassword() { return { ok: true }; },
+  /* -------- Zona sensible (zona.js): ¿eres tú?, y la copia de 30 días antes de reemplazar tus datos --------
+     Sin servidor, el código «llega» a este navegador (rumbo_codigo: las pruebas lo leen de ahí) */
+  async verificarClave(password) {
+    const id = localStorage.getItem("rumbo_session"), u = id && this._users()[id];
+    if (!u) return { error: "No hay sesión." };
+    return u.pass === _hash(password || "") ? { ok: true } : { error: "clave" };
+  },
+  async enviarCodigo() {
+    try { localStorage.setItem("rumbo_codigo", String(Math.floor(100000 + Math.random() * 900000))); } catch {}
+    return { ok: true };
+  },
+  async verificarCodigo(codigo) {
+    let ok = false;
+    try { ok = !!codigo && String(codigo).trim() === localStorage.getItem("rumbo_codigo"); if (ok) localStorage.removeItem("rumbo_codigo"); } catch {}
+    return ok ? { ok: true } : { error: "codigo" };
+  },
+  _resps() { const id = localStorage.getItem("rumbo_session"); try { return id ? JSON.parse(localStorage.getItem("rumbo_respaldos_" + id) || "[]") : []; } catch { return []; } },
+  _saveResps(l) { const id = localStorage.getItem("rumbo_session"); if (!id) return false; try { localStorage.setItem("rumbo_respaldos_" + id, JSON.stringify(l)); return true; } catch { return false; } },
+  async respaldoGuardar(motivo, data) {
+    const ahora = Date.now(), r = { id: "r" + ahora.toString(36) + Math.random().toString(36).slice(2, 6), motivo, creado: new Date(ahora).toISOString(), vence: new Date(ahora + RESPALDO_DIAS * 864e5).toISOString(), data };
+    const l = this._resps().filter(x => Date.parse(x.vence) > ahora).concat([r]).slice(-RESPALDO_TOPE);
+    return this._saveResps(l) ? { ok: true, id: r.id } : { error: "local" };
+  },
+  async respaldosListar() { const ahora = Date.now(); return { lista: this._resps().filter(x => Date.parse(x.vence) > ahora).map(({ data, ...x }) => x).reverse() }; },
+  async respaldoTraer(id) { const r = this._resps().find(x => x.id === id); return r ? { data: r.data } : { error: "no-esta" }; },
+  async respaldoBorrar(id) { this._saveResps(this._resps().filter(x => x.id !== id)); return { ok: true }; },
   async updatePassword(newPass) {
     const id = localStorage.getItem("rumbo_session"); if (!id) return { error: "No hay sesión." };
     const users = this._users(); if (users[id]) { users[id].pass = _hash(newPass); this._saveUsers(users); }
@@ -931,9 +957,16 @@ function jardinMerge(l, s) {
   [s.raices, l.raices].forEach(r => Object.entries(r || {}).forEach(([id, f]) => { if (f && (!raices[id] || String(f) < raices[id])) raices[id] = String(f); }));
   return { macetas: Array.isArray(nuevo.macetas) ? nuevo.macetas.slice(0, 3) : [], inicio: nuevo.inicio !== false, raices, ts: Math.max(l.ts || 0, s.ts || 0) };
 }
+/* La copia antes de reiniciar o importar (zona.js): dura 30 días y se guardan las 3 más nuevas */
+const RESPALDO_DIAS = 30, RESPALDO_TOPE = 3;
+/* Reiniciar, importar un respaldo o recuperarlo reemplazan todo (STATE.reemplazo = { ts, motivo }): el lado del
+   reemplazo más nuevo gana entero, así lo que otro equipo tenía de antes no vuelve al sincronizar */
+function reemplazoTs(s) { return (s && s.reemplazo && +s.reemplazo.ts) || 0; }
 function mergeStates(server, local) {
   if (!server) return local;
   if (!local) return server;
+  const rs = reemplazoTs(server), rl = reemplazoTs(local);
+  if (rs !== rl) return JSON.parse(JSON.stringify(rs > rl ? server : local));
   const out = JSON.parse(JSON.stringify(local));
   // Lo que solo existe en la nube (p. ej. datos de una versión más nueva) se conserva
   Object.keys(server).forEach(k => { if (!(k in out)) out[k] = JSON.parse(JSON.stringify(server[k])); });
@@ -1483,6 +1516,47 @@ const SupabaseBackend = {
   async resetPassword(email) {
     const { error } = await this._client().auth.resetPasswordForEmail((email || "").trim().toLowerCase());
     return error ? { error: _traducir(error.message) } : { ok: true };
+  },
+  /* -------- Zona sensible (zona.js) --------
+     ¿Eres tú?: tu contraseña se revisa entrando de nuevo con ella (es la misma cuenta: la sesión sigue).
+     El código va a tu correo (signInWithOtp): para que llegue un código y no solo un enlace, la plantilla
+     «Magic Link» de Supabase tiene que incluir {{ .Token }} (ver supabase/respaldos.sql). */
+  async _correo() { const { data } = await this._client().auth.getSession(); return (data && data.session && data.session.user && data.session.user.email) || ""; },
+  async verificarClave(password) {
+    const email = await this._correo(); if (!email) return { error: "No hay sesión." };
+    const { error } = await this._client().auth.signInWithPassword({ email, password: password || "" });
+    if (!error) return { ok: true };
+    return /invalid login credentials/i.test(error.message) ? { error: "clave" } : { error: _traducir(error.message) };
+  },
+  async enviarCodigo() {
+    const email = await this._correo(); if (!email) return { error: "No hay sesión." };
+    const { error } = await this._client().auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    return error ? { error: _traducir(error.message) } : { ok: true };
+  },
+  async verificarCodigo(codigo) {
+    const email = await this._correo(); if (!email) return { error: "No hay sesión." };
+    const { error } = await this._client().auth.verifyOtp({ email, token: String(codigo || "").trim(), type: "email" });
+    if (!error) return { ok: true };
+    return /expired|invalid|not found/i.test(error.message) ? { error: "codigo" } : { error: _traducir(error.message) };
+  },
+  /* La copia de 30 días (tabla respaldos, supabase/respaldos.sql). Si la tabla aún no está, zona.js la guarda en este equipo */
+  async respaldoGuardar(motivo, data) {
+    const { data: ses } = await this._client().auth.getSession(), uid = ses && ses.session && ses.session.user.id;
+    if (!uid) return { error: "No hay sesión." };
+    const { data: row, error } = await this._client().from("respaldos").insert({ user_id: uid, motivo, data }).select("id").single();
+    return error ? { error: error.message } : { ok: true, id: row.id };
+  },
+  async respaldosListar() {
+    const { data, error } = await this._client().from("respaldos").select("id, motivo, creado, vence").gt("vence", new Date().toISOString()).order("creado", { ascending: false });
+    return error ? { error: error.message, lista: [] } : { lista: data || [] };
+  },
+  async respaldoTraer(id) {
+    const { data, error } = await this._client().from("respaldos").select("data").eq("id", id).maybeSingle();
+    return error || !data ? { error: error ? error.message : "no-esta" } : { data: data.data };
+  },
+  async respaldoBorrar(id) {
+    const { error } = await this._client().from("respaldos").delete().eq("id", id);
+    return error ? { error: error.message } : { ok: true };
   },
   async updatePassword(newPass) {
     const { error } = await this._client().auth.updateUser({ password: newPass });

@@ -3737,3 +3737,38 @@ html[data-theme^="ruta"] .filtros > button.is-active, html[data-theme^="ruta"] .
 /* Tu botella: cinco que crecen, y un contador para otra medida */
 .agua-botellas-el { grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 440px; gap: 6px; }
 .agua-botellas-el button { min-height: 108px; font-size: 12px; padding-inline: 2px; }
+
+/* Zona sensible: borrar con seguro (zona.js). El rojo es solo para lo que borra */
+.btn--peligro { background: #C23A48; color: #FFFFFF; border: 0; }
+.btn--peligro:hover { background: #A8303D; }
+.btn--peligro:disabled { background: var(--surface-3, var(--line)); color: var(--text-muted); cursor: not-allowed; opacity: 1; }
+.zona { display: grid; gap: 14px; }
+.zona__intro { margin: 0; font-size: 15px; color: var(--text-soft); }
+.zona__intro b { color: var(--text); }
+.zona-pierdes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.zona-pierdes li { border: 1px solid var(--line); border-radius: 12px; padding: 8px 11px; display: grid; gap: 1px; min-width: 0; background: var(--surface); }
+.zona-pierdes b { font: 800 19px/1.15 var(--font-display); font-variant-numeric: tabular-nums; }
+.zona-pierdes span { font-size: 12.5px; color: var(--text-soft); }
+.zona-vacio { margin: 0; }
+.zona-copia { margin: 0; font-size: 13.5px; background: var(--coral-soft, rgba(244, 174, 61, .16)); border-radius: 12px; padding: 9px 12px; color: var(--text); }
+.zona-campo { margin-bottom: 0; }
+.zona .field label, .zona-verif .field label { font-size: 13.5px; font-weight: 600; }
+.zona-palabra { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .04em; color: #C23A48; }
+html[data-theme$="noche"] .zona-palabra, html[data-theme="alto-contraste"] .zona-palabra { color: #FF8A95; }
+#zona-palabra.is-ok { border-color: #1D7553; box-shadow: 0 0 0 3px rgba(47, 158, 116, .16); }
+.zona-verif { display: grid; gap: 8px; justify-items: start; }
+.zona-verif > .field, .zona-verif .zona-codigo, .zona-verif .zona-codigo .field { width: 100%; }
+.zona-codigo { display: grid; gap: 8px; justify-items: start; }
+.zona-codigo .field[hidden] { display: none; }
+.zona-codigo__in { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 20px; letter-spacing: .3em; text-align: center; }
+.zona-otro { font-size: 13px; }
+.zona-error { margin: 0; font-size: 13.5px; font-weight: 700; color: #C23A48; }
+html[data-theme$="noche"] .zona-error, html[data-theme="alto-contraste"] .zona-error { color: #FF8A95; }
+.zona-error[hidden] { display: none; }
+.zona-botones { display: flex; flex-wrap: wrap; gap: 10px; }
+.zona-botones .btn { flex: 1 1 150px; }
+.zona-resps { display: grid; gap: 8px; margin-top: 12px; }
+.zona-resps:empty { display: none; }
+.zona-resp { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; background: var(--coral-soft, rgba(244, 174, 61, .16)); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; }
+.zona-resp span { min-width: 0; flex: 1 1 220px; }
+.zona-verif + .field { margin-top: 14px; }

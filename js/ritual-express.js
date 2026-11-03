@@ -162,6 +162,7 @@ function saveExpressCierre() {
   const pagado = nuevo && registrarMovimiento("ritual-cierre:" + iso, monedas, monedas, "Cierre express", true);
   const medallas = nuevo && typeof cierreMedallasEmpieza === "function";
   if (medallas) cierreMedallasEmpieza();
+  if (typeof notaElefanteGuardar === "function") notaElefanteGuardar(iso);   // 🐘 la nota de tu elefante (nota-elefante.js)
   saveState(); closeModal(); updateTopbar(); rerender();
   const hubo = medallas && cierreMedallasTermina();
   if (pagado && typeof sonar === "function") sonar("cierre");

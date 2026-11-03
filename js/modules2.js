@@ -357,6 +357,7 @@ function saveCierre() {
   if (!yaCerrado) registrarMovimiento("ritual-cierre:" + iso, 40, 40, "Ritual de cierre");
   const medallas = !yaCerrado && typeof cierreMedallasEmpieza === "function";   // las que gane se muestran al final
   if (medallas) cierreMedallasEmpieza();
+  if (typeof notaElefanteGuardar === "function") notaElefanteGuardar(iso);   // 🐘 la nota de tu elefante sobre tu día (nota-elefante.js)
   saveState(); closeModal(); updateTopbar(); rerender();
   const hubo = medallas && cierreMedallasTermina();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();

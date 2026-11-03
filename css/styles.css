@@ -3781,3 +3781,18 @@ html[data-theme$="noche"] .zona-error, html[data-theme="alto-contraste"] .zona-e
 .zona-resp { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; background: var(--coral-soft, rgba(244, 174, 61, .16)); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; }
 .zona-resp span { min-width: 0; flex: 1 1 220px; }
 .zona-verif + .field { margin-top: 14px; }
+
+/* El diario del elefante (nota-elefante.js): la nota que te deja al cerrar el día, como un papel */
+.ele-nota { margin: 14px 0 0; padding: 14px 16px 12px; border-radius: 16px; display: grid; gap: 8px; position: relative;
+  background: #FFF8EA; color: #161A2E; border: 1px solid rgba(154, 88, 0, .16); }
+.ele-nota__cab { display: flex; align-items: center; gap: 10px; }
+.ele-nota__ele { width: 60px; margin: -6px 0 -4px -4px; flex: none; display: block; }
+.ele-nota__ele svg { width: 100%; height: auto; display: block; }
+.ele-nota__k { font: 800 14px/1.2 var(--font-display); color: #3949C9; letter-spacing: -.005em; }
+.ele-nota__t { margin: 0; font-size: 15px; line-height: 26px; color: #161A2E;
+  background-image: repeating-linear-gradient(180deg, transparent 0 25px, rgba(57, 73, 201, .1) 25px 26px); }   /* las líneas del papel, bajo cada renglón */
+.ele-nota__pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; font-size: 13px; font-weight: 700; color: #5A6183; }
+.ele-nota__comp { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: #3949C9; min-height: 32px; }
+.ele-nota--compacta { margin: 4px 0 10px; }
+.ele-nota--compacta .ele-nota__ele { width: 50px; }
+html[data-theme$="noche"] .ele-nota, html[data-theme="alto-contraste"] .ele-nota { background-color: #F6EEDC; }

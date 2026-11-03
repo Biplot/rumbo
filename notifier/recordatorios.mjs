@@ -13,6 +13,7 @@ import {
   diaSemana, diasSinCerrar, textoDiasSinCerrar, textoHabitos, cumpleanosHoy, textoCumpleanos, contactosPendientes, textoContactos,
 } from "./reglas.mjs";
 import { motorHabitos } from "./habitos.mjs";
+import { voz, COLA, textoRacha, aguaAtrasada, textoAgua } from "./elefante.mjs";
 
 export const VENTANA_MIN = 30;           // tolerancia en minutos DESPUÉS de la hora elegida
 const TZ_DEFECTO = "America/Santiago";
@@ -28,6 +29,8 @@ export const MSGS = {
   "tri-cierre": { title: "🧭 Termina el trimestre", body: "Cierra tu trimestre: revisa tus metas, tus números y lo que aprendiste (+200 ⭐).", url: "./#ritual", tag: "rumbo-tri-cierre" },
   "tri-apertura": { title: "🧭 Empieza un trimestre nuevo", body: "Abre tu trimestre: define tu foco y de 3 a 5 metas (+200 ⭐).", url: "./#ritual", tag: "rumbo-tri-apertura" },
   "noche-2": { title: "🌙 ¿Cerramos el día?", body: "Aún no cierras hoy. Te toma un minuto y tu racha sigue.", url: "./#ritual", tag: "rumbo-noche-2" },
+  "elefante-racha": { title: "🔥 Tu racha te espera", body: "", url: "./#habitos", tag: "rumbo-elefante-racha" },
+  "elefante-agua": { title: "💧 ¿Un vaso?", body: "", url: "./#inicio", tag: "rumbo-elefante-agua" },
   "dias-sin-cerrar": { title: "⏳ Días sin cerrar", body: "", url: "./#inicio", tag: "rumbo-dias-sin-cerrar" },
   habitos: { title: "✅ Tus hábitos de hoy", body: "", url: "./#habitos", tag: "rumbo-habitos" },
   cumpleanos: { title: "🎂 Cumpleaños", body: "", url: "./#relaciones", tag: "rumbo-cumpleanos" },
@@ -37,15 +40,16 @@ const TRI_APERTURA_CON_CIERRE = "Cierra el trimestre que terminó y abre este: t
 /* Ritual de mes: apertura el día 1 (hora de "mañana"), cierre el último día (hora de "noche").
    Clave de mes "YYYY-MM" igual que STATE.ritual.meses en la app. Semana y trimestre: ver reglas.mjs */
 const MES_TIPOS = { "mes-apertura": { hora: "manana", parte: "apertura" }, "mes-cierre": { hora: "noche", parte: "cierre" } };
-const TIPOS = ["manana", "dias-sin-cerrar", "mediodia", "habitos", "noche", "noche-2", "mes-apertura", "mes-cierre",
+const TIPOS = ["manana", "dias-sin-cerrar", "mediodia", "elefante-agua", "elefante-racha", "habitos", "noche", "noche-2", "mes-apertura", "mes-cierre",
   "semana-cierre", "semana-apertura", "tri-cierre", "tri-apertura", "cumpleanos", "contactos"];
 /* Qué interruptor de 🔔 Notificaciones gobierna cada aviso, y a qué hora sale (mes, semana y trimestre la calculan) */
 const AVISO_DE = {
   manana: "manana", "dias-sin-cerrar": "pendientes", mediodia: "mediodia", habitos: "habitos", noche: "noche", "noche-2": "insistencia",
   "mes-apertura": "mes", "mes-cierre": "mes", "semana-cierre": "semana", "semana-apertura": "semana", "tri-cierre": "trimestre", "tri-apertura": "trimestre",
-  cumpleanos: "cumpleanos", contactos: "contactos",
+  cumpleanos: "cumpleanos", contactos: "contactos", "elefante-agua": "elefante", "elefante-racha": "elefante",
 };
-const MOMENTO_DE = { manana: "manana", "dias-sin-cerrar": "manana", mediodia: "mediodia", habitos: "habitos", noche: "noche", "noche-2": "insistencia", cumpleanos: "manana", contactos: "manana" };
+const MOMENTO_DE = { manana: "manana", "dias-sin-cerrar": "manana", mediodia: "mediodia", habitos: "habitos", noche: "noche", "noche-2": "insistencia", cumpleanos: "manana", contactos: "manana",
+  "elefante-agua": "agua", "elefante-racha": "habitos" };
 
 export function localMinutes(tz, ahora = new Date()) {
   const p = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(ahora);
@@ -112,21 +116,31 @@ export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), vent
       let hora = MOMENTO_DE[tipo], tri = null, body = null, sufijo = "", tambien = null;
       if (tipo === "manana") {
         if (hoyRitual.hecho) continue;                // ya abrió el día
-        if (activos.pendientes && pendientesCierre().length) { body = MSGS.manana.body + " " + textoDiasSinCerrar(pendientesCierre(), hoy); tambien = "dias-sin-cerrar"; }
+        if (activos.pendientes && pendientesCierre().length) { body = voz("manana", hoy).body + " " + textoDiasSinCerrar(pendientesCierre(), hoy); tambien = "dias-sin-cerrar"; }
       }
       if (tipo === "dias-sin-cerrar") {
         if (activos.manana && !hoyRitual.hecho) continue;   // va dentro del aviso de la mañana
         if (!pendientesCierre().length) continue;
-        body = textoDiasSinCerrar(pendientesCierre(), hoy);
+        body = textoDiasSinCerrar(pendientesCierre(), hoy) + " " + COLA["dias-sin-cerrar"];
       }
       if (tipo === "mediodia") { const medio = avisoMediodia(data, hoy); if (!medio) continue; body = medio.body; }
-      if (tipo === "habitos") { const faltan = habitos().pendientesHoy().map(h => h.nombre || "un hábito"); if (!faltan.length) continue; body = textoHabitos(faltan); }
+      if (tipo === "elefante-agua") { const a = aguaAtrasada(data, hoy); if (!a) continue; body = textoAgua(a, hoy); }
+      if (tipo === "elefante-racha") {
+        const rr = habitos().enRiesgo(); if (!rr) continue;
+        body = textoRacha(rr);
+        if (activos.habitos) {   // si también pediste el de hábitos, va dentro de este (con los que faltan) y no sale aparte
+          const otros = habitos().pendientesHoy().filter(h => h.id !== rr.id).map(h => h.nombre || "un hábito");
+          if (otros.length) body += " " + textoHabitos(otros).replace(/^Te falta/, "También te falta");
+          tambien = "habitos";
+        }
+      }
+      if (tipo === "habitos") { const faltan = habitos().pendientesHoy().map(h => h.nombre || "un hábito"); if (!faltan.length) continue; body = textoHabitos(faltan) + " " + COLA.habitos; }
       if ((tipo === "noche" || tipo === "noche-2") && hoyRitual.cerrado) continue;   // ya cerró el día
-      if (tipo === "cumpleanos") { const quienes = cumpleanosHoy(data, hoy); if (!quienes.length) continue; body = textoCumpleanos(quienes); }
+      if (tipo === "cumpleanos") { const quienes = cumpleanosHoy(data, hoy); if (!quienes.length) continue; body = textoCumpleanos(quienes) + " " + COLA.cumpleanos; }
       if (tipo === "contactos") {
         if (diaSemana(hoy) !== "domingo") continue;   // una vez por semana
         const quienes = contactosPendientes(data, hoy); if (!quienes.length) continue;
-        body = textoContactos(quienes); sufijo = lunesDe(hoy);
+        body = textoContactos(quienes) + " " + COLA.contactos; sufijo = lunesDe(hoy);
       }
       if (mt) {
         if (tipo === "mes-apertura" && dia !== 1) continue;
@@ -148,11 +162,15 @@ export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), vent
       const cuando = horaAviso(notif, hora);
       if (cuando == null || !enVentana(nowMin, cuando, ventana)) continue; // fuera de la ventana
 
+      // Lo de tu elefante (racha y agua): como mucho uno al día entre los dos
+      if (tipo.startsWith("elefante-") && !(await anotar("elefante"))) { r.saltados++; continue; }
       // Un aviso por persona, tipo y día: si ya está anotado (o no se pudo anotar), no se reenvía
       if (!(await anotar(tipo))) { r.saltados++; continue; }
       if (tambien) await anotar(tambien);           // lo que va dentro de este aviso no sale aparte
 
-      const base = body != null ? { ...MSGS[tipo], body } : MSGS[tipo];
+      // con la voz de tu elefante: su título y, si el aviso no trae un texto propio, el suyo del día
+      const v = voz(tipo, hoy), conVoz = v ? { ...MSGS[tipo], title: v.title, body: v.body || MSGS[tipo].body } : MSGS[tipo];
+      const base = body != null ? { ...conVoz, body } : conVoz;
       const msg = sufijo ? { ...base, tag: base.tag + "-" + sufijo } : base;
       const e = await enviar(dispositivos.get(row.user_id) || [], msg);
       r.enviados += e.enviadas; r.fallidos += e.fallidas; r.borrados += e.borradas;

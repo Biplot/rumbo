@@ -19,6 +19,8 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 1b) Qué avisos recibir: niveles de un toque e interruptores, guardados en la cuenta
   ok(await p.locator('[data-action="notif-nivel"][data-n="recomendado"].is-active').count() === 1, "por defecto, el nivel Recomendado (como siempre)");
+  ok(await p.locator('[data-action="notif-aviso"][data-k="elefante"]').isChecked() && /Tu elefante te escribe/.test(await p.locator(".card", { hasText: "Qué avisos" }).innerText())
+    && /Como mucho uno al día/.test(await p.locator(".card", { hasText: "Qué avisos" }).innerText()), "«Tu elefante te escribe» viene encendido en Recomendado y dice que es como mucho uno al día");
   await p.click('[data-action="notif-nivel"][data-n="esencial"]'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => { const a = avisosActivos(STATE.settings.notif); return a.manana && a.noche && !a.semana && !a.mes && !a.trimestre; }), "Lo esencial deja solo abrir y cerrar el día");
   await p.click('[data-action="notif-aviso"][data-k="habitos"]'); await p.waitForTimeout(200);

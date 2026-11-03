@@ -527,13 +527,13 @@ function devolverCompras(s, ids, nota) {
    antes de la Tienda, sigue encendido para quien ya tenía su hora.
    El servidor usa la misma regla (notifier/reglas.mjs): si cambias una, cambia la otra.
    ============================================================ */
-const AVISOS_TIPOS = ["manana", "noche", "insistencia", "pendientes", "mediodia", "semana", "mes", "trimestre", "habitos", "cumpleanos", "contactos", "amigos"];
+const AVISOS_TIPOS = ["manana", "noche", "insistencia", "pendientes", "mediodia", "semana", "mes", "trimestre", "habitos", "cumpleanos", "contactos", "amigos", "elefante"];
 const AVISOS_NIVELES = {
   esencial: ["manana", "noche"],
-  recomendado: ["manana", "noche", "semana", "mes", "trimestre", "amigos"],
+  recomendado: ["manana", "noche", "semana", "mes", "trimestre", "amigos", "elefante"],
   todo: AVISOS_TIPOS,
 };
-const AVISOS_HORAS = { manana: "08:00", noche: "21:00", mediodia: "13:00", habitos: "20:00" };
+const AVISOS_HORAS = { manana: "08:00", noche: "21:00", mediodia: "13:00", habitos: "20:00", agua: "16:00" };
 function avisosActivos(n) {
   n = n || {};
   const elegidos = n.avisos && typeof n.avisos === "object" ? n.avisos : {};

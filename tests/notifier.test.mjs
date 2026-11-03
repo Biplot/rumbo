@@ -15,7 +15,10 @@ export default async function ({ G, test, assert }) {
     assert.deepEqual(horasEnVentana(n, 8 * 60 + 5, 30), ["manana"]);
     assert.deepEqual(horasEnVentana(n, 13 * 60 + 10, 30), ["mediodia"]);
     assert.deepEqual(horasEnVentana(n, 21 * 60 + 20, 30), ["noche"]);
-    assert.deepEqual(horasEnVentana(n, 16 * 60, 30), []);
+    assert.deepEqual(horasEnVentana(n, 15 * 60, 30), []);
+    assert.deepEqual(horasEnVentana(n, 16 * 60, 30), ["agua"], "a las 16:00 tu elefante mira el agua");
+    assert.deepEqual(horasEnVentana(n, 20 * 60 + 5, 30), ["habitos"], "y a la hora de los hábitos, tu racha");
+    assert.deepEqual(horasEnVentana({ ...n, avisos: { elefante: false } }, 16 * 60, 30), [], "con tu elefante apagado, nada a esa hora");
     assert.deepEqual(horasEnVentana({ ...n, mediodia: null }, 13 * 60 + 10, 30), []);
   });
 
@@ -24,7 +27,7 @@ export default async function ({ G, test, assert }) {
       { avisos: { habitos: true, cumpleanos: true, contactos: true } }, { avisos: Object.fromEntries(AVISOS_TIPOS.map(k => [k, false])) }, { avisos: "roto" }];
     for (const n of casos) assert.deepEqual(avisosActivos(n), JSON.parse(JSON.stringify(G("avisosActivos")(n))));
     assert.deepEqual(AVISOS_NIVELES, JSON.parse(JSON.stringify(G("AVISOS_NIVELES"))));
-    assert.deepEqual(avisosActivos({}), { manana: true, noche: true, insistencia: false, pendientes: false, mediodia: false, semana: true, mes: true, trimestre: true, habitos: false, cumpleanos: false, contactos: false, amigos: true });
+    assert.deepEqual(avisosActivos({}), { manana: true, noche: true, insistencia: false, pendientes: false, mediodia: false, semana: true, mes: true, trimestre: true, habitos: false, cumpleanos: false, contactos: false, amigos: true, elefante: true });
     assert.equal(G("nivelAvisos")({}), "recomendado");
     assert.equal(G("nivelAvisos")({ avisos: { semana: false } }), "personalizado");
   });
@@ -83,7 +86,7 @@ export default async function ({ G, test, assert }) {
   const r2 = await enviarRecordatorios({ sb, enviar, ahora: new Date("2026-10-15T11:10:00Z") });
   const envios2 = envios.splice(0);
   const sbTarde = sbFalso({ subs, estados });
-  const r3 = await enviarRecordatorios({ sb: sbTarde, enviar, ahora: new Date("2026-10-15T19:00:00Z") });   // 16:00: nada
+  const r3 = await enviarRecordatorios({ sb: sbTarde, enviar, ahora: new Date("2026-10-15T18:00:00Z") });   // 15:00: nada
   const sbMes = sbFalso({ subs, estados: [{ user_id: "u1", data: { settings: { notif: { manana: "08:00", tz: "America/Santiago" } }, ritual: { meses: {} } } }] });
   await enviarRecordatorios({ sb: sbMes, enviar, ahora: new Date("2026-11-01T11:05:00Z") });                // día 1 del mes
   const enviosMes = envios.splice(0);
@@ -153,7 +156,7 @@ export default async function ({ G, test, assert }) {
     assert.ok(rPend[0][0].body.includes("Te quedó ayer sin cerrar: puedes cerrarlo hasta el sábado."));
     assert.deepEqual(tags(rPend[1]), []);
     assert.deepEqual(tags(rPend[2]), ["rumbo-dias-sin-cerrar"]);
-    assert.equal(rPend[2][0].body, "Te quedaron 2 días sin cerrar (el martes y ayer). El primero se puede cerrar hasta mañana.");
+    assert.equal(rPend[2][0].body, "Te quedaron 2 días sin cerrar (el martes y ayer). El primero se puede cerrar hasta mañana. Yo te lo guardo mientras.");
     assert.equal(rPend[3][0].body.includes("sin cerrar"), false);   // fuera de la holgura o tareas borradas: no cuentan
   });
 
@@ -170,7 +173,7 @@ export default async function ({ G, test, assert }) {
   ];
   test("hábitos pendientes: con el motor de la app, solo los que tocan hoy y faltan; nada si están al día o apagado", () => {
     assert.deepEqual(tags(rHab[0]), ["rumbo-habitos"]);
-    assert.equal(rHab[0][0].body, "Te falta 1: Leer.");
+    assert.equal(rHab[0][0].body, "Te falta 1: Leer. Vamos de a uno: yo te acompaño.");
     assert.deepEqual(tags(rHab[1]), []);
     assert.deepEqual(tags(rHab[2]), []);
   });
@@ -187,10 +190,57 @@ export default async function ({ G, test, assert }) {
   ];
   test("relaciones: el cumpleaños en la mañana del día; los contactos pendientes, los domingos", () => {
     assert.deepEqual(tags(rRel[0]), ["rumbo-manana", "rumbo-cumpleanos"]);
-    assert.equal(rRel[0][1].body, "Hoy cumple Ana. ¡Escríbele!");
+    assert.equal(rRel[0][1].body, "Hoy cumple Ana. ¿Le escribimos? Yo le canto con la trompa.");
     assert.deepEqual(tags(rRel[1]), ["rumbo-manana", "rumbo-contactos-2026-10-12"]);
-    assert.equal(rRel[1][1].body, "Hace tiempo que no hablas con Ana.");
+    assert.equal(rRel[1][1].body, "Hace tiempo que no hablas con Ana. ¿Le mandamos un saludo?");
     assert.deepEqual(tags(rRel[2]), ["rumbo-manana"]);
+  });
+
+  /* Tu elefante te escribe: la racha en riesgo, el agua atrasada (uno al día entre los dos) y la voz de siempre */
+  const E1605 = "2026-10-15T19:05:00Z";
+  const racha = { defs: [
+    { id: "h1", nombre: "Leer", frecuencia: { tipo: "diario" }, creado: "2026-10-01" },
+    { id: "h2", nombre: "Agua", frecuencia: { tipo: "diario" }, creado: "2026-10-01" },
+  ], log: { "2026-10": { h1: { 10: true, 11: true, 12: true, 13: true, 14: true } } } };
+  const aguaAyer = { meta: 2000, dias: { "2026-10-14": { r: [{ id: "a", ml: 1800, ts: 1 }], b: [] }, "2026-10-15": { r: [{ id: "b", ml: 250, ts: 2 }], b: [] } } };
+  const sbUno = sbFalso({ subs: [dispositivo("z", "x")], estados: [{ user_id: "x", data: base({ habitos: racha, agua: aguaAyer }) }] });
+  const rEle = {
+    racha: await correr(base({ habitos: racha }), J2005),
+    rachaConHabitos: await correr(base({ notif: { avisos: { habitos: true } }, habitos: racha }), J2005),
+    sinRacha: await correr(base({ habitos: { ...racha, log: {} } }), J2005),
+    apagado: await correr(base({ notif: { avisos: { elefante: false } }, habitos: racha, agua: aguaAyer }), J2005),
+    agua: await correr(base({ agua: aguaAyer }), E1605),
+    aguaAlDia: await correr(base({ agua: { ...aguaAyer, dias: { ...aguaAyer.dias, "2026-10-15": { r: [{ id: "b", ml: 900, ts: 2 }], b: [] } } } }), E1605),
+    noAnota: await correr(base({ agua: { meta: 2000, dias: {} } }), E1605),
+    uno1: await correr(null, E1605, sbUno), uno2: await correr(null, J2005, sbUno),
+    manana: await correr(base(), J0805), manana2: await correr(base(), J0805),
+  };
+  test("tu elefante: si tu racha está por cortarse, te escribe a la hora de tus hábitos con su broma", () => {
+    assert.deepEqual(tags(rEle.racha), ["rumbo-elefante-racha"]);
+    assert.equal(rEle.racha[0].title, "🔥 Tu racha te espera");
+    assert.equal(rEle.racha[0].body, "Tu racha de Leer va en 5 días. ¿Diez páginas antes de dormir? Yo te espero con el libro abierto.");
+    assert.deepEqual(tags(rEle.sinRacha), [], "sin racha de 3 o más, nada");
+    assert.deepEqual(tags(rEle.apagado), [], "con tu elefante apagado, nada");
+  });
+  test("tu elefante: si también pediste el de hábitos, va todo en un solo aviso", () => {
+    assert.deepEqual(tags(rEle.rachaConHabitos), ["rumbo-elefante-racha"]);
+    assert.match(rEle.rachaConHabitos[0].body, /También te falta 1: Agua\.$/);
+  });
+  test("tu elefante: el agua a las 16:00, solo si la anotas y vas bajo el 40 %; no dice la meta", () => {
+    assert.deepEqual(tags(rEle.agua), ["rumbo-elefante-agua"]);
+    assert.match(rEle.agua[0].body, /0,25 L/);
+    assert.ok(!/de 2 L|meta/.test(rEle.agua[0].body), rEle.agua[0].body);
+    assert.deepEqual(tags(rEle.aguaAlDia), [], "con 0,9 de 2 L (45 %) va bien");
+    assert.deepEqual(tags(rEle.noAnota), [], "si no anotas tu agua, no te la pide");
+  });
+  test("tu elefante: como mucho uno al día entre la racha y el agua", () => {
+    assert.deepEqual(tags(rEle.uno1), ["rumbo-elefante-agua"]);
+    assert.deepEqual(tags(rEle.uno2), [], "en la noche ya no escribe por la racha");
+  });
+  test("tu elefante: los avisos de siempre hablan con su voz, y el mismo día dicen lo mismo", () => {
+    assert.equal(rEle.manana[0].title, "🌅 Buenos días");
+    assert.ok(/(trompa lista|café|abrimos juntos)/.test(rEle.manana[0].body), rEle.manana[0].body);
+    assert.equal(rEle.manana[0].body, rEle.manana2[0].body);
   });
 
   test("trimestre: cierre el penúltimo día en la noche, solo si falta cerrarlo", () => {

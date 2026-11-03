@@ -39,7 +39,7 @@ export function mensajeAmigo(tipo, { nombre, mensaje } = {}) {
    desde la mañana (puedeAvisarAmigo), a cada amigo suyo. El día es el de Chile. notif_sent evita repetirlo. */
 export function mensajeCumple(nombre) {
   const quien = String(nombre || "").trim() || "un amigo";
-  return { title: `🎂 Hoy está de cumpleaños ${quien}`, body: "Mándale un saludo desde Amigos.", url: "./#amigos", tag: "rumbo-amigo-cumple" };
+  return { title: `🎂 Hoy está de cumpleaños ${quien}`, body: "¿Le mandamos un saludo desde Amigos? Yo le canto con la trompa.", url: "./#amigos", tag: "rumbo-amigo-cumple" };
 }
 export async function recordatoriosCumples({ sb, enviar, ahora = new Date() }) {
   const dia = new Intl.DateTimeFormat("en-CA", { timeZone: TZ_DEFECTO, year: "numeric", month: "2-digit", day: "2-digit" }).format(ahora);

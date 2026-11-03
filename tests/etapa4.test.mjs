@@ -134,7 +134,7 @@ export default async function ({ G, test, assert, clone }) {
     assert.deepEqual(abiertos.map(x => x[0]).sort(), [B, C].sort());
   });
   test("los cumpleaños: a sus amigos, una vez en el día", () => {
-    assert.deepEqual(mensajeCumple("Ana"), { title: "🎂 Hoy está de cumpleaños Ana", body: "Mándale un saludo desde Amigos.", url: "./#amigos", tag: "rumbo-amigo-cumple" });
+    assert.deepEqual(mensajeCumple("Ana"), { title: "🎂 Hoy está de cumpleaños Ana", body: "¿Le mandamos un saludo desde Amigos? Yo le canto con la trompa.", url: "./#amigos", tag: "rumbo-amigo-cumple" });
     assert.equal(av.cumples.cumples, 1); assert.equal(av.cumples.enviadas, 2); assert.equal(av.cumples2.enviadas, 0);
     assert.deepEqual(cumples.map(x => x[0]).sort(), [B, C].sort());
   });

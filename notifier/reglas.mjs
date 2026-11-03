@@ -11,13 +11,14 @@ function aHora(min) { return String(Math.floor(min / 60)).padStart(2, "0") + ":"
 /* ---------- Qué avisos recibe cada persona: la misma regla que la app (avisosActivos en js/state.js) ----------
    settings.notif.avisos guarda solo lo que la persona eligió; lo demás vale como en "Recomendado".
    El de mediodía (antes se compraba en la Tienda) sigue encendido para quien ya tenía su hora. */
-export const AVISOS_TIPOS = ["manana", "noche", "insistencia", "pendientes", "mediodia", "semana", "mes", "trimestre", "habitos", "cumpleanos", "contactos", "amigos"];
+export const AVISOS_TIPOS = ["manana", "noche", "insistencia", "pendientes", "mediodia", "semana", "mes", "trimestre", "habitos", "cumpleanos", "contactos", "amigos", "elefante"];
 export const AVISOS_NIVELES = {
   esencial: ["manana", "noche"],
-  recomendado: ["manana", "noche", "semana", "mes", "trimestre", "amigos"],
+  recomendado: ["manana", "noche", "semana", "mes", "trimestre", "amigos", "elefante"],
   todo: AVISOS_TIPOS,
 };
-export const AVISOS_HORAS = { manana: "08:00", noche: "21:00", mediodia: "13:00", habitos: "20:00" };
+/* «agua»: a qué hora tu elefante mira si vas atrasado con el agua (tu racha la mira a la hora de los hábitos) */
+export const AVISOS_HORAS = { manana: "08:00", noche: "21:00", mediodia: "13:00", habitos: "20:00", agua: "16:00" };
 export function avisosActivos(n) {
   n = n || {};
   const elegidos = n.avisos && typeof n.avisos === "object" ? n.avisos : {};
@@ -33,6 +34,7 @@ export function horaAviso(n, momento) {
   n = n || {};
   if (momento === "insistencia") { const m = toMin(n.noche || AVISOS_HORAS.noche) + 60; return m < 24 * 60 ? aHora(m) : null; }
   if (momento === "habitos") return n.habitosHora || AVISOS_HORAS.habitos;
+  if (momento === "agua") return AVISOS_HORAS.agua;
   return n[momento] || AVISOS_HORAS[momento];
 }
 /* Los momentos de la persona que caen en la ventana ahora. Mañana y noche siempre se miran (de ellos
@@ -40,8 +42,9 @@ export function horaAviso(n, momento) {
    encendidos. Si no hay ninguno, en esta pasada no hay nada que mandarle y no se lee su estado completo. */
 export function horasEnVentana(n, nowMin, ventana) {
   const a = avisosActivos(n);
-  return ["manana", "mediodia", "habitos", "noche", "insistencia"]
-    .filter(k => k === "manana" || k === "noche" || a[k])
+  // tu elefante mira tu racha a la hora de los hábitos y el agua a las 16:00
+  return ["manana", "mediodia", "agua", "habitos", "noche", "insistencia"]
+    .filter(k => k === "manana" || k === "noche" || (k === "agua" ? a.elefante : k === "habitos" ? a.habitos || a.elefante : a[k]))
     .filter(k => { const h = horaAviso(n, k); return h != null && enVentana(nowMin, h, ventana); });
 }
 
@@ -79,7 +82,7 @@ export function avisoMediodia(data, hoy) {
   const r = ((data.ritual || {}).dias || {})[hoy];
   if (r && r.cerrado) return null;
   const sapo = r && r.hecho && r.sapo ? String(r.sapo).slice(0, 80) : "";
-  return { body: sapo ? `¿Cómo va tu primer bocado? “${sapo}”` : "¿Cómo va tu primer bocado? Un paso chico ya cuenta." };
+  return { body: sapo ? `¿Cómo va tu primer bocado, “${sapo}”? Un paso chico ya cuenta: yo te aplaudo con la trompa.` : "¿Cómo va tu primer bocado? Un paso chico ya cuenta: yo te aplaudo con la trompa." };
 }
 export function triClave(y, q) { return `${y}-Q${q}`; }
 export function avisoTrimestre(tipo, hoy, trimestres) {
@@ -151,7 +154,7 @@ export function cumpleanosHoy(data, hoy) {
 }
 export function textoCumpleanos(nombres) {
   if (!nombres.length) return "";
-  return nombres.length === 1 ? `Hoy cumple ${nombres[0]}. ¡Escríbele!` : `Hoy cumplen ${enumerarCorto(nombres)}.`;
+  return nombres.length === 1 ? `Hoy cumple ${nombres[0]}.` : `Hoy cumplen ${enumerarCorto(nombres)}.`;
 }
 
 /* Contactos pendientes (Relaciones): como relDeuda en js/vida.js. Toca escribir cuando pasaron

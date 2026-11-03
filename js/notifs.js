@@ -146,16 +146,18 @@ const AVISOS_INFO = {
   cumpleanos: ["🎂", "Cumpleaños", "En la mañana del día, de las personas que tienes en Relaciones."],
   contactos: ["💬", "Contactos pendientes", "Los domingos en la mañana: a quién hace tiempo que no le escribes (según Relaciones)."],
   amigos: ["🤝", "Amigos", "Cuando un amigo te manda ánimo, te pide amistad o acepta la tuya, y en lo que hacen juntos: cuando te invitan a un hábito u objetivo, cuando alguien ya cumplió o aportó, y cuando lo logran. Nunca de noche (de 22:00 a 8:00)."],
+  elefante: ["🐘", "Tu elefante te escribe", "Como mucho uno al día: si tu racha está por cortarse (a la hora de tus hábitos) o si vas atrasado con el agua (a las 16:00). Todos tus avisos hablan con su voz."],
 };
 const AVISOS_GRUPOS = [
   ["Tu día", ["manana", "noche", "insistencia", "pendientes", "mediodia"]],
   ["Semana, mes y trimestre · solo si aún no lo haces", ["semana", "mes", "trimestre"]],
   ["Hábitos y relaciones", ["habitos", "cumpleanos", "contactos"]],
+  ["Tu elefante", ["elefante"]],
   ["Amigos", ["amigos"]],
 ];
 const AVISOS_NIVEL_TXT = {
   esencial: "Abrir y cerrar el día.",
-  recomendado: "Abrir y cerrar el día, más semana, mes, trimestre y tus amigos.",
+  recomendado: "Abrir y cerrar el día, más semana, mes, trimestre, tu elefante y tus amigos.",
   todo: "Todos los avisos.",
   personalizado: "Elegiste tus propios avisos.",
 };

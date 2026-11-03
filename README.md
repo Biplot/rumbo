@@ -26,6 +26,11 @@ Pruebas en navegador (requieren Playwright, solo para desarrollo): `node tests/e
 ## Notificaciones
 - **Dispositivos:** cada navegador que activa las notificaciones queda en la tabla `suscripciones_push` (una fila por dispositivo; los que el servicio da por muertos se borran solos). Los horarios siguen en `settings.notif` del estado.
 - **Envío:** `pg_cron` llama cada 5 minutos a `rumbo_pedir_recordatorios()`, que hace un `POST` con `pg_net` a `https://rumbo.biplot.cl/api/push/` firmado con el secreto de `configuracion_push`. `api/push.js` ve a quién le toca su hora (`notifier/recordatorios.mjs` y `notifier/reglas.mjs`) y envía con `web-push`. `notif_sent` evita repetir un aviso el mismo día.
+- **Tu elefante te escribe** (`notifier/elefante.mjs`): los avisos son de texto y hablan como tu elefante, en primera persona, cortos y con una broma. La forma cambia de un día a otro, pero el mismo día sale igual (una semilla por fecha y aviso).
+  - Con el interruptor «Tu elefante te escribe» (tipo `elefante`, encendido en Recomendado), además te escribe por su cuenta, **como mucho una vez al día** entre estos dos (`notif_sent` tipo `elefante`):
+    - **Tu racha en riesgo** (`elefante-racha`), a la hora de tus hábitos: el hábito de hoy que falta con la racha más larga, si es de 3 o más («Tu racha de Leer va en 12 días. ¿Diez páginas antes de dormir? Yo te espero con el libro abierto.»). Si también pediste «Hábitos pendientes», va todo en ese mismo aviso.
+    - **El agua atrasada** (`elefante-agua`), a las 16:00: solo si anotas tu agua (algún vaso en los últimos 7 días) y hoy vas bajo el 40 % de tu meta. No nombra la meta, porque la automática por peso solo se sabe en la app.
+  - Lo que tú pides (abrir y cerrar el día, semana, mes…) no cuenta para el tope.
 - **Claves:** el secreto y las claves VAPID viven en `configuracion_push` (las claves las genera `api/push.js` la primera vez). La clave pública la pide la app a `api/push/`.
 - **Puesta en marcha (una vez):**
   1. Vercel → Settings → Environment Variables: `SUPABASE_SERVICE_ROLE_KEY` con la clave secreta de Supabase. Volver a publicar.

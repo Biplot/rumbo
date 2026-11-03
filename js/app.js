@@ -169,7 +169,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 64;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 65;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -537,6 +537,9 @@ const NOVEDADES = {
   ],
   64: [
     ["🐘", "El diario de tu elefante", "Al cerrar el día, tu elefante te deja una nota sobre tu día: a qué hora cerraste, tu agua, tus hábitos y lo que toca mañana. Queda en tu Diario y se comparte como imagen. Se arma en tu teléfono, con tus datos."],
+  ],
+  65: [
+    ["🐘", "Tu elefante te escribe", "Tus avisos al celular ahora hablan como tu elefante. Y te escribe por su cuenta, como mucho una vez al día, si tu racha está por cortarse o si vas atrasado con el agua. Se apaga en Notificaciones."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

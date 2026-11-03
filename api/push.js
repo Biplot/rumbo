@@ -46,7 +46,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || "https://eakkoggblavtaudbzzos.s
 const RUTA = "/api/push/";
 // Un recordatorio que no alcanza a llegar en 2 horas (celular apagado) ya no sirve.
 const TTL = 2 * 60 * 60;
-const PRUEBA = { title: "🔔 Prueba de Rumbo", body: "Así te llegarán tus recordatorios a este dispositivo.", url: "./#notif", tag: "rumbo-prueba" };
+const PRUEBA = { title: "🐘 Hola, soy tu elefante", body: "Así te voy a escribir en este dispositivo: poco y cuando sirva.", url: "./#notif", tag: "rumbo-prueba" };
 
 let _admin = null;
 function admin() {

@@ -123,6 +123,7 @@ function aguaSumar(ml) {
   aguaCompactar(); saveState(); vibrar(10);
   aguaPintar(ml);
   clearTimeout(aguaSumar._t); aguaSumar._t = setTimeout(() => aguaRevisar(hoy), 950);   // después del chorro
+  return true;
 }
 function aguaQuitar(id) {
   const hoy = todayISO(), d = aguaDia(hoy), regs = aguaRegistros(d); if (!regs.length) return;
@@ -420,6 +421,7 @@ function aguaAccion(a, d, el) {
     if (performance.now() - AGUA_FAB.sorbio < 500) return;   // la bombilla: lo que tomaste a sorbos ya se registró
     aguaSumar(aguaVaso()); return;
   }
+  if (a === "agua-fab-botella") { const ml = aguaBotella(); if (aguaSumar(ml)) { vibrar([10, 60, 14]); toast(`🍶 Tomaste tu botella · ${aguaMlTxt(ml)}`); } return; }
   if (a === "agua-fab-hoja") { aguaFabCerrar(); return openAgua(); }
 }
 /* La Tienda: miniatura de la ficha y muestra grande en el detalle */
@@ -437,24 +439,36 @@ function aguaMuestraHtml(it) {
 /* -------- El botón de agua (la portilla) --------
    Abajo a la derecha, en todas las pantallas, con tu estilo en chico. Al tocarlo se abre una ventana redonda
    con tu estilo, cuánto llevas y un anillo; tocar tu estilo es tomar un vaso (en la bombilla, mantén apretado
-   para tomar a sorbos). Se esconde con el teclado abierto, en hojas y ventanas, en Tu casa y Tu vitrina, y en
-   Inicio mientras se ve la tarjeta «Agua de hoy». Se apaga en «Tu agua». */
+   para tomar a sorbos) y el botón ámbar pegado al anillo suma tu botella entera. Se esconde con el teclado
+   abierto, en hojas y ventanas, en Tu casa y Tu vitrina, y en Inicio mientras se ve la tarjeta «Agua de hoy».
+   Se apaga en «Tu agua». */
 const AGUA_FAB = { el: null, listo: false, pronto: 0, abierta: false, estilo: "", card: null, cardVisible: false, io: null, sorbio: -1e9, raf: 0 };
 function aguaFabHtml(estilo) {
   return `<button type="button" class="agua-fab__velo" data-action="agua-fab-cerrar" tabindex="-1" aria-hidden="true"></button>
     <div class="agua-fab__cap">
       <span class="agua-fab__texto" data-agua-texto></span>
       ${aguaCalorHtml()}
-      <span class="agua-fab__fila"><span class="agua-fab__pista">${estilo === "bombilla" ? "Mantén apretado para tomar" : `Toca para tomar ${aguaVaso()} ml`}</span>
+      <span class="agua-fab__fila"><span class="agua-fab__pista"></span>
         <button type="button" class="btn-link agua-deshacer" data-action="agua-deshacer" hidden>Deshacer</button>
         <button type="button" class="btn-link agua-fab__hoja" data-action="agua-fab-hoja">Tu agua ›</button></span>
     </div>
     <div class="agua-fab__port" role="dialog" aria-label="Agua de hoy">
       <svg class="agua-fab__anillo" viewBox="0 0 236 236" aria-hidden="true"><circle cx="118" cy="118" r="112" pathLength="100"/><circle class="agua-fab__prog" cx="118" cy="118" r="112" pathLength="100" data-agua-anillo/></svg>
       <div class="agua-fab__num" data-agua-cifra></div>
-      <button type="button" class="agua-fab__tomar" data-action="agua-fab-tomar" aria-label="${escapeAttr((AGUA_ESTILOS.find(x => x.id === estilo) || AGUA_ESTILOS[0]).nombre)}: tomar un vaso"></button>
+      <button type="button" class="agua-fab__tomar" data-action="agua-fab-tomar"></button>
+      <button type="button" class="agua-fab__bot" data-action="agua-fab-botella">${AGUA_FAB_BOT_SVG}<span></span></button>
     </div>
     <button type="button" class="agua-fab__btn" data-action="agua-fab-abrir" aria-expanded="false" aria-label="Agua de hoy"></button>`;
+}
+const AGUA_FAB_BOT_SVG = `<svg viewBox="0 0 14 22" aria-hidden="true"><rect x="4.6" y=".6" width="4.8" height="3" rx="1" fill="currentColor"/><path d="M5.1 3.6h3.8v2c0 .9 4.1 2.3 4.1 5.6v8.6a1.6 1.6 0 0 1-1.6 1.6H2.6A1.6 1.6 0 0 1 1 19.8v-8.6c0-3.3 4.1-4.7 4.1-5.6v-2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><rect x="2.7" y="12" width="8.6" height="7.5" rx="1" fill="currentColor"/></svg>`;
+/* Lo que cambia con tus ajustes (el vaso y la botella) se escribe aparte: así sigue al día sin volver a armar la portilla */
+function aguaFabTextos() {
+  const el = AGUA_FAB.el; if (!el) return;
+  const vaso = aguaVaso(), bot = aguaMlTxt(aguaBotella()), estilo = AGUA_FAB.estilo, nombre = (AGUA_ESTILOS.find(x => x.id === estilo) || AGUA_ESTILOS[0]).nombre;
+  const pista = el.querySelector(".agua-fab__pista"), tomar = el.querySelector(".agua-fab__tomar"), b = el.querySelector(".agua-fab__bot");
+  if (pista) pista.textContent = (estilo === "bombilla" ? "Mantén apretado para tomar" : `Toca el dibujo: ${vaso} ml`) + ` · la botella: ${bot}`;
+  if (tomar) tomar.setAttribute("aria-label", `${nombre}: tomar un vaso de ${vaso} ml`);
+  if (b) { b.setAttribute("aria-label", `Tomar tu botella de ${bot}`); b.querySelector("span").textContent = bot; }
 }
 /* Los dibujos se crean cuando hacen falta: el chico cuando el botón se muestra, el grande la primera vez que se abre */
 function aguaFabLienzo(sel, modo) {
@@ -475,6 +489,7 @@ function aguaFabActualizar() {
   }
   const estilo = aguaEstilo();
   if (AGUA_FAB.estilo !== estilo) { AGUA_FAB.estilo = estilo; AGUA_FAB.el.innerHTML = aguaFabHtml(estilo); aguaPintar(0); }
+  aguaFabTextos();
   // En Inicio, mientras se ve la tarjeta «Agua de hoy», el botón no se repite
   const card = document.querySelector("[data-agua-card]");
   if (card !== AGUA_FAB.card) {

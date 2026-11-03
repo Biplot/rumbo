@@ -3131,6 +3131,15 @@ span.alb-tapa.is-vacia { cursor: default; opacity: .6; }
 .agua-fab__tomar { position: absolute; left: 50%; top: 52px; width: 108px; transform: translateX(-50%); border: 0; padding: 0; background: none; cursor: pointer; border-radius: 18px; -webkit-tap-highlight-color: transparent; }
 .agua-fab__tomar canvas { width: 100%; }
 .agua-fab__tomar:active canvas { transform: scale(.98); }
+/* Tu botella, pegada al anillo abajo a la izquierda: la suma entera */
+.agua-fab__bot { position: absolute; left: -4px; bottom: -4px; width: 58px; height: 58px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+  background: var(--coral-btn, var(--coral)); color: var(--on-coral); box-shadow: 0 0 0 4px var(--surface), 0 8px 18px -8px rgba(8, 14, 36, .55);
+  display: grid; place-content: center; justify-items: center; gap: 2px; font: 800 11px/1 var(--font-body); letter-spacing: -.01em; white-space: nowrap;
+  transition: transform .12s; -webkit-tap-highlight-color: transparent; }
+.agua-fab__bot svg { width: 13px; height: 20px; }
+.agua-fab__bot:active { transform: scale(.92); }
+.agua-fab.is-open .agua-fab__bot { animation: aguaBotIn .24s .08s cubic-bezier(.3, 1.5, .5, 1) both; }
+@keyframes aguaBotIn { from { transform: scale(.5); opacity: 0; } }
 .agua-fab__cap { position: fixed; right: 18px; bottom: calc(22px + 246px + env(safe-area-inset-bottom, 0px)); z-index: 60; width: max-content; max-width: min(300px, calc(100vw - 32px));
   background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 9px 14px; display: grid; gap: 3px; box-shadow: var(--shadow);
   opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .15s .07s, transform .15s .07s; }
@@ -3156,7 +3165,7 @@ span.alb-tapa.is-vacia { cursor: default; opacity: .6; }
 .agua-mes i.is-hoy { opacity: 1; box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--coral-btn, #F4AE3D); }
 .agua-muestra--ancha { max-width: 260px; }
 .ficha__ico .agua-ficha--ancha { width: 88%; aspect-ratio: 280 / 190; }
-@media (prefers-reduced-motion: reduce) { .agua-fab__port, .agua-fab__cap, .agua-fab__velo, .agua-fab__btn, .agua-fab__prog { transition: none; animation: none; } }
+@media (prefers-reduced-motion: reduce) { .agua-fab__port, .agua-fab__cap, .agua-fab__velo, .agua-fab__btn, .agua-fab__prog, .agua-fab__bot, .agua-fab.is-open .agua-fab__bot { transition: none; animation: none; } }
 body.con-agua-fab .view { padding-bottom: 96px; }
 @media (max-width: 760px) { body.con-agua-fab .view { padding-bottom: calc(144px + env(safe-area-inset-bottom, 0px)); } }
 
@@ -3393,7 +3402,7 @@ body.con-agua-fab .view { padding-bottom: 96px; }
 .auth__que { text-align: center; color: var(--text-soft); font-size: 13.5px; line-height: 1.45; margin: 0 0 20px; }
 .auth__que a { color: var(--cian-ink); font-weight: 600; white-space: nowrap; }
 /* Con una hoja o el recorrido abiertos, los avisos van arriba: abajo taparían su texto */
-.toast--arriba, body:has(#tour) .toast, body:has(#modalOverlay:not([hidden])) .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 14px); }
+.toast--arriba, body:has(#tour) .toast, body:has(#modalOverlay:not([hidden])) .toast, body:has(.agua-fab.is-open) .toast { bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 14px); }
 /* Ayuda por pantalla sin interrumpir: «Primera vez aquí» */
 .ayuda-franja { display: flex; align-items: center; gap: 10px; background: var(--cian-soft); color: var(--text);
   border-radius: var(--r); padding: 8px 8px 8px 14px; margin-bottom: 16px; font-size: 14px; }

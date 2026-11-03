@@ -897,7 +897,7 @@ function aguaMerge(l, s) {
     if (a.cp || b.cp) dias[k].cp = true;
   });
   const clima = nuevo.clima && typeof nuevo.clima === "object" ? { on: !!nuevo.clima.on, ciudad: String(nuevo.clima.ciudad || ""), lat: +nuevo.clima.lat, lon: +nuevo.clima.lon } : null;
-  return { meta: +nuevo.meta || 0, vaso: +nuevo.vaso || 250, inicio: nuevo.inicio !== false, fab: nuevo.fab !== false, clima, ts: Math.max(l.ts || 0, s.ts || 0), dias };
+  return { meta: +nuevo.meta || 0, vaso: +nuevo.vaso || 250, botella: +nuevo.botella || 500, inicio: nuevo.inicio !== false, fab: nuevo.fab !== false, clima, ts: Math.max(l.ts || 0, s.ts || 0), dias };
 }
 /* Las alcancías en dos equipos: cada una por id; nombre, meta, fecha, estilo y destino, del ts más nuevo; los aportes se juntan
    por id y lo deshecho no vuelve; cerrada en cualquiera de los dos queda cerrada; las borradas no reviven. Ocultar, del más nuevo */

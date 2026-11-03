@@ -72,6 +72,11 @@ function aguaCalorTxt(S) {
   return x ? `Hoy ${c} °C: tu meta sube ${x >= 1000 ? "un litro" : "medio litro"}` : "";
 }
 function aguaVaso(S) { const v = +aguaDatos(S).vaso; return v >= 100 && v <= 1000 ? v : 250; }
+/* La botella: lo que suma «+ Botella» (500 ml si no elegiste otra; entre 250 ml y 3 L) */
+const AGUA_BOTELLAS = [500, 600, 750, 1000, 1500], AGUA_BOTELLA_MIN = 250, AGUA_BOTELLA_MAX = 3000;
+function aguaBotella(S) { const v = +aguaDatos(S).botella; return v >= AGUA_BOTELLA_MIN && v <= AGUA_BOTELLA_MAX ? v : 500; }
+/* 250 ml · 1 L · 1,5 L */
+function aguaMlTxt(ml) { return ml >= 1000 ? litrosTxt(ml) + " L" : ml + " ml"; }
 /* Pasados 14 días, cada día queda solo con su total (el documento no crece de más) */
 function aguaCompactar(S, hoy) {
   const a = aguaDatos(S), corte = agSumar(hoy || todayISO(), -AGUA_DETALLE);
@@ -220,7 +225,7 @@ function aguaCifraHtml(e) { return `${litrosTxt(e.ml)} <small>de ${litrosTxt(e.m
 function aguaControlesHtml(e, estilo) {
   const v = e.vaso;
   return `<div class="agua-btns"><button class="btn btn--cian" data-action="agua-sumar" data-ml="${v}">+ Vaso<small>${v} ml</small></button>
-      <button class="btn btn--soft" data-action="agua-sumar" data-ml="500">+ Botella<small>500 ml</small></button></div>
+      <button class="btn btn--soft" data-action="agua-sumar" data-ml="${aguaBotella()}">+ Botella<small>${aguaMlTxt(aguaBotella())}</small></button></div>
     <button class="btn-link agua-deshacer" data-action="agua-deshacer" ${e.n ? "" : "hidden"}>Deshacer el último</button>
     ${estilo === "bombilla" ? `<small class="agua-ayuda">También puedes mantener apretado el vaso para tomar a sorbos.</small>` : ""}`;
 }
@@ -316,16 +321,16 @@ function aguaMetaElegir(v) {
 /* «Cómo se ve»: vaso, estilo y sabor en una fila con la miniatura de tu estilo; abre el probador */
 function aguaComoSeVeFila() {
   const estilo = aguaEstilo(), sabor = aguaSabor(), e = AGUA_ESTILOS.find(x => x.id === estilo), s = AGUA_SABORES.find(x => x.id === sabor);
-  return `<button type="button" class="agua-fila" data-action="agua-probador" aria-label="Cómo se ve: ${escapeAttr(e.nombre)}, sabor ${escapeAttr(s.nombre)}, vaso de ${aguaVaso()} ml. Cambiar">
+  return `<button type="button" class="agua-fila" data-action="agua-probador" aria-label="Cómo se ve: ${escapeAttr(e.nombre)}, sabor ${escapeAttr(s.nombre)}, vaso de ${aguaVaso()} ml, botella de ${aguaMlTxt(aguaBotella())}. Cambiar">
     <i class="agua-fila__img"><canvas class="agua-cv" data-agua="${estilo}" data-modo="muestra" data-frac="0.62" data-sabor="${sabor}" style="aspect-ratio:140/200" aria-hidden="true"></canvas></i>
-    <span class="agua-fila__t"><b>${escapeHtml(e.nombre)}</b><small>${escapeHtml(s.nombre)} · vaso de ${aguaVaso()} ml</small></span><span class="agua-fila__f" aria-hidden="true">›</span></button>`;
+    <span class="agua-fila__t"><b>${escapeHtml(e.nombre)}</b><small>${escapeHtml(s.nombre)} · vaso de ${aguaVaso()} ml · botella de ${aguaMlTxt(aguaBotella())}</small></span><span class="agua-fila__f" aria-hidden="true">›</span></button>`;
 }
 /* El probador: arriba cómo queda; abajo los estilos en miniatura (ya con tu sabor), las gotas de sabor y los vasos
    que crecen. Se elige con un toque y se guarda solo. Lo que aún no tienes va al final, con candado y su precio. */
 const AGUA_NATURAL = "#8CCBF2";
 function aguaCosto(cos) { const it = typeof COSMETICOS !== "undefined" ? COSMETICOS.find(x => x.id === cos) : null; return it ? it.costo : 0; }
 function openAguaProbador() {
-  const estilo = aguaEstilo(), sabor = aguaSabor(), vaso = aguaVaso(), s = AGUA_SABORES.find(x => x.id === sabor), color = s && s.c ? s.c[1] : AGUA_NATURAL;
+  const estilo = aguaEstilo(), sabor = aguaSabor(), vaso = aguaVaso(), botella = aguaBotella(), s = AGUA_SABORES.find(x => x.id === sabor), color = s && s.c ? s.c[1] : AGUA_NATURAL;
   const lock = cos => cos && !(typeof isOwned === "function" && isOwned(cos)) ? { precio: aguaCosto(cos), key: "cos:" + cos } : null;
   const estilos = AGUA_ESTILOS.map(x => ({ v: x.id, nombre: x.nombre, desc: x.desc, lock: lock(x.cos),
     thumb: `<canvas class="agua-cv" data-agua="${x.id}" data-modo="muestra" data-frac="0.62" data-sabor="${sabor}" style="aspect-ratio:140/200" aria-hidden="true"></canvas>` }));
@@ -343,7 +348,26 @@ function openAguaProbador() {
         <svg viewBox="0 0 40 56" style="height:${34 + i * 7}px" aria-hidden="true"><path d="M6 4h28l-3.6 46.5a3 3 0 0 1-3 2.5H12.6a3 3 0 0 1-3-2.5L6 4Z" fill="${v === vaso ? color : "none"}" fill-opacity="${v === vaso ? ".85" : "0"}" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>${v === vaso ? "" : `<path d="M8.4 20h23.2" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 3" opacity=".5"/>`}</svg>
         <span>${v} ml</span></button>`).join("")}</div>
       <small class="text-xs muted">El vaso es lo que suma «+ Vaso» cada vez.</small></div>
+    <div class="agua-sec"><span class="cj-sub">Tu botella</span>
+      <div class="agua-vasos-el agua-botellas-el" role="group" aria-label="Tu botella">${AGUA_BOTELLAS.map((v, i) => `<button type="button" class="${v === botella ? "is-on" : ""}" aria-pressed="${v === botella}" data-action="agua-botella" data-v="${v}" aria-label="Botella de ${aguaMlTxt(v)}">
+        ${aguaBotellaSvg(30 + i * 9, v === botella ? color : "")}<span>${aguaMlTxt(v)}</span></button>`).join("")}</div>
+      <span class="text-xs muted">¿La tuya es de otra medida?</span>
+      ${elContador("agua-botella-v", botella, { min: AGUA_BOTELLA_MIN, max: AGUA_BOTELLA_MAX, paso: 50, fmtFn: "aguaBotellaFmt", fmt: aguaBotellaFmt, fn: "aguaBotellaElegir", label: "La medida de tu botella" })}
+      <small class="text-xs muted">La botella es lo que suma «+ Botella» cada vez.</small></div>
   </div>`, { ancho: true });
+}
+/* Una botella con tapa; llena (con el color de tu sabor) si es la tuya */
+function aguaBotellaSvg(alto, color) {
+  return `<svg viewBox="0 0 40 72" style="height:${alto}px" aria-hidden="true"><rect x="14" y="2" width="12" height="8" rx="2" fill="currentColor" opacity=".75"/>
+    <path d="M15.5 10h9v5.5c0 2 7.5 5 7.5 11.5V65a5 5 0 0 1-5 5H13a5 5 0 0 1-5-5V27c0-6.5 7.5-9.5 7.5-11.5V10Z" fill="${color || "none"}" fill-opacity="${color ? ".85" : "0"}" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+    ${color ? "" : `<path d="M10.5 40h19" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2 3" opacity=".5"/>`}</svg>`;
+}
+function aguaBotellaFmt(ml) { return aguaMlTxt(ml); }
+/* Otra medida con el contador: se guarda al tiro y se marca su botella, si es una de las de arriba */
+function aguaBotellaElegir(v) {
+  Object.assign(aguaDatos(), { botella: +v, ts: Date.now() }); saveState();
+  document.querySelectorAll('.agua-botellas-el [data-action="agua-botella"]').forEach(b => { const on = +b.dataset.v === +v; b.classList.toggle("is-on", on); b.setAttribute("aria-pressed", String(on)); });
+  clearTimeout(AGUA_META_T); AGUA_META_T = setTimeout(() => { if (typeof rerender === "function") rerender(); }, 450);
 }
 function aguaCalorAjusteHtml() {
   const cl = aguaDatos().clima, c = aguaTempDe(), x = aguaCalorDe() == null ? 0 : aguaExtraCalor(c);
@@ -370,6 +394,7 @@ function aguaAccion(a, d, el) {
   if (a === "agua-abrir") return openAgua();
   if (a === "agua-probador") return openAguaProbador();
   if (a === "agua-meta") return aguaAjuste({ meta: +d.v || 0 });
+  if (a === "agua-botella") { Object.assign(aguaDatos(), { botella: +d.v || 500, ts: Date.now() }); saveState(); aguaVolverA(); return; }
   if (a === "agua-vaso") { Object.assign(aguaDatos(), { vaso: +d.v || 250, ts: Date.now() }); saveState(); aguaRevisar(todayISO()); aguaVolverA(); return; }
   if (a === "agua-estilo") { if (!aguaEstiloTuyo(d.v)) return; eqCos().agua = d.v === "botella" ? null : d.v; saveState(); aguaVolverA(); return; }
   if (a === "agua-sabor") { if (!aguaSaborTuyo(d.v)) return; eqCos().sabor = d.v === "natural" ? null : d.v; saveState(); aguaVolverA(); return; }

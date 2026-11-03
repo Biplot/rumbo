@@ -169,7 +169,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 60;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 61;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -524,6 +524,9 @@ const NOVEDADES = {
     ["💧", "Cómo se ve tu agua", "En «Tu agua», la fila «Cómo se ve» abre el probador: tu estilo en grande, los demás en miniatura con tu sabor, las gotas de sabor y los vasos que crecen. Tu meta, con − y + de a 100 ml."],
     ["🖼️", "Elegir viendo", "El jardín, el álbum, el informe, los íconos y tu avatar se eligen mirando cómo quedan. Lo que aún no tienes sale al final, con candado y su precio."],
     ["📋", "Listas en vez de desplegables", "El pilar, cada cuánto hablarle a alguien, la tarea del enfoque y los meses se eligen en listas propias, con una línea que explica cada opción."],
+  ],
+  61: [
+    ["🍶", "Tu botella, de tu medida", "En Tu agua › Cómo se ve, elige tu botella: 500, 600 o 750 ml, 1 o 1,5 L, u otra medida con − y +. «+ Botella» suma lo que de verdad tomas."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

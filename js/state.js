@@ -140,7 +140,7 @@ function defaultState() {
     // álbum del mes (album.js): "2026-10": { estilo, portada, ts, fotos: [{ id, ruta, comentario, fecha, w, h, ts }], borradas: [id] }.
     // Aquí van los comentarios y dónde está cada foto; las fotos, en Storage (supabase/album.sql) y en este equipo.
     album: { meses: {} },
-    // agua para todos (agua.js): meta (0 = automática, según tu peso), vaso (ml del botón «+ Vaso»), inicio (la tarjeta en Inicio),
+    // agua para todos (agua.js): meta (0 = automática, según tu peso), vaso (ml del botón «+ Vaso»; botella, la de «+ Botella», 500 si no está), inicio (la tarjeta en Inicio),
     // fab (el botón de agua abajo a la derecha), clima ({ on, ciudad, lat, lon }: la meta sube los días de calor),
     // ts (de los ajustes) y dias: { "YYYY-MM-DD": { r: [{ id, ml, ts }], b: [id borrados], p (+10 ⭐ dado), h (marcó el hábito), c (°C máxima) } };
     // pasados 14 días, un día queda solo con su total: { ml }

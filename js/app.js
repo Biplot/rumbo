@@ -169,7 +169,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 61;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 62;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -527,6 +527,9 @@ const NOVEDADES = {
   ],
   61: [
     ["🍶", "Tu botella, de tu medida", "En Tu agua › Cómo se ve, elige tu botella: 500, 600 o 750 ml, 1 o 1,5 L, u otra medida con − y +. «+ Botella» suma lo que de verdad tomas."],
+  ],
+  62: [
+    ["🍶", "Tu botella en la portilla", "En el botón de agua, junto al anillo, está tu botella con su medida: un toque la suma entera. Tocar el dibujo sigue siendo un vaso, y «Deshacer» quita la botella de una vez."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

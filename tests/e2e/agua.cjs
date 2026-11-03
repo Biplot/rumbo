@@ -113,6 +113,17 @@ module.exports = async ({ b, ok, errs }) => {
   await p.mouse.move(pb.x + pb.width / 2, pb.y + pb.height / 2); await p.mouse.down(); await p.waitForTimeout(1200); await p.mouse.up(); await p.waitForTimeout(700);
   const sorbo2 = (await p.evaluate(() => aguaHoy())) - t0 - 250;
   ok(sorbo2 >= 50 && sorbo2 <= 200 && sorbo2 % 10 === 0, `y mantener apretado es tomar a sorbos, sin sumar además un vaso (${sorbo2} ml)`);
+  // tu botella, pegada al anillo: la suma entera y «Deshacer» la quita de una vez
+  ok(/Mantén apretado para tomar · la botella: 500 ml/.test(await p.locator(".agua-fab__cap").innerText()) && (await p.locator(".agua-fab__bot").getAttribute("aria-label")) === "Tomar tu botella de 500 ml"
+    && (await p.locator(".agua-fab__tomar").getAttribute("aria-label")) === "La bombilla: tomar un vaso de 250 ml",
+    "en la portilla, tu botella pegada al anillo, con su medida (500 ml), y la pista nombra las dos");
+  const t2 = await p.evaluate(() => aguaHoy()); await p.click(".agua-fab__bot"); await p.waitForTimeout(500);
+  ok((await p.evaluate(() => aguaHoy())) - t2 === 500 && await p.evaluate(() => AGUA_FAB.abierta), "tocar tu botella suma la botella entera (500 ml) y la portilla sigue abierta");
+  await p.click(".agua-fab__cap .agua-deshacer"); await p.waitForTimeout(400);
+  ok((await p.evaluate(() => aguaHoy())) === t2, "y «Deshacer» la quita de una vez");
+  await p.evaluate(() => { aguaDatos().botella = 750; saveState(); rerender(); }); await p.waitForTimeout(400);
+  ok((await p.locator(".agua-fab__bot").innerText()).trim() === "750 ml" && /la botella: 750 ml/.test(await p.locator(".agua-fab__cap").innerText()) && await p.evaluate(() => AGUA_FAB.abierta),
+    "si cambias tu botella, la portilla la nombra al tiro");
   await shot(p, "agua-portilla");
   await p.mouse.click(30, 200); await p.waitForTimeout(300);
   ok(!(await p.evaluate(() => AGUA_FAB.abierta)), "tocar fuera la cierra");

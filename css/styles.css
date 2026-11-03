@@ -2045,11 +2045,12 @@ body.ins-cerca-abierta { overflow: hidden; }
 .ins-cerca__const b { color: #EEF1FF; font-weight: 600; }
 .ins-cerca__acc { display: flex; flex-wrap: wrap; gap: 8px; }
 .ins-cerca__acc .btn { flex: 1 1 140px; }
-/* La ficha siempre es de noche: sus botones no siguen el tema de la app */
-html .ins-cerca .btn--soft { background: rgba(169, 184, 232, .14); color: #EEF1FF; border: 1px solid rgba(169, 184, 232, .3); }
-html .ins-cerca .btn--soft:hover { background: rgba(169, 184, 232, .22); }
-html .ins-cerca .btn--linea { background: transparent; color: #FFE08A; border: 1.5px solid rgba(255, 224, 138, .6); }
-html .ins-cerca .btn--linea:hover { background: rgba(255, 224, 138, .1); }
+/* La ficha siempre es de noche: sus botones no siguen el tema de la app (más específicos que las reglas de cada
+   tema, como «html[data-theme^="norte"] .btn--soft», que vienen después y le ponían fondo claro a la letra clara) */
+html .ins-cerca .btn.btn--soft { background: rgba(169, 184, 232, .14); color: #EEF1FF; border: 1px solid rgba(169, 184, 232, .3); }
+html .ins-cerca .btn.btn--soft:hover { background: rgba(169, 184, 232, .22); }
+html .ins-cerca .btn.btn--linea { background: transparent; color: #FFE08A; border: 1.5px solid rgba(255, 224, 138, .6); }
+html .ins-cerca .btn.btn--linea:hover { background: rgba(255, 224, 138, .1); }
 @media (min-width: 900px) {
   .ins-cerca { grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: minmax(0, 1fr); }
   .ins-cerca__ficha { max-height: none; display: flex; flex-direction: column; justify-content: center; padding: 32px; border-top: 0; border-left: 1px solid rgba(169, 184, 232, .18); }

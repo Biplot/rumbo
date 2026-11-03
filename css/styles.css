@@ -3725,3 +3725,6 @@ html[data-theme^="ruta"] .filtros > button.is-active, html[data-theme^="ruta"] .
 .field label.cj-amigo { display: inline-flex; margin: 0; font-size: 13.5px; font-weight: 600; color: var(--text); }
 .field label.cj-amigo:has(input:checked) { color: var(--on-cian); }
 .nota-rango__cab label { display: inline; margin: 0; }
+/* Tu botella: cinco que crecen, y un contador para otra medida */
+.agua-botellas-el { grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 440px; gap: 6px; }
+.agua-botellas-el button { min-height: 108px; font-size: 12px; padding-inline: 2px; }

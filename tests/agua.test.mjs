@@ -34,6 +34,16 @@ export default async function ({ G, test, assert, clone }) {
     const r2 = clone(merge({ ts: 50, fab: true, dias: {} }, tel));
     assert.deepEqual([r2.fab, r2.clima], [true, null], "si el más nuevo no tiene ciudad, queda sin ciudad");
   });
+  test("tu botella: 500 ml si no elegiste otra, entre 250 ml y 3 L, y viaja entre equipos con los ajustes", () => {
+    const botella = G("aguaBotella"), txt = G("aguaMlTxt"), S = defaultState();
+    assert.equal(botella(S), 500, "sin elegir: la de 500 ml de siempre");
+    S.agua.botella = 750; assert.equal(botella(S), 750);
+    S.agua.botella = 100; assert.equal(botella(S), 500, "una medida fuera de rango vuelve a 500");
+    assert.deepEqual([txt(750), txt(1000), txt(1500)], ["750 ml", "1 L", "1,5 L"]);
+    const tel = { meta: 0, vaso: 250, botella: 750, inicio: true, ts: 40, dias: {} }, pc = { meta: 0, vaso: 250, inicio: true, ts: 10, dias: {} };
+    assert.equal(clone(merge(pc, tel)).botella, 750, "la botella del ajuste más nuevo (el teléfono)");
+    assert.equal(clone(merge({ ts: 5, dias: {} }, { ts: 1, dias: {} })).botella, 500, "sin botella en ningún equipo: 500");
+  });
   test("los días de calor: sobre 28 °C la meta sube medio litro y sobre 32 °C un litro; solo si está encendido", () => {
     const extra = G("aguaExtraCalor"), meta = G("aguaMeta"), s = defaultState(), f = "2026-10-31";
     assert.deepEqual([extra(20), extra(27.9), extra(28), extra(31), extra(32), extra(38)], [0, 0, 500, 500, 1000, 1000]);

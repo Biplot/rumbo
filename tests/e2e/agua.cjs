@@ -71,6 +71,19 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('#modal [data-action="agua-vaso"][data-v="300"]'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => aguaVaso()) === 300 && await p.locator('#modal .agua-vasos-el button.is-on[data-v="300"]').count() === 1, "el vaso se elige entre cuatro que crecen, y se guarda solo");
   await p.click('#modal [data-action="agua-vaso"][data-v="250"]'); await p.waitForTimeout(300);
+  // Tu botella: cinco que crecen y un contador para otra medida; «+ Botella» suma la tuya
+  await p.click('#modal [data-action="agua-botella"][data-v="750"]'); await p.waitForTimeout(300);
+  const bot = p.locator('#modal [data-el="contador"][data-el-id="agua-botella-v"]');
+  ok(await p.evaluate(() => aguaBotella()) === 750 && await p.locator('#modal .agua-botellas-el button.is-on[data-v="750"]').count() === 1 && (await bot.locator("output").innerText()).startsWith("750 ml"),
+    "Tu botella: elegir la de 750 ml (y el contador la muestra)");
+  await bot.locator('[data-d="1"]').click(); await p.waitForTimeout(600);
+  ok(await p.evaluate(() => aguaBotella()) === 800 && await p.locator('#modal .agua-botellas-el button.is-on').count() === 0, "otra medida con el contador: 800 ml (ninguna de las cinco queda marcada)");
+  await p.evaluate(() => { closeModal(); go("inicio"); }); await p.waitForTimeout(500);
+  ok(await p.locator('.agua-card [data-action="agua-sumar"][data-ml="800"]').count() === 1 && /\+ Botella\s*800 ml/.test(await p.locator(".agua-card .agua-btns").innerText()), "en Inicio, «+ Botella» suma tus 800 ml");
+  await p.locator('.agua-card [data-action="agua-abrir"]').click(); await p.waitForTimeout(400);
+  ok(/botella de 800 ml/.test(await p.locator('#modal [data-action="agua-probador"]').innerText()), "y la fila «Cómo se ve» la nombra");
+  await p.click('#modal [data-action="agua-probador"]'); await p.waitForTimeout(500);
+  await p.click('#modal [data-action="agua-botella"][data-v="500"]'); await p.waitForTimeout(300);
   await p.locator('#modal .el-gal__op.is-lock[data-v="cantimplora"]').click(); await p.waitForTimeout(400);
   ok(/cantimplora/i.test(await p.locator("#modalTitle").innerText()), "tocar uno con candado abre su ficha en la Tienda");
   await p.evaluate(() => openAguaProbador()); await p.waitForTimeout(400);

@@ -161,6 +161,17 @@ Todo lo que se elige en la app usa una de 9 piezas (`js/elegir.js`). Cada pieza 
 
 Un observador copia la marca de lo elegido a `aria-pressed` o `aria-selected`, para que el lector de pantalla también lo anuncie.
 
+## El diario del elefante
+Al cerrar el día (normal o express), tu elefante te deja una nota corta sobre tu día (`js/nota-elefante.js`). Se arma en el teléfono con tus datos, sin inteligencia artificial y sin mandar nada afuera.
+- **Lo que cuenta:** la hora del cierre, una medalla nueva, un libro terminado, un hito de la racha (3, 7, 14, 21, 30… días), el agua (con el calor del día y si cumpliste la meta), tus hábitos, tus tareas y si la energía subió. Dice hasta tres cosas.
+- **El ánimo:** si fue un día difícil lo dice con cariño, y si fue muy bueno lo celebra.
+- **Mañana:** cierra con un plan con amigos, un cumpleaños o el hábito que toca, con una broma del elefante según el hábito («Mañana toca Inglés: yo llevo el diccionario»). Si hay un hábito de días fijos, va primero.
+- **Sin lo que escribiste a mano:** no usa la misión, el bocado, la gratitud, la nota ni lo de mañana, así se puede compartir tranquilo.
+- **Siempre igual ese día:** la forma de las frases cambia de un día a otro, pero el mismo día sale siempre igual (una semilla por fecha).
+- **Dónde se guarda:** en la entrada del día del Diario (`vida.diario`, la de `fromRitual`: `ele = { texto, ts }`), y viaja entre equipos con ella. Se escribe al cerrar, después de las medallas del cierre, y se rehace si editas el cierre.
+- **Dónde se ve:** en el recibo del cierre y al abrir el día en el Diario.
+- **Compartir:** «Compartir» arma una imagen de 1080 × 1350 con la nota en un papel, tu elefante y el cielo de la vitrina. Va con la hoja de compartir del teléfono o se descarga, y cuenta para Embajador.
+
 ## Borrar con seguro
 En Cuenta › Zona sensible (`js/zona.js`), las acciones que no tienen vuelta piden confirmar que son a propósito y que eres tú. Ya no se usan las ventanitas del navegador (`confirm`).
 - **Reiniciar mis datos** y **Eliminar mi cuenta** abren una hoja que dice con tus números lo que se borra (hábitos, diario, ritual, ⭐, medallas, fotos del álbum…) y ofrece descargar el respaldo. El botón rojo se enciende al escribir la palabra (REINICIAR o ELIMINAR; da igual si es con mayúsculas o tildes) y tu contraseña. Si tu cuenta entra solo con Google, se pide un código de 6 números que llega a tu correo; cualquiera puede elegir el código o la contraseña. Con 5 intentos equivocados hay que esperar 5 minutos (en ese equipo; Supabase además limita los intentos). «Reiniciar» ya no está en «Editar perfil».

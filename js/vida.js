@@ -137,6 +137,7 @@ function diarioDetalle(fecha) {
   const a = diarioAnimo(fecha), kv = (k, v) => v ? `<div class="kv"><span>${k}</span><b>${v}</b></div>` : "";
   const out = [];
   if (a) out.push(kv("Ánimo", `${MOODS[a - 1]} ${ANIMO_TXT[a - 1]}`));
+  if (typeof notaElefanteHtml === "function") out.push(notaElefanteHtml(fecha, { compacta: true }));   // 🐘 la nota de tu elefante (nota-elefante.js)
   if (r) {
     if (r.mision) out.push(kv("Misión", escapeHtml(r.mision) + (r.cerrado ? " " + cumpliChip(c.mision) : "")));
     if (r.sapo) out.push(kv(BOCADO.corto, escapeHtml(r.sapo) + (r.cerrado ? (c.sapo ? " ✓" : " · pendiente") : "")));

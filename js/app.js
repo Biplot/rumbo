@@ -169,7 +169,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 63;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 64;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -534,6 +534,9 @@ const NOVEDADES = {
   63: [
     ["🔒", "Borrar con seguro", "Reiniciar tus datos o eliminar tu cuenta ahora piden escribir una palabra y tu contraseña (o un código a tu correo si entras con Google), y te muestran lo que se borra."],
     ["🛟", "30 días para arrepentirte", "Al reiniciar o importar un respaldo, Rumbo guarda una copia de lo que tenías: la recuperas en Cuenta › Zona sensible durante 30 días. Y lo borrado ya no vuelve desde otro equipo."],
+  ],
+  64: [
+    ["🐘", "El diario de tu elefante", "Al cerrar el día, tu elefante te deja una nota sobre tu día: a qué hora cerraste, tu agua, tus hábitos y lo que toca mañana. Queda en tu Diario y se comparte como imagen. Se arma en tu teléfono, con tus datos."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1096,6 +1099,7 @@ function onClick(e) {
   if (a.startsWith("alb-")) { albumAccion(a, d); return; }         // 📷 álbum del mes (album.js)
   if (a.startsWith("agua-")) { aguaAccion(a, d, el); return; }     // 💧 agua para todos (agua.js)
   if (a.startsWith("zona-")) { zonaAccion(a, d); return; }         // 🔒 zona sensible: borrar con seguro (zona.js)
+  if (a.startsWith("elenota-")) { notaElefanteAccion(a, d); return; }   // 🐘 el diario del elefante (nota-elefante.js)
   if (a.startsWith("alc-")) { alcAccion(a, d, el); return; }       // 🐷 tus alcancías (alcancias.js)
   if (a.startsWith("des-")) { deseosAccion(a, d); return; }        // 💎 tus deseos (deseos.js)
   if (a.startsWith("jar-")) { jardinAccion(a, d, el); return; }    // 🌱 tu jardín (jardin.js)
@@ -1980,6 +1984,7 @@ function renderCierreResumen(r) {
     <ol class="ruta">${paradas}</ol>
     <dl class="recibo__filas">${filas}</dl>
     ${notas}
+    ${typeof notaElefanteHtml === "function" ? notaElefanteHtml(iso) : ""}
     ${typeof reciboMedallasHtml === "function" ? reciboMedallasHtml(iso) : ""}
     ${ganadas ? `<div class="recibo__total"><span>Ganaste hoy</span><b>+${ganadas} ${iconoLinea("estrella", 18)}</b></div>` : ""}
     <div class="recibo__acc"><button class="btn btn--soft" data-action="compartir-dia">${iconoLinea("compartir", 18)}Compartir mi día</button>

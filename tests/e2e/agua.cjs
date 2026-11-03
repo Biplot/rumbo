@@ -161,6 +161,8 @@ module.exports = async ({ b, ok, errs }) => {
   const redonda = await p.evaluate(() => { const port = document.querySelector("#aguaFab .agua-fab__port"), cv = port.querySelector(".agua-fab__tomar canvas"), r = cv.getBoundingClientRect(), pr = port.getBoundingClientRect();
     return { clase: port.classList.contains("is-redonda"), cuadrado: Math.abs(r.width - r.height) < 2, lleno: r.width > pr.width * 0.85, foco: document.activeElement && document.activeElement.classList.contains("agua-fab__tomar") }; });
   ok(redonda.clase && redonda.cuadrado && redonda.lleno, "la esclusa llena todo el círculo de la portilla");
+  ok(await p.evaluate(() => { const b = document.querySelector("#aguaFab .agua-fab__btn"), c = b.querySelector("canvas");   // (con la portilla abierta, el botón está achicado: se mide sin la animación)
+    return b.classList.contains("is-redonda") && !!c.dataset.redonda && Math.abs(c.offsetWidth - c.offsetHeight) < 2 && c.offsetWidth > 40; }), "y también en el botón en chico");
   ok(!redonda.foco, "al abrirla con el dedo, el foco no se va al dibujo (sin el marco del foco encima de la escena)");
   const t3 = await p.evaluate(() => aguaHoy()); await p.click(".agua-fab__tomar"); await p.waitForTimeout(500);
   ok((await p.evaluate(() => aguaHoy())) - t3 === 250, "y tocarla sigue siendo un vaso");

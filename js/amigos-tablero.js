@@ -186,6 +186,7 @@ function atBaldosasHtml(l) {
   const dia = amigos.filter(a => { const e = amigosEstadoLimpio(a.estado); return e.fecha === hoy && (e.abrio || e.cerro); }).length;
   t.push(atBaldosa("amigos", icoUI("amigos"), "Amigos", amigos.length,
     cumple ? "Hoy cumple " + escapeHtml(cumple.nombre || "uno") : dia ? `${dia} ${dia === 1 ? "abrió" : "abrieron"} su día` : (l.enviadas || []).length ? atPlural(l.enviadas.length, "solicitud enviada", "solicitudes enviadas") : "en Rumbo"));
+  if (typeof invitaBaldosa === "function") { const b = invitaBaldosa(); if (b) t.push(b); }   // 🎁 Invita y gana (invita.js)
   return `<div class="at-tiles">${t.join("")}</div>`;
 }
 /* Sin amigos todavía: lo que podrán hacer juntos */
@@ -289,6 +290,7 @@ function atHoja(k) {
   if (k === "bidon") return { titulo: "💧 El bidón con amigos", cuerpo: `<div class="at-bidon">${bdCuerpoHtml()}</div>${atPie(`<button class="btn-ghost" data-action="agua-abrir">Ir a Tu agua</button>`)}` };
   if (k === "amigos") return { titulo: "Tus amigos", cuerpo: amigosHoyHtml(l) };
   if (k === "ajustes") return { titulo: "Ajustes de Amigos", cuerpo: amigosInvitarHtml(true) + amigosMuestraHtml(l, true) };
+  if (k === "invita") return { titulo: "🎁 Invita y gana", cuerpo: amigosInvitarHtml(true) };
   if (k === "nuevo") return { titulo: "Nuevo con amigos", cuerpo: atHojaNuevo() };
   if (k === "leer") return { titulo: "📖 Leer con amigos", cuerpo: atHojaLeer() };
   return null;

@@ -45,8 +45,8 @@ export default async function ({ G, test, assert }) {
     assert.ok(n("tinta") > base * 1.5, "la Tinta suma el contorno de tinta a cada forma");
   });
 
-  test("las 15 prendas se visten en su espacio y cada una agrega su forma", () => {
-    assert.equal(PRENDAS.length, 15);
+  test("las 16 prendas se visten en su espacio y cada una agrega su forma", () => {
+    assert.equal(PRENDAS.length, 16);
     const sin = crear(T, { tipo: "clasico", etapa: 2, calmo: true }), base = mallas(sin); sin.dispose();
     PRENDAS.forEach(p => {
       const E = crear(T, { tipo: "clasico", etapa: 2, ropa: { [p.slot]: p.id }, calmo: true });

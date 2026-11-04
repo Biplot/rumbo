@@ -2814,6 +2814,31 @@ button.at-fila__t { cursor: pointer; }
 .at-vacio { margin: 4px 0; }
 .at-bloque + .at-bloque { margin-top: 10px; padding-top: 18px; border-top: 1px solid var(--line); }
 .at-bloque.am-invita { padding: 0; background: none; }
+/* 🎁 Invita y gana (invita.js) */
+.inv { display: grid; gap: 10px; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+.inv__cab { display: flex; align-items: center; gap: 12px; }
+.inv__cab > span:last-child { display: grid; gap: 2px; min-width: 0; }
+.inv__cab b { font-size: 15px; color: var(--text); }
+.inv__pan { flex: 0 0 52px; width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; background: color-mix(in srgb, #17C3B2 14%, var(--surface)); }
+.inv__pan svg { width: 46px; height: 46px; }
+.inv__meta { display: grid; gap: 6px; font-size: 13.5px; }
+.inv__meta--ok { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.inv__meta--ok > span { display: inline-flex; align-items: center; gap: 6px; }
+.inv__barra { display: flex; align-items: center; gap: 10px; }
+.inv__barra .bar { flex: 1; }
+.inv__barra b { font-size: 13px; white-space: nowrap; }
+.inv__lista { display: grid; gap: 8px; }
+.inv__f { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.inv__fn { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.inv__fn b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inv__f .btn { padding: 6px 12px; font-size: 13px; }
+.inv__ok { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--verde, #2E9E7B); font-weight: 600; }
+.inv__llegue { margin: 0; }
+.inv__llegue svg { vertical-align: -2px; }
+.inv-gana { display: grid; gap: 12px; text-align: center; justify-items: center; }
+.inv-gana__ele { width: 180px; max-width: 60vw; }
+.inv-gana__ele svg { width: 100%; height: auto; display: block; }
+.inv-gana p { margin: 0; max-width: 42ch; }
 .at-listas { display: grid; gap: 12px; }
 .at-listas .lc { box-shadow: none; }
 .at-libro { padding: 12px; border-radius: 14px; background: var(--surface-2); }

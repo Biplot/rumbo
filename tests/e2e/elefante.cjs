@@ -37,7 +37,7 @@ module.exports = async ({ b, ok, errs }) => {
   const c = await p.evaluate(() => ({ cabeza: STATE.gamif.equipped.ele.ropa.cabeza, pts: STATE.gamif.puntos }));
   ok(c.cabeza === "jockey" && c.pts === antes - 200, "al comprarlo queda puesto y cobra 200 ⭐");
   await p.click('[data-action="ele-espacio"][data-slot="cuello"]'); await p.waitForTimeout(200);
-  ok(await p.locator(".vest-ficha").count() === 3, "el espacio Cuello muestra sus 3 prendas");
+  ok(await p.locator(".vest-ficha").count() === 4, "el espacio Cuello muestra sus 4 prendas (con el pañuelo de la manada, que se gana invitando)");
   await p.click('[data-action="ele-probar"][data-id="bufanda"]'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => STATE.gamif.equipped.ele.ropa.cuello) == null, "una prenda que ya tienes se saca con un toque");
 

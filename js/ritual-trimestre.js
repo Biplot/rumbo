@@ -56,7 +56,9 @@ function resumenTrimestre(y, q, S) {
   const tm = tmResumen(S, desde, hasta);
   const notas = [0, 1, 2].map(i => (((S.ritual.meses || {})[mesKey(y, q * 3 + i)] || {}).cierre || {}).nota).filter(Boolean);
   const rueda = [0, 1, 2].map(i => D.rueda.meses[q * 3 + i] || []).filter(a => a.some(v => v > 0));
-  const ruedaProm = rueda.length ? Math.round((rueda.flat().reduce((a, b) => a + b, 0) / rueda.flat().length) * 10) / 10 : null;
+  const promsMes = typeof ruedaPromedio === "function" ? rueda.map(a => ruedaPromedio(STATE, a)).filter(x => x != null) : null;   // 🧭 solo las áreas que se ven
+  const ruedaProm = promsMes ? (promsMes.length ? Math.round(promsMes.reduce((a, b) => a + b, 0) / promsMes.length * 10) / 10 : null)
+    : rueda.length ? Math.round((rueda.flat().reduce((a, b) => a + b, 0) / rueda.flat().length) * 10) / 10 : null;
   return {
     cerrados: dias.filter(r => r.cerrado).length, abiertos: dias.filter(r => r.hecho).length,
     habitos: cumplimientoGrupo(S.habitos.defs, desde, hasta, S).pct,

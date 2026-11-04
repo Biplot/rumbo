@@ -64,6 +64,12 @@ const COSMETICOS = [
   { id: "bib-arbol", grupo: "biblioteca", icon: "🌳", nombre: "Biblioteca: el árbol de libros", costo: 500, key: "biblioteca", value: "arbol", animado: true, cuando: "cada libro brota en una rama como un libro abierto; al llegar a tu meta del año, florece" },
   { id: "bib-antigua", grupo: "biblioteca", icon: "🏛️", nombre: "Biblioteca: la antigua", costo: 600, key: "biblioteca", value: "antigua", animado: true, cuando: "madera oscura, lomos de cuero con letras doradas, un globo que gira y la lámpara verde" },
   { id: "bib-invierno", grupo: "biblioteca", icon: "🦉", nombre: "Biblioteca: el colegio en invierno", costo: 900, key: "biblioteca", value: "invierno", animado: true, cuando: "un colegio de magia con nieve en las ventanas y la chimenea encendida: un búho con bufanda trae cada libro entre copos de nieve; en tu meta, luces de colores y el pino encendido" },
+  // Estilos de tu rueda (rueda.js; la rosa de los vientos viene incluida): uno a la vez, con probador en la Rueda de la vida
+  { id: "rueda-fantasma", grupo: "rueda", icon: "🧭", nombre: "Rueda: el barco fantasma", costo: 600, key: "rueda", value: "fantasma", animado: true, cuando: "inspirado en la leyenda del holandés errante: niebla, luna pálida y faroles que se encienden con tu nota" },
+  { id: "rueda-instrumento", grupo: "rueda", icon: "🧭", nombre: "Rueda: el instrumento", costo: 600, key: "rueda", value: "instrumento", cuando: "un timón de bronce sobre una carta de navegación; tu nota es una gema en su marca exacta" },
+  { id: "rueda-constelacion", grupo: "rueda", icon: "✨", nombre: "Rueda: la constelación", costo: 500, key: "rueda", value: "constelacion", animado: true, cuando: "ocho estrellas de noche que brillan más mientras más alta la nota" },
+  { id: "rueda-mandala", grupo: "rueda", icon: "🧭", nombre: "Rueda: el mandala", costo: 500, key: "rueda", value: "mandala", cuando: "cuentas de colores, una por cada punto de nota" },
+  { id: "rueda-vitral", grupo: "rueda", icon: "🧭", nombre: "Rueda: el vitral", costo: 600, key: "rueda", value: "vitral", cuando: "vidrios de colores separados por plomo que se iluminan hasta tu nota" },
   { id: "mon-plata", grupo: "moneda", icon: "🪙", nombre: "Monedas de plata", costo: 100, key: "moneda", value: "plata", cuando: "en todas tus alcancías y en la torre del año" },
   { id: "mon-cobre", grupo: "moneda", icon: "🪙", nombre: "Monedas de cobre", costo: 100, key: "moneda", value: "cobre", cuando: "en todas tus alcancías y en la torre del año" },
   { id: "mon-estrella", grupo: "moneda", icon: "🪙", nombre: "Monedas estrella", costo: 100, key: "moneda", value: "estrella", cuando: "doradas con una estrella índigo, en todas tus alcancías" },
@@ -88,7 +94,7 @@ function equipCosmetico(it) {
   const eq = eqCos();
   if (it.key === "celebra") eq.celebraOff = eq.celebraOff.includes(it.id) ? eq.celebraOff.filter(x => x !== it.id) : eq.celebraOff.concat(it.id);
   else if (it.key === "sonidos") { eq.sonidos = eq.sonidos === false; if (eq.sonidos) sonar("check"); }
-  else if (it.key === "marco" || it.key === "check" || it.key === "agua" || it.key === "sabor" || it.key === "moneda" || it.key === "jardin" || it.key === "biblioteca") eq[it.key] = eq[it.key] === it.value ? null : it.value;
+  else if (it.key === "marco" || it.key === "check" || it.key === "agua" || it.key === "sabor" || it.key === "moneda" || it.key === "jardin" || it.key === "biblioteca" || it.key === "rueda") eq[it.key] = eq[it.key] === it.value ? null : it.value;
 }
 
 /* Aplica marco y estilo de check (se llama desde applyCosmetics) */
@@ -206,6 +212,7 @@ function cosmeticoCard(it) {
     ${(it.key === "alcancia" || it.key === "moneda") && typeof alcMuestraHtml === "function" ? `<div class="alc-muestra">${alcMuestraHtml(it)}</div>` : ""}
     ${it.key === "jardin" && typeof jardinMuestraHtml === "function" ? `<div class="jar-muestra">${jardinMuestraHtml(it)}</div>` : ""}
     ${it.key === "biblioteca" && typeof bibMuestraHtml === "function" ? `<div class="bib-muestra">${bibMuestraHtml(it)}</div>` : ""}
+    ${it.key === "rueda" && typeof ruedaMuestraHtml === "function" ? `<div class="rd-muestra">${ruedaMuestraHtml(it)}</div>` : ""}
     <div class="row" style="gap:10px">${it.key === "marco" ? "" : vista}
       <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${it.nombre}${it.animado ? ' <span class="chip">animado</span>' : ""}</div>
         <div class="text-xs muted">${owned ? "Desbloqueado" : it.rango ? "Por rango" : it.costo + " ⭐"}${it.cuando ? " · " + it.cuando : ""}</div></div></div>

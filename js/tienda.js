@@ -31,11 +31,12 @@ function tiendaTodos() {
     detalle: () => funcionCard("iconos:" + p.id, { icon: icoHab(p.icon, 24), nombre: "Íconos · " + p.nombre, costo: p.costo || 150, desc: `24 íconos de línea nuevos para tus hábitos:<span class="pack-vista">${p.iconos.slice(0, 12).map(e => icoHab(e, 20)).join("")}</span>`, donde: "Hábitos → ✎ editar un hábito" }) }));
   const cosEstado = it => isOwned(it.id) && cosActivo(it.id) ? "equipado" : estado(isOwned(it.id), it.costo, !!it.rango);
   COSMETICOS.forEach(it => {
-    const sub = it.grupo === "marco" ? "perfil" : it.grupo === "plantilla" ? "informe" : it.grupo === "album" ? "album" : it.grupo === "agua" || it.grupo === "sabor" ? "agua" : it.grupo === "alcancia" || it.grupo === "moneda" ? "alcancia" : it.grupo === "jardin" ? "jardin" : it.grupo === "biblioteca" ? "biblioteca" : it.grupo === "jardin-especial" ? "especiales" : "terminar";
+    const sub = it.grupo === "marco" ? "perfil" : it.grupo === "plantilla" ? "informe" : it.grupo === "album" ? "album" : it.grupo === "agua" || it.grupo === "sabor" ? "agua" : it.grupo === "alcancia" || it.grupo === "moneda" ? "alcancia" : it.grupo === "jardin" ? "jardin" : it.grupo === "biblioteca" ? "biblioteca" : it.grupo === "rueda" ? "rueda" : it.grupo === "jardin-especial" ? "especiales" : "terminar";
     const iconoHtml = (it.key === "agua" || it.key === "sabor" || it.key === "acuario" || it.key === "bidon") && typeof aguaFichaHtml === "function" ? aguaFichaHtml(it)
       : (it.key === "alcancia" || it.key === "moneda") && typeof alcFichaHtml === "function" ? alcFichaHtml(it)
       : it.key === "jardin" && typeof jardinFichaHtml === "function" ? jardinFichaHtml(it)
-      : it.key === "biblioteca" && typeof bibFichaHtml === "function" ? bibFichaHtml(it) : undefined;
+      : it.key === "biblioteca" && typeof bibFichaHtml === "function" ? bibFichaHtml(it)
+      : it.key === "rueda" && typeof ruedaFichaHtml === "function" ? ruedaFichaHtml(it) : undefined;
     items.push({ key: "cos:" + it.id, cat: "estilo", sub, icon: it.icon, iconoHtml, nombre: it.nombre, costo: it.costo, estado: cosEstado(it),
       bloqueoTxt: it.rango ? "Rango Élite" : "", attr: `data-cos="${it.id}"`, detalle: () => cosmeticoCard(it) });
   });
@@ -57,7 +58,7 @@ function tiendaItems() { return tiendaTodos().filter(i => i.cat !== "cuarto" && 
 const TIENDA_SECS = [["dia", "Para tu día"], ["estilo", "Para tu estilo"]];
 const TIENDA_SUBS = {
   dia: [["herramientas", "Herramientas"], ["utiles", "Útiles"]],
-  estilo: [["temas", "Temas"], ["iconos", "Íconos de hábitos"], ["terminar", "Al terminar algo"], ["perfil", "Tu perfil"], ["album", "Tu álbum"], ["agua", "Tu agua"], ["alcancia", "Tus alcancías"], ["jardin", "Tu jardín"], ["biblioteca", "Tu biblioteca"], ["especiales", "Temas especiales"], ["informe", "Plantillas del informe"]],
+  estilo: [["temas", "Temas"], ["iconos", "Íconos de hábitos"], ["terminar", "Al terminar algo"], ["perfil", "Tu perfil"], ["album", "Tu álbum"], ["agua", "Tu agua"], ["alcancia", "Tus alcancías"], ["jardin", "Tu jardín"], ["biblioteca", "Tu biblioteca"], ["rueda", "Tu rueda"], ["especiales", "Temas especiales"], ["informe", "Plantillas del informe"]],
 };
 
 /* Miniatura de un tema: mitad su día y mitad su noche (si tiene los dos), con su botón y su acento */

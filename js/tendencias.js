@@ -271,6 +271,7 @@ function renderTendencias() {
   const habPct = MESES.map((_, m) => cumplimientoGrupo(S.habitos.defs, ...mesRango(m), S).pct);
 
   const ruedaAvg = D.rueda.meses.map(a => {
+    if (typeof ruedaPromedio === "function") return ruedaPromedio(S, a || []);   // 🧭 solo las áreas que se ven (rueda.js)
     const sum = a.reduce((x, y) => x + y, 0);
     return sum > 0 ? +(sum / a.length).toFixed(1) : null;
   });

@@ -29,12 +29,12 @@ function renderRueda() {
   <div class="rd">
     <section class="card rd-rueda" aria-labelledby="rd-t">
       <div class="rd-cab"><div><h2 class="card__title" id="rd-t">${MESES[m]}${y !== anioActual() ? " " + y : ""}</h2><span class="text-sm muted" id="rd-prom">${rdPromTxt(S, y, m)}</span></div>
-        <button type="button" class="btn-ghost rd-estilo" data-action="rd-probador">${escapeHtml(E.nombre)} ›</button></div>
+        <button type="button" class="btn-ghost rd-estilo" data-action="ru-probador">${escapeHtml(E.nombre)} ›</button></div>
       <div class="rd-lienzo">${ruedaSVG(D.vals, Object.assign({}, op, { id: "rd-svg", arrastre: "pantalla" }))}</div>
       <div class="rd-ley" aria-hidden="true"><span><i class="rd-ley__l"></i>${MESES[m]}</span>${D.ant ? `<span><i class="rd-ley__p"></i>${MESES[ma]}</span>` : ""}</div>
       <p class="text-xs muted rd-ayuda">Arrastra cada punta desde el centro hasta su nota, o toca un área y usa − y +.</p>
-      <div class="rd-bts"><button type="button" class="btn btn--soft" data-action="rd-minuto">${icoUI("timer")} El minuto de la rueda</button>
-        ${vacio ? "" : `<button type="button" class="btn-ghost" data-action="rd-momento">${icoUI("compass")} Ver mi rumbo</button><button type="button" class="btn-ghost" data-action="rd-compartir">${icoUI("compartir")} Compartir</button>`}</div>
+      <div class="rd-bts"><button type="button" class="btn btn--soft" data-action="ru-minuto">${icoUI("timer")} El minuto de la rueda</button>
+        ${vacio ? "" : `<button type="button" class="btn-ghost" data-action="ru-momento">${icoUI("compass")} Ver mi rumbo</button><button type="button" class="btn-ghost" data-action="ru-compartir">${icoUI("compartir")} Compartir</button>`}</div>
     </section>
     <div class="rd-panel">
       <div class="rd-areas" id="rd-areas" role="group" aria-label="Áreas">${rdChipsHtml(S, y, m)}</div>
@@ -43,21 +43,21 @@ function renderRueda() {
     </div>
   </div>
   <section class="card rd-barras" aria-labelledby="rd-bt">
-    <div class="rd-barras__cab"><h2 class="card__title" id="rd-bt">Todas las áreas</h2><button type="button" class="btn-ghost" data-action="rd-areas-editar">${icoUI("settings")} Tus áreas</button></div>
+    <div class="rd-barras__cab"><h2 class="card__title" id="rd-bt">Todas las áreas</h2><button type="button" class="btn-ghost" data-action="ru-areas-editar">${icoUI("settings")} Tus áreas</button></div>
     ${rdBarrasHtml(S, y, m)}
   </section>
   ${rdAnioHtml(S, y)}`;
 }
 function rdChipsHtml(S, y, m) {
   const v = ruedaMes(S, y, m);
-  return ruedaVisibles(S).map(k => `<button type="button" class="rd-chip" data-action="rd-sel" data-k="${k}" aria-pressed="${k === RD.sel}" style="--c:${ruedaColor(S, k)}"><span>${escapeHtml(ruedaCorto(S, k))}</span><b>${v[k]}</b></button>`).join("");
+  return ruedaVisibles(S).map(k => `<button type="button" class="rd-chip" data-action="ru-sel" data-k="${k}" aria-pressed="${k === RD.sel}" style="--c:${ruedaColor(S, k)}"><span>${escapeHtml(ruedaCorto(S, k))}</span><b>${v[k]}</b></button>`).join("");
 }
 function rdFichaHtml(S, y, m, k) {
   const v = ruedaMes(S, y, m)[k], [ya, ma] = ruedaAntes(y, m), antes = ruedaMes(S, ya, ma), hayAnt = ruedaHay(S, antes), col = ruedaColor(S, k), mes = MESES[m].toLowerCase(), mesAnt = MESES[ma].toLowerCase();
   const dif = hayAnt ? v - antes[k] : null, pistas = ruedaPistas(S, y, m, k), cu = ruedaCuidan(S, y, m, k), paso = ruedaPaso(S, y, m), fr = ruedaFrase(S, y, m, k), frAnt = ruedaFrase(S, ya, ma, k), nom = ruedaNombre(S, k);
   const cuidan = cu.habitos.map(h => h.nombre).concat(cu.objetivos.map(o => o.texto));
   return `<div class="rd-ficha__cab"><h3 class="rd-ficha__t"><span class="rd-punto" style="background:${col}"></span>${escapeHtml(nom)}</h3>
-      <div class="rd-ajuste"><button type="button" class="rd-aj" data-action="rd-menos" aria-label="Bajar la nota de ${escapeAttr(nom)}">−</button><output id="rd-nota" aria-live="polite">${v}</output><button type="button" class="rd-aj" data-action="rd-mas" aria-label="Subir la nota de ${escapeAttr(nom)}">+</button></div></div>
+      <div class="rd-ajuste"><button type="button" class="rd-aj" data-action="ru-menos" aria-label="Bajar la nota de ${escapeAttr(nom)}">−</button><output id="rd-nota" aria-live="polite">${v}</output><button type="button" class="rd-aj" data-action="ru-mas" aria-label="Subir la nota de ${escapeAttr(nom)}">+</button></div></div>
     ${dif != null ? `<span class="rd-dif${dif > 0 ? " sube" : dif < 0 ? " baja" : ""}">${dif > 0 ? "↑ +" + dif : dif < 0 ? "↓ " + dif : "Igual que"} ${dif === 0 ? "en " + mesAnt : "desde " + mesAnt}</span>` : ""}
     <div class="rd-dice"><small>Lo que dice tu Rumbo en ${mes}</small>${pistas.length ? `<ul>${pistas.map(p => `<li>${escapeHtml(p)}</li>`).join("")}</ul>`
       : `<p class="text-sm muted">Este mes no hay datos de esta área en Rumbo. Puedes asignarle hábitos (al crearlos o editarlos) y objetivos.</p>`}</div>
@@ -66,7 +66,7 @@ function rdFichaHtml(S, y, m, k) {
       <input class="input" id="rd-frase" maxlength="100" value="${escapeAttr(fr)}" placeholder="Una línea, si quieres" onchange="rdFraseGuardar(this.value)">
       ${frAnt ? `<span class="text-xs muted">En ${mesAnt} escribiste: «${escapeHtml(frAnt)}»</span>` : ""}</div>
     ${paso && paso.k === k ? `<div class="rd-paso" style="--c:${col}"><span><b>Es el área que pide cariño.</b> ${escapeHtml(paso.txt)}</span>
-      <span class="rd-paso__b"><button type="button" class="btn btn--primary" data-action="rd-paso">${paso.btn}</button><button type="button" class="btn-ghost" data-action="rd-paso-no">Ahora no</button></span></div>` : ""}`;
+      <span class="rd-paso__b"><button type="button" class="btn btn--primary" data-action="ru-paso">${paso.btn}</button><button type="button" class="btn-ghost" data-action="ru-paso-no">Ahora no</button></span></div>` : ""}`;
 }
 function rdRumboHtml(S, y, m) { const t = ruedaRumboTxt(S, ruedaRumbo(S, y, m)); return `<small>Tu rumbo de ${MESES[m].toLowerCase()}</small><b>${escapeHtml(t.t)}</b><span>${escapeHtml(t.s)}</span>`; }
 function rdBarrasHtml(S, y, m) {
@@ -79,7 +79,7 @@ function rdAnioHtml(S, y) {
   if (!meses.some(v => ruedaHay(S, v))) return "";
   if (RD.anioK != null && !vis.includes(RD.anioK)) RD.anioK = null;
   const filas = vis.map(k => { const c = ruedaColor(S, k);
-    return `<button type="button" class="rd-anio__f${RD.anioK === k ? " is-on" : ""}" data-action="rd-anio-area" data-k="${k}" aria-pressed="${RD.anioK === k}"><span class="rd-anio__n">${escapeHtml(ruedaCorto(S, k))}</span>${meses.map((v, m) => `<i style="background:${v[k] ? rdA(c, 0.16 + 0.084 * v[k]) : "transparent"}" title="${MESES_CORTO[m]}: ${v[k] || "sin nota"}">${v[k] || ""}</i>`).join("")}</button>`; }).join("");
+    return `<button type="button" class="rd-anio__f${RD.anioK === k ? " is-on" : ""}" data-action="ru-anio-area" data-k="${k}" aria-pressed="${RD.anioK === k}"><span class="rd-anio__n">${escapeHtml(ruedaCorto(S, k))}</span>${meses.map((v, m) => `<i style="background:${v[k] ? rdA(c, 0.16 + 0.084 * v[k]) : "transparent"}" title="${MESES_CORTO[m]}: ${v[k] || "sin nota"}">${v[k] || ""}</i>`).join("")}</button>`; }).join("");
   const linea = RD.anioK != null && typeof svgLine === "function" ? `<div class="rd-anio__linea"><span class="text-sm"><b>${escapeHtml(ruedaNombre(S, RD.anioK))}</b> en ${y}</span>${svgLine(meses.map(v => v[RD.anioK] || null), { color: ruedaColor(S, RD.anioK), fmt: v => v })}</div>` : "";
   return `<section class="card rd-anio" aria-labelledby="rd-at"><div class="rd-barras__cab"><h2 class="card__title" id="rd-at">Tu año, área por área</h2><span class="text-xs muted">Toca un área para ver su línea</span></div>
     <div class="rd-anio__t"><div class="rd-anio__cab"><span></span>${MESES_CORTO.map(x => `<b>${x[0]}</b>`).join("")}</div>${filas}</div>${linea}</section>`;
@@ -138,7 +138,7 @@ function ruedaTrasRender() {
   LIVE_HOOK = el => { if (!/rueda\.meses\./.test((el && el.dataset.bind) || "")) return; ruedaTocar(STATE, anioVista()); rdRefrescar(true); };
 }
 function rdFraseGuardar(txt) { ruedaPonerFrase(STATE, anioVista(), RUEDA_MONTH, RD.sel, txt); saveState(); }
-function rdNota(d) { const y = anioVista(), m = RUEDA_MONTH; ruedaPoner(STATE, y, m, RD.sel, ruedaMes(STATE, y, m)[RD.sel] + d); saveState(); rdRefrescar(true); const b = document.querySelector(`#rd-ficha [data-action="rd-${d > 0 ? "mas" : "menos"}"]`); if (b) b.focus(); }
+function rdNota(d) { const y = anioVista(), m = RUEDA_MONTH; ruedaPoner(STATE, y, m, RD.sel, ruedaMes(STATE, y, m)[RD.sel] + d); saveState(); rdRefrescar(true); const b = document.querySelector(`#rd-ficha [data-action="ru-${d > 0 ? "mas" : "menos"}"]`); if (b) b.focus(); }
 
 /* ============ El paso chico para el área que pide cariño ============ */
 function rdPasoCrear() {
@@ -183,9 +183,9 @@ function rdMinutoPintar() {
   const S = STATE, y = anioVista(), m = RUEDA_MONTH, vis = ruedaVisibles(S), i = Math.min(RD.minuto.i, vis.length - 1), k = vis[i], v = ruedaMes(S, y, m)[k], [ya, ma] = ruedaAntes(y, m), a = ruedaMes(S, ya, ma)[k];
   c.innerHTML = iconizar(`<div class="rd-min__prog" aria-hidden="true">${vis.map((_, j) => `<i class="${j < i ? "ok" : j === i ? "on" : ""}"></i>`).join("")}</div>
     <div class="rd-min__area" style="--c:${ruedaColor(S, k)}"><span class="rd-punto"></span><b>${escapeHtml(ruedaNombre(S, k))}</b>${a > 0 ? `<span class="text-sm muted">En ${MESES[ma].toLowerCase()}: ${a}</span>` : ""}</div>
-    <div class="rd-min__notas" role="group" aria-label="Nota de 0 a 10 para ${escapeAttr(ruedaNombre(S, k))}">${Array.from({ length: 11 }, (_, n) => `<button type="button" class="${n === v ? "is-on" : ""}" aria-pressed="${n === v}" data-action="rd-min-nota" data-v="${n}" style="--c:${ruedaColor(S, k)}">${n}</button>`).join("")}</div>
-    <div class="rd-min__pie"><button type="button" class="btn-ghost" data-action="rd-min-atras"${i === 0 ? " disabled" : ""}>Anterior</button><span class="text-sm muted">${i + 1} de ${vis.length}</span>
-      <button type="button" class="btn btn--soft" data-action="rd-min-sig">${i === vis.length - 1 ? "Terminar" : "Siguiente"}</button></div>`);
+    <div class="rd-min__notas" role="group" aria-label="Nota de 0 a 10 para ${escapeAttr(ruedaNombre(S, k))}">${Array.from({ length: 11 }, (_, n) => `<button type="button" class="${n === v ? "is-on" : ""}" aria-pressed="${n === v}" data-action="ru-min-nota" data-v="${n}" style="--c:${ruedaColor(S, k)}">${n}</button>`).join("")}</div>
+    <div class="rd-min__pie"><button type="button" class="btn-ghost" data-action="ru-min-atras"${i === 0 ? " disabled" : ""}>Anterior</button><span class="text-sm muted">${i + 1} de ${vis.length}</span>
+      <button type="button" class="btn btn--soft" data-action="ru-min-sig">${i === vis.length - 1 ? "Terminar" : "Siguiente"}</button></div>`);
 }
 function rdMinutoNota(v) {
   const vis = ruedaVisibles(STATE), k = vis[RD.minuto.i]; ruedaPoner(STATE, anioVista(), RUEDA_MONTH, k, v); saveState(); rdMinutoPintar();
@@ -201,7 +201,7 @@ function rdMinutoPaso(d) {
 /* ============ Compartir tu rueda como imagen (1080 × 1350) ============ */
 function openRuedaCompartir() {
   openModal("Compartir tu rueda", `<p class="text-sm muted" style="margin-top:0">Tu rueda del mes en una imagen para historias, con la marca de Rumbo al pie. Tus frases nunca van en la imagen.</p>
-    <div class="row-wrap" style="gap:8px"><button type="button" class="btn btn--primary" data-action="rd-comp" data-n="1">Con números</button><button type="button" class="btn btn--soft" data-action="rd-comp" data-n="0">Solo el dibujo</button></div>`);
+    <div class="row-wrap" style="gap:8px"><button type="button" class="btn btn--primary" data-action="ru-comp" data-n="1">Con números</button><button type="button" class="btn btn--soft" data-action="ru-comp" data-n="0">Solo el dibujo</button></div>`);
 }
 function ruedaImagenSVG(S, y, m, conNumeros) {
   const D = ruedaDibujoDatos(S, y, m), E = RUEDA_ESTILOS.find(e => e.id === ruedaEstilo());
@@ -246,7 +246,7 @@ function openRuedaProbador() {
   const actual = ruedaEstilo(), d = ruedaMuestraVals();
   openModal("Cómo se ve tu rueda", `<p class="text-sm muted" style="margin-top:0">Tus mismas notas, dibujadas de otra forma. Cámbiala cuando quieras: no se pierde nada.</p>
     <div class="rd-prob" id="rd-probador">${RUEDA_ESTILOS.map(e => { const tuyo = ruedaEstiloTuyo(e.id), on = e.id === actual;
-      return `<button type="button" class="rd-prob__f${on ? " is-on" : ""}" data-action="rd-estilo" data-v="${e.id}" aria-pressed="${on}">${ruedaSVG(d.vals, { estilo: e.id, cols: d.cols, mini: true, aria: e.nombre })}
+      return `<button type="button" class="rd-prob__f${on ? " is-on" : ""}" data-action="ru-estilo" data-v="${e.id}" aria-pressed="${on}">${ruedaSVG(d.vals, { estilo: e.id, cols: d.cols, mini: true, aria: e.nombre })}
         <b>${escapeHtml(e.nombre)}</b><small class="muted">${escapeHtml(e.desc)}</small><span class="rd-prob__p">${on ? "✓ La tuya" : tuyo ? "Usar" : `${ruedaCosto(e.cos)} ⭐`}</span></button>`; }).join("")}</div>`, { ancho: true });
 }
 function ruedaElegirEstilo(id) {
@@ -269,24 +269,24 @@ function rdAreasPintar(foco) {
   const color = k => /^#[0-9a-f]{6}$/i.test(E.colores[k] || "") ? E.colores[k] : RUEDA_COLORES[k % RUEDA_COLORES.length];
   c.innerHTML = iconizar(`<p class="text-sm muted" style="margin-top:0">Cambia el nombre o el color, oculta las que no te sirven (sus notas se guardan) o suma otras. Se ven entre ${RUEDA_MIN_AREAS} y ${RUEDA_MAX_AREAS}.</p>
     <div class="rd-ar">${E.areas.map((n, k) => { const oc = E.ocultas.includes(k);
-      return `<div class="rd-ar__f${oc ? " is-oculta" : ""}"><button type="button" class="rd-ar__c" style="background:${color(k)}" data-action="rd-ar-color" data-k="${k}" aria-label="Cambiar el color de ${escapeAttr(n || "esta área")}"></button>
+      return `<div class="rd-ar__f${oc ? " is-oculta" : ""}"><button type="button" class="rd-ar__c" style="background:${color(k)}" data-action="ru-ar-color" data-k="${k}" aria-label="Cambiar el color de ${escapeAttr(n || "esta área")}"></button>
         <input class="input" id="rd-ar-n-${k}" value="${escapeAttr(n)}" maxlength="30" aria-label="Nombre del área ${k + 1}">
-        <button type="button" class="btn-ghost" data-action="rd-ar-ver" data-k="${k}">${oc ? "Mostrar" : "Ocultar"}</button></div>`; }).join("")}</div>
-    ${E.areas.length < RUEDA_MAX_AREAS ? `<button type="button" class="btn btn--soft mt-8" data-action="rd-ar-mas">${icoUI("plus")} Sumar un área</button>` : ""}
-    <button type="button" class="btn btn--primary btn-block mt-16" data-action="rd-ar-ok">Guardar</button>`);
+        <button type="button" class="btn-ghost" data-action="ru-ar-ver" data-k="${k}">${oc ? "Mostrar" : "Ocultar"}</button></div>`; }).join("")}</div>
+    ${E.areas.length < RUEDA_MAX_AREAS ? `<button type="button" class="btn btn--soft mt-8" data-action="ru-ar-mas">${icoUI("plus")} Sumar un área</button>` : ""}
+    <button type="button" class="btn btn--primary btn-block mt-16" data-action="ru-ar-ok">Guardar</button>`);
   if (foco != null) { const i = document.getElementById("rd-ar-n-" + foco); if (i) { i.focus(); i.select(); } }
 }
 function rdAreasAccion(a, d) {
   const E = RD.editar; if (!E) return; rdAreasLeer();
   const k = +d.k;
-  if (a === "rd-ar-color") { const actual = /^#[0-9a-f]{6}$/i.test(E.colores[k] || "") ? E.colores[k] : RUEDA_COLORES[k % RUEDA_COLORES.length]; E.colores[k] = RUEDA_COLORES[(RUEDA_COLORES.indexOf(actual) + 1) % RUEDA_COLORES.length]; return rdAreasPintar(); }
-  if (a === "rd-ar-ver") {
+  if (a === "ru-ar-color") { const actual = /^#[0-9a-f]{6}$/i.test(E.colores[k] || "") ? E.colores[k] : RUEDA_COLORES[k % RUEDA_COLORES.length]; E.colores[k] = RUEDA_COLORES[(RUEDA_COLORES.indexOf(actual) + 1) % RUEDA_COLORES.length]; return rdAreasPintar(); }
+  if (a === "ru-ar-ver") {
     if (E.ocultas.includes(k)) E.ocultas = E.ocultas.filter(x => x !== k);
     else { if (rdAreasVisibles() <= RUEDA_MIN_AREAS) return toast(`Deja al menos ${RUEDA_MIN_AREAS} áreas a la vista`, true); E.ocultas.push(k); }
     return rdAreasPintar();
   }
-  if (a === "rd-ar-mas") { if (E.areas.length >= RUEDA_MAX_AREAS) return; E.areas.push("Nueva área"); return rdAreasPintar(E.areas.length - 1); }
-  if (a === "rd-ar-ok") {
+  if (a === "ru-ar-mas") { if (E.areas.length >= RUEDA_MAX_AREAS) return; E.areas.push("Nueva área"); return rdAreasPintar(E.areas.length - 1); }
+  if (a === "ru-ar-ok") {
     E.areas = E.areas.map((n, i) => String(n || "").trim().slice(0, 30) || RUEDA_NOMBRES[i] || "Área " + (i + 1));
     if (rdAreasVisibles() < RUEDA_MIN_AREAS) return toast(`Deja al menos ${RUEDA_MIN_AREAS} áreas a la vista`, true);
     STATE.rueda.areas = E.areas; const c = ruedaCfg(); c.ocultas = E.ocultas.slice().sort((x, y) => x - y); c.colores = E.colores; c.ts = Date.now(); STATE.rueda.ts = Date.now();
@@ -299,8 +299,8 @@ function openRuedaMetaArea(d) {
   const metas = datosAnio(STATE, +d.anio || anioActual()).metas, b = d.bucket === "tri" ? metas.trimestres : metas.mensuales, o = (b[+d.idx] || []).find(x => x.id === d.id); if (!o) return;
   RD.meta = { bucket: d.bucket, idx: +d.idx, anio: +d.anio || anioActual(), id: d.id };
   openModal("Área de tu rueda", `<p class="text-sm muted" style="margin-top:0">«${escapeHtml(o.texto)}»: ¿a qué área de tu vida le aporta? Aparece en esa área de tu rueda.</p>
-    <div class="rd-meta-l">${ruedaVisibles(STATE).map(k => `<button type="button" class="rd-chip" data-action="rd-meta-poner" data-k="${k}" aria-pressed="${o.area === k}" style="--c:${ruedaColor(STATE, k)}"><span>${escapeHtml(ruedaNombre(STATE, k))}</span></button>`).join("")}
-      <button type="button" class="btn-ghost" data-action="rd-meta-poner" data-k="">Ninguna</button></div>`);
+    <div class="rd-meta-l">${ruedaVisibles(STATE).map(k => `<button type="button" class="rd-chip" data-action="ru-meta-poner" data-k="${k}" aria-pressed="${o.area === k}" style="--c:${ruedaColor(STATE, k)}"><span>${escapeHtml(ruedaNombre(STATE, k))}</span></button>`).join("")}
+      <button type="button" class="btn-ghost" data-action="ru-meta-poner" data-k="">Ninguna</button></div>`);
 }
 function rdMetaPoner(k) {
   const M = RD.meta; if (!M) return; const metas = datosAnio(STATE, M.anio, true).metas, b = M.bucket === "tri" ? metas.trimestres : metas.mensuales, o = (b[M.idx] || []).find(x => x.id === M.id); if (!o) return;
@@ -309,7 +309,7 @@ function rdMetaPoner(k) {
 }
 function ruedaMetaChip(m, bucket, idx, y) {
   const S = STATE, tiene = m.area != null && S.rueda.areas[m.area] != null;
-  return `<button type="button" class="rd-meta" data-action="rd-meta-area" data-bucket="${bucket}" data-idx="${idx}" data-anio="${y}" data-id="${m.id}" title="Área de tu rueda" aria-label="Área de tu rueda: ${tiene ? escapeAttr(ruedaNombre(S, m.area)) : "ninguna"}">${tiene ? `<i style="background:${ruedaColor(S, m.area)}"></i>${escapeHtml(ruedaCorto(S, m.area))}` : "+ área"}</button>`;
+  return `<button type="button" class="rd-meta" data-action="ru-meta-area" data-bucket="${bucket}" data-idx="${idx}" data-anio="${y}" data-id="${m.id}" title="Área de tu rueda" aria-label="Área de tu rueda: ${tiene ? escapeAttr(ruedaNombre(S, m.area)) : "ninguna"}">${tiene ? `<i style="background:${ruedaColor(S, m.area)}"></i>${escapeHtml(ruedaCorto(S, m.area))}` : "+ área"}</button>`;
 }
 
 /* ============ El paso «Rueda» del cierre del mes (ritual-mes.js) ============ */
@@ -335,25 +335,25 @@ function ruedaCierreDibujar() {
   const r = document.getElementById("rd-cierre-rumbo"); if (r) r.textContent = rdCierreRumbo(vv, hayAnt ? a : null);
 }
 
-/* ============ Acciones (data-action="rd-…", ver onClick en app.js) ============ */
+/* ============ Acciones (data-action="ru-…", ver onClick en app.js) ============ */
 function ruedaAccion(a, d, el) {
-  if (a === "rd-sel") { RD.sel = +d.k; return rdRefrescar(true); }
-  if (a === "rd-mas") return rdNota(1);
-  if (a === "rd-menos") return rdNota(-1);
-  if (a === "rd-paso") return rdPasoCrear();
-  if (a === "rd-paso-no") return rdPasoNo();
-  if (a === "rd-momento") return openRuedaMomento();
-  if (a === "rd-minuto") return openRuedaMinuto();
-  if (a === "rd-min-nota") return rdMinutoNota(+d.v);
-  if (a === "rd-min-sig") return rdMinutoPaso(1);
-  if (a === "rd-min-atras") return rdMinutoPaso(-1);
-  if (a === "rd-compartir") return openRuedaCompartir();
-  if (a === "rd-comp") return ruedaCompartir(d.n === "1");
-  if (a === "rd-probador") return openRuedaProbador();
-  if (a === "rd-estilo") return ruedaElegirEstilo(d.v);
-  if (a === "rd-areas-editar") return openRuedaAreas();
-  if (a.startsWith("rd-ar-")) return rdAreasAccion(a, d);
-  if (a === "rd-anio-area") { RD.anioK = RD.anioK === +d.k ? null : +d.k; return rerender(); }
-  if (a === "rd-meta-area") return openRuedaMetaArea(d);
-  if (a === "rd-meta-poner") return rdMetaPoner(d.k);
+  if (a === "ru-sel") { RD.sel = +d.k; return rdRefrescar(true); }
+  if (a === "ru-mas") return rdNota(1);
+  if (a === "ru-menos") return rdNota(-1);
+  if (a === "ru-paso") return rdPasoCrear();
+  if (a === "ru-paso-no") return rdPasoNo();
+  if (a === "ru-momento") return openRuedaMomento();
+  if (a === "ru-minuto") return openRuedaMinuto();
+  if (a === "ru-min-nota") return rdMinutoNota(+d.v);
+  if (a === "ru-min-sig") return rdMinutoPaso(1);
+  if (a === "ru-min-atras") return rdMinutoPaso(-1);
+  if (a === "ru-compartir") return openRuedaCompartir();
+  if (a === "ru-comp") return ruedaCompartir(d.n === "1");
+  if (a === "ru-probador") return openRuedaProbador();
+  if (a === "ru-estilo") return ruedaElegirEstilo(d.v);
+  if (a === "ru-areas-editar") return openRuedaAreas();
+  if (a.startsWith("ru-ar-")) return rdAreasAccion(a, d);
+  if (a === "ru-anio-area") { RD.anioK = RD.anioK === +d.k ? null : +d.k; return rerender(); }
+  if (a === "ru-meta-area") return openRuedaMetaArea(d);
+  if (a === "ru-meta-poner") return rdMetaPoner(d.k);
 }

@@ -1123,9 +1123,9 @@ function onClick(e) {
   if (!el) return;
   const a = el.dataset.action;
   const d = el.dataset;
-  if (a.startsWith("am-")) { amigosAccion(a, d, el); return; }
-  if (a.startsWith("inv-") && typeof invitaAccion === "function") { invitaAccion(a, d, el); return; }
-  if (a.startsWith("rd-") && typeof ruedaAccion === "function") { ruedaAccion(a, d, el); return; }   // 🧭 la Rueda de la vida (rueda-pantalla.js)   // 🎁 Invita y gana (invita.js)   // 🤝 Amigos (amigos.js)
+  if (a.startsWith("am-")) { amigosAccion(a, d, el); return; }   // 🤝 Amigos (amigos.js)
+  if (a.startsWith("inv-") && typeof invitaAccion === "function") { invitaAccion(a, d, el); return; }   // 🎁 Invita y gana (invita.js)
+  if (a.startsWith("ru-") && typeof ruedaAccion === "function") { ruedaAccion(a, d, el); return; }   // 🧭 la Rueda de la vida (rueda-pantalla.js)
   if (a.startsWith("cj-")) { conjuntoAccion(a, d); return; }      // hábitos en conjunto (conjunto.js)
   if (a.startsWith("oj-")) { objetivosAccion(a, d); return; }     // objetivos en conjunto (objetivos.js)
   if (a.startsWith("vis-")) { visitaAccion(a, d); return; }        // de visita en la casa de un amigo (visitas.js)

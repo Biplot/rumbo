@@ -32,7 +32,7 @@ module.exports = async ({ b, ok, errs }) => {
   await p.mouse.move(...q(20)); await p.mouse.down(); await p.mouse.move(...q(118 * 0.8), { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(250);
   ok(await nota(4) === 8, "arrastrar la punta de «Para mí» hasta el 8 cambia su nota");
   ok(/Para mí\s*8/.test(await p.locator(".rd-chip[aria-pressed=true]").innerText()) && /Tiempo para mí/.test(await p.locator("#rd-ficha").innerText()), "y queda elegida, con su ficha");
-  await p.click('[data-action="rd-mas"]'); await p.click('[data-action="rd-mas"]'); await p.click('[data-action="rd-menos"]'); await p.waitForTimeout(150);
+  await p.click('[data-action="ru-mas"]'); await p.click('[data-action="ru-mas"]'); await p.click('[data-action="ru-menos"]'); await p.waitForTimeout(150);
   ok(await nota(4) === 9 && await p.evaluate(() => STATE.rueda.ts > 0), "− y + también (y se guarda)");
 
   // 3) La ficha de Emoción: lo que dice tu Rumbo y la frase
@@ -46,15 +46,15 @@ module.exports = async ({ b, ok, errs }) => {
   await p.evaluate(() => { ruedaPoner(STATE, 2026, 10, 2, 3); saveState(); }); await ir("rueda");
   await p.click('.rd-chip[data-k="2"]'); await p.waitForTimeout(150);
   ok(/Es el área que pide cariño/.test(await p.locator("#rd-ficha").innerText()) && /Ordenar mis finanzas del mes/.test(await p.locator("#rd-ficha").innerText()), "el área que pide cariño trae su paso chico");
-  await p.click('[data-action="rd-paso"]'); await p.waitForTimeout(250);
+  await p.click('[data-action="ru-paso"]'); await p.waitForTimeout(250);
   const obj = await p.evaluate(() => datosAnio(STATE, 2026).metas.mensuales[10].find(o => o.texto === "Ordenar mis finanzas del mes"));
   ok(obj && obj.area === 2, "«Agregar objetivo» lo deja en tus objetivos de noviembre, con su área");
   ok(/Objetivo: «Ordenar mis finanzas del mes»/.test(await p.locator("#rd-ficha").innerText()), "y aparece en lo que dice tu Rumbo");
-  await p.click('[data-action="rd-paso-no"]'); await p.waitForTimeout(150);
+  await p.click('[data-action="ru-paso-no"]'); await p.waitForTimeout(150);
   ok(!/Es el área que pide cariño/.test(await p.locator("#rd-ficha").innerText()), "«Ahora no» lo guarda hasta el mes siguiente");
   // con un hábito: la de Para mí
   await p.evaluate(() => { const c = ruedaCfg(); c.pasoNo = {}; ruedaPoner(STATE, 2026, 10, 2, 7); ruedaPoner(STATE, 2026, 10, 4, 2); saveState(); }); await ir("rueda");
-  await p.click('.rd-chip[data-k="4"]'); await p.click('[data-action="rd-paso"]'); await p.waitForTimeout(300);
+  await p.click('.rd-chip[data-k="4"]'); await p.click('[data-action="ru-paso"]'); await p.waitForTimeout(300);
   ok(await p.inputValue("#h-nombre") === "20 minutos para mí" && await p.inputValue("#h-area") === "4", "«Crear hábito» abre el hábito con su nombre y su área");
   await p.click('[data-action="habit-save"]'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => STATE.habitos.defs.some(h => h.nombre === "20 minutos para mí" && h.area === 4)), "el hábito queda con el área «Tiempo para mí»");
@@ -62,9 +62,9 @@ module.exports = async ({ b, ok, errs }) => {
   ok(/La cuidan: 20 minutos para mí/.test(await p.locator("#rd-ficha").innerText()), "la ficha dice qué la cuida");
 
   // 5) El minuto de la rueda y Ver mi rumbo
-  await p.click('[data-action="rd-minuto"]'); await p.waitForTimeout(200);
+  await p.click('[data-action="ru-minuto"]'); await p.waitForTimeout(200);
   ok(/Salud y deporte/.test(await modal()) && /1 de 8/.test(await modal()) && /En octubre: 6/.test(await modal()), "el minuto: un área a la vez, con su nota de octubre");
-  for (let i = 0; i < 8; i++) { await p.click(`#rd-min [data-action="rd-min-nota"][data-v="${[8, 9, 7, 6, 5, 8, 7, 6][i]}"]`); await p.waitForTimeout(380); }
+  for (let i = 0; i < 8; i++) { await p.click(`#rd-min [data-action="ru-min-nota"][data-v="${[8, 9, 7, 6, 5, 8, 7, 6][i]}"]`); await p.waitForTimeout(380); }
   ok(await p.evaluate(() => ruedaMes(STATE, 2026, 10).join(",")) === "8,9,7,6,5,8,7,6", "ocho toques y la rueda del mes está lista");
   ok(/Tu rumbo de noviembre/.test(await p.locator("#modalTitle").innerText()) && /Apuntas a Salud \(\+2\)/.test(await modal()) && await p.locator("#rd-mom-svg").count() === 1, "al terminar, Ver mi rumbo: la rueda gira y tu elefante te lo dice");
   await shot(p, "rueda-momento");
@@ -75,7 +75,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(img > 20000, "la imagen para compartir se arma (1080 × 1350)");
 
   // 7) El probador y la Tienda: el barco fantasma
-  await ir("rueda"); await p.click('[data-action="rd-probador"]'); await p.waitForTimeout(250);
+  await ir("rueda"); await p.click('[data-action="ru-probador"]'); await p.waitForTimeout(250);
   ok(await p.locator("#rd-probador .rd-prob__f").count() === 6 && /✓ La tuya/.test(await p.locator('#rd-probador [data-v="rosa"]').innerText()) && /600/.test(await p.locator('#rd-probador [data-v="fantasma"]').innerText()), "el probador: la rosa es la tuya y el barco fantasma cuesta 600 ⭐");
   await p.evaluate(() => { registrarMovimiento("prueba:rueda", 2000, 0, "prueba", true); });
   await p.evaluate(() => { const it = COSMETICOS.find(c => c.id === "rueda-fantasma"); buyItem ? buyItem(it.id) : null; }).catch(() => {});
@@ -87,14 +87,14 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => ["rueda-fantasma", "rueda-instrumento", "rueda-constelacion", "rueda-mandala", "rueda-vitral"].every(id => COSMETICOS.some(c => c.id === id))), "la Tienda trae los 5 estilos de tu rueda");
 
   // 8) Tus áreas: renombrar, ocultar y sumar
-  await ir("rueda"); await p.click('[data-action="rd-areas-editar"]'); await p.waitForTimeout(200);
-  await p.fill("#rd-ar-n-7", "Mascotas"); await p.click('[data-action="rd-ar-ver"][data-k="6"]'); await p.click('[data-action="rd-ar-mas"]'); await p.waitForTimeout(100);
-  await p.fill("#rd-ar-n-8", "Música"); await p.click('[data-action="rd-ar-ok"]'); await p.waitForTimeout(300);
+  await ir("rueda"); await p.click('[data-action="ru-areas-editar"]'); await p.waitForTimeout(200);
+  await p.fill("#rd-ar-n-7", "Mascotas"); await p.click('[data-action="ru-ar-ver"][data-k="6"]'); await p.click('[data-action="ru-ar-mas"]'); await p.waitForTimeout(100);
+  await p.fill("#rd-ar-n-8", "Música"); await p.click('[data-action="ru-ar-ok"]'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => JSON.stringify(ruedaVisibles(STATE))) === "[0,1,2,3,4,5,7,8]" && await p.locator("#rd-svg .rd-eti").count() === 8, "Aprender oculta, Mascotas y Música: 8 áreas en la rueda");
   ok(/Mascotas/.test(await p.locator("#rd-areas").innerText()) && /Música/.test(await p.locator("#rd-areas").innerText()), "con sus nombres nuevos");
   ok(await p.evaluate(() => ruedaMes(STATE, 2026, 10)[6]) === 7, "las notas de la oculta se guardan");
   await p.evaluate(() => { openRuedaAreas(); }); await p.waitForTimeout(150);
-  for (const k of [0, 1, 2, 3]) await p.click(`[data-action="rd-ar-ver"][data-k="${k}"]`).catch(() => {});
+  for (const k of [0, 1, 2, 3]) await p.click(`[data-action="ru-ar-ver"][data-k="${k}"]`).catch(() => {});
   ok(await p.evaluate(() => RD.editar.ocultas.length) <= 4, "deja al menos 5 áreas a la vista");
   await p.evaluate(() => closeModal());
 

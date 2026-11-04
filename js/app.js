@@ -74,7 +74,7 @@ async function boot() {
   window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
   // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube;
   // al ocultarla/cerrarla, subir de inmediato lo pendiente (no perder el cierre recién hecho).
-  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); retomarEnfoque(); } });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); retomarEnfoque(); if (CURRENT_USER && typeof aguaJuntosAlVolver === "function") aguaJuntosAlVolver(); } });
   window.addEventListener("focus", () => syncFromCloud());
   window.addEventListener("pagehide", () => flushCloudSave());
   window.addEventListener("hashchange", onRoute);
@@ -141,6 +141,7 @@ async function enterApp(user) {
   procesarAtajo();
   amigosAlEntrar();                      // 🤝 la invitación que traías (?amigo=) y lo nuevo de tus amigos
   setTimeout(albumSubirPendientes, 1500); // 📷 las fotos del álbum que quedaron sin subir
+  if (typeof aguaJuntosAlEntrar === "function") aguaJuntosAlEntrar();   // 💧 los vasos del aviso, la fuente y el bidón (agua-juntos.js)
 }
 /* La pantalla de carga (index.html) se va cuando ya se ve la app o el acceso */
 function quitarSplash() {
@@ -149,7 +150,7 @@ function quitarSplash() {
   s.classList.add("is-fuera");
   setTimeout(() => s.remove(), 300);
 }
-/* Atajos del ícono (mantener presionado el ícono de Rumbo): ?atajo=abrir | tarea | cerrar.
+/* Atajos del ícono (mantener presionado el ícono de Rumbo): ?atajo=abrir | tarea | cerrar, y ?atajo=agua (el aviso del agua en iPhone: abre la portilla).
    La bienvenida, las novedades y la elección del elefante van primero. */
 function procesarAtajo() {
   const a = new URLSearchParams(location.search).get("atajo");
@@ -165,11 +166,12 @@ function procesarAtajo() {
       else if (iso) openCierreModal(iso);
       else toast("Primero abre tu día 🌅", true);
     } else if (a === "tarea") openNuevaTarea();
+    else if (a === "agua" && typeof aguaDesdeAviso === "function") aguaDesdeAviso();
   }, 400);
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 65;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 66;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -540,6 +542,11 @@ const NOVEDADES = {
   ],
   65: [
     ["🐘", "Tu elefante te escribe", "Tus avisos al celular ahora hablan como tu elefante. Y te escribe por su cuenta, como mucho una vez al día, si tu racha está por cortarse o si vas atrasado con el agua. Se apaga en Notificaciones."],
+  ],
+  66: [
+    ["💧", "«+ Un vaso» desde el aviso", "El aviso del agua trae «+ Un vaso» y «+ Tu botella»: lo anotas sin abrir la app. En iPhone, tocar el aviso abre la portilla."],
+    ["🥂", "El bidón con amigos", "Llenen un bidón entre amigos durante la semana, cada uno con su color. «¡Salud!» le manda un brindis al grupo y, al terminar, ⭐ según lo que aportaste. Lo arma quien tiene el bidón de la Tienda; sumarse es gratis."],
+    ["⛲", "La fuente de Rumbo", "En «Tu agua», una fuente que se llena con los vasos de todos hoy. Solo se ven totales: nadie ve cuánto tomaste."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

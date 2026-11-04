@@ -13,7 +13,7 @@ import {
   diaSemana, diasSinCerrar, textoDiasSinCerrar, textoHabitos, cumpleanosHoy, textoCumpleanos, contactosPendientes, textoContactos,
 } from "./reglas.mjs";
 import { motorHabitos } from "./habitos.mjs";
-import { voz, COLA, textoRacha, aguaAtrasada, textoAgua } from "./elefante.mjs";
+import { voz, COLA, textoRacha, aguaAtrasada, textoAgua, accionesAgua } from "./elefante.mjs";
 
 export const VENTANA_MIN = 30;           // tolerancia en minutos DESPUÉS de la hora elegida
 const TZ_DEFECTO = "America/Santiago";
@@ -30,7 +30,7 @@ export const MSGS = {
   "tri-apertura": { title: "🧭 Empieza un trimestre nuevo", body: "Abre tu trimestre: define tu foco y de 3 a 5 metas (+200 ⭐).", url: "./#ritual", tag: "rumbo-tri-apertura" },
   "noche-2": { title: "🌙 ¿Cerramos el día?", body: "Aún no cierras hoy. Te toma un minuto y tu racha sigue.", url: "./#ritual", tag: "rumbo-noche-2" },
   "elefante-racha": { title: "🔥 Tu racha te espera", body: "", url: "./#habitos", tag: "rumbo-elefante-racha" },
-  "elefante-agua": { title: "💧 ¿Un vaso?", body: "", url: "./#inicio", tag: "rumbo-elefante-agua" },
+  "elefante-agua": { title: "💧 ¿Un vaso?", body: "", url: "./?atajo=agua#inicio", tag: "rumbo-elefante-agua" },   // en iPhone, tocarlo abre la portilla
   "dias-sin-cerrar": { title: "⏳ Días sin cerrar", body: "", url: "./#inicio", tag: "rumbo-dias-sin-cerrar" },
   habitos: { title: "✅ Tus hábitos de hoy", body: "", url: "./#habitos", tag: "rumbo-habitos" },
   cumpleanos: { title: "🎂 Cumpleaños", body: "", url: "./#relaciones", tag: "rumbo-cumpleanos" },
@@ -62,8 +62,9 @@ export function localDate(tz, ahora = new Date()) {
 /**
  * Manda los recordatorios que tocan ahora a cada dispositivo registrado.
  * `enviar(dispositivos, mensaje)` devuelve { enviadas, fallidas, borradas }.
+ * `firmar(usuario, día)`: la firma de «+ Un vaso» en el aviso del agua (notifier/vaso.mjs); sin ella, el aviso va sin botones.
  */
-export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), ventana = VENTANA_MIN }) {
+export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), ventana = VENTANA_MIN, firmar = null }) {
   /* 1) Quién tiene al menos un dispositivo activado */
   const { data: subs, error: e1 } = await sb.from("suscripciones_push").select("id, user_id, endpoint, p256dh, auth");
   if (e1) throw new Error("No se pudo leer suscripciones_push: " + e1.message);
@@ -113,7 +114,7 @@ export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), vent
     for (const tipo of TIPOS) {
       if (!activos[AVISO_DE[tipo]]) continue;       // la persona no quiere este aviso
       const mt = MES_TIPOS[tipo];
-      let hora = MOMENTO_DE[tipo], tri = null, body = null, sufijo = "", tambien = null;
+      let hora = MOMENTO_DE[tipo], tri = null, body = null, sufijo = "", tambien = null, extra = null;
       if (tipo === "manana") {
         if (hoyRitual.hecho) continue;                // ya abrió el día
         if (activos.pendientes && pendientesCierre().length) { body = voz("manana", hoy).body + " " + textoDiasSinCerrar(pendientesCierre(), hoy); tambien = "dias-sin-cerrar"; }
@@ -124,7 +125,10 @@ export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), vent
         body = textoDiasSinCerrar(pendientesCierre(), hoy) + " " + COLA["dias-sin-cerrar"];
       }
       if (tipo === "mediodia") { const medio = avisoMediodia(data, hoy); if (!medio) continue; body = medio.body; }
-      if (tipo === "elefante-agua") { const a = aguaAtrasada(data, hoy); if (!a) continue; body = textoAgua(a, hoy); }
+      if (tipo === "elefante-agua") {
+        const a = aguaAtrasada(data, hoy); if (!a) continue; body = textoAgua(a, hoy);
+        if (firmar) extra = accionesAgua({ data, uid: row.user_id, hoy, ml: a.ml, meta: a.meta, firma: firmar(row.user_id, hoy) });
+      }
       if (tipo === "elefante-racha") {
         const rr = habitos().enRiesgo(); if (!rr) continue;
         body = textoRacha(rr);
@@ -171,7 +175,7 @@ export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), vent
       // con la voz de tu elefante: su título y, si el aviso no trae un texto propio, el suyo del día
       const v = voz(tipo, hoy), conVoz = v ? { ...MSGS[tipo], title: v.title, body: v.body || MSGS[tipo].body } : MSGS[tipo];
       const base = body != null ? { ...conVoz, body } : conVoz;
-      const msg = sufijo ? { ...base, tag: base.tag + "-" + sufijo } : base;
+      const msg = Object.assign(sufijo ? { ...base, tag: base.tag + "-" + sufijo } : { ...base }, extra || {});
       const e = await enviar(dispositivos.get(row.user_id) || [], msg);
       r.enviados += e.enviadas; r.fallidos += e.fallidas; r.borrados += e.borradas;
     }

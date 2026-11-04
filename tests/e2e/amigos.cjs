@@ -59,7 +59,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(/para responder · 1/i.test(await vista()) && sol.includes("Bruno") && sol.includes("quiere sumarte a sus amigos"), "en «Para responder»: Bruno quiere sumarla a sus amigos");
   ok(await p.locator('#nav [data-route="amigos"] .nav__ico').getAttribute("data-n") === "1", "y el punto de Amigos dice 1");
   await p.click('[data-action="am-aceptar"]'); await p.waitForTimeout(700);
-  ok((await vista()).includes("Nada por responder") && await p.locator(".at-tile").count() === 6, "al aceptar: nada por responder, y las baldosas de lo que hacen juntos");
+  ok((await vista()).includes("Nada por responder") && await p.locator(".at-tile").count() === 7, "al aceptar: nada por responder, y las baldosas de lo que hacen juntos (con el bidón del agua)");
   await hoja("amigos");
   ok(await p.locator(".am-fila").count() === 1 && (await p.locator(".am-fila").innerText()).includes("Bruno"), "en la baldosa Amigos, Bruno aparece con cómo va su día");
   await p.evaluate(() => closeModal());

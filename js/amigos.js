@@ -80,7 +80,7 @@ async function amigosCargar(forzar) {
   else { AMIGOS.error = null; AMIGOS.lista = l; AMIGOS.pubFirma = JSON.stringify(p); AMIGOS.codigo = l.codigo || (r && r.codigo) || AMIGOS.codigo; }
   amigosMarcarNav();
   if (CURRENT === "amigos") rerender();
-  if (!AMIGOS.error) { conjuntoCargar(forzar); objetivosCargar(forzar); planesCargar(forzar); listasCargar(forzar); lecturasCargar(forzar); }   // y lo que hacen juntos
+  if (!AMIGOS.error) { conjuntoCargar(forzar); objetivosCargar(forzar); planesCargar(forzar); listasCargar(forzar); lecturasCargar(forzar); if (typeof bidonesCargar === "function") bidonesCargar(forzar); }   // y lo que hacen juntos
 }
 /* Al salir de la cuenta: se olvida lo cargado (amigos, hábitos y objetivos en conjunto, planes, listas y lecturas) */
 function amigosOlvidar() {
@@ -92,6 +92,7 @@ function amigosOlvidar() {
   Object.assign(LCOM, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [], abiertas: {} });
   Object.assign(LJ, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
   Object.assign(AT, { hoja: null, toda: false, pestana: "proximos" });
+  if (typeof aguaJuntosOlvidar === "function") aguaJuntosOlvidar();   // el bidón y la fuente (agua-juntos.js)
 }
 /* Cuántas cosas esperan tu respuesta: lo de «Para responder» (amPendientes, en amigos-tablero.js) */
 function amigosNuevos() { return amPendientes().length; }
@@ -418,6 +419,6 @@ function renderAmigos() {
       : escapeHtml(amigosTextoError(AMIGOS.error))}<div class="mt-16"><button class="btn btn--soft" data-action="am-actualizar">Intentar de nuevo</button></div></div></div>`;
   }
   if (!l) return `<div class="card"><div class="empty">Cargando a tus amigos…</div></div>`;
-  conjuntoCargar(false); objetivosCargar(false); planesCargar(false); listasCargar(false); lecturasCargar(false);   // lo de juntos, al día (a lo más una vez por minuto)
+  conjuntoCargar(false); objetivosCargar(false); planesCargar(false); listasCargar(false); lecturasCargar(false); if (typeof bidonesCargar === "function") bidonesCargar(false);   // lo de juntos, al día (a lo más una vez por minuto)
   return atTableroHtml(l);
 }

@@ -36,6 +36,7 @@ const COSMETICOS = [
   { id: "agua-esclusa", grupo: "agua", icon: "💧", nombre: "Agua: la esclusa", costo: 500, key: "agua", value: "esclusa", animado: true, cuando: "cada vaso sube el barquito; en la meta se abre la compuerta y zarpa" },
   { id: "agua-elefante", grupo: "agua", icon: "🐘", nombre: "Agua: tu elefante riega", costo: 600, key: "agua", value: "elefante", animado: true, cuando: "en 3D: cada vaso riega su planta, que florece en la meta" },
   { id: "agua-acuario", grupo: "agua", icon: "🐠", nombre: "El acuario del mes", costo: 400, key: "acuario", value: "mes", animado: true, cuando: "un pez por cada día que cumples tu meta; en Salud y en tu cierre de mes" },
+  { id: "agua-bidon", grupo: "agua", icon: "💧", nombre: "El bidón con amigos", costo: 300, key: "bidon", value: "si", animado: true, cuando: "arma el bidón de la semana con tus amigos: lo llenan entre todos, cada uno con su color. Sumarse al de un amigo es gratis" },
   { id: "sabor-pepino", grupo: "sabor", icon: "💧", nombre: "Sabor pepino", costo: 100, key: "sabor", value: "pepino", cuando: "el agua verde, en cualquier estilo" },
   { id: "sabor-frutilla", grupo: "sabor", icon: "💧", nombre: "Sabor frutilla", costo: 100, key: "sabor", value: "frutilla", cuando: "el agua rosada, en cualquier estilo" },
   { id: "sabor-te", grupo: "sabor", icon: "💧", nombre: "Sabor té", costo: 100, key: "sabor", value: "te", cuando: "el agua ámbar, en cualquier estilo" },
@@ -71,7 +72,7 @@ function cosActivo(id) {
   const eq = eqCos();
   if (it.key === "celebra") return !eq.celebraOff.includes(id);
   if (it.key === "sonidos") return eq.sonidos !== false;
-  if (it.key === "plantilla" || it.key === "album" || it.key === "acuario" || it.key === "alcancia") return true;
+  if (it.key === "plantilla" || it.key === "album" || it.key === "acuario" || it.key === "alcancia" || it.key === "bidon") return true;
   return eq[it.key] === it.value;
 }
 /* Equipar / quitar (lo llama equipItem de recompensas.js) */
@@ -185,6 +186,7 @@ function cosmeticoCard(it) {
   else if (it.key === "plantilla") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígela al compartir tu mes</div>`;
   else if (it.key === "album") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígelo en tu álbum del mes</div>`;
   else if (it.key === "acuario") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Lo ves en Salud y en tu cierre de mes</div>`;
+  else if (it.key === "bidon") pie = `<button class="btn btn--cian btn-block" data-action="agua-bd-nuevo">💧 Armar un bidón</button>`;
   else if (it.key === "alcancia") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígelo al crear o editar una alcancía (Finanzas)</div>`;
   else pie = `<button class="btn ${activo ? "btn--soft" : "btn--cian"} btn-block" data-action="cos-equip" data-id="${it.id}">${activo ? (it.key === "celebra" || it.key === "sonidos" ? "✓ Activo — apagar" : "✓ Equipado — quitar") : (it.key === "celebra" || it.key === "sonidos" ? "Activar" : "Equipar")}</button>`;
   const vista = it.key === "marco" ? `<div class="account__avatar marco marco--${it.value}" style="margin:0 auto 8px">${typeof avatarActualHtml === "function" ? avatarActualHtml((((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()) : escapeHtml(((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()}</div>`
@@ -192,7 +194,7 @@ function cosmeticoCard(it) {
   return `<div class="card cos-card" data-cos="${it.id}">
     ${it.key === "marco" ? `<div style="text-align:center">${vista}</div>` : ""}
     ${it.key === "album" && typeof albumMuestraHtml === "function" ? `<div class="alb-muestra">${albumMuestraHtml(it.value)}</div>` : ""}
-    ${(it.key === "agua" || it.key === "sabor" || it.key === "acuario") && typeof aguaMuestraHtml === "function" ? `<div class="agua-muestra${it.key === "acuario" ? " agua-muestra--ancha" : ""}">${aguaMuestraHtml(it)}</div>` : ""}
+    ${(it.key === "agua" || it.key === "sabor" || it.key === "acuario" || it.key === "bidon") && typeof aguaMuestraHtml === "function" ? `<div class="agua-muestra${it.key === "acuario" ? " agua-muestra--ancha" : ""}">${aguaMuestraHtml(it)}</div>` : ""}
     ${(it.key === "alcancia" || it.key === "moneda") && typeof alcMuestraHtml === "function" ? `<div class="alc-muestra">${alcMuestraHtml(it)}</div>` : ""}
     ${it.key === "jardin" && typeof jardinMuestraHtml === "function" ? `<div class="jar-muestra">${jardinMuestraHtml(it)}</div>` : ""}
     <div class="row" style="gap:10px">${it.key === "marco" ? "" : vista}

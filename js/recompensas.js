@@ -47,7 +47,7 @@ const BADGES = [
   { id: "primer-peso", icon: "💰", nombre: "Primer Peso", desc: "Registra tu primer ahorro mensual", reward: 20, check: s => aniosConDatos(s).some(y => datosAnio(s, y).finanzas.meses.some(m => (m.ingreso || 0) - (m.gasto || 0) > 0)) },
   { id: "medio-camino", icon: "💵", nombre: "A Medio Camino", desc: "Llega al 50% de tu meta anual", reward: 80, check: s => { const meta = datosAnio(s, anioActual()).finanzas.metaAnual; return meta > 0 && g_ahorroAcum(s) >= meta * 0.5; } },
   { id: "pagina-uno", icon: "📖", nombre: "Página Uno", desc: "Termina tu primer libro", reward: 20, check: s => s.lecturas.some(l => l.estado === "terminado") },
-  { id: "devorador", icon: "📚", nombre: "Devorador de Libros", desc: "Termina 3 libros", reward: 60, check: s => s.lecturas.filter(l => l.estado === "terminado").length >= 3 },
+  { id: "devorador", icon: "📚", nombre: "Devorador de Libros", desc: "Termina 3 libros", reward: 60, check: s => s.lecturas.filter(l => l.estado === "terminado" && !l.antes).length >= 3 },
   { id: "peso-pluma", icon: "⚖️", nombre: "Peso Pluma", desc: "Alcanza tu peso objetivo", reward: 100, check: s => { const p = g_pesoActual(s); return p != null && p <= s.salud.pesoObjetivo; } },
   { id: "mes-redondo", icon: "🗓️", nombre: "Mes Redondo", desc: "Abre y cierra el mismo mes", reward: 100, check: s => g_mesesRedondos(s).length >= 1 },
   { id: "semana-redonda", icon: "📅", nombre: "Semana Redonda", desc: "Planifica y cierra la misma semana", reward: 75, check: s => g_semanasRedondas(s).length >= 1 },
@@ -118,6 +118,7 @@ function buyItem(id) {
   if (it.key === "bidon") { saveState(); updateTopbar(); rerender(); if (typeof openBidonForm === "function" && AMIGOS.lista && (AMIGOS.lista.amigos || []).length) { closeModal(); setTimeout(() => openBidonForm([]), 200); } return toast("💧 El bidón es tuyo: ármalo con tus amigos (en «Tu agua» o en Amigos)"); }
   if (it.key === "alcancia") { saveState(); updateTopbar(); rerender(); return toast(`🐷 ${it.nombre.replace("Alcancía: ", "")}: elígelo al crear o editar una alcancía en Finanzas`); }
   if (it.key === "moneda" && typeof eqCos === "function") { eqCos().moneda = it.value; saveState(); updateTopbar(); rerender(); return toast(`🪙 ${it.nombre}: ya caen en tus alcancías`); }
+  if (it.key === "biblioteca" && typeof eqCos === "function") { eqCos().biblioteca = it.value; saveState(); updateTopbar(); rerender(); return toast(`📚 ${it.nombre.replace("Biblioteca: ", "")}: ya la ves en Lecturas`); }   // biblioteca.js: se usa al tiro
   if (it.key === "jardin" && typeof eqCos === "function") { eqCos().jardin = it.value; saveState(); updateTopbar(); rerender(); return toast(`${it.grupo === "jardin-especial" ? "🚀" : "🌱"} ${it.nombre.replace("Jardín: ", "")}: ya lo ves en Hábitos`); }   // jardin.js: se usa al tiro
   if ((it.key === "agua" || it.key === "sabor") && typeof eqCos === "function") { eqCos()[it.key] = it.value; saveState(); updateTopbar(); rerender(); return toast(`💧 ${it.nombre}: ya la ves en «Agua de hoy»`); }   // agua.js: se usa al tiro
   saveState(); updateTopbar(); rerender();

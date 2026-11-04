@@ -4,14 +4,14 @@ export default async function ({ G, test, assert }) {
   const defaultState = G("defaultState"), migrate = G("migrate"), ledgerRegistrar = G("ledgerRegistrar");
   const BADGES = G("BADGES"), FAMS = G("CIELO_FAMILIAS"), cieloOrden = G("cieloOrden"), cieloInfo = G("cieloInfo"), findBadge = G("findBadge");
 
-  test("las 59 insignias tienen su lugar: una sola familia cada una y figuras del tamaño justo", () => {
+  test("las 63 insignias tienen su lugar: una sola familia cada una y figuras del tamaño justo", () => {
     const ids = FAMS.flatMap(f => f.ids);
     assert.equal(new Set(ids).size, ids.length);                            // ninguna en dos constelaciones
     ids.forEach(id => assert.ok(findBadge(id), "existe " + id));
     BADGES.forEach(b => assert.ok(ids.includes(b.id), "tiene familia " + b.id));
     assert.equal(cieloOrden().length, BADGES.length);
     // La cantidad de puntos de cada figura del cielo (cielo-3d.js): copa, brújula, elefante, sol, columna, medalla
-    assert.equal(FAMS.map(f => f.ids.length).join(","), "4,6,13,10,6,16,4");   // La Medalla suma «Primera alcancía» (adentro, bajo En Equipo); La Columna, «Libre»
+    assert.equal(FAMS.map(f => f.ids.length).join(","), "4,6,13,10,6,20,4");   // La Medalla suma «Primera alcancía» (adentro, bajo En Equipo) y las 4 de la biblioteca; La Columna, «Libre»
     assert.ok(FAMS.find(f => f.id === "secretas").ids.every(id => findBadge(id).secreta));
   });
 

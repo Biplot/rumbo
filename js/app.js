@@ -171,7 +171,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 66;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 67;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -547,6 +547,12 @@ const NOVEDADES = {
     ["💧", "«+ Un vaso» desde el aviso", "El aviso del agua trae «+ Un vaso» y «+ Tu botella»: lo anotas sin abrir la app. En iPhone, tocar el aviso abre la portilla."],
     ["🥂", "El bidón con amigos", "Llenen un bidón entre amigos durante la semana, cada uno con su color. «¡Salud!» le manda un brindis al grupo y, al terminar, ⭐ según lo que aportaste. Lo arma quien tiene el bidón de la Tienda; sumarse es gratis."],
     ["⛲", "La fuente de Rumbo", "En «Tu agua», una fuente que se llena con los vasos de todos hoy. Solo se ven totales: nadie ve cuánto tomaste."],
+  ],
+  67: [
+    ["📚", "Tu biblioteca", "Arriba de Lecturas, cada libro que terminas queda de pie en tu repisa: con su color, el grosor de sus páginas y una cinta si le pusiste 5 ★. Los huecos son lo que falta para tu meta del año. Tócalo y ves su ficha."],
+    ["✅", "«Lo terminé»", "En «Leyendo ahora» y en Inicio: le pones tus ★ y una frase si quieres, y a la repisa. Y puedes sumar los libros que leíste antes de Rumbo."],
+    ["🛍️", "Seis bibliotecas en la Tienda", "La torre, las repisas flotantes, la librería de barrio, la pared con escalera, el árbol de libros y la antigua. Pruébalas antes de comprar."],
+    ["🤝", "Libros con amigos", "Visita la biblioteca de un amigo y toca «Lo quiero leer», recomiéndale un libro (le llega a su «Por leer») y anota a quién le prestaste uno."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;
@@ -1109,6 +1115,7 @@ function onClick(e) {
   if (a.startsWith("lj-")) { lecturasAmigosAccion(a, d); return; } // leer el mismo libro (lecturas-amigos.js)
   if (a.startsWith("alb-")) { albumAccion(a, d); return; }         // 📷 álbum del mes (album.js)
   if (a.startsWith("agua-")) { aguaAccion(a, d, el); return; }     // 💧 agua para todos (agua.js)
+  if (a.startsWith("bib-") && typeof bibAccion === "function") { bibAccion(a, d, el); return; }   // 📚 la biblioteca (biblioteca.js)
   if (a.startsWith("zona-")) { zonaAccion(a, d); return; }         // 🔒 zona sensible: borrar con seguro (zona.js)
   if (a.startsWith("elenota-")) { notaElefanteAccion(a, d); return; }   // 🐘 el diario del elefante (nota-elefante.js)
   if (a.startsWith("alc-")) { alcAccion(a, d, el); return; }       // 🐷 tus alcancías (alcancias.js)
@@ -2091,7 +2098,8 @@ function renderInicio() {
   if (!moduloOculto("finanzas") && (metaMes || ahorroMes))
     kpis.push(statCard("💰", "Ahorro de " + MESES[mIdx], fmtCLP(ahorroMes), metaMes ? `Meta ${fmtCLP(metaMes)} · ${pctAhorro}%` : "Sin meta mensual", pctAhorro));
   if (!moduloOculto("lecturas") && libro && libro.titulo)
-    kpis.push(statCard("📚", "Leyendo ahora", escapeHtml(libro.titulo), libro.estado === "leyendo" ? "En curso" : "Último libro"));
+    kpis.push(statCard("📚", "Leyendo ahora", escapeHtml(libro.titulo), libro.estado === "leyendo"
+      ? (typeof bibBotonTermine === "function" ? `En curso ${bibBotonTermine(libro, "bib-termine--inicio")}` : "En curso") : "Último libro"));
   if (!moduloOculto("salud") && pesoActual != null)
     kpis.push(statCard("⚖️", "Peso actual", pesoActual + " kg", s.salud.pesoObjetivo != null && s.salud.pesoObjetivo !== "" ? "Meta " + s.salud.pesoObjetivo + " kg" : "Sin meta de peso"));
 

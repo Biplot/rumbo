@@ -377,7 +377,11 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
  .hoja{padding:34px 16px 24px 42px}.hoja::before{left:12px}.hoja li{font-size:15px;gap:8px;grid-template-columns:20px 1fr auto}.hoja-fecha{font-size:24px}
  .hoja .n{font-size:13px}
  .aviso{font-size:13px}
+ /* La barra cabe en 360 px aunque la letra de reemplazo sea más ancha */
+ .top .wrap{gap:6px}.top nav{gap:0;min-width:0}.top nav a:not(.btn){padding:10px 7px}.tema-btn{width:34px}.top .btn{padding:0 12px}.marca{gap:8px}
 }
+/* En los celulares más angostos queda el ícono de la marca, sin su nombre */
+@media (max-width:380px){.marca-nom{display:none}}
 @media (prefers-reduced-motion:reduce){
  .agua-ola{animation:none}
  *,*::before,*::after{animation:none!important;transition:none!important}
@@ -390,7 +394,7 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
 <div class="aviso">Lanzamiento: <b>Rumbo completo y gratis hasta enero</b>, sin tarjeta. <a href="#precio">Cómo funciona</a></div>
 
 <header class="top"><div class="wrap">
-  <a class="marca" href="#"><img src="../assets/icon-180.png" alt="">Rumbo</a>
+  <a class="marca" href="#" aria-label="Rumbo"><img src="../assets/icon-180.png" alt=""><span class="marca-nom">Rumbo</span></a>
   <nav><a class="ocultar" href="#como">El ritual</a><a class="ocultar" href="#bujo">Bullet journal</a><a class="ocultar o-2" href="#instalar">Instalar</a><a class="ocultar" href="#precio">Precio</a><button type="button" class="tema-btn" id="temaBtn" aria-label="Cambiar a modo día"><svg class="i-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg><svg class="i-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6z"/></svg></button><a href="../">Entrar</a><a class="btn btn--p" href="../?crear=1" data-cta>Empieza gratis</a></nav>
 </div></header>
 

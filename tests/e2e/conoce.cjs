@@ -11,6 +11,29 @@ module.exports = async ({ b, ok, errs }) => {
   const srcs = [...new Set(await p.evaluate(() => [...document.images].map(i => i.src)))];
   let rotas = 0; for (const s of srcs) if (!(await ctx.request.get(s)).ok()) rotas++;
   ok(rotas === 0, "todas las imágenes cargan");
+  // Modo día y noche: sigue al teléfono, el botón lo cambia y lo recuerda, y las capturas cambian con él
+  const tema = () => p.evaluate(() => [document.documentElement.dataset.tema, document.querySelector(".hero img").getAttribute("src")]);
+  await p.emulateMedia({ colorScheme: "light" }); await p.reload(); await p.waitForTimeout(300);
+  let [t, img] = await tema();
+  ok(t === "dia" && img === "img/dia/inicio.jpg", "con el teléfono en modo claro abre de día, con las capturas de Norte");
+  await p.click("#temaBtn"); await p.waitForTimeout(200);
+  [t, img] = await tema();
+  ok(t === "noche" && img === "img/inicio.jpg" && await p.getAttribute("#temaBtn", "aria-label") === "Cambiar a modo día", "el botón de la barra cambia a noche, con sus capturas");
+  await p.reload(); await p.waitForTimeout(300);
+  ok((await tema())[0] === "noche", "lo elegido se recuerda al volver");
+  let faltan = 0; for (const f of ["inicio", "habitos", "semana", "notas", "calendario", "recompensas", "diario"]) for (const c of ["img/", "img/dia/"]) if (!(await ctx.request.get(URL + "conoce/" + c + f + ".jpg")).ok()) faltan++;
+  ok(faltan === 0, "las capturas de día y de noche están todas");
+  // El agua: la portilla se abre, el vaso suma 250 ml y la botella medio litro; se puede deshacer
+  await p.click(".agua__btn"); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => document.getElementById("agua").classList.contains("abierta")), "el botón de agua abre la portilla");
+  await p.click(".agua__tomar"); await p.click(".agua__tomar"); await p.click(".agua__bot"); await p.waitForTimeout(150);
+  ok((await p.locator("[data-agua-cifra]").innerText()).startsWith("1 L") && (await p.locator("[data-agua-texto]").innerText()).includes("4 de 8 vasos"), "dos vasos y una botella son 1 L, 4 de 8 vasos");
+  await p.click('[data-agua="deshacer"]'); await p.waitForTimeout(100);
+  ok((await p.locator("[data-agua-cifra]").innerText()).startsWith("500 ml"), "Deshacer quita lo último");
+  await p.keyboard.press("Escape"); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => !document.getElementById("agua").classList.contains("abierta")), "Escape cierra la portilla");
+  await p.reload(); await p.waitForTimeout(300);
+  ok((await p.locator("[data-agua-cifra]").innerText()).startsWith("500 ml"), "lo que tomaste hoy se recuerda al volver");
   await p.click("[data-cta] >> nth=1"); await p.waitForTimeout(400);
   ok(await p.evaluate(() => !document.getElementById("form-register").hidden && document.getElementById("form-login").hidden), "'Empieza gratis' abre la app en Crear cuenta");
   await p.goto(URL); await p.waitForTimeout(300);

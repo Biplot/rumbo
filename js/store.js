@@ -159,7 +159,7 @@ const LocalBackend = {
     let codigo = prev && prev.codigo;
     if (!codigo) { const usados = new Set(Object.values(db.perfiles).map(x => x.codigo)); do codigo = _codigoAmigo(); while (usados.has(codigo)); }
     db.perfiles[yo] = { user_id: yo, codigo, nombre: String(p.nombre || "").slice(0, 60), avatar: p.avatar || null, muestra: p.muestra || {}, estado: p.estado || {},
-      casa: p.casa || null, vitrina: p.vitrina || null };
+      casa: p.casa || null, vitrina: p.vitrina || null, biblioteca: p.biblioteca || null };
     this._amGuardar(db);
     return { codigo };
   },
@@ -167,7 +167,30 @@ const LocalBackend = {
   async amigosVisita(otro) {
     const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), f = this._amPar(db, yo, otro), p = db.perfiles[otro];
     if (!f || f.estado !== "aceptada" || !p) return { error: "no-amigos" };
-    return { nombre: p.nombre, avatar: p.avatar, casa: p.casa || null, vitrina: p.vitrina || null };
+    return { nombre: p.nombre, avatar: p.avatar, casa: p.casa || null, vitrina: p.vitrina || null, biblioteca: p.biblioteca || null };
+  },
+  /* -------- 📚 Recomendar un libro sin servidor: las reglas de supabase/biblioteca.sql -------- */
+  async bibRecomendar(para, b) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), f = this._amPar(db, yo, para);
+    if (!f || f.estado !== "aceptada") return { error: "no-amigos" };
+    const t = String((b && b.titulo) || "").trim(); if (!t || t.length > 80) return { error: "titulo" };
+    db.recomendaciones = db.recomendaciones || [];
+    if (db.recomendaciones.filter(x => x.de === yo && Date.now() - x.creado < 864e5).length >= 20) return { error: "limite" };
+    const id = db.sig++;
+    db.recomendaciones.push({ id, de: yo, para, titulo: t, autor: String(b.autor || "").trim().slice(0, 60), paginas: Math.max(0, Math.min(3000, Math.round(+b.paginas || 0))),
+      color: /^#[0-9a-f]{6}$/i.test(b.color || "") ? b.color : "", creado: Date.now(), visto: false });
+    this._amGuardar(db);
+    return { id };
+  },
+  async bibRecomendaciones() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb();
+    return (db.recomendaciones || []).filter(x => x.para === yo && !x.visto).map(x => ({ id: x.id, titulo: x.titulo, autor: x.autor, paginas: x.paginas, color: x.color, nombre: this._amFicha(db, x.de).nombre }));
+  },
+  async bibRecomendacionesVistas(ids) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), s = new Set(ids || []);
+    (db.recomendaciones || []).forEach(x => { if (x.para === yo && s.has(x.id)) x.visto = true; });
+    this._amGuardar(db); return { ok: true };
   },
   async amigosBuscar(codigo) {
     const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), c = String(codigo || "").trim().toUpperCase();
@@ -1196,6 +1219,7 @@ function mergeStates(server, local) {
   if (local.alcancias || server.alcancias) out.alcancias = alcMerge(local.alcancias, server.alcancias);
   if (local.deseos || server.deseos) out.deseos = deseosMerge(local.deseos, server.deseos);
   if (local.jardin || server.jardin) out.jardin = jardinMerge(local.jardin, server.jardin);
+  if (local.biblio || server.biblio) out.biblio = JSON.parse(JSON.stringify(server.biblio && (!local.biblio || (server.biblio.ts || 0) > (local.biblio.ts || 0)) ? server.biblio : local.biblio));   // 📚 la repisa: el ajuste más nuevo
 
   // eventos: dict por fecha -> unión de arrays de texto
   out.eventos = {};
@@ -1380,12 +1404,15 @@ const SupabaseBackend = {
     const { data: ses } = await this._client().auth.getSession();
     const uid = ses && ses.session && ses.session.user.id; if (!uid) return { error: "sesion" };
     const fila = { user_id: uid, nombre: String(p.nombre || "").slice(0, 60), avatar: p.avatar || null, muestra: p.muestra || {}, estado: p.estado || {},
-      casa: p.casa || null, vitrina: p.vitrina || null, updated_at: new Date().toISOString() };
+      casa: p.casa || null, vitrina: p.vitrina || null, biblioteca: p.biblioteca || null, updated_at: new Date().toISOString() };
     if (this._sinVisitas) { delete fila.casa; delete fila.vitrina; }
+    if (this._sinBiblio) delete fila.biblioteca;
     for (let i = 0; i < 4; i++) {   // el código lo pone la base; si chocara con otro (muy raro), se intenta de nuevo
       const { data, error } = await this._client().from("perfiles").upsert(fila, { onConflict: "user_id" }).select("codigo").single();
       if (!error) return { codigo: data.codigo };
       // Mientras no se corra supabase/visitas.sql, el perfil se publica sin la casa ni la vitrina
+      // Mientras no se corra supabase/biblioteca.sql, sin la biblioteca
+      if (!this._sinBiblio && /biblioteca/.test(error.message || "") && /column|schema/i.test(error.message || "")) { this._sinBiblio = true; delete fila.biblioteca; continue; }
       if (!this._sinVisitas && /casa|vitrina/.test(error.message || "") && /column|schema/i.test(error.message || "")) { this._sinVisitas = true; delete fila.casa; delete fila.vitrina; continue; }
       if (!/codigo/.test(error.message || "")) return { error: _amigosError(error) };
     }
@@ -1394,7 +1421,11 @@ const SupabaseBackend = {
   /* La casa y la vitrina de un amigo: las reglas de perfiles dejan leer solo a sus amigos */
   async amigosVisita(otro) {
     try {
-      const { data, error } = await this._client().from("perfiles").select("nombre, avatar, casa, vitrina").eq("user_id", otro).maybeSingle();
+      let { data, error } = await this._client().from("perfiles").select(this._sinBiblio ? "nombre, avatar, casa, vitrina" : "nombre, avatar, casa, vitrina, biblioteca").eq("user_id", otro).maybeSingle();
+      if (error && !this._sinBiblio && /biblioteca/.test(error.message || "")) {   // sin supabase/biblioteca.sql todavía
+        this._sinBiblio = true;
+        ({ data, error } = await this._client().from("perfiles").select("nombre, avatar, casa, vitrina").eq("user_id", otro).maybeSingle());
+      }
       if (error) return { error: _amigosError(error) };
       return data || { error: "no-amigos" };
     } catch (e) { return { error: _amigosError(e) }; }
@@ -1445,6 +1476,10 @@ const SupabaseBackend = {
   async objetivoBorrarAporte(aporte) { const r = await this._amRpc("objetivo_borrar_aporte", { p_aporte: aporte }); return r.error ? r : r.data; },
   /* -------- 💧 Agua con otros (supabase/agua.sql): los vasos del aviso, la fuente de Rumbo y el bidón -------- */
   async aguaPendientesTomar() { const r = await this._amRpc("agua_pendientes_tomar"); return r.error ? r : r.data || []; },
+  /* -------- 📚 Recomendar un libro (supabase/biblioteca.sql) -------- */
+  async bibRecomendar(para, b) { const r = await this._amRpc("libro_recomendar", { p_para: para, p_titulo: b.titulo, p_autor: b.autor || "", p_paginas: Math.round(+b.paginas || 0), p_color: b.color || "" }); return r.error ? r : { id: r.data }; },
+  async bibRecomendaciones() { const r = await this._amRpc("libro_recomendaciones"); return r.error ? r : r.data || []; },
+  async bibRecomendacionesVistas(ids) { const r = await this._amRpc("libro_recomendaciones_vistas", { p_ids: ids }); return r.error ? r : { n: r.data }; },
   async fuenteHoy(fecha) { const r = await this._amRpc("fuente_hoy", { p_fecha: fecha }); return r.error ? r : r.data; },
   async fuenteSumar(fecha, ml) { const r = await this._amRpc("fuente_sumar", { p_fecha: fecha, p_ml: Math.round(ml) }); return r.error ? r : r.data; },
   async bidonLista() { const r = await this._amRpc("bidon_lista"); return r.error ? r : r.data || []; },

@@ -16,7 +16,7 @@
    Invitación: rumbo.biplot.cl/?amigo=CODIGO (se guarda hasta que entras).
    ============================================================ */
 
-const AMIGOS_MUESTRA_BASE = { dia: true, racha: true, rango: true, casa: true, vitrina: true, cumple: false };
+const AMIGOS_MUESTRA_BASE = { dia: true, racha: true, rango: true, casa: true, vitrina: true, biblioteca: true, cumple: false };
 const AM_CUMPLE = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;   // "MM-DD": el día y el mes, nunca el año
 const AMIGOS_FRASES = ["¡Vamos, tú puedes!", "¡Bien hecho!", "Hoy se puede", "Estoy contigo", "Un bocado a la vez"];
 /* Lo que se tiene en memoria: la lista del servidor y cómo va la carga */
@@ -38,6 +38,7 @@ function amigosEstadoPublico(datos, muestra) {
   if (m.casa && datos.casa) e.casa = true;                                                    // se puede visitar (visitas.js)
   if (m.vitrina && datos.medallas != null) { e.vitrina = true; e.medallas = datos.medallas || 0; }
   if (m.cumple && AM_CUMPLE.test(datos.cumple || "")) e.cumple = datos.cumple;                // tu cumpleaños, sin el año
+  if (m.biblioteca && datos.libros > 0) e.libros = datos.libros;                              // tu biblioteca, para visitarla (biblioteca.js)
   return e;
 }
 /* Tu perfil para tus amigos: nombre, avatar, lo que muestras y cómo va tu día */
@@ -49,10 +50,12 @@ function amigosPerfilPropio() {
     muestra: cfg.muestra,
     estado: amigosEstadoPublico({ fecha: hoy, abrio: !!d.hecho, cerro: !!d.cerrado, racha: computeClosedStreak(), rango: r.idx, rangoNombre: r.cur.nombre,
       cumple: String((STATE.profile && STATE.profile.birthDate) || "").slice(5, 10),
-      casa: true, medallas: (STATE.gamif.badges || []).filter(id => typeof findBadge === "function" && findBadge(id)).length }, cfg.muestra),
+      casa: true, medallas: (STATE.gamif.badges || []).filter(id => typeof findBadge === "function" && findBadge(id)).length,
+      libros: (STATE.lecturas || []).filter(l => l && l.estado === "terminado").length }, cfg.muestra),
     // Para que te visiten (visitas.js): la foto de tu casa y tus medallas, solo si eliges mostrarlas
     casa: cfg.muestra.casa && typeof casaPublica === "function" ? casaPublica() : null,
     vitrina: cfg.muestra.vitrina && typeof vitrinaPublica === "function" ? vitrinaPublica() : null,
+    biblioteca: cfg.muestra.biblioteca !== false && typeof bibPublica === "function" ? bibPublica() : null,   // lomos, título, autor y ★ (nunca tus notas)
   };
 }
 /* Publica tu perfil cuando cambia (después de guardar); solo si ya usas Amigos */
@@ -80,7 +83,7 @@ async function amigosCargar(forzar) {
   else { AMIGOS.error = null; AMIGOS.lista = l; AMIGOS.pubFirma = JSON.stringify(p); AMIGOS.codigo = l.codigo || (r && r.codigo) || AMIGOS.codigo; }
   amigosMarcarNav();
   if (CURRENT === "amigos") rerender();
-  if (!AMIGOS.error) { conjuntoCargar(forzar); objetivosCargar(forzar); planesCargar(forzar); listasCargar(forzar); lecturasCargar(forzar); if (typeof bidonesCargar === "function") bidonesCargar(forzar); }   // y lo que hacen juntos
+  if (!AMIGOS.error) { conjuntoCargar(forzar); objetivosCargar(forzar); planesCargar(forzar); listasCargar(forzar); lecturasCargar(forzar); if (typeof bidonesCargar === "function") bidonesCargar(forzar); if (typeof bibRecibirRecomendaciones === "function") bibRecibirRecomendaciones(); }   // y lo que hacen juntos
 }
 /* Al salir de la cuenta: se olvida lo cargado (amigos, hábitos y objetivos en conjunto, planes, listas y lecturas) */
 function amigosOlvidar() {
@@ -316,6 +319,7 @@ function amigosEstadoLimpio(e) {
   if ("casa" in e) out.casa = !!e.casa;
   if ("vitrina" in e) { out.vitrina = !!e.vitrina; out.medallas = Math.max(0, Math.min(999, parseInt(e.medallas, 10) || 0)); }
   if (AM_CUMPLE.test(String(e.cumple || ""))) out.cumple = e.cumple;
+  if ("libros" in e) out.libros = Math.max(0, Math.min(9999, parseInt(e.libros, 10) || 0));   // su biblioteca (biblioteca.js)
   return out;
 }
 /* Cómo va su día, con lo que tu amigo muestra */
@@ -359,8 +363,9 @@ function openAmigo(id) {
       <div class="am-perfil__dia">${amigosEstadoTxt(e)}</div>
       ${e.cumple ? `<span class="text-sm muted am-perfil__cumple">${icoUI("cake")} Cumpleaños: ${amigoCumpleTxt(e.cumple)}</span>` : ""}
       <button class="btn btn--primary" data-action="am-animo" data-id="${escapeHtml(a.id)}">${amigoCumpleEn(a) === 0 ? `${icoUI("cake")} Saludar por su cumpleaños` : `${icoUI("party-popper")} Mandar ánimo`}</button>
-      ${e.casa || e.vitrina ? `<div class="am-visitar">${e.casa ? `<button class="btn btn--soft" data-action="vis-casa" data-id="${escapeHtml(a.id)}">${icoUI("house")} Visitar su casa</button>` : ""}
-        ${e.vitrina ? `<button class="btn btn--soft" data-action="vis-cielo" data-id="${escapeHtml(a.id)}">${icoUI("sparkles")} Ver su vitrina${e.medallas ? ` · ${e.medallas}` : ""}</button>` : ""}</div>` : ""}
+      ${e.casa || e.vitrina || e.libros ? `<div class="am-visitar">${e.casa ? `<button class="btn btn--soft" data-action="vis-casa" data-id="${escapeHtml(a.id)}">${icoUI("house")} Visitar su casa</button>` : ""}
+        ${e.vitrina ? `<button class="btn btn--soft" data-action="vis-cielo" data-id="${escapeHtml(a.id)}">${icoUI("sparkles")} Ver su vitrina${e.medallas ? ` · ${e.medallas}` : ""}</button>` : ""}
+        ${e.libros ? `<button class="btn btn--soft" data-action="bib-visitar" data-id="${escapeHtml(a.id)}">${icoUI("book-open")} Su biblioteca · ${e.libros}</button>` : ""}</div>` : ""}
       ${cjJuntosHtml(a.id)}
       ${desde ? `<span class="text-xs muted">Amigos desde el ${desde}</span>` : ""}
       <div class="am-perfil__mas"><button class="btn-ghost" data-action="am-quitar" data-id="${escapeHtml(a.id)}">Quitar de amigos</button><button class="btn-ghost" data-action="am-bloquear" data-id="${escapeHtml(a.id)}">Bloquear</button></div>
@@ -392,6 +397,7 @@ function amigosMuestraHtml(l, enHoja) {
       ${fila("rango", "Tu rango", "Aprendiz, Constante, Enfocado…")}
       ${fila("casa", "Tu casa", "Pueden visitar a tu elefante en su cuarto. Miran, pero no cambian nada.")}
       ${fila("vitrina", "Tu vitrina", "Tus medallas y el día en que ganaste cada una.")}
+      ${fila("biblioteca", "Tu biblioteca", "Los lomos de tus libros terminados, con su título, autor y ★. Nunca tus notas ni tus frases.")}
       ${fila("cumple", "Tu cumpleaños", STATE.profile.birthDate ? "Solo el día y el mes, no tu edad. Ese día te pueden saludar." : "Agrega tu fecha de nacimiento en tu perfil para compartirlo (solo el día y el mes).")}
       ${bloqueados.length ? `<div class="am-env mt-8"><span class="text-xs muted">Bloqueados</span>${bloqueados.map(a => `<span class="chip">${escapeHtml(a.nombre || "Sin nombre")} <button type="button" class="am-x am-x--txt" data-action="am-desbloquear" data-id="${escapeHtml(a.id)}">Desbloquear</button></span>`).join("")}</div>` : ""}</div>`;
 }

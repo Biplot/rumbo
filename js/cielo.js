@@ -15,7 +15,7 @@ const CIELO_FAMILIAS = [
   { id: "foco", n: "Tareas y foco", fig: "El Elefante", ic: "elefante", ids: ["cazador-sapos", "elefante-domado", "elefante-domado-p", "elefante-domado-o", "delegador-b", "delegador-p", "delegador-o", "soltar", "bandeja-cero", "capacidad-real", "enfocado-b", "enfocado-p", "enfocado-o"] },
   { id: "rituales", n: "Rituales", fig: "El Sol", ic: "sol", ids: ["madrugador", "alba-b", "alba-p", "alba-o", "noche-serena-b", "noche-serena-p", "noche-serena-o", "semana-redonda", "mes-redondo", "salvavidas"] },
   { id: "habitos", n: "Hábitos", fig: "La Columna", ic: "brote", ids: ["centurion", "semana-perfecta", "guerrero", "todo-verde", "habito-hierro", "libre"] },
-  { id: "vida", n: "Tu vida", fig: "La Medalla", ic: "medalla", ids: ["primer-peso", "medio-camino", "ahorrador-b", "ahorrador-p", "ahorrador-o", "meta-anual", "pagina-uno", "devorador", "biblioteca-b", "biblioteca-p", "biblioteca-o", "peso-pluma", "buen-amigo", "embajador", "en-equipo", "primera-alcancia"] },
+  { id: "vida", n: "Tu vida", fig: "La Medalla", ic: "medalla", ids: ["primer-peso", "medio-camino", "ahorrador-b", "ahorrador-p", "ahorrador-o", "meta-anual", "pagina-uno", "devorador", "biblioteca-b", "biblioteca-p", "biblioteca-o", "peso-pluma", "buen-amigo", "embajador", "en-equipo", "primera-alcancia", "libro-mes-b", "libro-mes-p", "libro-mes-o", "el-ladrillo"] },
   { id: "secretas", n: "Secretas", fig: "", ic: "?", ids: ["buho", "aniversario", "anio-nuevo", "remontada"] },
 ];
 /* Ícono grabado en la medalla: el de la insignia, el de su serie o el de su familia */
@@ -24,7 +24,7 @@ const CIELO_ICONOS = {
   "primer-peso": "moneda", "medio-camino": "moneda", "meta-anual": "moneda", "pagina-uno": "libro", devorador: "libro",
   "peso-pluma": "pluma", "buen-amigo": "corazon", embajador: "flecha", "en-equipo": "equipo", "primera-alcancia": "moneda",
   buho: "buho", aniversario: "torta", "anio-nuevo": "fuegos", remontada: "vuelta",
-  enfocado: "reloj", "noche-serena": "luna", ahorrador: "moneda", biblioteca: "libro",
+  enfocado: "reloj", "noche-serena": "luna", ahorrador: "moneda", biblioteca: "libro", "libro-mes": "libro", "el-ladrillo": "libro",
 };
 const CIELO_METALES = {
   bronce: { n: "Bronce", css: "#C27A44" }, plata: { n: "Plata", css: "#C3C9D2" },
@@ -72,6 +72,7 @@ const CIELO_AVANCE = {
   guerrero: [s => g_diasEntren(s), 50, "días entrenados"],
   "pagina-uno": [s => lg_libros(s), 1, "libro"],
   devorador: [s => lg_libros(s), 3, "libros"],
+  "el-ladrillo": [s => Math.min(600, typeof bibMasLargo === "function" ? bibMasLargo(s) : 0), 600, "páginas (tu libro más largo)"],
   estratega: [s => g_trimestresCerrados(s), 1, "revisión trimestral"],
   salvavidas: [s => lg_express(s), 5, "días salvados"],
   soltar: [s => lg_soltadas(s), 10, "tareas soltadas"],
@@ -79,7 +80,7 @@ const CIELO_AVANCE = {
   "medio-camino": [cieloPctMeta, 50, "%"],
   "meta-anual": [cieloPctMeta, 100, "%"],
 };
-const CIELO_UNIDADES = { alba: "veces", "noche-serena": "veces", delegador: "tareas delegadas", "elefante-domado": "tareas domadas", ahorrador: "meses", biblioteca: "libros", enfocado: "sesiones" };
+const CIELO_UNIDADES = { alba: "veces", "noche-serena": "veces", delegador: "tareas delegadas", "elefante-domado": "tareas domadas", ahorrador: "meses", biblioteca: "libros", "libro-mes": "meses seguidos", enfocado: "sesiones" };
 function cieloAvance(b, s) {
   let v, meta, u;
   try {
@@ -183,6 +184,10 @@ function cieloMotor() {
           cosas: () => (vis() ? (VC() ? VC().cosas : []) : typeof casaCosas === "function" ? casaCosas(STATE).concat(cuartoPuestas(STATE)) : []),
           pared: () => (vis() ? (VC() ? VC().colores : null) : typeof cuartoPared === "function" ? cuartoPared(STATE) : null),
           libros: () => (vis() ? (VC() ? VC().libros : 0) : typeof lg_libros === "function" ? lg_libros(STATE) : 0),
+          // los libros de verdad (biblioteca.js): su color, sus páginas y su formato; de visita, los de tu amigo si comparte su biblioteca
+          librosLista: () => (vis() ? (VC() && VC().librosLista) || null
+            : typeof bibLibros === "function" ? bibLibros(STATE, "fecha").map(l => ({ color: l.color, paginas: +l.paginas || 0, formato: bibFormato(l) })) : null),
+          biblioteca: () => { if (vis()) { if (typeof bibVisitar === "function" && VISITA.id) bibVisitar(VISITA.id); } else if (typeof go === "function") go("lecturas"); },
           vacio: () => { if (!vis() && typeof openRepisa === "function") { REPISA_SEL = null; openRepisa(); } },
           // Tu elefante en 3D (elefante-3d.js): el mismo del dibujo, con su tipo, etapa, ropa y ánimo
           elefante: () => (vis() ? (VC() ? Object.assign({}, VC().ele) : null)

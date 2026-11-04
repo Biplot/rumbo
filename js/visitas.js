@@ -72,6 +72,9 @@ async function visitar(id, lugar) {
   if (!r || r.error) return toast(r && r.error === "sin-servidor" ? "Las visitas todavía no están activas en el servidor." : amigosTextoError((r && r.error) || "error"), true);
   const a = amigoPorId(id);
   Object.assign(VISITA, { id, nombre: String((a && a.nombre) || r.nombre || "").slice(0, 60), casa: visitaCasaLimpia(r.casa), vitrina: visitaVitrinaLimpia(r.vitrina) });
+  // su biblioteca (si la comparte): los libros del cuarto con sus colores de verdad (biblioteca.js)
+  const bib = typeof bibVisitaLimpia === "function" ? bibVisitaLimpia(r.biblioteca) : null;
+  if (VISITA.casa && bib) VISITA.casa.librosLista = bib.libros.map(l => ({ color: l.color, paginas: l.paginas, formato: l.formato }));
   const ruta = lugar === "cielo" ? "visita-cielo" : "visita-casa";
   if (lugar === "cielo" ? !VISITA.vitrina : !VISITA.casa) return toast(`${VISITA.nombre || "Tu amigo"} no muestra su ${lugar === "cielo" ? "vitrina" : "casa"}`, true);
   closeModal();

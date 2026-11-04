@@ -30,6 +30,7 @@
              (supabase/planes.sql). El recordatorio del día («Hoy: …») sale con los demás recordatorios.
            { accion: "amigos", tipo: "lista-invita" | "lista-acepta" | "lista-agrega", lista, item? }
              -> listas compartidas: te invitan, alguien se sumó, alguien agregó algo (supabase/listas.sql)
+           { accion: "amigos", tipo: "libro-recomienda", id } -> «Ana te recomendó un libro» (supabase/biblioteca.sql)
            { accion: "amigos", tipo: "bidon-invita" | "bidon-acepta" | "bidon-lleno", bidon }
              -> el bidón con amigos: te invitan, alguien se sumó, ¡lo llenaron! (supabase/agua.sql)
      POST  { accion: "vaso", u, d, f, id, ml, ts, fecha }  (sin sesión: lo manda el service worker)
@@ -233,6 +234,12 @@ async function avisoBidonApi(config, yo, body, host) {
   return avisoBidon({ sb: admin(), yo, body, enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
 }
 
+/* «Ana te recomendó un libro»: notifier/biblioteca.mjs revisa en la base que corresponda */
+async function avisoLibroApi(config, yo, body, host) {
+  const { avisoLibro } = await import("../notifier/biblioteca.mjs");
+  return avisoLibro({ sb: admin(), yo, body, enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+}
+
 /* Un aviso de un hábito en conjunto: notifier/conjunto.mjs revisa en la base que corresponda */
 async function avisoConjuntoApi(config, yo, body, host) {
   const { avisoConjunto } = await import("../notifier/conjunto.mjs");
@@ -287,6 +294,7 @@ module.exports = async function handler(req, res) {
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("lista-")) return res.status(200).json(await avisoListaApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("lectura-")) return res.status(200).json(await avisoLecturaApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("bidon-")) return res.status(200).json(await avisoBidonApi(config, u.user.id, body, host));
+    if (body.accion === "amigos" && body.tipo === "libro-recomienda") return res.status(200).json(await avisoLibroApi(config, u.user.id, body, host));
     if (body.accion === "amigos") return res.status(200).json(await avisoAmigos(config, u.user.id, body, host));
     if (body.accion !== "prueba" || typeof body.endpoint !== "string") return res.status(400).json({ error: "Acción no válida" });
     const { data: fila, error: eFila } = await admin().from("suscripciones_push")

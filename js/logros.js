@@ -27,7 +27,10 @@ function lg_tareas(s, filtro) { let n = 0; Object.keys(agendaDias(s)).forEach(is
 function lg_delegadas(s) { return lg_memo(s, "delegadas", x => lg_tareas(x, t => estadoTarea(t) === "delegada")); }
 function lg_soltadas(s) { return lg_memo(s, "soltadas", x => lg_tareas(x, t => estadoTarea(t) === "soltada")); }
 function lg_domadas(s) { return lg_memo(s, "domadas", x => lg_tareas(x, t => estadoTarea(t) === "hecha" && (t.migraciones || 0) >= CRONICA)); }
-function lg_libros(s) { return (s.lecturas || []).filter(l => l.estado === "terminado").length; }
+function lg_libros(s) { return (s.lecturas || []).filter(l => l.estado === "terminado" && !l.antes).length; }   // los de antes de Rumbo llenan la repisa, pero no dan medallas
+/* 📚 La biblioteca (biblioteca.js): meses seguidos con al menos un libro y el libro más largo */
+function lg_librosMes(s) { return typeof bibMesesSeguidos === "function" ? bibMesesSeguidos(s) : 0; }
+function lg_ladrillo(s) { return typeof bibMasLargo === "function" && bibMasLargo(s) >= 600; }
 function lg_compartidos(s) { return ((s.gamif && s.gamif.ledger) || []).filter(m => m && !m.anulado && String(m.id).startsWith("hito:compartir:")).length; }
 /* Objetivos en conjunto logrados (objetivos.js deja un movimiento "objetivo-juntos:<id>" por cada uno) */
 function lg_juntos(s) { return ((s.gamif && s.gamif.ledger) || []).filter(m => m && !m.anulado && String(m.id).startsWith("objetivo-juntos:")).length; }
@@ -116,6 +119,7 @@ const SERIES = [
   { id: "elefante-domado", icon: "🎪", nombre: "Elefante Domado", desc: n => n === 1 ? "Completa una tarea que habías postergado 3 veces o más" : `Doma ${n} tareas postergadas 3 veces o más`, metrica: lg_domadas, niveles: [[1, 50], [5, 150], [20, 400]] },
   { id: "ahorrador", icon: "🐷", nombre: "Ahorrador Constante", desc: n => `${n} meses cumpliendo tu meta de ahorro`, metrica: lg_mesesAhorro, niveles: [[3, 100], [6, 250], [12, 600]] },
   { id: "biblioteca", icon: "📚", nombre: "Biblioteca", desc: n => `Termina ${n} libros`, metrica: lg_libros, niveles: [[6, 80], [12, 200], [24, 500]] },
+  { id: "libro-mes", icon: "📖", nombre: "Un libro al mes", desc: n => `Termina al menos un libro al mes, ${n} meses seguidos`, metrica: lg_librosMes, niveles: [[3, 60], [6, 150], [12, 400]] },
   { id: "enfocado", icon: "⏱️", nombre: "Enfocado", desc: n => `Completa ${n} sesiones del modo enfoque`, metrica: s => typeof sesionesCompletas === "function" ? sesionesCompletas(s) : 0, niveles: [[10, 60], [50, 150], [200, 400]] },
 ];
 /* La insignia de bronce de Elefante Domado es la de siempre (id "elefante-domado") */
@@ -123,6 +127,7 @@ function idNivel(serie, k) { return k === 0 && serie.id === "elefante-domado" ? 
 const LOGROS = [
   { id: "centenario", icon: "💯", nombre: "Centenario", desc: "100 días cerrados seguidos", reward: 300, check: () => computeClosedStreak() >= 100 },
   { id: "anio-rumbo", icon: "🗓️", nombre: "Año con Rumbo", desc: "Cierra los 4 trimestres de un año", reward: 1000, check: lg_anioConRumbo },
+  { id: "el-ladrillo", icon: "🧱", nombre: "El ladrillo", desc: "Termina un libro de 600 páginas o más", reward: 80, check: lg_ladrillo },
   { id: "salvavidas", icon: "⚡", nombre: "Salvavidas", desc: "Cierra en modo Express un día difícil y mantén la racha (5 veces)", reward: 60, check: s => lg_express(s) >= 5 },
   { id: "bandeja-cero", icon: "📥", nombre: "Bandeja Cero", desc: "Una semana completa sin pendientes de días anteriores", reward: 120, check: lg_bandejaCero },
   { id: "soltar", icon: "✕", nombre: "Soltar es Avanzar", desc: "Suelta 10 tareas a conciencia", reward: 60, check: s => lg_soltadas(s) >= 10 },

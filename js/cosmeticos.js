@@ -56,6 +56,13 @@ const COSMETICOS = [
   // Temas especiales del jardín (los más caros de la Tienda): tu elefante con visor de cristal negro y Menta, el alienígena
   { id: "jar-marte", grupo: "jardin-especial", icon: "🪐", nombre: "Jardín: Marte", costo: 1200, key: "jardin", value: "marte", animado: true, cuando: "una colonia en Marte: tus raíces vuelven verde la arena, Menta el alienígena se pasea entre tus cúpulas y tu elefante baja su visor" },
   { id: "jar-luna", grupo: "jardin-especial", icon: "🌕", nombre: "Jardín: la base lunar", costo: 1200, key: "jardin", value: "luna", animado: true, cuando: "una base en la Luna con la Tierra de fondo: cada hábito con raíces enciende un continente; Menta llega en su platillo" },
+  // Estilos de tu biblioteca (biblioteca.js; la repisa con tu elefante viene incluida): uno a la vez, con probador en Lecturas
+  { id: "bib-torre", grupo: "biblioteca", icon: "📚", nombre: "Biblioteca: la torre de libros", costo: 300, key: "biblioteca", value: "torre", animado: true, cuando: "tus libros acostados, uno encima del otro: mide lo que medirían de verdad y se tambalea cuando cae uno" },
+  { id: "bib-flotantes", grupo: "biblioteca", icon: "📚", nombre: "Biblioteca: las repisas flotantes", costo: 300, key: "biblioteca", value: "flotantes", animado: true, cuando: "tablas sin soportes en una pared clara, con sujetalibros de metal" },
+  { id: "bib-libreria", grupo: "biblioteca", icon: "📚", nombre: "Biblioteca: la librería de barrio", costo: 400, key: "biblioteca", value: "libreria", animado: true, cuando: "tu nombre en el letrero, toldo a rayas y el último libro que terminaste en la vitrina" },
+  { id: "bib-escalera", grupo: "biblioteca", icon: "📚", nombre: "Biblioteca: la pared con escalera", costo: 500, key: "biblioteca", value: "escalera", animado: true, cuando: "de pared a pared, con su escalera corrediza que va hasta el libro nuevo" },
+  { id: "bib-arbol", grupo: "biblioteca", icon: "🌳", nombre: "Biblioteca: el árbol de libros", costo: 500, key: "biblioteca", value: "arbol", animado: true, cuando: "cada libro brota en una rama como un libro abierto; al llegar a tu meta del año, florece" },
+  { id: "bib-antigua", grupo: "biblioteca", icon: "🏛️", nombre: "Biblioteca: la antigua", costo: 600, key: "biblioteca", value: "antigua", animado: true, cuando: "madera oscura, lomos de cuero con letras doradas, un globo que gira y la lámpara verde" },
   { id: "mon-plata", grupo: "moneda", icon: "🪙", nombre: "Monedas de plata", costo: 100, key: "moneda", value: "plata", cuando: "en todas tus alcancías y en la torre del año" },
   { id: "mon-cobre", grupo: "moneda", icon: "🪙", nombre: "Monedas de cobre", costo: 100, key: "moneda", value: "cobre", cuando: "en todas tus alcancías y en la torre del año" },
   { id: "mon-estrella", grupo: "moneda", icon: "🪙", nombre: "Monedas estrella", costo: 100, key: "moneda", value: "estrella", cuando: "doradas con una estrella índigo, en todas tus alcancías" },
@@ -80,7 +87,7 @@ function equipCosmetico(it) {
   const eq = eqCos();
   if (it.key === "celebra") eq.celebraOff = eq.celebraOff.includes(it.id) ? eq.celebraOff.filter(x => x !== it.id) : eq.celebraOff.concat(it.id);
   else if (it.key === "sonidos") { eq.sonidos = eq.sonidos === false; if (eq.sonidos) sonar("check"); }
-  else if (it.key === "marco" || it.key === "check" || it.key === "agua" || it.key === "sabor" || it.key === "moneda" || it.key === "jardin") eq[it.key] = eq[it.key] === it.value ? null : it.value;
+  else if (it.key === "marco" || it.key === "check" || it.key === "agua" || it.key === "sabor" || it.key === "moneda" || it.key === "jardin" || it.key === "biblioteca") eq[it.key] = eq[it.key] === it.value ? null : it.value;
 }
 
 /* Aplica marco y estilo de check (se llama desde applyCosmetics) */
@@ -197,6 +204,7 @@ function cosmeticoCard(it) {
     ${(it.key === "agua" || it.key === "sabor" || it.key === "acuario" || it.key === "bidon") && typeof aguaMuestraHtml === "function" ? `<div class="agua-muestra${it.key === "acuario" ? " agua-muestra--ancha" : ""}">${aguaMuestraHtml(it)}</div>` : ""}
     ${(it.key === "alcancia" || it.key === "moneda") && typeof alcMuestraHtml === "function" ? `<div class="alc-muestra">${alcMuestraHtml(it)}</div>` : ""}
     ${it.key === "jardin" && typeof jardinMuestraHtml === "function" ? `<div class="jar-muestra">${jardinMuestraHtml(it)}</div>` : ""}
+    ${it.key === "biblioteca" && typeof bibMuestraHtml === "function" ? `<div class="bib-muestra">${bibMuestraHtml(it)}</div>` : ""}
     <div class="row" style="gap:10px">${it.key === "marco" ? "" : vista}
       <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${it.nombre}${it.animado ? ' <span class="chip">animado</span>' : ""}</div>
         <div class="text-xs muted">${owned ? "Desbloqueado" : it.rango ? "Por rango" : it.costo + " ⭐"}${it.cuando ? " · " + it.cuando : ""}</div></div></div>

@@ -81,6 +81,20 @@ export function accionesAgua({ data, uid, hoy, ml, meta, firma }) {
   };
 }
 
+/* 📚 Un libro que prestaste hace 30 días (y una vez por semana después, hasta tres veces): tu elefante te lo recuerda */
+export const PRESTAMO_DIAS = 30;
+export function prestamoPendiente(data, hoy) {
+  const ls = (data && Array.isArray(data.lecturas) ? data.lecturas : []).filter(l => l && l.prestado && typeof l.prestado === "object" && /^\d{4}-\d{2}-\d{2}$/.test(String(l.prestado.desde || "")));
+  for (const l of ls) {
+    const dias = Math.round((new Date(hoy + "T12:00:00Z") - new Date(l.prestado.desde + "T12:00:00Z")) / 864e5);
+    if (dias >= PRESTAMO_DIAS && dias <= PRESTAMO_DIAS + 14 && (dias - PRESTAMO_DIAS) % 7 === 0) return { titulo: String(l.titulo || "tu libro").slice(0, 60), a: String(l.prestado.a || "").slice(0, 30), dias };
+  }
+  return null;
+}
+export function textoPrestamo({ titulo, a, dias }) {
+  return `Hace ${dias} días le prestaste «${titulo}»${a ? ` a ${a}` : ""}. ¿Ya volvió a tu repisa? Yo le guardo el lugar.`;
+}
+
 /* Los avisos de siempre, con la voz de tu elefante (título y texto; el título queda corto) */
 export const VOZ = {
   manana: ["🌅 Buenos días", ["Ya estoy despierto y con la trompa lista. ¿Abrimos tu día y elegimos tu primer bocado?", "Te guardé un café. Abre tu día y dime qué va primero.", "Un día nuevo: ¿lo abrimos juntos? Son dos minutos."]],
@@ -95,6 +109,7 @@ export const VOZ = {
   "tri-apertura": ["🧭 Empieza un trimestre nuevo", ["Trimestre nuevo: elige tu foco y de 3 a 5 metas (+200 ⭐). Yo te ayudo a anotarlas."]],
   "elefante-racha": ["🔥 Tu racha te espera", null],
   "elefante-agua": ["💧 ¿Un vaso?", null],
+  "elefante-prestamo": ["📚 ¿Volvió tu libro?", null],
 };
 export function voz(tipo, hoy) {
   const v = VOZ[tipo]; if (!v) return null;

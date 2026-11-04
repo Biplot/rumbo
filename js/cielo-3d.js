@@ -51,6 +51,7 @@ function crearMotorCielo(T, D) {
   FIG.vida.l.push([1, 4], [3, 4]);
   FIG.vida.p.push([0, -0.17]);   // En Equipo, en el centro de La Medalla
   FIG.vida.p.push([0, -0.52]); FIG.vida.l.push([14, 15]);   // Primera alcancía: adentro de La Medalla, bajo En Equipo
+  FIG.vida.p.push([-1, -0.17], [1, -0.17], [-0.88, 0.45], [0.88, 0.45]); FIG.vida.l.push([16, 18], [17, 19]);   // 📚 Un libro al mes (bronce, plata, oro) y El ladrillo: a los lados, como laureles
   const SECRETAS = { buho: [0.27, 0.56], aniversario: [-0.24, 0.42], "anio-nuevo": [0.86, 0.6], remontada: [-0.2, 0.86] };   // en los huecos entre figuras
 
   /* -------- Utilidades -------- */
@@ -1035,20 +1036,33 @@ function crearMotorCielo(T, D) {
     M.g.fillStyle = a; M.g.fillRect(0, 0, 256, 256); M.g.fillStyle = b; for (let i = 0; i < 8; i += 2) M.g.fillRect(i * 32, 0, 32, 256);
     M.t.needsUpdate = true;
   }
-  /* Los libros de la biblioteca: uno por libro que terminaste (hasta llenarla) */
-  function ponerLibros(n) {
-    const b = casa.cosas.biblioteca, g = b.userData.libros; if (b.userData.n === n) return;
-    b.userData.n = n;
+  /* Los libros de la biblioteca: los que terminaste, con su color, su grosor (las páginas) y su alto (el formato);
+     si solo se sabe cuántos (una visita de antes), con colores de siempre. Hasta llenarla. */
+  const LIBRO_COLORES = ["#E4532F", "#2E3D6B", "#D9A441", "#6E9A6A", "#EDE3D0", "#3B3B40", "#9C4A3A", "#5C7FA8"];
+  function ponerLibros(lista) {
+    const b = casa.cosas.biblioteca, g = b.userData.libros, firma = lista.map(x => `${x.color}${x.paginas || 0}${x.formato || ""}`).join("|");
+    if (b.userData.firma === firma) return;
+    b.userData.firma = firma;
     while (g.children.length) g.remove(g.children[0]);   // caja y colores son compartidos: no hay nada que liberar
-    const mats = casa.matsLibro || (casa.matsLibro = [0xE4532F, 0x2E3D6B, 0xD9A441, 0x6E9A6A, 0xEDE3D0, 0x3B3B40, 0x9C4A3A, 0x5C7FA8].map(c => mat(c, { roughness: 0.7 })));
+    const mats = casa.matsLibroC || (casa.matsLibroC = {});
+    const matDe = c => { c = /^#[0-9a-f]{6}$/i.test(c || "") ? c : LIBRO_COLORES[0]; return mats[c] || (mats[c] = mat(parseInt(c.slice(1), 16), { roughness: 0.7 })); };
     const rnd = semilla(11); let k = 0;
     [0.07, 0.95, 1.83].forEach(y => {
       let x = -0.86;
-      while (k < n && x < 0.86) {
-        const w = 0.06 + rnd() * 0.06, h = 0.48 + rnd() * 0.24; if (x + w > 0.86) break;
-        const lb = bloque(w, h, 0.36 + rnd() * 0.06, mats[Math.floor(rnd() * mats.length)], x + w / 2, y + h / 2, 0.02); g.add(lb); x += w + 0.004; k++;
+      while (k < lista.length && x < 0.86) {
+        const L = lista[k], p = +L.paginas || 0;
+        const w = p ? 0.045 + Math.min(1, p / 700) * 0.075 : 0.06 + rnd() * 0.04, h = L.formato === "bolsillo" ? 0.47 : L.formato === "grande" ? 0.74 : 0.6;
+        if (x + w > 0.86) break;
+        const lb = bloque(w, h, 0.36 + rnd() * 0.06, matDe(L.color), x + w / 2, y + h / 2, 0.02); g.add(lb); x += w + 0.004; k++;
       }
     });
+  }
+  function librosDe(n) { const rnd = semilla(5); return Array.from({ length: n }, () => ({ color: LIBRO_COLORES[Math.floor(rnd() * LIBRO_COLORES.length)], paginas: 120 + Math.floor(rnd() * 420), formato: rnd() < 0.2 ? "bolsillo" : rnd() < 0.2 ? "grande" : "normal" })); }
+  /* ¿Tocaste la biblioteca? (en el cuarto a pantalla completa abre tus libros, o los de tu amigo) */
+  function bibliotecaEn(x, y) {
+    const b = casa && casa.cosas && casa.cosas.biblioteca; if (!b || !b.visible) return false;
+    camaraCasa(); NDC.set(x / ancho * 2 - 1, -(y / alto) * 2 + 1); RAY.setFromCamera(NDC, camC);
+    return RAY.intersectObject(b, true).some(h => h.object.isMesh);
   }
   /* Las medallas de la repisa (las mismas que se abren de cerca) o un lugar libre */
   function ponerRepisa(ids) {
@@ -1080,7 +1094,7 @@ function crearMotorCielo(T, D) {
     // la lámpara alumbra al atardecer y de noche
     const lam = cosas.has("lampara") ? { dia: 0, tarde: 0.6, noche: 1.4 }[casa.franja] : 0;
     casa.luz.lampara.intensity = lam; casa.cosas.lampara.userData.pantalla.material.emissiveIntensity = lam ? 0.4 + lam * 0.4 : 0;
-    if (cosas.has("biblioteca")) ponerLibros(Math.min(48, D.libros()));
+    if (cosas.has("biblioteca")) { const lista = D.librosLista ? D.librosLista() : null; ponerLibros(Array.isArray(lista) ? lista.slice(-48) : librosDe(Math.min(48, D.libros()))); }
     const cerr = D.cerrados ? D.cerrados() : [], claveCal = h.toDateString() + cerr.length;
     if (casa.claves.cal !== claveCal) {
       casa.claves.cal = claveCal;
@@ -1429,6 +1443,7 @@ function crearMotorCielo(T, D) {
       const L = lugarEn(x, y);
       if (L) { hoverCasa(null); if (L.id) D.tocar(L.id); else D.vacio(); }
       else if (eleEn(x, y)) tocarEle();
+      else if (casa.libre && D.biblioteca && bibliotecaEn(x, y)) D.biblioteca();   // 📚 tus libros (biblioteca.js)
       else if (!casa.libre && D.entrar) D.entrar("casa");   // en la tarjeta: tocar el cuarto lo abre a pantalla completa
       return;
     }

@@ -155,6 +155,7 @@ function defaultState() {
     // tu jardín (jardin.js): macetas (los hábitos que elegiste formar, hasta 3), inicio (se ve en Inicio),
     // raices: { idHábito: "YYYY-MM-DD" } (el día que se celebró que echó raíces) y ts (de lo que elegiste). El estilo, en gamif.equipped.jardin
     jardin: { macetas: [], inicio: true, raices: {}, ts: 0 },
+    biblio: { orden: "fecha", ts: 0 },   // 📚 la biblioteca (biblioteca.js): cómo se ordena la repisa
 
     // metas, finanzas, salud y rueda de los años distintos al año base (ver anios.js)
     anios: {},

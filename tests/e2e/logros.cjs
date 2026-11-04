@@ -19,7 +19,7 @@ module.exports = async ({ b, ok, errs }) => {
   await p.goto(URL + "#cielo"); await p.waitForTimeout(2500);
   const txt = await p.locator(".lugar-plano, #lugarHoja").first().innerText();
   ok(txt.includes("Búho") && txt.includes("Secreta"), "en Tu vitrina, la secreta ganada se ve y las demás aparecen como Secreta");
-  ok(await p.evaluate(() => SERIES.length === 7 && SERIES.every(se => [0, 1, 2].every(k => document.querySelector(`.med-chip[data-id="${idNivel(se, k)}"]`)))), "las 7 series muestran bronce, plata y oro");
+  ok(await p.evaluate(() => SERIES.length === 8 && SERIES.every(se => [0, 1, 2].every(k => document.querySelector(`.med-chip[data-id="${idNivel(se, k)}"]`)))), "las 8 series muestran bronce, plata y oro");
   await shot(p, "vitrina-logros", { fullPage: true });
 
   // Título que pide insignia (en la Tienda › Para tu estilo › Tu perfil)

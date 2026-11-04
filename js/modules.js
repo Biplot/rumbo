@@ -524,6 +524,7 @@ const LECT_ESTADOS = {
   "por-leer":  { label: "Por leer",  chip: "" },
   "leyendo":   { label: "Leyendo",   chip: "chip--coral" },
   "terminado": { label: "Terminado", chip: "chip--done" },
+  "dejado":    { label: "Lo dejé",   chip: "" },
 };
 
 function lectPct(l) {
@@ -572,7 +573,9 @@ function renderLecturas() {
   const leyendo = libros.filter(l => l.estado === "leyendo");
   const porLeer = libros.filter(l => l.estado === "por-leer");
   const meta = +STATE.settings.metaLibros || 12;
-  const pctMeta = meta > 0 ? Math.min(100, Math.round(terminados.length / meta * 100)) : 0;
+  // la meta es del año: cuentan los que terminaste este año en Rumbo (los de antes llenan la repisa, pero no cuentan)
+  const delAnio = typeof bibDelAnio === "function" ? bibDelAnio(STATE, year) : terminados.length;
+  const pctMeta = meta > 0 ? Math.min(100, Math.round(delAnio / meta * 100)) : 0;
   const valorados = terminados.filter(l => +l.valoracion > 0);
   const prom = valorados.length ? (valorados.reduce((a, l) => a + +l.valoracion, 0) / valorados.length).toFixed(1) : "—";
 
@@ -582,7 +585,7 @@ function renderLecturas() {
     <div class="card lect-meta">
       <div class="stat__label">🎯 Meta ${year}</div>
       <div class="row" style="align-items:baseline;gap:8px;margin:4px 0 10px">
-        <span class="big-num">${terminados.length}</span>
+        <span class="big-num">${delAnio}</span>
         <span class="text-sm muted">de <input class="meta-input" type="number" min="1" data-bind="settings.metaLibros" data-type="num" value="${meta}"> libros</span>
       </div>
       <div class="bar"><div class="bar__fill" style="width:${pctMeta}%"></div></div>
@@ -615,6 +618,7 @@ function renderLecturas() {
             <span class="text-xs muted">/ ${l.paginas || "—"} · ${pct}%</span>
           </div>
           ${ljAvanceHtml(l)}
+          ${typeof bibBotonTermine === "function" ? `<div class="lect-now__fin">${bibBotonTermine(l)}${l.relee ? "" : `<button type="button" class="btn-ghost" data-action="bib-dejar" data-id="${l.id}">Lo dejé</button>`}</div>` : ""}
         </div>`;
       }).join("")}
     </div>` : "";
@@ -647,7 +651,8 @@ function renderLecturas() {
     : `<div class="mt-16"><div class="card"><div class="empty">Tu biblioteca está vacía.<br>Agrega tu primer libro para empezar 📚</div></div>
        <div class="lect-grid mt-16">${addCard}</div></div>`;
 
-  return header + ljLecturasHtml() + leyendoAhora + filtros + cuerpo;   // ljLecturasHtml: invitaciones a leer con amigos (lecturas-amigos.js)
+  const repisa = typeof bibRepisaHtml === "function" ? bibRepisaHtml() : "";   // 📚 la repisa con tus libros terminados (biblioteca.js)
+  return header + repisa + ljLecturasHtml() + leyendoAhora + filtros + cuerpo;   // ljLecturasHtml: invitaciones a leer con amigos (lecturas-amigos.js)
 }
 
 function openLibroModal(id) {
@@ -658,13 +663,16 @@ function openLibroModal(id) {
     <input type="hidden" id="lb-id" value="${id || ""}">
     <div class="field"><label>Título</label><input class="input" id="lb-titulo" placeholder="Ej: Hábitos atómicos" value="${l ? escapeAttr(l.titulo) : ""}"></div>
     <div class="field"><label>Autor</label><input class="input" id="lb-autor" placeholder="Ej: James Clear" value="${l ? escapeAttr(l.autor) : ""}"></div>
-    <div class="field"><label>Estado</label>${elTramos("lb-estado", [["por-leer", "Por leer"], ["leyendo", "Leyendo"], ["terminado", "Terminado"]], l ? l.estado : "por-leer", { label: "Estado del libro" })}</div>
+    <div class="field"><label>Estado</label>${elTramos("lb-estado", [["por-leer", "Por leer"], ["leyendo", "Leyendo"], ["terminado", "Terminado"], ["dejado", "Lo dejé"]], l ? l.estado : "por-leer", { label: "Estado del libro" })}</div>
     <div class="field"><label>Valoración <span class="text-xs muted">(toca de nuevo para quitarla)</span></label>${elEscala("lb-valoracion", l ? +l.valoracion || 0 : 0, { ico: "estrella", cero: true, label: "Valoración, de 1 a 5 estrellas", etiquetas: ["1 estrella", "2 estrellas", "3 estrellas", "4 estrellas", "5 estrellas"] })}</div>
     <div class="row">
       <div class="field" style="flex:1;margin-bottom:0"><label>Página actual</label><input class="input" type="number" min="0" id="lb-pagina" value="${l ? (l.pagina || 0) : 0}"></div>
       <div class="field" style="flex:1;margin-bottom:0"><label>Páginas totales</label><input class="input" type="number" min="0" id="lb-paginas" placeholder="Ej: 296" value="${l && l.paginas ? l.paginas : ""}"></div>
     </div>
-    <div class="field mt-16"><label>Nota o aprendizaje clave</label><textarea class="input" id="lb-nota" placeholder="Lo que te llevas del libro...">${l ? escapeHtml(l.nota) : ""}</textarea></div>
+    <div class="field mt-16"><label>Formato <span class="text-xs muted">(la altura del lomo en tu repisa)</span></label>${elTramos("lb-formato", typeof BIB_FORMATOS !== "undefined" ? BIB_FORMATOS : [["normal", "Normal"]], (l && l.formato) || "normal", { label: "Formato del libro" })}</div>
+    ${l && l.antes ? `<div class="field"><label for="lb-anio">Año en que lo leíste <span class="text-xs muted">(antes de Rumbo: llena tu repisa, sin ⭐ ni meta)</span></label><input class="input" id="lb-anio" type="number" min="1900" max="${anioActual()}" value="${l.anio || ""}"></div>` : ""}
+    ${l && l.frase ? `<div class="field"><label for="lb-frase">Tu frase <span class="text-xs muted">(solo para ti)</span></label><input class="input" id="lb-frase" maxlength="140" value="${escapeAttr(l.frase)}"></div>` : ""}
+    <div class="field"><label>Nota o aprendizaje clave</label><textarea class="input" id="lb-nota" placeholder="Lo que te llevas del libro...">${l ? escapeHtml(l.nota) : ""}</textarea></div>
     <input type="hidden" id="lb-portada" value="${l && l.portada ? l.portada : ""}">
     <div class="field"><label>Portada (opcional)</label>
       <div class="row" style="gap:12px;align-items:center">
@@ -698,16 +706,22 @@ function saveLibro() {
 
   let l = id ? STATE.lecturas.find(x => x.id === id) : null;
   if (!l) { l = { id: uid(), inicio: "", fin: "" }; STATE.lecturas.push(l); }
-  Object.assign(l, { titulo, autor: val("lb-autor"), estado, valoracion, pagina, paginas, nota, color, portada });
+  const eraTerminado = l.estado === "terminado";
+  const fmt = document.getElementById("lb-formato"), anioEl = document.getElementById("lb-anio"), fraseEl = document.getElementById("lb-frase");
+  Object.assign(l, { titulo, autor: val("lb-autor"), estado, valoracion, pagina, paginas, nota, color, portada, formato: fmt && fmt.value ? fmt.value : (l.formato || "normal"), ts: Date.now() });
+  if (anioEl) l.anio = Math.max(0, Math.min(anioActual(), Math.round(+anioEl.value || 0)));
+  if (fraseEl) l.frase = fraseEl.value.trim().slice(0, 140);
+  if (estado !== "leyendo") delete l.relee;
+  if (estado === "terminado" && !eraTerminado && l.premiado && !l.antes) l.veces = (+l.veces || 1) + 1;   // lo releíste: «leído 2 veces», sin volver a pagar
 
   /* Fechas automáticas según el estado */
   if (estado === "leyendo" && !l.inicio) l.inicio = todayISO();
-  if (estado === "terminado") { if (!l.inicio) l.inicio = todayISO(); if (!l.fin) l.fin = todayISO(); if (paginas) l.pagina = paginas; }
-  if (estado !== "terminado") l.fin = "";
+  if (estado === "terminado" && !l.antes) { if (!l.inicio) l.inicio = todayISO(); if (!l.fin || !eraTerminado) l.fin = todayISO(); if (paginas) l.pagina = paginas; }
+  if (estado !== "terminado") { l.fin = ""; if (l.antes) delete l.antes; }   // un libro de antes que vuelves a leer pasa a ser de Rumbo
 
   /* Recompensa al terminar un libro: una sola vez por libro (aunque lo pases a
      "leyendo" y de vuelta a "terminado"), para que las monedas sean coherentes. */
-  if (estado === "terminado" && !l.premiado) { l.premiado = true; registrarMovimiento("lectura:" + l.id, 40, 40, "Libro terminado"); }
+  if (estado === "terminado" && !l.premiado && !l.antes) { l.premiado = true; registrarMovimiento("lectura:" + l.id, 40, 40, "Libro terminado"); }
   saveState(); closeModal();
   if (l.juntos) ljAvance(l.id, l.pagina);   // lo lees con amigos: en qué página vas (lecturas-amigos.js)
   if (typeof checkBadges === "function") checkBadges();

@@ -33,8 +33,8 @@ module.exports = async ({ b, ok, errs }) => {
     "sin amigos, te invita a usar tu enlace o tu código y cuenta lo que podrán hacer juntos");
   ok(await p.locator('[data-action="am-hoja"][data-v="nuevo"]').count() === 0 && await p.locator(".at-tile").count() === 0, "sin amigos, ni «+ Nuevo» ni baldosas");
   await hoja("ajustes");
-  ok((await modal()).includes("Lo que muestras") && await p.locator('#modal [data-action="am-muestra"]').count() === 6 && await p.locator('[data-action="am-muestra"]:checked').count() === 5 && !(await p.locator('[data-action="am-muestra"][data-k="cumple"]').isChecked()),
-    "en el engranaje, Lo que muestras: tu día, tu racha, tu rango, tu casa y tu vitrina, encendidos; tu cumpleaños, apagado");
+  ok((await modal()).includes("Lo que muestras") && await p.locator('#modal [data-action="am-muestra"]').count() === 7 && await p.locator('[data-action="am-muestra"]:checked').count() === 6 && !(await p.locator('[data-action="am-muestra"][data-k="cumple"]').isChecked()),
+    "en el engranaje, Lo que muestras: tu día, tu racha, tu rango, tu casa, tu vitrina y tu biblioteca, encendidos; tu cumpleaños, apagado");
   await p.evaluate(() => closeModal());
   await shot(p, "amigos-vacio");
 

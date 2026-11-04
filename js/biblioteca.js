@@ -7,6 +7,8 @@
      la repisa. +40 ⭐ una vez por libro (como siempre); releerlo suma «leído 2 veces» sin volver a pagar.
    · Los libros de antes de Rumbo llenan la repisa, pero no dan ⭐, no cuentan para la meta ni las medallas.
    · Se ordena por fecha, color, autor o tu nota, y se comparte como imagen (1080 × 1350).
+   · Debajo de la repisa, «Por leer»: tus libros deseados (los que quieres leer, también los que te
+     recomiendan). Tocar uno abre su ficha y «Empezar a leer» lo pasa a «Leyendo ahora».
    · Estilos: la repisa viene con Rumbo; seis más en la Tienda (key "biblioteca"), con probador.
    · Con amigos: tu repisa en las visitas (si la compartes: lomos, título, autor y ★; nunca tus notas
      ni tus frases), «Lo quiero leer», «Recomendar» (le llega a su «Por leer») y los préstamos, con su
@@ -64,6 +66,8 @@ function bibLibros(S, orden) {
   }[orden] || porFecha;
   return ls.slice().sort(cmp);
 }
+/* «Por leer»: tus libros deseados, el último que anotaste primero */
+function bibDeseados(S) { return ((S || STATE).lecturas || []).filter(l => l && l.estado === "por-leer").reverse(); }
 let BIB_ELE = { k: "", svg: "" };
 function bibElefante() {
   if (typeof elefanteSVG !== "function" || typeof STATE === "undefined" || !STATE) return "";
@@ -119,7 +123,40 @@ function bibRepisaHtml() {
       <button class="btn btn--soft" data-action="bib-devuelto" data-id="${escapeAttr(l.id)}">Me lo devolvieron</button></div>`).join("")}
     <div class="bib__pie">${libros.length > 1 ? orden : ""}
       <span class="bib__bts"><button class="btn-ghost" data-action="bib-antes">${icoUI("plus")} Los que ya leí</button>${libros.length ? `<button class="btn-ghost" data-action="bib-compartir">${icoUI("share")} Compartir</button>` : ""}</span></div>
+    ${bibDeseadosHtml()}
   </section>`;
+}
+/* «Por leer»: la fila de tus libros deseados, debajo de la repisa */
+function bibDeseadosHtml() {
+  const ls = bibDeseados(), n = ls.length;
+  const fila = ls.map(l => `<button type="button" class="bib-pl__l" role="listitem" data-action="bib-deseado" data-id="${escapeAttr(l.id)}" aria-label="${escapeAttr(`${l.titulo || "Sin título"}${l.autor ? ", de " + l.autor : ""}`)}">
+      <span class="bib-pl__tapa">${libroSpine(l, 44, 64)}</span><span class="bib-pl__t">${escapeHtml(l.titulo || "Sin título")}</span>${l.recomienda && l.recomienda.de ? `<span class="bib-pl__de">de ${escapeHtml(l.recomienda.de)}</span>` : ""}</button>`).join("");
+  return `<div class="bib-pl">
+    <div class="bib-pl__cab"><span><b>Por leer</b><span class="text-xs muted">Tus libros deseados${n ? ` · ${n}` : ""}</span></span>
+      <button type="button" class="btn-ghost" data-action="libro-add">${icoUI("plus")} Agregar</button></div>
+    ${n ? `<div class="bib-pl__fila" role="list" aria-label="Tus libros deseados">${fila}</div>`
+      : `<p class="text-sm muted bib-pl__vacio">Anota aquí los libros que quieres leer, como una lista de deseos. También llegan los que te recomiendan tus amigos.</p>`}
+  </div>`;
+}
+/* La ficha de un libro deseado: «Empezar a leer» lo pasa a «Leyendo ahora» */
+function bibFichaDeseado(id) {
+  const l = STATE.lecturas.find(x => x.id === id && x.estado === "por-leer"); if (!l) return;
+  const e = escapeHtml, i = escapeAttr(l.id);
+  const datos = [+l.paginas > 0 ? `${l.paginas} páginas` : "", l.recomienda && l.recomienda.de ? `te lo recomendó ${e(l.recomienda.de)}` : ""].filter(Boolean).join(" · ");
+  openModal(l.titulo || "Tu libro", `<div class="bib-ficha">
+    <div class="bib-ficha__cab">${libroSpine(l, 44, 64)}<span><b class="bib-ficha__t">${e(l.titulo || "Sin título")}</b><span class="text-sm muted">${e(l.autor || "")}</span></span></div>
+    <p class="text-sm" style="margin:0">Está en tus libros deseados, en «Por leer».</p>
+    ${datos ? `<p class="text-xs muted" style="margin:0">${datos}</p>` : ""}
+    ${l.nota ? `<p class="text-sm muted bib-ficha__nota">${e(l.nota)}</p>` : ""}
+    <div class="bib-ficha__bts">
+      <button class="btn btn--primary" data-action="bib-empezar" data-id="${i}">Empezar a leer</button>
+      <button class="btn-ghost" data-action="libro-edit" data-id="${i}">Editar</button>
+    </div></div>`);
+}
+function bibEmpezar(id) {
+  const l = STATE.lecturas.find(x => x.id === id && x.estado === "por-leer"); if (!l) return null;
+  Object.assign(l, { estado: "leyendo", inicio: l.inicio || todayISO(), fin: "", pagina: +l.pagina || 0, ts: Date.now() });
+  return l;
 }
 /* El botón «Lo terminé» (en «Leyendo ahora» y en Inicio) */
 function bibBotonTermine(l, clase) { return `<button type="button" class="btn btn--soft bib-termine ${clase || ""}" data-action="bib-termine" data-id="${escapeAttr(l.id)}">${icoUI("check")} Lo terminé</button>`; }
@@ -415,6 +452,8 @@ function bibAccion(a, d, el) {
   if (a === "bib-probador") return openBibProbador();
   if (a === "bib-estilo") return bibElegirEstilo(d.v);
   if (a === "bib-ficha") return bibTocarLibro(d.id);
+  if (a === "bib-deseado") return bibFichaDeseado(d.id);
+  if (a === "bib-empezar") { const l = bibEmpezar(d.id); if (!l) return; saveState(); closeModal(); rerender(); return toast(`📖 «${l.titulo}» pasó a «Leyendo ahora»`); }
   if (a === "bib-releer") return bibReleer(d.id);
   if (a === "bib-dejar") return bibDejar(d.id);
   if (a === "bib-prestar") return openPrestar(d.id);

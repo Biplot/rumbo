@@ -32,6 +32,7 @@ module.exports = async ({ b, ok, errs }) => {
   await ir("lecturas");
   ok(await p.locator(".bib").count() === 1 && /Tu biblioteca/.test(await p.locator(".bib").innerText()) && /0 de 12 en 2026/.test(await p.locator(".bib").innerText()), "Lecturas parte con tu biblioteca: 0 de 12 en 2026");
   ok(await p.locator('.bib canvas[data-biblio="repisa"][data-modo="lecturas"]').count() === 1 && /Cuando termines un libro/.test(await p.locator(".bib").innerText()), "la repisa gratis, vacía, con los huecos de tu meta");
+  ok(await p.locator(".bib .bib-pl .bib-pl__vacio").count() === 1 && /Por leer/.test(await p.locator(".bib-pl").innerText()) && /libros deseados/i.test(await p.locator(".bib-pl").innerText()), "debajo de la repisa, «Por leer»: tus libros deseados (vacío, explica qué va ahí)");
 
   // 2) Un libro que estás leyendo: «Lo terminé» en Lecturas y en Inicio
   await p.evaluate(() => { STATE.lecturas.push({ id: "l1", titulo: "Hijo de ladrón", autor: "Manuel Rojas", estado: "leyendo", paginas: 384, pagina: 370, valoracion: 0, nota: "", color: "#FF6B4A", inicio: "2026-10-20", fin: "" }); saveState(); });
@@ -151,6 +152,17 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('[data-action="bib-quiero"]'); await p.waitForTimeout(400);
   const quiero = await libro("Los miserables");
   ok(quiero && quiero.estado === "por-leer" && quiero.recomienda.de === "Ana" && /Ya está en tus libros/.test(await modal()), "«Lo quiero leer»: a tu «Por leer», con «te lo recomendó Ana»");
+  // «Por leer» en Tu biblioteca: los deseados de Bruno (el último primero) y «Empezar a leer»
+  await ir("lecturas");
+  const pl = await p.locator(".bib-pl").innerText();
+  ok(/Tus libros deseados · 2/i.test(pl) && await p.locator(".bib-pl__l").count() === 2 && /Los miserables/.test(await p.locator(".bib-pl__l").first().innerText()) && /de Ana/.test(pl), "en Tu biblioteca, «Por leer · Tus libros deseados · 2»: el último que llegó primero, con «de Ana»");
+  await shot(p, "bib-por-leer");
+  await p.locator(".bib-pl__l").first().click(); await p.waitForTimeout(300);
+  ok(/Está en tus libros deseados/.test(await modal()) && /te lo recomendó Ana/.test(await modal()) && await p.locator('#modal [data-action="bib-empezar"]').count() === 1, "tocarlo abre su ficha: «Está en tus libros deseados», con «Empezar a leer»");
+  await p.click('#modal [data-action="bib-empezar"]'); await p.waitForTimeout(500);
+  const emp = await libro("Los miserables");
+  ok(emp.estado === "leyendo" && emp.inicio === "2026-11-04" && await p.locator(".bib-pl__l").count() === 1 && /Los miserables/.test(await p.locator(".lect-now").first().innerText()), "«Empezar a leer»: pasa a «Leyendo ahora» desde hoy y sale de «Por leer»");
+  ok(await ancho() <= 390, "la fila de deseados cabe en el celular");
   ok(await ancho() <= 390, "todo cabe en el celular");
 
   // 12) Si Ana apaga «Tu biblioteca», ya no se comparte

@@ -171,7 +171,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 69;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 70;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -559,6 +559,9 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  70: [
+    ["🔖", "Por leer: tus libros deseados", "En Tu biblioteca, debajo de la repisa, quedan los libros que quieres leer, como una lista de deseos (también los que te recomiendan tus amigos). Toca uno y «Empezar a leer» lo pasa a «Leyendo ahora»."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

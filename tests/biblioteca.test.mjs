@@ -23,6 +23,12 @@ export default async function ({ G, test, assert, clone }) {
     assert.ok(tono("#FF6B4A") < tono("#F4A63B") && tono("#F4A63B") < tono("#2E9E7B") && tono("#2E9E7B") < tono("#3E8BD6"), "coral, ámbar, verde, azul");
     assert.deepEqual(clone(libros(S, "color").map(l => l.id)), ["b", "e", "c", "a"]);
   });
+  test("«Por leer», tus libros deseados: solo los por leer, el último que anotaste primero", () => {
+    const D = defaultState(); D.lecturas = [L("p1", { estado: "por-leer" }), L("t1"), L("p2", { estado: "por-leer" }), L("y1", { estado: "leyendo" })];
+    assert.deepEqual(clone(G("bibDeseados")(D).map(l => l.id)), ["p2", "p1"]);
+    assert.deepEqual(clone(D.lecturas.map(l => l.id)), ["p1", "t1", "p2", "y1"], "no cambia el orden de tus libros");
+    assert.deepEqual(clone(G("bibDeseados")(defaultState())), []);
+  });
   test("la meta del año cuenta los terminados este año en Rumbo; los de antes y los del año pasado no", () => {
     assert.equal(delAnio(S, anio), 2);
     assert.equal(lg_libros(S), 3, "las medallas de libros no cuentan los de antes de Rumbo");

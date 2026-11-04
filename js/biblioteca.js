@@ -25,6 +25,7 @@ const BIB_ESTILOS = [
   { id: "escalera", nombre: "La pared con escalera", cos: "bib-escalera", desc: "de pared a pared, con su escalera corrediza" },
   { id: "arbol", nombre: "El árbol de libros", cos: "bib-arbol", desc: "cada libro brota en una rama; florece en tu meta" },
   { id: "antigua", nombre: "La biblioteca antigua", cos: "bib-antigua", desc: "cuero, letras doradas, el globo y la lámpara verde" },
+  { id: "invierno", nombre: "El colegio en invierno", cos: "bib-invierno", desc: "nieve, chimenea y búhos con bufanda que traen tus libros" },
 ];
 const BIB_PRESTAMO_DIAS = 30, BIB_VISITA_MAX = 150;
 

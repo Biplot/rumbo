@@ -99,7 +99,8 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 9) El probador y la Tienda
   await p.click('[data-action="bib-probador"]'); await p.waitForTimeout(700);
-  ok(await p.locator('#bib-probador [data-action="bib-estilo"]').count() === 7 && await p.locator('#bib-probador canvas[data-modo="chica"][data-listo]').count() === 7, "el probador: los 7 estilos, cada uno dibujado");
+  ok(await p.locator('#bib-probador [data-action="bib-estilo"]').count() === 8 && await p.locator('#bib-probador canvas[data-modo="chica"][data-listo]').count() === 8, "el probador: los 8 estilos, cada uno dibujado");
+  ok(/900/.test(await p.locator('#bib-probador [data-v="invierno"]').innerText()) && /El colegio en invierno/.test(await p.locator('#bib-probador [data-v="invierno"]').innerText()), "con el colegio en invierno (900 ⭐)");
   ok(/300/.test(await p.locator('#bib-probador [data-v="torre"]').innerText()) && /La tuya/.test(await p.locator('#bib-probador [data-v="repisa"]').innerText()), "la repisa es la tuya; la torre, 300 ⭐");
   await shot(p, "bib-probador");
   await p.evaluate(() => registrarMovimiento("prueba:bib", 2000, 0, "Para probar", true));

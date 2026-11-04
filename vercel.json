@@ -5,6 +5,10 @@
     {
       "source": "/api/push/",
       "destination": "/api/push"
+    },
+    {
+      "source": "/api/libros/",
+      "destination": "/api/libros"
     }
   ],
   "functions": {

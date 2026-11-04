@@ -537,7 +537,7 @@ function estrellas(n) {
   return `<span class="stars">${"★".repeat(n)}<span class="stars__off">${"★".repeat(5 - n)}</span></span>`;
 }
 function libroSpine(l, w, h) {
-  if (l.portada) return `<div class="spine spine--img" style="width:${w}px;height:${h}px;background-image:url('${l.portada}')"></div>`;
+  if (l.portada && (typeof bibPortadaValida !== "function" || bibPortadaValida(l.portada))) return `<div class="spine spine--img" style="width:${w}px;height:${h}px;background-image:url('${l.portada}')"></div>`;
   return `<div class="spine" style="background:${l.color || "#17C3B2"};width:${w}px;height:${h}px"></div>`;
 }
 function libroCoverUpload(input) {
@@ -661,6 +661,7 @@ function openLibroModal(id) {
   const colores = elMuestras(LECT_COLORS.map((c, i) => ({ v: c, color: c, nombre: LECT_COLORES_NOMBRES[i] || "Color" })), colorSel, { id: "lb-color", label: "Color del lomo" });
   openModal(id ? "Editar libro" : "Nuevo libro", `
     <input type="hidden" id="lb-id" value="${id || ""}">
+    ${typeof bibBuscaHtml === "function" ? bibBuscaHtml(l) : ""}
     <div class="field"><label>Título</label><input class="input" id="lb-titulo" placeholder="Ej: Hábitos atómicos" value="${l ? escapeAttr(l.titulo) : ""}"></div>
     <div class="field"><label>Autor</label><input class="input" id="lb-autor" placeholder="Ej: James Clear" value="${l ? escapeAttr(l.autor) : ""}"></div>
     <div class="field"><label>Estado</label>${elTramos("lb-estado", [["por-leer", "Por leer"], ["leyendo", "Leyendo"], ["terminado", "Terminado"], ["dejado", "Lo dejé"]], l ? l.estado : "por-leer", { label: "Estado del libro" })}</div>
@@ -683,6 +684,7 @@ function openLibroModal(id) {
           <button type="button" class="btn-ghost" onclick="libroCoverClear()">Quitar</button>
         </div>
       </div>
+      <input class="input mt-8" id="lb-portada-url" type="url" inputmode="url" placeholder="…o pega el enlace de una imagen (https://…)" onchange="bibPortadaEnlace(this.value)">
     </div>
     <div class="field"><label>Color del lomo <span class="text-xs muted">(si no pones portada)</span></label>${colores}</div>
     ${l ? ljLibroHtml(l) : ""}
@@ -708,7 +710,9 @@ function saveLibro() {
   if (!l) { l = { id: uid(), inicio: "", fin: "" }; STATE.lecturas.push(l); }
   const eraTerminado = l.estado === "terminado";
   const fmt = document.getElementById("lb-formato"), anioEl = document.getElementById("lb-anio"), fraseEl = document.getElementById("lb-frase");
-  Object.assign(l, { titulo, autor: val("lb-autor"), estado, valoracion, pagina, paginas, nota, color, portada, formato: fmt && fmt.value ? fmt.value : (l.formato || "normal"), ts: Date.now() });
+  const isbnEl = document.getElementById("lb-isbn");
+  Object.assign(l, { titulo, autor: val("lb-autor"), estado, valoracion, pagina, paginas, nota, color, portada: typeof bibPortadaValida !== "function" || bibPortadaValida(portada) ? portada : "", formato: fmt && fmt.value ? fmt.value : (l.formato || "normal"), ts: Date.now() });
+  if (isbnEl && isbnEl.value) l.isbn = isbnEl.value;
   if (anioEl) l.anio = Math.max(0, Math.min(anioActual(), Math.round(+anioEl.value || 0)));
   if (fraseEl) l.frase = fraseEl.value.trim().slice(0, 140);
   if (estado !== "leyendo") delete l.relee;

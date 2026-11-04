@@ -424,4 +424,84 @@ function bibAccion(a, d, el) {
   if (a === "bib-visitar") return bibVisitar(d.id);
   if (a === "bib-quiero") return bibQuiero(d.id);
   if (a === "bib-visita-volver") return BIB_VISITA.id && bibVisitar(BIB_VISITA.id);
+  if (a === "bib-res") return bibElegirRes(d.i);
+  if (a === "bib-buscar-titulo") return bibBuscarConTitulo();
+}
+
+/* ============ Buscar el libro (título, autor o ISBN): llena el título, el autor, las páginas y la portada ============
+   Pregunta a api/libros.js (Google Libros y, si no encuentra, Open Library); se guarda solo la dirección de la
+   portada (no la imagen). También se puede pegar el enlace de una imagen. */
+const BIB_BUSCA = { t: 0, ctl: null, res: [] };
+const BIB_PORTADA_FUENTE = /^https:\/\/(books\.google\.com|books\.googleusercontent\.com|covers\.openlibrary\.org)\/[A-Za-z0-9\-._~/?&=%:+,;]+$/;
+/* Una portada se puede mostrar si es una foto subida (data:image) o un enlace https sin caracteres que rompan el estilo */
+function bibPortadaValida(p) { p = String(p || ""); return /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(p) || (/^https:\/\/[^\s'"()<>\\]+$/.test(p) && p.length <= 500); }
+function bibResLimpio(x) {
+  x = x && typeof x === "object" ? x : {};
+  const t = (v, n) => String(v || "").replace(/\s+/g, " ").trim().slice(0, n), n = v => { const k = Math.round(Number(v)); return k > 0 && k <= 3000 ? k : 0; };
+  const portada = String(x.portada || "");
+  return { titulo: t(x.titulo, 80), autor: t(x.autor, 60), anio: n(x.anio), paginas: n(x.paginas), isbn: /^[\dX]{10,13}$/i.test(String(x.isbn || "")) ? String(x.isbn) : "",
+    portada: BIB_PORTADA_FUENTE.test(portada) && portada.length <= 400 ? portada : "", fuente: x.fuente === "google" ? "google" : x.fuente === "openlibrary" ? "openlibrary" : "" };
+}
+function bibResHtml(r, i) {
+  const e = escapeHtml, datos = [r.autor, r.anio || "", r.paginas ? `${r.paginas} págs.` : ""].filter(Boolean).join(" · ");
+  return `<button type="button" class="bib-res__f" data-action="bib-res" data-i="${i}">
+    ${r.portada ? `<img src="${escapeAttr(r.portada)}" alt="" loading="lazy" referrerpolicy="no-referrer" width="34" height="50">` : `<span class="bib-res__sin" aria-hidden="true">${icoUI("book-open")}</span>`}
+    <span class="bib-res__t"><b>${e(r.titulo)}</b><small class="muted">${e(datos)}</small></span></button>`;
+}
+function bibBuscarEscribe(q) { clearTimeout(BIB_BUSCA.t); BIB_BUSCA.t = setTimeout(() => bibBuscar(q), 450); }
+async function bibBuscar(q) {
+  q = String(q || "").trim(); const el = document.getElementById("lb-res"); if (!el) return;
+  if (q.length < 3) { el.innerHTML = ""; BIB_BUSCA.res = []; return; }
+  if (BIB_BUSCA.ctl) BIB_BUSCA.ctl.abort();
+  const ctl = BIB_BUSCA.ctl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  el.innerHTML = `<p class="text-xs muted bib-res__msg">Buscando «${escapeHtml(q)}»…</p>`;
+  try {
+    const r = await fetch("api/libros/?q=" + encodeURIComponent(q), ctl ? { signal: ctl.signal } : {});
+    const j = r.ok ? await r.json().catch(() => ({})) : {};
+    if (ctl !== BIB_BUSCA.ctl || !document.getElementById("lb-res")) return;
+    BIB_BUSCA.res = (Array.isArray(j.libros) ? j.libros : []).slice(0, 8).map(bibResLimpio).filter(x => x.titulo);
+    el.innerHTML = BIB_BUSCA.res.length
+      ? BIB_BUSCA.res.map(bibResHtml).join("") + `<p class="text-xs muted bib-res__msg">De ${j.fuente === "google" ? "Google Libros" : "Open Library"}. Toca el tuyo y revisa los datos.</p>`
+      : `<p class="text-xs muted bib-res__msg">No lo encontramos. Escríbelo a mano abajo.</p>`;
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    el.innerHTML = `<p class="text-xs muted bib-res__msg">Sin conexión: escribe los datos a mano abajo.</p>`;
+  }
+}
+/* Toca un resultado: se llena el formulario (lo que ya escribiste del autor y las páginas se respeta si el resultado no lo trae) */
+function bibElegirRes(i) {
+  const r = BIB_BUSCA.res[+i]; if (!r) return;
+  const poner = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+  poner("lb-titulo", r.titulo); poner("lb-autor", r.autor); poner("lb-paginas", r.paginas || ""); poner("lb-isbn", r.isbn);
+  if (r.portada) bibPonerPortada(r.portada);
+  const el = document.getElementById("lb-res");
+  if (el) el.innerHTML = `<p class="text-sm bib-res__ok">${icoUI("check")} Listo: «${escapeHtml(r.titulo)}». Revisa los datos y guarda.</p>`;
+  const b = document.getElementById("lb-busca"); if (b) b.value = "";
+}
+function bibPonerPortada(url) {
+  const hid = document.getElementById("lb-portada"); if (hid) hid.value = url;
+  const prev = document.getElementById("lb-portada-prev");
+  if (prev) { prev.style.backgroundImage = `url('${url}')`; prev.classList.add("has-img"); }
+}
+/* Pegar el enlace de una imagen: se prueba que cargue antes de usarla */
+function bibPortadaEnlace(v) {
+  const url = String(v || "").trim(); if (!url) return;
+  if (!bibPortadaValida(url) || /^data:/.test(url)) return toast("Ese enlace no sirve: tiene que empezar con https:// y ser una imagen", true);
+  const img = new Image(); img.referrerPolicy = "no-referrer";
+  img.onload = () => { bibPonerPortada(url); const i = document.getElementById("lb-portada-url"); if (i) i.value = ""; toast("🖼️ Portada lista"); };
+  img.onerror = () => toast("No se pudo cargar esa imagen. Prueba con otro enlace.", true);
+  img.src = url;
+}
+/* Editar un libro: buscar con su título y autor (para ponerle portada o páginas) */
+function bibBuscarConTitulo() {
+  const q = [document.getElementById("lb-titulo"), document.getElementById("lb-autor")].map(x => (x && x.value.trim()) || "").filter(Boolean).join(" ");
+  const b = document.getElementById("lb-busca"); if (b) { b.value = q; b.focus(); }
+  bibBuscar(q);
+}
+function bibBuscaHtml(l) {
+  return `<div class="field bib-busca"><label for="lb-busca">${l ? "Buscar la portada" : "Busca tu libro"} <span class="text-xs muted">(${l ? "y las páginas" : "llena el título, el autor, las páginas y la portada"})</span></label>
+    <div class="bib-busca__fila"><input class="input" id="lb-busca" type="search" placeholder="Título, autor o ISBN" autocomplete="off" enterkeyhint="search" oninput="bibBuscarEscribe(this.value)">
+      ${l ? `<button type="button" class="btn btn--soft" data-action="bib-buscar-titulo">Con su título</button>` : ""}</div>
+    <div class="bib-res" id="lb-res" aria-live="polite"></div>
+    <input type="hidden" id="lb-isbn" value="${escapeAttr((l && l.isbn) || "")}"></div>`;
 }

@@ -171,7 +171,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 67;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 68;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -553,6 +553,9 @@ const NOVEDADES = {
     ["✅", "«Lo terminé»", "En «Leyendo ahora» y en Inicio: le pones tus ★ y una frase si quieres, y a la repisa. Y puedes sumar los libros que leíste antes de Rumbo."],
     ["🛍️", "Seis bibliotecas en la Tienda", "La torre, las repisas flotantes, la librería de barrio, la pared con escalera, el árbol de libros y la antigua. Pruébalas antes de comprar."],
     ["🤝", "Libros con amigos", "Visita la biblioteca de un amigo y toca «Lo quiero leer», recomiéndale un libro (le llega a su «Por leer») y anota a quién le prestaste uno."],
+  ],
+  68: [
+    ["🔎", "Busca tu libro", "Al agregar un libro, escribe el título (o el ISBN) y toca el tuyo: Rumbo llena el autor, las páginas y la portada. También puedes pegar el enlace de una imagen."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

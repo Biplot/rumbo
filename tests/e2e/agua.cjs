@@ -32,7 +32,7 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 3) La hoja «Tu agua»: lo de hoy, la semana y la meta (también la automática, con el peso de Salud)
   await p.locator('.agua-card [data-action="agua-abrir"]').click(); await p.waitForTimeout(500);
-  ok(await p.locator("#modal .agua-reg").count() === 5 && await p.locator("#modal .agua-semana__d").count() === 7 && await p.locator("#modal canvas[data-modo='hoja'][data-listo]").count() === 1,
+  ok(await p.locator("#modal .agua-reg").count() === 5 && await p.locator("#modal .agua-semana__d").count() === 7 && await p.locator("#modal .agua-hoja__c canvas[data-modo='hoja'][data-listo]").count() === 1,
     "«Tu agua»: los 5 vasos de hoy (el que deshiciste no está), los últimos 7 días y la botella grande");
   await p.locator('#modal [data-action="agua-quitar"]').first().click(); await p.waitForTimeout(400);
   ok(await p.locator("#modal .agua-reg").count() === 4 && await mov() === "anulado", "quitar un vaso de la lista lo resta (y bajo la meta, se devuelven las ⭐)");
@@ -53,8 +53,8 @@ module.exports = async ({ b, ok, errs }) => {
   await p.evaluate(() => { closeModal(); registrarMovimiento("prueba:agua", 2000, 0, "Para probar"); go("recompensas"); }); await p.waitForTimeout(500);
   await p.click('[data-action="tienda-sec"][data-v="estilo"]'); await p.waitForTimeout(500);
   await p.locator('[data-action="tienda-mas"][data-v="agua"]').click(); await p.waitForTimeout(400);
-  ok(await p.locator('#tienda-agua [data-cos^="agua-"]').count() === 8 && await p.locator('#tienda-agua [data-cos^="sabor-"]').count() === 4 && await ancho() <= 390,
-    "Tienda › Tu agua: 7 estilos (la burbuja, la cantimplora, la bombilla, el reloj, el calor, la esclusa y tu elefante), el acuario y 4 sabores (sin moverse de lado)");
+  ok(await p.locator('#tienda-agua [data-cos^="agua-"]').count() === 9 && await p.locator('#tienda-agua [data-cos^="sabor-"]').count() === 4 && await ancho() <= 390,
+    "Tienda › Tu agua: 7 estilos (la burbuja, la cantimplora, la bombilla, el reloj, el calor, la esclusa y tu elefante), el acuario, el bidón con amigos y 4 sabores (sin moverse de lado)");
   await p.evaluate(() => buyItem("agua-burbuja")); await p.waitForTimeout(400);
   ok(await p.evaluate(() => aguaEstilo()) === "burbuja", "comprar «la burbuja» la deja en uso");
   await p.evaluate(() => buyItem("sabor-frutilla")); await p.waitForTimeout(300);

@@ -1357,7 +1357,9 @@ function mergeStates(server, local) {
     if (reset) r.reset = reset;
     out.settings.tutorial = r;
   }
-  // El resto (profile, settings, salud, rueda, ritual.pilares, entrenamiento) lo gana local.
+  // La rueda del año base (notas, frases, tus áreas): gana la edición más reciente (STATE.rueda.ts, rueda.js)
+  if (local.rueda && server.rueda && (server.rueda.ts || 0) > (local.rueda.ts || 0)) out.rueda = JSON.parse(JSON.stringify(server.rueda));
+  // El resto (profile, settings, salud, ritual.pilares, entrenamiento) lo gana local.
   return out;
 }
 

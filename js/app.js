@@ -20,7 +20,7 @@ const ROUTES = [
   { id: "finanzas", mas: true, label: "Finanzas", icon: "💰", render: renderFinanzas, subtitle: "Ahorro, gastos y seguimiento mensual." },
   { id: "salud", mas: true, label: "Salud", icon: "💪", render: renderSalud, subtitle: "Peso, recetas y entrenamiento." },
   { id: "entrenamiento", pie: true, label: "Salud", icon: "🏋️", render: renderEntrenamiento, subtitle: "Tus rutinas y ejercicios." },
-  { id: "rueda", mas: true, label: "Rueda de la vida", icon: "🧭", render: renderRueda, subtitle: "Puntúa cada área del 0 al 10." },
+  { id: "rueda", mas: true, label: "Rueda de la vida", icon: "🧭", render: renderRueda, subtitle: "Tu vida, área por área: arrastra cada punta hasta su nota." },
   { id: "lecturas", mas: true, label: "Lecturas", icon: "📚", render: renderLecturas, subtitle: "Tu biblioteca personal de lectura." },
   { id: "relaciones", mas: true, label: "Relaciones", icon: "👥", render: renderRelaciones, subtitle: "Cumpleaños y con quién no hablas hace rato." },
   { id: "listas", mas: true, label: "Listas", icon: "🧾", render: renderListas, subtitle: "Compras, películas, viajes y más." },
@@ -171,7 +171,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 71;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 72;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -559,6 +559,11 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  72: [
+    ["🧭", "La nueva Rueda de la vida", "Ahora es una rosa de los vientos: arrastra cada punta hasta su nota (o hazlo en «El minuto de la rueda»). La sombra punteada es tu mes pasado y abajo está tu rumbo del mes: el área que más subió y la que pide cariño."],
+    ["💡", "Lo que dice tu Rumbo", "Cada área trae pistas de tu mes (tu agua, tus tareas Pro, tu ánimo del Diario, tus libros…), una frase si quieres y, para el área más baja, un paso chico que se crea en un toque. Tú pones la nota."],
+    ["🎨", "Tus áreas y cinco ruedas en la Tienda", "Cambia los nombres y colores de tus áreas, oculta las que no te sirven o suma hasta 10. En la Tienda: el barco fantasma, el instrumento, la constelación, el mandala y el vitral."],
   ],
   71: [
     ["🎁", "Invita y gana", "Por cada amigo nuevo que entre con tu enlace y cierre su primer día, +100 ⭐ para ti y +100 ⭐ para él. Al tercero, tu elefante gana el pañuelo de la manada, que solo se consigue invitando. Lo ves en Amigos."],
@@ -1118,8 +1123,9 @@ function onClick(e) {
   if (!el) return;
   const a = el.dataset.action;
   const d = el.dataset;
-  if (a.startsWith("am-")) { amigosAccion(a, d, el); return; }
-  if (a.startsWith("inv-") && typeof invitaAccion === "function") { invitaAccion(a, d, el); return; }   // 🎁 Invita y gana (invita.js)   // 🤝 Amigos (amigos.js)
+  if (a.startsWith("am-")) { amigosAccion(a, d, el); return; }   // 🤝 Amigos (amigos.js)
+  if (a.startsWith("inv-") && typeof invitaAccion === "function") { invitaAccion(a, d, el); return; }   // 🎁 Invita y gana (invita.js)
+  if (a.startsWith("ru-") && typeof ruedaAccion === "function") { ruedaAccion(a, d, el); return; }   // 🧭 la Rueda de la vida (rueda-pantalla.js)
   if (a.startsWith("cj-")) { conjuntoAccion(a, d); return; }      // hábitos en conjunto (conjunto.js)
   if (a.startsWith("oj-")) { objetivosAccion(a, d); return; }     // objetivos en conjunto (objetivos.js)
   if (a.startsWith("vis-")) { visitaAccion(a, d); return; }        // de visita en la casa de un amigo (visitas.js)

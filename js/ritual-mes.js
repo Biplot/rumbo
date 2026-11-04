@@ -308,6 +308,7 @@ function mesCierrePaso(w) {
     + (typeof deseosCierreHtml === "function" ? deseosCierreHtml() : "")   // 💎 los deseos que esperan respuesta (deseos.js)
     + (typeof aguaAcuarioHtml === "function" ? aguaAcuarioHtml(w.y, w.m, true) : "");   // 🐠 el acuario del mes (agua.js)
   if (w.paso === 2) {
+    if (typeof ruedaCierreHtml === "function") return ruedaCierreHtml(w.y, w.m, d.rueda);   // 🧭 la rueda, que se arrastra (rueda-pantalla.js)
     return `<p class="text-sm muted" style="margin-bottom:12px">De 0 a 10, ¿cómo estuvo cada área este mes?</p>` + STATE.rueda.areas.map((a, i) =>
       `<div class="field">${elNota("mc-r-" + i, d.rueda[i], { min: 0, max: 10, titulo: escapeHtml(a), label: a })}</div>`).join("");
   }
@@ -435,7 +436,7 @@ function guardarMesCierre(w) {
       o.ts = now;
     });
     D.rueda.meses[w.m] = d.rueda.slice();
-    tocarAnio(STATE, w.y, "rueda");
+    if (typeof ruedaTocar === "function") ruedaTocar(STATE, w.y); else tocarAnio(STATE, w.y, "rueda");
   }
   const numeros = resumenMes(w.y, w.m);
   rm.cierre = { mejor: d.mejor, aprendizaje: d.aprendizaje, dejar: d.dejar, proximo: d.proximo, nota: d.nota, rueda: d.rueda.slice(), numeros, ts: now };

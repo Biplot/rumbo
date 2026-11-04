@@ -217,6 +217,7 @@ function metaRow(m, bucket, idx, y) {
     <div class="item-row__main"><div class="item-row__title ${m.done ? "strike" : ""}">${m.ambito ? AMBITOS[ambitoDe(m)].icon + " " : ""}${escapeHtml(m.texto)} ${estado}</div>
       ${tri ? `<div class="item-row__sub">↳ 🎯 ${escapeHtml(tri.texto)}</div>` : ""}
       ${nPrio ? `<div class="item-row__sub">📅 ${nPrio} prioridad${nPrio === 1 ? "" : "es"} semanal${nPrio === 1 ? "" : "es"}</div>` : ""}</div>
+    ${typeof ruedaMetaChip === "function" ? ruedaMetaChip(m, bucket, idx, y) : ""}
     <button class="icon-btn" data-action="meta-del" data-bucket="${bucket}" data-idx="${idx}" data-anio="${y}" data-id="${m.id}">🗑</button>
   </div>`;
 }
@@ -435,10 +436,11 @@ function habitViewAnual() {
 let HABIT_EDIT = null;
 /* op.amigos: amigos ya elegidos para hacerlo juntos (desde Amigos) */
 function openHabitModal(id, op) {
-  const h = id ? STATE.habitos.defs.find(x => x.id === id) : null;
+  const h = id ? STATE.habitos.defs.find(x => x.id === id) : null, pre = (op && op.pre) || {};
   HABIT_EDIT = h ? h.id : null;
   const f = h ? hmFreq(h) : { tipo: "diario" };
-  const icon = h ? h.icon : "🏋️";
+  const icon = h ? h.icon : pre.icon || "🏋️";
+  const area = h ? h.area : pre.area;   // 🧭 el área de tu rueda (rueda.js)
   // Los íconos de línea (iconos.js), sin repetir dibujo; cada uno guarda su emoji de siempre
   const vistos = new Set(), iconos = [icon].concat(["🏋️","📖","✏️","🎵","🥗","💧","🧘","💊","🏃","☀️","🛏️","🚭","🧹","💻","📞","🙏"], iconosExtra())
     .filter(ic => { const m = iconoDeEmoji(ic), k = m ? m[0] : ic; if (vistos.has(k)) return false; vistos.add(k); return true; });
@@ -446,11 +448,12 @@ function openHabitModal(id, op) {
   const dias = f.tipo === "dias" ? f.dias : [0, 2, 4], mensual = f.tipo === "mensual";
   const DIAS_L = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
   openModal(h ? "Editar hábito" : "Nuevo hábito", `
-    <div class="field"><label for="h-nombre">Nombre del hábito</label><input class="input" id="h-nombre" value="${escapeAttr(h ? h.nombre : "")}" placeholder="Ej: Meditar"></div>
+    <div class="field"><label for="h-nombre">Nombre del hábito</label><input class="input" id="h-nombre" value="${escapeAttr(h ? h.nombre : pre.nombre || "")}" placeholder="Ej: Meditar"></div>
     <div class="field"><label>Ícono</label>
       ${elGaleria(iconos.map(ic => { const m = iconoDeEmoji(ic); return { v: ic, nombre: m ? m[1] : ic, thumb: icoHab(ic, 22) }; }), icon, { id: "h-icon", contId: "h-iconos", cls: "el-gal--ico", attr: "ic", label: "Ícono del hábito" })}
       ${PACKS_ICONOS.some(p => !funcion("iconos-" + p.id)) ? `<div class="text-xs muted mt-8">${iconoSvg("palette", 14)} Más íconos (deporte, estudio, hogar, bienestar) en la Tienda.</div>` : ""}</div>
     ${djFormHtml(h)}
+    ${typeof ruedaVisibles === "function" ? `<div class="field"><label>Área de tu rueda <span class="text-xs muted">(opcional: aparece en esa área de tu Rueda de la vida)</span></label>${elLista("h-area", [["", "Ninguna"]].concat(ruedaVisibles(STATE).map(k => [String(k), ruedaNombre(STATE, k)])), area != null ? String(area) : "", { label: "Área de tu rueda", hoja: true, vacio: "Ninguna" })}</div>` : ""}
     <div class="field" id="h-freq-box" ${h && hmMeta(h) !== "hacer" ? "hidden" : ""}><label>Frecuencia objetivo</label>
       ${elTramos("h-tipo", tipos, f.tipo, { label: "Frecuencia objetivo", fn: "habitTipoElegir", attrs: 'id="h-tipo-seg"' })}
       <div id="h-veces-box" class="mt-8" ${f.tipo === "semanal" || f.tipo === "mensual" ? "" : "hidden"}>
@@ -503,13 +506,15 @@ async function saveHabit() {
     saveState(); closeModal(); rerender(); if (h) toast("Hábito actualizado");
     return;
   }
+  const arEl = document.getElementById("h-area"), area = arEl && arEl.value !== "" ? +arEl.value : null;   // 🧭 el área de tu rueda
   if (h) {
     h.nombre = nombre; h.icon = val("h-icon") || h.icon; h.frecuencia = frecuencia;
+    if (arEl) { if (area == null) delete h.area; else h.area = area; }
     if (dj) Object.assign(h, dj);
     const p = document.getElementById("h-pausado"); h.pausado = !!(p && p.checked);
     h.ts = Date.now();   // en la fusión gana la edición más reciente
   } else {
-    STATE.habitos.defs.push(Object.assign({ id: uid(), nombre, icon: val("h-icon") || "✅", frecuencia, creado: todayISO(), ts: Date.now() }, dj || {}));
+    STATE.habitos.defs.push(Object.assign({ id: uid(), nombre, icon: val("h-icon") || "✅", frecuencia, creado: todayISO(), ts: Date.now() }, area != null ? { area } : {}, dj || {}));
   }
   HABIT_EDIT = null;
   saveState(); closeModal(); rerender(); toast(h ? "Hábito actualizado" : "Hábito creado");
@@ -740,70 +745,7 @@ function saveLibro() {
 /* ============================================================
    RUEDA DE LA VIDA (radar)
    ============================================================ */
-function renderRueda() {
-  const i = RUEDA_MONTH, y = anioVista(), pre = rutaAnio(y);
-  const areas = STATE.rueda.areas;
-  const vals = datosAnio(STATE, y).rueda.meses[i];
-  const prom = (vals.reduce((a, b) => a + b, 0) / areas.length).toFixed(1);
-
-  const sliders = areas.map((a, k) => `
-    <div class="field" style="margin-bottom:8px">${elNota("rv-r-" + k, vals[k], { min: 0, max: 10, titulo: escapeHtml(a), label: a,
-      attrs: `data-bind="${pre}rueda.meses.${i}.${k}" data-type="num" data-live` })}<span id="rv-${k}" hidden>${vals[k]}</span></div>`).join("");
-
-  return `
-  ${selectorAnio()}
-  ${monthsSelector(i, "rueda-month")}
-  ${vals.every(v => !v) && typeof ruedaEnsenaHtml === "function" ? ruedaEnsenaHtml() : ""}
-  <div class="grid grid-2">
-    <div class="card">
-      <div class="card__head"><div class="card__title">${MESES[i]}</div><span class="chip chip--cian">Promedio ${prom}</span></div>
-      <div class="radar-wrap">
-        <svg id="radar" viewBox="0 0 360 360" width="100%" style="max-width:380px">${radarStatic()}
-          <polygon id="radarPoly" points="" fill="rgba(23,195,178,0.22)" stroke="var(--cian)" stroke-width="2"/>
-          <g id="radarDots"></g>
-        </svg>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card__title mb-0">Puntúa cada área (0–10)</div>
-      <div class="mt-16">${sliders}</div>
-    </div>
-  </div>`;
-}
-function radarStatic() {
-  // grillas concéntricas + ejes
-  const cx = 180, cy = 180, R = 130, n = STATE.rueda.areas.length;
-  let g = "";
-  for (let ring = 1; ring <= 5; ring++) {
-    const r = (R * ring) / 5;
-    const pts = ptsPolygon(cx, cy, r, n);
-    g += `<polygon points="${pts}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
-  }
-  for (let k = 0; k < n; k++) {
-    const [x, y] = pointAt(cx, cy, R, k, n);
-    g += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
-    const [lx, ly] = pointAt(cx, cy, R + 22, k, n);
-    const label = STATE.rueda.areas[k].split(" ")[0];
-    g += `<text x="${lx}" y="${ly}" fill="var(--text-muted)" font-size="9" text-anchor="middle" dominant-baseline="middle">${label}</text>`;
-  }
-  return g;
-}
-function pointAt(cx, cy, r, k, n) {
-  const ang = (Math.PI * 2 * k) / n - Math.PI / 2;
-  return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)];
-}
-function ptsPolygon(cx, cy, r, n) {
-  return Array.from({ length: n }, (_, k) => pointAt(cx, cy, r, k, n).map(v => v.toFixed(1)).join(",")).join(" ");
-}
-function drawRadar() {
-  const i = RUEDA_MONTH, vals = datosAnio(STATE, anioVista()).rueda.meses[i], n = vals.length, cx = 180, cy = 180, R = 130;
-  const poly = document.getElementById("radarPoly");
-  const dots = document.getElementById("radarDots");
-  if (!poly) return;
-  const pts = vals.map((v, k) => pointAt(cx, cy, (R * v) / 10, k, n));
-  poly.setAttribute("points", pts.map(p => p.map(x => x.toFixed(1)).join(",")).join(" "));
-  dots.innerHTML = pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.5" fill="var(--coral)"/>`).join("");
-}
+/* renderRueda: ver js/rueda-pantalla.js (la lógica y el dibujo, en js/rueda.js) */
 
 /* ============================================================
    APRENDIZAJES + TEMAS DE INTERÉS
@@ -1035,13 +977,5 @@ function afterRender(route) {
   // Chips que se desplazan de lado (Salud): mostrar el elegido
   const chipOn = document.querySelector("#view .chips-f .chip-f.is-on");
   if (chipOn && chipOn.parentElement.scrollWidth > chipOn.parentElement.clientWidth) chipOn.parentElement.scrollLeft = chipOn.offsetLeft - 12;
-  if (route === "rueda") {
-    drawRadar();
-    LIVE_HOOK = (el) => {
-      const k = el.dataset.bind.split(".").pop();
-      const badge = document.getElementById("rv-" + k);
-      if (badge) badge.textContent = el.value;
-      drawRadar();
-    };
-  }
+  if (route === "rueda" && typeof ruedaTrasRender === "function") ruedaTrasRender();   // 🧭 la rueda (rueda-pantalla.js)
 }

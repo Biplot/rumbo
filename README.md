@@ -23,7 +23,7 @@ Tests de lógica (sin dependencias): `node tests/merge.test.mjs`.
 
 Pruebas en navegador (requieren Playwright, solo para desarrollo): `node tests/e2e/run.cjs`. Levantan `serve.js` solas; con `E2E_SHOTS=carpeta` guardan capturas. Ambas corren en GitHub Actions en cada push (`.github/workflows/pruebas.yml`).
 
-Capturas de la página de presentación (`conoce/img/`): `node tests/e2e/capturas-conoce.cjs`. Arma una cuenta de ejemplo en Norte noche (el miércoles 18 de noviembre de 2026) y vuelve a sacar las siete pantallas y la imagen para compartir (`og.jpg`). Necesita salida a Google Fonts.
+Capturas de la página de presentación (`conoce/img/`): `node tests/e2e/capturas-conoce.cjs`. Arma una cuenta de ejemplo (el miércoles 18 de noviembre de 2026) y vuelve a sacar las siete pantallas en Norte noche (`conoce/img/`) y en Norte día (`conoce/img/dia/`, las que muestra la landing en su modo día) y la imagen para compartir (`og.jpg`). Necesita salida a Google Fonts.
 
 ## Notificaciones
 - **Dispositivos:** cada navegador que activa las notificaciones queda en la tabla `suscripciones_push` (una fila por dispositivo; los que el servicio da por muertos se borran solos). Los horarios siguen en `settings.notif` del estado.

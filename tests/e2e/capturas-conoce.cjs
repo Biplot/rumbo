@@ -3,7 +3,8 @@
    No es una prueba (no está en run.cjs): arma una cuenta de ejemplo
    («Camila», miércoles 18 de noviembre de 2026) en Norte noche y guarda
    las pantallas que usa conoce/index.html en conoce/img/, a 780 × 1688
-   (390 × 844 al doble), y la imagen para compartir og.jpg (1200 × 630).
+   (390 × 844 al doble), las mismas en Norte día en conoce/img/dia/ (la landing
+   las cambia con su modo día) y la imagen para compartir og.jpg (1200 × 630).
    Uso: node tests/e2e/capturas-conoce.cjs   (levanta serve.js si hace falta)
    Necesita las fuentes de Google (Bricolage Grotesque y Figtree) y ImageMagick
    o Python con Pillow para pasar a JPG.
@@ -125,21 +126,26 @@ async function guardarJpg(png, jpg, ancho, alto) {
   await p.evaluate(() => document.fonts.ready);
 
   const pantallas = [["inicio", "inicio"], ["habitos", "habitos"], ["semana", "semana"], ["notas", "notas"], ["calendario", "calendario"], ["recompensas", "recompensas"], ["diario", "diario"]];
-  for (const [ruta, archivo] of pantallas) {
-    await p.goto(URL + "#" + ruta); await p.waitForTimeout(900);
-    await p.evaluate(() => { try { closeModal(); } catch (e) {} window.scrollTo(0, 0); });
-    await p.waitForTimeout(300);
-    const png = path.join(tmp, archivo + ".png");
-    await p.screenshot({ path: png });
-    await guardarJpg(png, path.join(DESTINO, archivo + ".jpg"), 780, 1688);
-    console.log("✓ " + archivo + ".jpg");
+  for (const [tema, carpeta] of [["norte-noche", DESTINO], ["norte", path.join(DESTINO, "dia")]]) {
+    fs.mkdirSync(carpeta, { recursive: true });
+    await p.evaluate(tema => { STATE.settings.theme = tema; STATE.settings.temaElegido = tema; saveState(); applyTheme(tema); }, tema);
+    for (const [ruta, archivo] of pantallas) {
+      await p.goto(URL + "#" + ruta); await p.waitForTimeout(900);
+      await p.evaluate(() => { try { closeModal(); } catch (e) {} window.scrollTo(0, 0); });
+      await p.waitForTimeout(300);
+      const png = path.join(tmp, archivo + ".png");
+      await p.screenshot({ path: png });
+      await guardarJpg(png, path.join(carpeta, archivo + ".jpg"), 780, 1688);
+      console.log("✓ " + path.relative(DESTINO, path.join(carpeta, archivo + ".jpg")));
+    }
   }
 
   // La imagen para compartir: la portada de la landing con la captura nueva
   const og = await b.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
   og.on("pageerror", e => errs.push("og: " + e.message));
+  await og.addInitScript(() => { try { localStorage.setItem("rumbo-conoce-tema", "noche"); localStorage.setItem("rumbo-conoce-agua", "{}"); } catch (e) {} });
   await og.goto(URL + "conoce/index.html", { waitUntil: "networkidle" });
-  await og.addStyleTag({ content: ".aviso,.top,.fijo,.paseo,.promesas,.hero .pre,.ele-flota{display:none!important}.rv{opacity:1!important;transform:none!important}.hero .wrap{padding-top:40px;padding-bottom:40px}" });
+  await og.addStyleTag({ content: ".aviso,.top,.fijo,.paseo,.agua,.promesas,.hero .pre,.ele-flota{display:none!important}.rv{opacity:1!important;transform:none!important}.hero .wrap{padding-top:40px;padding-bottom:40px}" });
   await og.evaluate(() => document.fonts.ready); await og.waitForTimeout(400);
   const ogPng = path.join(tmp, "og.png");
   await og.screenshot({ path: ogPng, clip: { x: 0, y: 0, width: 1200, height: 630 } });

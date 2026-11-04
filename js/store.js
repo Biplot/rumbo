@@ -86,7 +86,7 @@ const LocalBackend = {
     const users = this._users();
     if (Object.values(users).some(u => u.email === email)) return { error: "Ya existe una cuenta con ese correo." };
     const id = "u_" + Math.random().toString(36).slice(2, 10);
-    users[id] = { id, email, name: (name || "").trim() || email.split("@")[0], pass: _hash(password) };
+    users[id] = { id, email, name: (name || "").trim() || email.split("@")[0], pass: _hash(password), creada: Date.now() };
     this._saveUsers(users);
     localStorage.setItem("rumbo_session", id);
     return this._pub(users[id]);
@@ -191,6 +191,32 @@ const LocalBackend = {
     const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), s = new Set(ids || []);
     (db.recomendaciones || []).forEach(x => { if (x.para === yo && s.has(x.id)) x.visto = true; });
     this._amGuardar(db); return { ok: true };
+  },
+  /* 🎁 Invita y gana (las mismas reglas que supabase/invitaciones.sql) */
+  async invitacionRegistrar(otro) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    if (!otro || otro === yo) return { r: "no-valido" };
+    const db = this._amDb(); db.invitaciones = db.invitaciones || [];
+    if (db.invitaciones.some(x => x.invitado === yo)) return { r: "ya" };
+    const u = this._users()[yo]; if (!u || !u.creada || Date.now() - u.creada > 14 * 864e5) return { r: "cuenta-antigua" };
+    const f = this._amPar(db, yo, otro); if (!f || f.pide !== yo || !["pendiente", "aceptada"].includes(f.estado)) return { r: "no-valido" };
+    db.invitaciones.push({ invitado: yo, invita: otro, creada: Date.now(), activa: 0, avisado: false }); this._amGuardar(db);
+    return { r: "registrada" };
+  },
+  async invitacionActivar() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), i = (db.invitaciones || []).find(x => x.invitado === yo);
+    if (!i) return { r: "nada" }; if (i.activa) return { r: "ya" };
+    const f = this._amPar(db, yo, i.invita); if (!f || f.estado !== "aceptada") return { r: "falta-amistad" };
+    i.activa = Date.now(); this._amGuardar(db); return { r: "activa" };
+  },
+  async invitaciones() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), ls = db.invitaciones || [], am = x => { const f = this._amPar(db, yo, x); return !!f && f.estado === "aceptada"; };
+    const invitados = ls.filter(x => x.invita === yo).sort((a, b) => (a.activa || 9e15) - (b.activa || 9e15) || a.creada - b.creada)
+      .map(x => Object.assign(this._amFicha(db, x.invitado), { activa: !!x.activa, activa_at: x.activa ? new Date(x.activa).toISOString() : null, amigos: am(x.invitado) }));
+    const m = ls.find(x => x.invitado === yo);
+    return { invitados, invito: m ? { id: m.invita, nombre: this._amFicha(db, m.invita).nombre, activa: !!m.activa } : null };
   },
   async amigosBuscar(codigo) {
     const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), c = String(codigo || "").trim().toUpperCase();
@@ -1480,6 +1506,10 @@ const SupabaseBackend = {
   async bibRecomendar(para, b) { const r = await this._amRpc("libro_recomendar", { p_para: para, p_titulo: b.titulo, p_autor: b.autor || "", p_paginas: Math.round(+b.paginas || 0), p_color: b.color || "" }); return r.error ? r : { id: r.data }; },
   async bibRecomendaciones() { const r = await this._amRpc("libro_recomendaciones"); return r.error ? r : r.data || []; },
   async bibRecomendacionesVistas(ids) { const r = await this._amRpc("libro_recomendaciones_vistas", { p_ids: ids }); return r.error ? r : { n: r.data }; },
+  /* 🎁 Invita y gana (supabase/invitaciones.sql) */
+  async invitacionRegistrar(otro) { const r = await this._amRpc("invitacion_registrar", { p_otro: otro }); return r.error ? r : { r: r.data }; },
+  async invitacionActivar() { const r = await this._amRpc("invitacion_activar"); return r.error ? r : { r: r.data }; },
+  async invitaciones() { const r = await this._amRpc("invitaciones_mias"); return r.error ? r : r.data || { invitados: [], invito: null }; },
   async fuenteHoy(fecha) { const r = await this._amRpc("fuente_hoy", { p_fecha: fecha }); return r.error ? r : r.data; },
   async fuenteSumar(fecha, ml) { const r = await this._amRpc("fuente_sumar", { p_fecha: fecha, p_ml: Math.round(ml) }); return r.error ? r : r.data; },
   async bidonLista() { const r = await this._amRpc("bidon_lista"); return r.error ? r : r.data || []; },

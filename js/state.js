@@ -660,6 +660,7 @@ function saveState() {
   } catch (e) {}
   if (typeof scheduleCloudSave === "function") scheduleCloudSave();
   if (typeof amigosPublicar === "function") amigosPublicar();   // 🤝 lo que ven tus amigos, si cambió
+  if (typeof invitaRevisar === "function") invitaRevisar();     // 🎁 llegaste invitado y cerraste tu primer día (invita.js)
 }
 
 /* Registra ids de tareas del planificador borradas, para que la fusión con otro

@@ -171,7 +171,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 70;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 71;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -559,6 +559,9 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  71: [
+    ["🎁", "Invita y gana", "Por cada amigo nuevo que entre con tu enlace y cierre su primer día, +100 ⭐ para ti y +100 ⭐ para él. Al tercero, tu elefante gana el pañuelo de la manada, que solo se consigue invitando. Lo ves en Amigos."],
   ],
   70: [
     ["🔖", "Por leer: tus libros deseados", "En Tu biblioteca, debajo de la repisa, quedan los libros que quieres leer, como una lista de deseos (también los que te recomiendan tus amigos). Toca uno y «Empezar a leer» lo pasa a «Leyendo ahora»."],
@@ -1115,7 +1118,8 @@ function onClick(e) {
   if (!el) return;
   const a = el.dataset.action;
   const d = el.dataset;
-  if (a.startsWith("am-")) { amigosAccion(a, d, el); return; }   // 🤝 Amigos (amigos.js)
+  if (a.startsWith("am-")) { amigosAccion(a, d, el); return; }
+  if (a.startsWith("inv-") && typeof invitaAccion === "function") { invitaAccion(a, d, el); return; }   // 🎁 Invita y gana (invita.js)   // 🤝 Amigos (amigos.js)
   if (a.startsWith("cj-")) { conjuntoAccion(a, d); return; }      // hábitos en conjunto (conjunto.js)
   if (a.startsWith("oj-")) { objetivosAccion(a, d); return; }     // objetivos en conjunto (objetivos.js)
   if (a.startsWith("vis-")) { visitaAccion(a, d); return; }        // de visita en la casa de un amigo (visitas.js)

@@ -83,6 +83,7 @@ async function amigosCargar(forzar) {
   else { AMIGOS.error = null; AMIGOS.lista = l; AMIGOS.pubFirma = JSON.stringify(p); AMIGOS.codigo = l.codigo || (r && r.codigo) || AMIGOS.codigo; }
   amigosMarcarNav();
   if (CURRENT === "amigos") rerender();
+  if (!AMIGOS.error && typeof invitaCargar === "function") invitaCargar(forzar);   // 🎁 Invita y gana (invita.js)
   if (!AMIGOS.error) { conjuntoCargar(forzar); objetivosCargar(forzar); planesCargar(forzar); listasCargar(forzar); lecturasCargar(forzar); if (typeof bidonesCargar === "function") bidonesCargar(forzar); if (typeof bibRecibirRecomendaciones === "function") bibRecibirRecomendaciones(); }   // y lo que hacen juntos
 }
 /* Al salir de la cuenta: se olvida lo cargado (amigos, hábitos y objetivos en conjunto, planes, listas y lecturas) */
@@ -95,7 +96,8 @@ function amigosOlvidar() {
   Object.assign(LCOM, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [], abiertas: {} });
   Object.assign(LJ, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
   Object.assign(AT, { hoja: null, toda: false, pestana: "proximos" });
-  if (typeof aguaJuntosOlvidar === "function") aguaJuntosOlvidar();   // el bidón y la fuente (agua-juntos.js)
+  if (typeof aguaJuntosOlvidar === "function") aguaJuntosOlvidar();
+  if (typeof invitaOlvidar === "function") invitaOlvidar();   // el bidón y la fuente (agua-juntos.js)
 }
 /* Cuántas cosas esperan tu respuesta: lo de «Para responder» (amPendientes, en amigos-tablero.js) */
 function amigosNuevos() { return amPendientes().length; }
@@ -159,7 +161,9 @@ async function amigosPedir(codigo) {
   const r = await BACKEND.amigosPedir(codigo);
   closeModal();
   if (r && r.error) return toast(amigosTextoError(r.error), true);
-  const txt = { pedida: "📤 Solicitud enviada. Te avisamos cuando la acepte.", aceptada: "🤝 ¡Ya son amigos!", ya: "Ya son amigos", "tu-codigo": "Ese es tu propio código", "no-existe": "No encontré a nadie con ese código", limite: "Tienes muchas solicitudes sin respuesta. Espera a que te respondan." };
+  // 🎁 si tu cuenta es nueva, quedas como invitado de esta persona (invita.js)
+  const invitado = ["pedida", "aceptada", "ya"].includes(r.estado) && typeof invitaRegistrar === "function" && await invitaRegistrar(r.otro);
+  const txt = { pedida: invitado ? "📤 Solicitud enviada. Cuando la acepte y cierres tu primer día, ganan +100 ⭐ cada uno." : "📤 Solicitud enviada. Te avisamos cuando la acepte.", aceptada: "🤝 ¡Ya son amigos!", ya: "Ya son amigos", "tu-codigo": "Ese es tu propio código", "no-existe": "No encontré a nadie con ese código", limite: "Tienes muchas solicitudes sin respuesta. Espera a que te respondan." };
   toast(txt[r.estado] || "Listo", !["pedida", "aceptada", "ya"].includes(r.estado));
   if (r.estado === "pedida") BACKEND.amigosAvisar("solicitud", { otro: r.otro });
   if (r.estado === "aceptada") BACKEND.amigosAvisar("aceptada", { otro: r.otro });
@@ -168,7 +172,9 @@ async function amigosPedir(codigo) {
 }
 async function amigosInvitar() {
   if (!AMIGOS.codigo) await amigosCargar(true);
-  const url = amigosEnlace(), texto = "Te invito a ser mi amigo en Rumbo: así nos acompañamos con nuestros hábitos y metas.";
+  const url = amigosEnlace(), texto = typeof invitaDisponible === "function" && invitaDisponible()
+    ? "Te invito a Rumbo: así nos acompañamos con nuestros hábitos y metas. Si entras con mi enlace y cierras tu primer día, ganamos ⭐ los dos."
+    : "Te invito a ser mi amigo en Rumbo: así nos acompañamos con nuestros hábitos y metas.";
   if (navigator.share) {
     try { await navigator.share({ title: "Rumbo", text: texto, url }); return; } catch (e) { if (e && e.name === "AbortError") return; }
   }
@@ -377,6 +383,7 @@ function amigosInvitarHtml(enHoja) {
   return `<div class="${enHoja ? "at-bloque" : "card"} am-invita">
       <div class="am-invita__t"><div class="card__title">${icoUI("user-plus")} Invita a un amigo</div>
         <p class="text-sm muted">Mándale tu enlace por WhatsApp. Cuando entre a Rumbo te llega su solicitud, y cada uno elige qué le muestra al otro.</p></div>
+      ${typeof invitaHtml === "function" ? invitaHtml() : ""}
       <div class="am-invita__acc"><button class="btn btn--primary" data-action="am-invitar">${icoUI("compartir")} Invitar</button>
         <button class="btn btn--soft" data-action="am-copiar" data-v="enlace">${icoUI("link")} Copiar enlace</button></div>
       <div class="am-codigos">

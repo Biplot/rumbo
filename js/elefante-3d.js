@@ -262,6 +262,15 @@ function crearElefante3D(T, op) {
       const r = new T.Mesh(guardar(new T.TorusGeometry(0.46, 0.12, 12, 32)), mat(0xE8563A, { real: true })); r.rotation.x = Math.PI / 2; r.scale.set(1, 1.05, 1); cu.add(r);
       const cola = new T.Mesh(guardar(new T.BoxGeometry(0.16, 0.42, 0.06)), mat(0xC63F26, { real: true })); cola.position.set(0.18, -0.24, 0.4); cola.rotation.set(0.2, 0, 0.9); cu.add(cola);
     },
+    panuelo() {   // el pañuelo de la manada (Invita y gana): una banda al cuello y el triángulo al frente
+      const cu = new T.Group(); cu.position.set(0.42, 1.16, 0); cu.rotation.z = -0.95; cuerpo.add(cu);
+      const r = new T.Mesh(guardar(new T.TorusGeometry(0.46, 0.085, 10, 32)), mat(0x17C3B2, { real: true })); r.rotation.x = Math.PI / 2; r.scale.set(1, 1.05, 1); cu.add(r);
+      const h = new T.Group(); h.position.set(0.88, 0.86, 0); cuerpo.add(h);
+      const tri = new T.Mesh(guardar(new T.ConeGeometry(0.27, 0.46, 3)), mat(0x17C3B2, { real: true })); tri.rotation.set(0, Math.PI / 6, Math.PI); tri.scale.set(0.32, 1, 1); tri.position.y = -0.12; h.add(tri);
+      const bl = mat(0xFFFFFF, { real: true });
+      [[-0.15, 0, 0.04], [-0.06, -0.05, 0.018], [-0.05, 0, 0.018], [-0.06, 0.05, 0.018]].forEach(([y, z, rr]) => bola(bl, 0.085, y, z, rr * 0.5, rr, rr, h));   // una huella de la manada
+      bola(mat(0x0F8F83, { real: true }), 0.02, 0.06, 0, 0.06, 0.05, 0.07, h);   // el nudo
+    },
     humita() { const h = new T.Group(); h.position.set(0.9, 0.86, 0.06); h.rotation.set(0, 0.35, 0); cuerpo.add(h); const m = mat(0x17C3B2, { real: true }); [1, -1].forEach(s => { const a = new T.Mesh(guardar(new T.ConeGeometry(0.1, 0.18, 4)), m); a.rotation.x = s * Math.PI / 2; a.position.z = s * 0.09; h.add(a); }); bola(mat(0x0F8F83, { real: true }), 0, 0, 0, 0.05, 0.05, 0.05, h); },
     medalla() {
       const h = new T.Group(); h.position.set(0.9, 0.9, 0.06); h.rotation.y = 0.35; cuerpo.add(h);

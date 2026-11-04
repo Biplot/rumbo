@@ -927,6 +927,7 @@ function updateTopbar() {
   document.getElementById("streakVal").textContent = computeClosedStreak();
   pintarMonedas(STATE.gamif.puntos);
   if (typeof pintarPuertas === "function") pintarPuertas();
+  if (typeof avisoElefanteGuardar === "function") avisoElefanteGuardar();   // la cara de tu elefante en los avisos (notifs.js)
 }
 
 /* -------- Estado del día (ciclo apertura → cierre) -------- */

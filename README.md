@@ -31,6 +31,7 @@ Pruebas en navegador (requieren Playwright, solo para desarrollo): `node tests/e
     - **Tu racha en riesgo** (`elefante-racha`), a la hora de tus hábitos: el hábito de hoy que falta con la racha más larga, si es de 3 o más («Tu racha de Leer va en 12 días. ¿Diez páginas antes de dormir? Yo te espero con el libro abierto.»). Si también pediste «Hábitos pendientes», va todo en ese mismo aviso.
     - **El agua atrasada** (`elefante-agua`), a las 16:00: solo si anotas tu agua (algún vaso en los últimos 7 días) y hoy vas bajo el 40 % de tu meta. No nombra la meta, porque la automática por peso solo se sabe en la app.
   - Lo que tú pides (abrir y cerrar el día, semana, mes…) no cuenta para el tope.
+  - **La cara de tu elefante en el aviso:** los títulos no llevan el 🐘, porque cada teléfono lo dibuja con su propio elefante. En Android y en el computador, cada aviso lleva de imagen la cara de tu elefante (`assets/ele-aviso/<tipo>.png`, una por tipo). La app deja tu tipo en la caché `rumbo-ajustes` (`avisoElefanteGuardar`, js/notifs.js) y `sw.js` la lee al mostrar el aviso. En iPhone, Apple muestra solo el ícono de la app.
 - **Claves:** el secreto y las claves VAPID viven en `configuracion_push` (las claves las genera `api/push.js` la primera vez). La clave pública la pide la app a `api/push/`.
 - **Puesta en marcha (una vez):**
   1. Vercel → Settings → Environment Variables: `SUPABASE_SERVICE_ROLE_KEY` con la clave secreta de Supabase. Volver a publicar.

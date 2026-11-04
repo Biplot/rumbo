@@ -132,6 +132,17 @@ function renderNotificaciones() {
   <p class="text-xs muted mt-16">📱 Se activan en cada dispositivo por separado. En iPhone, Rumbo tiene que estar instalada en la pantalla de inicio.</p>`;
 }
 
+/* ---------- La cara de tu elefante en los avisos (Android y computador; en iPhone, Apple muestra solo el ícono de la app) ----------
+   El service worker no ve el estado de la app: el tipo de tu elefante se guarda en la caché «rumbo-ajustes»
+   (que sw.js no borra al actualizarse) y al llegar un aviso lo pone de imagen (assets/ele-aviso/<tipo>.png). */
+const AVISO_ELE_CACHE = "rumbo-ajustes", AVISO_ELE_CLAVE = "/__ele-tipo";
+let AVISO_ELE = null;
+function avisoElefanteGuardar() {
+  if (typeof caches === "undefined" || typeof tipoElefante !== "function" || typeof STATE === "undefined" || !STATE) return;
+  const t = tipoElefante(); if (t === AVISO_ELE) return; AVISO_ELE = t;
+  caches.open(AVISO_ELE_CACHE).then(c => c.put(AVISO_ELE_CLAVE, new Response(t, { headers: { "Content-Type": "text/plain" } }))).catch(() => { AVISO_ELE = null; });
+}
+
 /* ---------- Qué avisos recibir (settings.notif.avisos; catálogo y niveles en state.js) ---------- */
 const AVISOS_INFO = {
   manana: ["🌅", "Abrir el día", "Para iniciar tu ritual. No llega si ya lo abriste."],

@@ -4,8 +4,9 @@
    páginas, la altura de su formato, una cinta dorada si le pusiste 5 ★, dos puntos si lo leíste con
    un amigo y una tarjetita con el nombre si lo prestaste. Al final, punteados, los huecos que faltan
    para tu meta del año.
-   Siete estilos: la repisa con tu elefante (gratis) y, en la Tienda, la torre, las repisas flotantes,
-   la librería de barrio, la pared con escalera, el árbol de libros y la biblioteca antigua.
+   Ocho estilos: la repisa con tu elefante (gratis) y, en la Tienda, la torre, las repisas flotantes,
+   la librería de barrio, la pared con escalera, el árbol de libros, la biblioteca antigua y el colegio
+   en invierno.
 
    BIBLIO_MOTOR.montar(cv)            monta un canvas[data-biblio] (se hace solo al aparecer en la página)
                 .refrescar()          vuelve a leer los datos y redibuja todo
@@ -20,7 +21,7 @@
    Anima solo lo que se ve y solo mientras algo se mueve; respeta «reducir movimiento».
    ============================================================ */
 const BIBLIO_MOTOR = (() => {
-  const IDS = ["repisa", "torre", "flotantes", "libreria", "escalera", "arbol", "antigua"];
+  const IDS = ["repisa", "torre", "flotantes", "libreria", "escalera", "arbol", "antigua", "invierno"];
   if (typeof document === "undefined" || typeof window === "undefined") return { montar() {}, refrescar() {}, sumar() {}, dibujarEn() { return Promise.resolve(); }, ESTILOS: IDS.slice() };
 
   const QUIETO = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -146,7 +147,7 @@ const BIBLIO_MOTOR = (() => {
     }
     if (b.e === 5 && o.cinta !== false) { const cx = x + w * .62; g.fillStyle = o.cintaCol || T.oro; g.beginPath(); g.moveTo(cx - 1.7, y + 3); g.lineTo(cx + 1.7, y + 3); g.lineTo(cx + 1.7, y - 7); g.lineTo(cx, y - 5.2); g.lineTo(cx - 1.7, y - 7); g.closePath(); g.fill(); }
     if (b.am) { const cy = y + h - 5.5, cx = x + w / 2; g.fillStyle = "#FFFFFF"; circ(g, cx - 2.1, cy, 1.9); g.fillStyle = T.oro; circ(g, cx + 2.1, cy, 1.9); }
-    if (sel) { g.save(); g.strokeStyle = T.indigoInk; g.lineWidth = 1.4; rr(g, x - 1, y - 1, w + 2, h + 2, 2.5); g.stroke(); g.restore(); }
+    if (sel) { g.save(); g.strokeStyle = o.selCol || T.indigoInk; g.lineWidth = 1.4; rr(g, x - 1, y - 1, w + 2, h + 2, 2.5); g.stroke(); g.restore(); }
   }
   /* Prestado: el hueco del libro y la tarjetita con el nombre */
   function tarjeta(g, x, y, w, h, b) {
@@ -157,11 +158,12 @@ const BIBLIO_MOTOR = (() => {
     g.rotate(-Math.PI / 2); g.font = `700 ${Math.min(10, tw * 1.05)}px ${F.mano}`; g.textBaseline = "middle"; g.fillStyle = "#3949C9"; g.fillText(recortar(g, b.pr, th - 4), 3, .5);
     g.restore();
   }
-  function huecos(g, hs, etiqueta) {
+  function huecos(g, hs, etiqueta, col) {
     if (!hs || !hs.length) return;
-    g.save(); g.setLineDash([3, 2.4]); g.lineWidth = 1.1; g.strokeStyle = rgba(T.indigoInk, .7);
+    col = col || T.indigoInk;
+    g.save(); g.setLineDash([3, 2.4]); g.lineWidth = 1.1; g.strokeStyle = rgba(col, .7);
     hs.forEach(h => { rr(g, h.x + .5, h.y + .5, h.w - 1, h.h - 1, 2); g.stroke(); }); g.restore();
-    if (etiqueta) { const h0 = hs[0]; g.font = `700 12px ${F.mano}`; g.fillStyle = T.indigoInk; g.textBaseline = "alphabetic"; g.fillText(etiqueta, h0.x, h0.y - 3); }
+    if (etiqueta) { const h0 = hs[0]; g.font = `700 12px ${F.mano}`; g.fillStyle = col; g.textBaseline = "alphabetic"; g.fillText(etiqueta, h0.x, h0.y - 3); }
   }
   /* Repartir los lomos en las tablas, en orden; devuelve dónde va cada uno y hasta dónde llegó */
   const anchoLomo = (b, es, prestamo) => (b.pr && prestamo !== false ? 9 : grosor(b)) * es;
@@ -543,6 +545,286 @@ const BIBLIO_MOTOR = (() => {
     if (fav) { g.fillStyle = T.oro; g.fillRect(-.9, 1.5, 1.8, 5); }
     if (sel) { g.strokeStyle = T.indigoInk; g.lineWidth = 1.3; g.beginPath(); g.ellipse(0, -1.5, 13.5, 8, 0, 0, Math.PI * 2); g.stroke(); }
   }
+
+  /* El colegio en invierno: la biblioteca de un castillo con nieve en la ventana y en los techos de afuera, una chimenea
+     encendida y búhos con bufanda. Cada libro nuevo lo trae un búho entre copos de nieve; tus libros de antes llevan su
+     cadena. En tu meta del año se prenden las luces de colores de la guirnalda y el pino de afuera, con su estrella */
+  E.invierno = (() => {
+    const DUR = 1.6, V = { x0: 232, x1: 336, ys: 100, sill: 170 }, PINO = 312;
+    const suave = u => u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+    const azar = (i, k) => (hash(i + ":" + k) % 1000) / 1000;
+    const bez = (a, c, b, u) => ({ x: (1 - u) * (1 - u) * a.x + 2 * (1 - u) * u * c.x + u * u * b.x, y: (1 - u) * (1 - u) * a.y + 2 * (1 - u) * u * c.y + u * u * b.y });
+    /* Los brillos y el muro se dibujan una vez y después se copian: en el teléfono cuesta mucho menos */
+    const GLOW = new Map(), TEJAS = new Map();
+    function brillo(g, x, y, r, col, a) {
+      if (!(r > 0) || !(a > 0)) return;
+      let s = GLOW.get(col);
+      if (!s) { s = document.createElement("canvas"); s.width = s.height = 64; const c = s.getContext("2d"), gr = c.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, rgba(col, 1)); gr.addColorStop(1, rgba(col, 0)); c.fillStyle = gr; c.fillRect(0, 0, 64, 64); GLOW.set(col, s); }
+      const ga = g.globalAlpha; g.globalAlpha = ga * Math.min(1, a); g.drawImage(s, x - r, y - r, r * 2, r * 2); g.globalAlpha = ga;
+    }
+    function muro(g, W, H, noche) {
+      const m = g.getTransform ? g.getTransform() : { a: 1, b: 0 }, sc = Math.max(.5, Math.min(4, Math.hypot(m.a, m.b) || 1)), key = (noche ? "n" : "d") + sc.toFixed(2);
+      g.fillStyle = noche ? "#17152A" : "#7F7790"; g.fillRect(0, 0, W, H);
+      let pat = TEJAS.get(key);
+      if (pat === undefined) {
+        pat = null;
+        try {
+          const tw = 200, th = 80, cv = document.createElement("canvas"); cv.width = Math.round(tw * sc); cv.height = Math.round(th * sc);
+          const c = cv.getContext("2d"); c.scale(cv.width / tw, cv.height / th); c.fillStyle = noche ? "#17152A" : "#7F7790"; c.fillRect(0, 0, tw, th);
+          const c1 = noche ? "#232039" : "#9E96AA", c2 = noche ? "#2C2845" : "#B1A9BC";
+          for (let fila = 0; fila < 4; fila++) for (let k = -1; k < 5; k++) { const q = ((k % 4) + 4) % 4, w = 44 + azar(fila * 31 + q, "w") * 10, x = k * 50 + (fila % 2) * 25, y = fila * 20; c.fillStyle = mix(c1, c2, azar(fila, "c" + q)); rr(c, x + 1, y + 1, w - 2, 18, 2.5); c.fill(); }
+          pat = g.createPattern(cv, "repeat");
+          if (pat && pat.setTransform && typeof DOMMatrix === "function") pat.setTransform(new DOMMatrix().scale(tw / cv.width, th / cv.height));
+        } catch (e) { pat = null; }
+        TEJAS.set(key, pat);
+      }
+      if (pat) { g.fillStyle = pat; g.fillRect(0, 0, W, H); }
+    }
+    function estrellita(g, x, y, r) { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 - Math.PI / 2, q = i % 2 ? r * .42 : r; g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); } g.closePath(); g.fill(); }
+    function ojiva(g, x0, x1, ys, yb) { const w = x1 - x0; g.beginPath(); g.moveTo(x0, yb); g.lineTo(x0, ys); g.arc(x1, ys, w, Math.PI, Math.PI * 4 / 3); g.arc(x0, ys, w, Math.PI * 5 / 3, Math.PI * 2); g.lineTo(x1, yb); g.closePath(); }
+    function farol(g, x, y0, y1, t, i, noche, fuerte, quieto) {
+      g.strokeStyle = noche ? "#77728A" : "#4A4555"; g.lineWidth = .9;
+      for (let y = y0, k = 0; y < y1 - 1; y += 3.2, k++) { g.beginPath(); g.ellipse(x, y + 1.6, k % 2 ? .5 : 1.3, 1.6, 0, 0, Math.PI * 2); g.stroke(); }
+      const f = quieto ? 1 : 1 + Math.sin(t * 6 + i * 2) * .06 + Math.sin(t * 13 + i) * .04, m = fuerte ? 1.35 : 1;
+      brillo(g, x, y1 + 10, (noche ? 46 : 26) * f * m, fuerte ? "#FFD36B" : "#FFC46B", Math.min(.8, (noche ? .5 : .32) * m));
+      g.fillStyle = "#2C2836"; g.beginPath(); g.moveTo(x - 7, y1 + 3.5); g.lineTo(x, y1 - 1.5); g.lineTo(x + 7, y1 + 3.5); g.closePath(); g.fill();
+      g.fillStyle = rgba("#FFD98A", .95); g.fillRect(x - 5, y1 + 3.5, 10, 13);
+      g.fillStyle = "#FFF3C9"; g.beginPath(); g.ellipse(x, y1 + 10.5, 1.8 * f, 3.2 * f, 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = "#2C2836"; g.lineWidth = 1.4; g.strokeRect(x - 5, y1 + 3.5, 10, 13);
+      g.fillStyle = "#2C2836"; g.fillRect(x - 6, y1 + 16.5, 12, 2.4); g.fillRect(x - 1.5, y1 + 18.9, 3, 1.8);
+    }
+    function vela(g, x, yb, h, col, t, i, noche, quieto) {
+      const f = quieto ? 1 : 1 + Math.sin(t * 11 + i * 3) * .1 + Math.sin(t * 7 + i) * .06;
+      brillo(g, x, yb - h - 4, (noche ? 22 : 12) * f, "#FFB45A", noche ? .45 : .25);
+      g.fillStyle = col; rr(g, x - 2.3, yb - h, 4.6, h, 1.2); g.fill();
+      g.fillStyle = "rgba(255,255,255,.28)"; g.fillRect(x - 1.5, yb - h + 1.5, 1, h - 3);
+      g.fillStyle = "#FFB43D"; g.beginPath(); g.ellipse(x, yb - h - 4, 1.8 * f, 3.4 * f, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#FFF3C9"; g.beginPath(); g.ellipse(x, yb - h - 3, .8, 1.6, 0, 0, Math.PI * 2); g.fill();
+    }
+    /* Un búho (x, y = el centro) con su bufanda tejida de un solo color */
+    function buho(g, x, y, s, t, o) {
+      g.save(); g.translate(x, y); g.scale(s, s);
+      const cuerpo = "#8A6A4E", ala = mix(cuerpo, "#000000", .28);
+      g.fillStyle = ala;
+      if (o.vuela) { const a = o.quieto ? 0 : Math.sin(t * 16); [-1, 1].forEach(k => { g.save(); g.scale(k, 1); g.translate(4.6, -1); g.rotate(-.35 - a * .55); g.beginPath(); g.ellipse(6.4, 0, 8, 3.2, 0, 0, Math.PI * 2); g.fill(); g.restore(); }); }
+      else [-1, 1].forEach(k => { g.beginPath(); g.ellipse(k * 5.4, 2.2, 2.6, 5.4, k * .16, 0, Math.PI * 2); g.fill(); });
+      g.fillStyle = cuerpo; g.beginPath(); g.ellipse(0, 1, 6, 7.4, 0, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.moveTo(-5.6, -3.4); g.lineTo(-4.8, -9.2); g.lineTo(-1.8, -5.4); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(5.6, -3.4); g.lineTo(4.8, -9.2); g.lineTo(1.8, -5.4); g.closePath(); g.fill();
+      g.fillStyle = "#E9D7B8"; g.beginPath(); g.ellipse(0, 3.6, 3.8, 4.2, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#FFF6DF"; circ(g, -2.4, -2.2, 2.5); circ(g, 2.4, -2.2, 2.5);
+      if (o.parpadea) { g.strokeStyle = "#2A1E14"; g.lineWidth = .9; g.beginPath(); g.moveTo(-3.9, -2); g.quadraticCurveTo(-2.4, -1, -.9, -2); g.moveTo(.9, -2); g.quadraticCurveTo(2.4, -1, 3.9, -2); g.stroke(); }
+      else { g.fillStyle = "#F4AE3D"; circ(g, -2.4, -2.2, 1.55); circ(g, 2.4, -2.2, 1.55); g.fillStyle = "#1A140E"; circ(g, -2.3, -2.1, .85); circ(g, 2.5, -2.1, .85); g.fillStyle = "#FFFFFF"; circ(g, -2, -2.6, .35); circ(g, 2.8, -2.6, .35); }
+      g.fillStyle = "#F4A63B"; g.beginPath(); g.moveTo(-1, -.7); g.lineTo(1, -.7); g.lineTo(0, 1.2); g.closePath(); g.fill();
+      g.strokeStyle = "#E0A040"; g.lineWidth = 1; g.lineCap = "round"; g.beginPath(); g.moveTo(-1.8, 8); g.lineTo(-1.8, 9.6); g.moveTo(1.8, 8); g.lineTo(1.8, 9.6); g.stroke(); g.lineCap = "butt";
+      g.fillStyle = o.bufanda; rr(g, -5.6, 1.5, 11.2, 2.7, 1.2); g.fill();
+      g.save(); g.translate(2.4, 3.4); g.rotate(.25 + (o.vuela && !o.quieto ? Math.sin(t * 9) * .3 : 0)); rr(g, -1.3, 0, 2.6, 6, .8); g.fill(); g.fillStyle = "#FFFFFF"; g.fillRect(-1.3, 5.4, 2.6, .9); g.restore();
+      g.fillStyle = "rgba(255,255,255,.35)"; g.fillRect(-5, 2.6, 10, .5);
+      g.restore();
+    }
+    /* La capa de tu elefante: va detrás de él (en su caja de 260 × 240) y flamea un poco */
+    function capa(g, x, piso, w, dy, t, quieto) {
+      const s = w / 260, y0 = piso - w * 240 / 260 * .93 + (dy || 0), o = quieto ? 0 : Math.sin(t * 2.2) * 5, o2 = quieto ? 0 : Math.sin(t * 2.2 + 1.3) * 4;
+      const forma = (dx, dy2) => {
+        const Q = (px, py) => [x + px * s + dx, y0 + py * s + dy2];
+        g.beginPath(); g.moveTo(...Q(156, 96)); g.bezierCurveTo(...Q(116, 80), ...Q(72, 86), ...Q(46, 108));
+        g.bezierCurveTo(...Q(28, 128 + o2), ...Q(10, 158 + o), ...Q(4 + o, 200));
+        g.quadraticCurveTo(...Q(22, 190 + o2), ...Q(36, 202)); g.quadraticCurveTo(...Q(50, 192), ...Q(66, 200));
+        g.lineTo(...Q(150, 160)); g.closePath();
+      };
+      g.fillStyle = "#6C63FF"; forma(2.5, 2); g.fill();
+      g.fillStyle = "#2E2A6E"; forma(0, 0); g.fill();
+    }
+    function layout(v, L, nh) {
+      const x0 = 26, x1 = 196, es = 1.2, gap = 1.4, base = 50;
+      const filas = Math.max(3, filasPara(L, x0, x1, gap, es, nh));
+      const est = Array.from({ length: filas }, (_, k) => ({ x0, x1, yb: 88 + 70 * k }));
+      const r = fluir(L, est, base, gap, es, v.sel);
+      r.huecos = lugaresMeta(r, est, base, nh, es); r.est = est;
+      const yl = est[filas - 1].yb; r.yl = yl; r.P = yl + 56; r.W = 360; r.H = r.P + 16;
+      return r;
+    }
+    /* Lo que no se mueve (el muro, el librero con sus libros, la piedra de la chimenea, el suelo) se pinta en una capa
+       aparte y se copia en cada cuadro; se vuelve a pintar solo si algo cambia. Lo que se mueve va encima */
+    /* Cada lomo se dibuja una vez (por tamaño y tema) y después se copia: así repintar la capa quieta cuesta poco */
+    const SPR = new Map(), TIRA = 150;
+    function sprite(b, w, h, sc, noche) {
+      const id = b.id + "@" + sc.toFixed(2) + (noche ? "n" : "d"), key = [b.col, b.t, b.pr, b.e, b.am ? 1 : 0, w.toFixed(2), h.toFixed(2), document.fonts ? document.fonts.status : ""].join("|");
+      let s = SPR.get(id);
+      if (s && s.key === key) return s;
+      const mx = 3, my = 9, cv = (s && s.cv) || document.createElement("canvas"); cv.width = Math.max(1, Math.ceil((w + mx * 2) * sc)); cv.height = Math.max(1, Math.ceil((h + my + 3) * sc));
+      const c = cv.getContext("2d"); c.setTransform(sc, 0, 0, sc, 0, 0); lomo(c, mx, my, w, h, b, O, false);
+      s = { key, cv, mx, my, w: cv.width / sc, h: cv.height / sc };
+      if (SPR.size > 2400) SPR.clear();
+      SPR.set(id, s); return s;
+    }
+    function fijo(g, v, L, r, noche, vuelan, sc, y0, y1) {
+      const W = r.W, H = r.H, P = r.P, yl = r.yl, fueraDe = it => y0 != null && (it.tg.y > y1 + 12 || it.tg.y + it.tg.h + 16 < y0);
+      muro(g, W, H, noche);
+      g.fillStyle = noche ? "#3A3552" : "#CFC8D8"; ojiva(g, V.x0 - 7, V.x1 + 7, V.ys, V.sill + 2); g.fill();
+      if (!noche) { const yb = Math.min(P + 4, 300); g.fillStyle = "rgba(228,240,255,.14)"; g.beginPath(); g.moveTo(V.x0 + 6, V.sill + 6); g.lineTo(V.x1 - 6, V.sill + 6); g.lineTo(V.x1 - 6 - (V.x1 - V.x0 - 12) * .35 * (yb - V.sill) / 118, yb); g.lineTo(V.x0 + 6 - 82 * (yb - V.sill) / 118, yb); g.closePath(); g.fill(); }
+      // el librero de roble con dos pináculos y la guirnalda de pino
+      const roble = noche ? "#3B2A22" : "#5E3E2A", fondo = noche ? "#1A1320" : "#4A3328";
+      g.fillStyle = fondo; g.fillRect(18, 30, 186, yl - 24);
+      g.fillStyle = roble; g.fillRect(12, 30, 8, yl - 22); g.fillRect(202, 30, 8, yl - 22); g.fillRect(10, 26, 202, 6);
+      [[16, 26], [206, 26]].forEach(([x, y]) => { g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x, y - 14); g.lineTo(x + 6, y); g.closePath(); g.fill(); circ(g, x, y - 15, 1.8); });
+      r.est.forEach(s => { g.fillStyle = roble; g.fillRect(s.x0 - 8, s.yb, s.x1 - s.x0 + 16, 6); g.fillStyle = "rgba(255,255,255,.14)"; g.fillRect(s.x0 - 8, s.yb, s.x1 - s.x0 + 16, 1); });
+      for (let x = 12; x <= 210; x += 5) { g.fillStyle = (x / 5) % 2 ? (noche ? "#1F4A3A" : "#2E6A4E") : (noche ? "#285A46" : "#3C7E5C"); g.beginPath(); g.ellipse(x, 30 + Math.sin(x * .7) * 1.2, 4.4, 3.4, 0, 0, Math.PI * 2); g.fill(); }
+      [16, 206].forEach(x => { g.fillStyle = "#D8344E"; g.beginPath(); g.moveTo(x, 31); g.lineTo(x - 5, 28); g.lineTo(x - 5, 34); g.closePath(); g.fill(); g.beginPath(); g.moveTo(x, 31); g.lineTo(x + 5, 28); g.lineTo(x + 5, 34); g.closePath(); g.fill(); circ(g, x, 31, 1.4); });
+      // la barra de las cadenas: bajo cada repisa que tiene libros de antes
+      const fierro = noche ? "#8D93A8" : "#A9AFC0", conAntes = new Set();
+      L.forEach((b, i) => { const it = v.items.get(b.id); if (b.antes && it && it.tg && !vuelan.has(i)) conAntes.add(it.tg.e); });
+      conAntes.forEach(e => { const yb = r.est[e].yb; g.fillStyle = fierro; g.fillRect(20, yb + 11, 182, 2); g.fillStyle = "#D8B35A"; rr(g, 202, yb + 12, 8, 7, 1.5); g.fill(); g.strokeStyle = "#D8B35A"; g.lineWidth = 1.2; g.beginPath(); g.arc(206, yb + 12.5, 2.4, Math.PI, 0); g.stroke(); g.fillStyle = "#6A4A1A"; circ(g, 206, yb + 15.4, .9); });
+      if (sc) L.forEach((b, i) => {   // con capa: cada lomo desde su copia, y el seleccionado con su borde
+        const it = v.items.get(b.id); if (!it || !it.tg || vuelan.has(i) || fueraDe(it)) return;
+        const s = sprite(b, it.tg.w, it.tg.h, sc, noche);
+        g.save(); g.globalAlpha = it.a; g.drawImage(s.cv, it.x - s.mx, it.y - s.my, s.w, s.h); g.restore();
+        if (b.id === v.sel) { g.strokeStyle = O.selCol; g.lineWidth = 1.4; rr(g, it.x - 1, it.y - 1, it.tg.w + 2, it.tg.h + 2, 2.5); g.stroke(); }
+      });
+      else { const hs = v.hits; v.hits = []; pintarLomos(g, v, L, O, i => !vuelan.has(i)); v.hits = hs; }
+      L.forEach((b, i) => {
+        const it = v.items.get(b.id); if (!b.antes || !it || !it.tg || vuelan.has(i) || fueraDe(it)) return;
+        const x0 = it.x + it.tg.w / 2, y0 = it.y + it.tg.h - 7, x1 = x0 + 3, y1 = r.est[it.tg.e].yb + 11.5, n = Math.max(3, Math.round(Math.hypot(x1 - x0, y1 - y0) / 2.4));
+        g.strokeStyle = fierro; g.lineWidth = .8; for (let k = 0; k <= n; k++) { const u = k / n; g.beginPath(); g.ellipse(x0 + (x1 - x0) * u + Math.sin(u * Math.PI) * 1.2, y0 + (y1 - y0) * u, k % 2 ? .5 : 1.1, 1.3, 0, 0, Math.PI * 2); g.stroke(); }
+      });
+      const nh = r.huecos.length; huecos(g, r.huecos, nh ? (nh === 1 ? "falta 1" : `faltan ${nh}`) : "", "#FFE3A3");
+      // la piedra de la chimenea, con dos botas colgando
+      g.fillStyle = noche ? "#35304A" : "#B8B0C2"; g.fillRect(292, P - 84, 66, 84);
+      g.strokeStyle = "rgba(0,0,0,.14)"; g.lineWidth = 1; g.beginPath(); [70, 54, 38, 22].forEach(q => { g.moveTo(292, P - q); g.lineTo(358, P - q); }); g.stroke();
+      g.fillStyle = noche ? "#4A4466" : "#CFC8D8"; rr(g, 286, P - 90, 74, 7, 2); g.fill();
+      [[300, "#E5527A"], [350, "#17C3B2"]].forEach(([x, c]) => { g.fillStyle = c; rr(g, x - 3.5, P - 81, 7, 12, 1.5); g.fill(); rr(g, x - 3.5, P - 73, 10, 5, 2.5); g.fill(); g.fillStyle = "#FFFFFF"; rr(g, x - 4, P - 83, 8, 3.4, 1.4); g.fill(); });
+      // el suelo de piedra y los soportes de los faroles del muro (si la biblioteca es muy alta)
+      g.fillStyle = noche ? "#2A2539" : "#6E667B"; g.fillRect(0, P, W, H - P);
+      g.strokeStyle = "rgba(0,0,0,.18)"; g.lineWidth = 1; g.beginPath(); for (let x = 0; x < W + 10; x += 30) { g.moveTo(x, P); g.lineTo(x - 8, H); } g.moveTo(0, P + 8); g.lineTo(W, P + 8); g.stroke();
+      for (let y = 420; y < P - 200; y += 380) { g.fillStyle = noche ? "#77728A" : "#4A4555"; g.fillRect(286, y - 2, 30, 2.4); g.fillRect(314, y - 8, 2.4, 14); }
+    }
+    const O = { selCol: "#FFE3A3" };
+    function draw(g, v, L, r, t, dt) {
+      const W = r.W, H = r.H, P = r.P, noche = !!T.oscuro, quieto = QUIETO || !!v.quieto, d = v.datos, tt = quieto ? 0 : t;
+      const logro = d.meta > 0 && d.delAnio >= d.meta, blanco = noche ? "#DCE6FA" : "#FFFFFF";
+      dt = dt || 0; if (!v.parts) v.parts = [];
+      if (v.logroAntes === false && logro && !quieto) {   // se acaba de cumplir la meta: chispas desde la estrella del pino y la guirnalda
+        for (let k = 0; k < 22; k++) { const a = Math.random() * Math.PI * 2, s = 18 + Math.random() * 38; v.parts.push({ x: PINO, y: 110, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 10, vida: .8 + Math.random() * .7, r: 1.6, c: ["#FFD36B", "#FFFFFF", "#FFE3A3"][k % 3], g: 26 }); }
+        for (let k = 0; k < 16; k++) { const a = Math.random() * Math.PI * 2, s = 16 + Math.random() * 30; v.parts.push({ x: 20 + Math.random() * 180, y: 34, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 10, vida: .6 + Math.random() * .6, r: 1.2, c: LECT[k % 8], g: 40, punto: true }); }
+      }
+      v.logroAntes = logro;
+      // los libros que vienen llegando (cada uno con su búho) no van todavía en su lugar; los que se están moviendo, tampoco
+      const vuelan = new Map(), mueven = new Set();
+      L.forEach((b, i) => {
+        const it = v.items.get(b.id); if (!it || !it.tg) return;
+        if (it.nuevo) { it.nuevo = false; if (!quieto) it.vuelo = t; }
+        if (it.vuelo == null) return;
+        const u = (t - it.vuelo) / DUR;
+        if (quieto || u >= 1 || u < 0) {   // llegó: chispas y el búho se vuelve
+          it.vuelo = null;
+          if (!quieto) { for (let k = 0; k < 14; k++) { const a = Math.random() * Math.PI * 2, s = 12 + Math.random() * 26; v.parts.push({ x: it.tg.x + it.tg.w / 2, y: it.tg.y + 4, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 12, vida: .5 + Math.random() * .4, r: 1.4, c: ["#FFFFFF", "#D6E8FF", "#FFE3A3"][k % 3], g: 10 }); } v.vuelta = { t, x: it.tg.x + it.tg.w / 2, y: it.tg.y - 12 }; }
+          return;
+        }
+        vuelan.set(i, u);
+      });
+      L.forEach((b, i) => { const it = v.items.get(b.id); if (it && it.tg && !vuelan.has(i) && (Math.abs(it.x - it.tg.x) + Math.abs(it.y - it.tg.y) > .25 || it.a < .99)) mueven.add(i); });
+      const fuera = new Set([...vuelan.keys(), ...mueven]);
+      g.save(); g.beginPath(); g.rect(0, 0, W, H); g.clip();   // los brillos no se salen del dibujo (la imagen de compartir)
+      // la capa quieta: copiada si nada cambió
+      const cv = v.cv, usaCapa = !quieto && cv && typeof cv.getContext === "function" && cv.width > 0;
+      if (usaCapa) {
+        // la capa quieta va en franjas: al cambiar un libro se repinta solo su franja
+        const pw = cv.width, sc = pw / W, th = Math.max(1, Math.round(TIRA * sc)), nT = Math.max(1, Math.ceil(cv.height / th));
+        if (!v.tiras || v.tiras.sc !== sc || v.tiras.n !== nT || v.tiras.H !== H) v.tiras = { sc, n: nT, H, t: Array.from({ length: nT }, () => ({ cv: null, key: "" })) };
+        const base = [W, H, pw, noche ? 1 : 0, document.fonts ? document.fonts.status + document.fonts.size : ""].join("|"), partes = v.tiras.t.map(() => []);
+        const marca = (ya, yb, txt) => { const a = Math.max(0, Math.floor(ya * sc / th)), z = Math.min(nT - 1, Math.floor(yb * sc / th)); for (let k = a; k <= z; k++) partes[k].push(txt); };
+        L.forEach((b, i) => { const it = v.items.get(b.id); if (it && it.tg && !fuera.has(i)) marca(it.tg.y - 10, it.tg.y + it.tg.h + 15, b.id + b.col + b.t + b.pr + b.e + (b.am ? 1 : 0) + (b.antes ? 1 : 0) + b.fmt + it.tg.x.toFixed(1) + "," + it.tg.y.toFixed(1) + (b.id === v.sel ? "S" : "")); });
+        r.huecos.forEach((q, k) => marca(q.y - 16, q.y + q.h + 2, "h" + q.x.toFixed(1) + "," + q.y.toFixed(1) + (k ? "" : "/" + r.huecos.length)));
+        v.tiras.t.forEach((tira, k) => {
+          const key = base + "#" + partes[k].join(";"), alto = Math.min(th, cv.height - k * th);
+          if (key === tira.key && tira.cv) return;
+          if (!tira.cv) tira.cv = document.createElement("canvas");
+          if (tira.cv.width !== pw || tira.cv.height !== alto) { tira.cv.width = pw; tira.cv.height = alto; }
+          const c = tira.cv.getContext("2d"), y0 = k * th / sc, y1 = (k * th + alto) / sc;
+          c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, pw, alto); c.setTransform(sc, 0, 0, sc, 0, -k * th);
+          c.save(); c.beginPath(); c.rect(0, y0, W, y1 - y0); c.clip(); fijo(c, v, L, r, noche, fuera, sc, y0, y1); c.restore();
+          tira.key = key;
+        });
+        g.save(); g.setTransform(1, 0, 0, 1, 0, 0); v.tiras.t.forEach((tira, k) => { if (tira.cv) g.drawImage(tira.cv, 0, k * th); }); g.restore();
+        mueven.forEach(i => { const b = L[i], it = v.items.get(b.id), sp = sprite(b, it.tg.w, it.tg.h, sc, noche); g.save(); g.globalAlpha = it.a; g.drawImage(sp.cv, it.x - sp.mx, it.y - sp.my, sp.w, sp.h); g.restore(); if (b.id === v.sel) { g.strokeStyle = O.selCol; g.lineWidth = 1.4; rr(g, it.x - 1, it.y - 1, it.tg.w + 2, it.tg.h + 2, 2.5); g.stroke(); } });
+      } else fijo(g, v, L, r, noche, fuera);
+      L.forEach((b, i) => { const it = v.items.get(b.id); if (it && it.tg && !vuelan.has(i)) v.hits.push({ x: it.x, y: it.y - 6, w: it.tg.w, h: it.tg.h + 6, id: b.id }); });
+      // la ventana: la nieve, una torrecita y el pino de afuera
+      g.save(); ojiva(g, V.x0, V.x1, V.ys, V.sill); g.clip();
+      const cielo = g.createLinearGradient(0, 0, 0, V.sill); cielo.addColorStop(0, noche ? "#0A1030" : "#9DB8D6"); cielo.addColorStop(1, noche ? "#26325F" : "#E8F0F7");
+      g.fillStyle = cielo; g.fillRect(V.x0, 0, V.x1 - V.x0, V.sill);
+      if (noche) {
+        brillo(g, 306, 50, 34, "#FFF3C9", .35); g.fillStyle = "#FFF3C9"; circ(g, 306, 50, 11);
+        g.fillStyle = "rgba(220,214,190,.55)"; circ(g, 302, 47, 2.2); circ(g, 309, 54, 1.6);
+        for (let i = 0; i < 16; i++) { const tw = .4 + .6 * Math.abs(Math.sin(tt * (1 + azar(i, "vt")) + i)); g.fillStyle = rgba("#FFFFFF", .75 * tw); estrellita(g, V.x0 + 4 + azar(i, "vx") * (V.x1 - V.x0 - 8), 14 + azar(i, "vy") * 90, azar(i, "vr") < .2 ? 1.8 : 1); }
+      }
+      g.fillStyle = noche ? "#2A3050" : "#7D869E"; g.fillRect(246, 130, 22, 40); g.fillStyle = noche ? "#FFD27A" : "#F6E7B0"; rr(g, 253, 140, 8, 11, 4); g.fill();
+      g.fillStyle = noche ? "#1E2440" : "#4E5874"; g.beginPath(); g.moveTo(240, 132); g.lineTo(257, 98); g.lineTo(274, 132); g.closePath(); g.fill();
+      g.fillStyle = blanco; g.beginPath(); g.moveTo(257, 98); g.lineTo(249, 114); g.quadraticCurveTo(253, 118, 257, 114); g.quadraticCurveTo(261, 118, 265, 114); g.closePath(); g.fill(); g.fillRect(244, 129, 26, 3);
+      const verde = noche ? "#1F4A3A" : "#2E6A4E";
+      [[170, 20, 142], [152, 16, 128], [136, 11, 114]].forEach(([yb, w, yt]) => { g.fillStyle = verde; g.beginPath(); g.moveTo(PINO - w, yb); g.lineTo(PINO, yt); g.lineTo(PINO + w, yb); g.closePath(); g.fill(); g.fillStyle = blanco; g.beginPath(); g.moveTo(PINO - w, yb); g.quadraticCurveTo(PINO, yb - 6, PINO + w, yb); g.quadraticCurveTo(PINO, yb - 2, PINO - w, yb); g.fill(); });
+      if (logro) {   // el pino encendido, con su estrella
+        [[-8, 162], [8, 160], [0, 150], [-12, 146], [12, 144], [-4, 136], [4, 128], [0, 120]].forEach(([dx, y], i) => { const c = LECT[(i * 3) % 8], tw = quieto ? 1 : .7 + .3 * Math.sin(t * 4 + i * 1.7); brillo(g, PINO + dx, y, 7, c, .6 * tw); g.fillStyle = mix(c, "#FFFFFF", .3 * tw); circ(g, PINO + dx, y, 1.7); });
+        brillo(g, PINO, 110, 18, "#FFD36B", .7); g.fillStyle = "#FFD36B"; estrellita(g, PINO, 110, 4.6);
+      }
+      g.fillStyle = blanco; g.beginPath(); g.moveTo(V.x0, 172); g.lineTo(V.x0, 164); for (let x = V.x0; x <= V.x1; x += 13) g.quadraticCurveTo(x + 6.5, 158 + (x % 3), x + 13, 164); g.lineTo(V.x1, 172); g.closePath(); g.fill();
+      for (let i = 0; i < 28; i++) { const x = V.x0 + azar(i, "nx") * (V.x1 - V.x0) + Math.sin(tt * .8 + i) * 5, y = (azar(i, "ny") * 180 + tt * (12 + azar(i, "nv") * 16)) % 180 - 6; g.fillStyle = rgba("#FFFFFF", noche ? .85 : .95); circ(g, x, y, .8 + azar(i, "nr") * 1.1); }
+      brillo(g, V.x0, V.sill, 44, "#FFFFFF", noche ? .35 : .6); brillo(g, V.x1, V.sill, 44, "#FFFFFF", noche ? .35 : .6);
+      g.strokeStyle = rgba("#FFFFFF", noche ? .05 : .16); g.lineWidth = .8; g.beginPath();
+      for (let k = -14; k < 14; k++) { g.moveTo(V.x0 + k * 12, V.sill); g.lineTo(V.x0 + k * 12 + 170, V.sill - 170); g.moveTo(V.x0 + k * 12, 0); g.lineTo(V.x0 + k * 12 + 170, 170); }
+      g.stroke(); g.restore();
+      // las piedras de la ventana: el parteluz, dos arcos chicos y un rosetón de cuatro hojas; y la nieve en el alféizar
+      const piedra = noche ? "#3A3552" : "#CFC8D8", wc = (V.x0 + V.x1) / 2; g.strokeStyle = piedra; g.lineWidth = 3.4;
+      g.beginPath(); g.moveTo(wc, V.sill); g.lineTo(wc, 72); g.stroke();
+      ojiva(g, V.x0, wc, V.ys + 12, V.sill); g.stroke(); ojiva(g, wc, V.x1, V.ys + 12, V.sill); g.stroke();
+      g.lineWidth = 2.6; g.beginPath(); g.arc(wc, 46, 13, 0, Math.PI * 2); g.stroke();
+      g.lineWidth = 1.6; [[0, -5.5], [5.5, 0], [0, 5.5], [-5.5, 0]].forEach(([a, b]) => { g.beginPath(); g.arc(wc + a, 46 + b, 5, 0, Math.PI * 2); g.stroke(); });
+      g.fillStyle = noche ? "#4A4466" : "#DCD6E3"; rr(g, V.x0 - 12, V.sill, V.x1 - V.x0 + 24, 6, 1.5); g.fill();
+      g.fillStyle = blanco; g.beginPath(); g.moveTo(V.x0 - 12, V.sill + 1); for (let x = V.x0 - 12; x < V.x1 + 12; x += 12) g.quadraticCurveTo(x + 6, V.sill - 5, x + 12, V.sill + 1); g.closePath(); g.fill();
+      // las luces de la guirnalda: se prenden en tu meta
+      for (let k = 0; k < 15; k++) { const x = 18 + k * 13.4, c = LECT[k % 8], tw = logro ? (quieto ? 1 : .7 + .3 * Math.sin(t * 4 + k * 1.9)) : 0; if (logro) brillo(g, x, 34, 7, c, .55 * tw); g.fillStyle = logro ? mix(c, "#FFFFFF", .25 * tw) : (noche ? "#4A5060" : "#6E7486"); g.beginPath(); g.ellipse(x, 34.5, 1.5, 2.1, 0, 0, Math.PI * 2); g.fill(); }
+      // los faroles (más fuertes con la meta cumplida); en una biblioteca muy alta, más faroles en el muro
+      farol(g, 112, 0, 8, tt, 0, noche, logro, quieto); farol(g, 218, 0, 34, tt, 1, noche, logro, quieto);
+      for (let y = 420, k = 2; y < P - 200; y += 380, k++) farol(g, 290, y, y + 10, tt, k, noche, logro, quieto);
+      // el fuego de la chimenea y sus dos velas
+      brillo(g, 326, P - 12, noche ? 74 : 48, "#FF9A3D", noche ? .45 : .28);
+      g.fillStyle = "#1A1218"; g.beginPath(); g.moveTo(304, P); g.lineTo(304, P - 44); g.quadraticCurveTo(325, P - 66, 346, P - 44); g.lineTo(346, P); g.closePath(); g.fill();
+      brillo(g, 325, P - 14, 26, "#FF8A3D", .6);
+      g.fillStyle = "#5A3A22"; rr(g, 310, P - 8, 30, 5, 2); g.fill(); rr(g, 314, P - 13, 22, 5, 2); g.fill();
+      for (let i = 0; i < 5; i++) { const fx = 313 + i * 6, fh = quieto ? 13 : 12 + Math.sin(t * 8 + i * 2) * 4; g.fillStyle = i % 2 ? "#FFB43D" : "#FF6B2D"; g.beginPath(); g.moveTo(fx - 4.5, P - 10); g.quadraticCurveTo(fx, P - 10 - fh * 1.7, fx + 4.5, P - 10); g.fill(); }
+      g.fillStyle = "#FFE08A"; g.beginPath(); g.moveTo(320, P - 10); g.quadraticCurveTo(325, P - 10 - (quieto ? 14 : 13 + Math.sin(t * 9) * 3), 330, P - 10); g.fill();
+      vela(g, 316, P - 90, 8, "#F3E9D6", t, 4, noche, quieto); vela(g, 334, P - 90, 10, "#D8344E", t, 5, noche, quieto);
+      // tu elefante, con su capa
+      const ds = t - (v.saltoT || -9), dy = !quieto && ds < .55 ? -Math.sin(ds / .55 * Math.PI) * 7 : 0;
+      capa(g, 202, P + 4, 80, dy, tt, quieto);
+      elefante(g, d.elefante, 202, P + 4, 80, dy);
+      // el búho de la ventana, con bufanda: parpadea cada tanto
+      buho(g, 320, 160, 1, tt, { parpadea: (tt % 4.3) > 4.14, bufanda: "#E5527A", quieto });
+      // los libros que llegan, cada uno con su búho entre copos de nieve
+      vuelan.forEach((u, i) => {
+        const b = L[i], it = v.items.get(b.id), tg = it.tg, lejos = tg.y > 320;
+        const desde = lejos ? { x: 376, y: tg.y - 170 } : { x: 290, y: 66 }, ctrl = lejos ? { x: (376 + tg.x) / 2, y: tg.y - 150 } : { x: (290 + tg.x) / 2 + 34, y: Math.min(tg.y, 110) - 54 };
+        const p = bez(desde, ctrl, tg, suave(u));
+        lomo(g, p.x, p.y, tg.w, tg.h, b, O, b.id === v.sel); v.hits.push({ x: p.x, y: p.y - 6, w: tg.w, h: tg.h + 6, id: b.id });
+        buho(g, p.x + tg.w / 2, p.y - 11, 1.1, t, { vuela: true, bufanda: "#17C3B2", quieto });
+        if (Math.random() < .55) v.parts.push({ x: p.x + 2 + Math.random() * 10, y: p.y - 8 + Math.random() * 6, vx: (Math.random() - .5) * 14, vy: 12, vida: .8, r: .9 + Math.random() * .6, c: "#FFFFFF", g: 6 });
+      });
+      if (v.vuelta && !quieto) {   // el búho se vuelve por donde vino
+        const k = (t - v.vuelta.t) / 1.1;
+        if (k >= 0 && k < 1) { const lejos = v.vuelta.y > 320, fin = lejos ? { x: 376, y: v.vuelta.y - 150 } : { x: 300, y: 56 }, p = bez(v.vuelta, { x: (v.vuelta.x + fin.x) / 2, y: Math.min(v.vuelta.y, fin.y) - 26 }, fin, suave(k)); g.save(); g.globalAlpha *= 1 - Math.max(0, (k - .7) / .3); buho(g, p.x, p.y, 1.05, t, { vuela: true, bufanda: "#17C3B2", quieto }); g.restore(); }
+        else if (k >= 1) v.vuelta = null;
+      }
+      // las chispas y los copos
+      if (v.parts.length) {
+        v.parts.forEach(q => { q.vy += q.g * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vida -= dt; g.save(); g.globalAlpha *= Math.max(0, Math.min(1, q.vida * 1.6)); g.fillStyle = q.c; if (q.punto) circ(g, q.x, q.y, q.r); else estrellita(g, q.x, q.y, q.r * 1.6); g.restore(); });
+        v.parts = v.parts.filter(q => q.vida > 0);
+      }
+      g.restore();
+      if (vuelan.size || v.vuelta || v.parts.length || ds < .55) r.mov = true;
+      return true;
+    }
+    return { caida: 0, ambiente: true, layout, draw };
+  })();
 
   /* ============ Cada lienzo ============ */
   const vistas = new Set();

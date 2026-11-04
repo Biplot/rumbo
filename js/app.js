@@ -171,7 +171,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 68;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 69;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -556,6 +556,9 @@ const NOVEDADES = {
   ],
   68: [
     ["🔎", "Busca tu libro", "Al agregar un libro, escribe el título (o el ISBN) y toca el tuyo: Rumbo llena el autor, las páginas y la portada. También puedes pegar el enlace de una imagen."],
+  ],
+  69: [
+    ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
   ],
 };
 let NOVEDADES_ABIERTAS = false;

@@ -31,6 +31,7 @@ function amPendientes() {
   (OBJ.lista || []).filter(o => o.estado === "invitado").forEach(o => out.push({ tipo: "objetivo", o }));
   (LCOM.lista || []).filter(x => x.estado === "invitado").forEach(x => out.push({ tipo: "lista", x }));
   (LJ.lista || []).filter(x => x.estado === "invitado").forEach(x => out.push({ tipo: "lectura", x }));
+  if (typeof BIDON !== "undefined") (BIDON.lista || []).filter(b => b.estado === "invitado" && bdEnCurso(b)).forEach(b => out.push({ tipo: "bidon", b }));
   planes.filter(p => plVa(p) && p.fecha <= hoy).forEach(p => {
     const yo = plYo(p);
     plDeudas(p).filter(d => d.de === yo.id).forEach(d => out.push({ tipo: "deuda", p, d }));
@@ -93,6 +94,11 @@ function atBandejaFila(it) {
     const o = it.o;
     return atFila(`<span class="pl-ico">${ojIcono(o)}</span>`, e(o.nombre), `${e(ojQuienInvita(o))} te invita a un objetivo · ${e(ojFmt(o.meta, o.unidad))} · ${e(ojPlazo(o))}`,
       atBotones("oj", o.id, "Unirme"), `data-action="oj-ver" data-id="${e(o.id)}"`);
+  }
+  if (it.tipo === "bidon") {
+    const b = it.b;
+    return atFila(`<span class="pl-ico">${icoUI("droplet")}</span>`, e(b.nombre), `${e(bdQuienInvita(b))} te invita al bidón de la semana · ${e(litrosTxt(b.meta))} L entre todos`,
+      atBotones("agua-bd", b.id, "Unirme"), `data-action="agua-bd-ver" data-id="${e(b.id)}"`);
   }
   if (it.tipo === "lista") {
     const x = it.x;
@@ -172,6 +178,10 @@ function atBaldosasHtml(l) {
     const act = (LJ.lista || []).filter(x => x.estado === "activo"), x = act[0];
     t.push(atBaldosa("lecturas", icoUI("book-open"), "Lecturas", x ? ljPct(x, ljYo(x)) + " %" : "", x ? (act.length > 1 ? atPlural(act.length, "libro", "libros") + " juntos" : escapeHtml(x.titulo)) : "Lee con amigos"));
   }
+  if (typeof BIDON !== "undefined" && BACKEND.bidonLista && BIDON.error !== "sin-servidor") {
+    const act = (BIDON.lista || []).filter(b => b.estado === "activo" && bdEnCurso(b)), b = act[0];
+    t.push(atBaldosa("bidon", icoUI("droplet"), "Agua", b ? bdPct(b) + " %" : "", b ? escapeHtml(b.nombre) + (act.length > 1 ? ` y ${act.length - 1} más` : "") : "Un bidón juntos"));
+  }
   const cumple = amigos.find(a => amigoCumpleEn(a) === 0);
   const dia = amigos.filter(a => { const e = amigosEstadoLimpio(a.estado); return e.fecha === hoy && (e.abrio || e.cerro); }).length;
   t.push(atBaldosa("amigos", icoUI("amigos"), "Amigos", amigos.length,
@@ -182,7 +192,7 @@ function atBaldosasHtml(l) {
 function atQueHacenHtml() {
   const f = [["ticket", "Planes", "Juntarse: una película, un asado o salir a correr."], ["handshake", "Hábitos", "Lo hacen juntos y suman una racha de a dos."],
     ["mision", "Objetivos", "Una meta con avance sumado, como juntar para un viaje."], ["listas", "Listas", "Películas por ver o restaurantes por probar, entre varios."],
-    ["book-open", "Lecturas", "El mismo libro, cada uno a su ritmo."]];
+    ["book-open", "Lecturas", "El mismo libro, cada uno a su ritmo."], ["droplet", "Agua", "Un bidón que llenan entre todos durante la semana."]];
   return `<div class="card"><div class="card__title">Lo que pueden hacer juntos</div>
     <div class="at-que">${f.map(([i, t, s]) => `<div class="at-que__f"><span class="pl-ico">${icoUI(i)}</span><span><b>${t}</b><span class="text-xs muted">${s}</span></span></div>`).join("")}</div></div>`;
 }
@@ -257,7 +267,8 @@ function atHojaNuevo() {
     ${CONJ.error !== "sin-servidor" ? op("cj-nuevo", "handshake", "Un hábito", "Lo hacen juntos y suman una racha.") : ""}
     ${OBJ.error !== "sin-servidor" ? op("oj-nuevo", "mision", "Un objetivo", "Una meta con avance sumado.") : ""}
     ${LCOM.error !== "sin-servidor" ? op("lc-nueva", "listas", "Una lista", "Películas por ver, restaurantes por probar…") : ""}
-    ${LJ.error !== "sin-servidor" ? op("am-hoja", "book-open", "Una lectura", "El mismo libro, cada uno a su ritmo.", ` data-v="leer"`) : ""}</div>`;
+    ${LJ.error !== "sin-servidor" ? op("am-hoja", "book-open", "Una lectura", "El mismo libro, cada uno a su ritmo.", ` data-v="leer"`) : ""}
+    ${typeof BIDON !== "undefined" && BACKEND.bidonLista && BIDON.error !== "sin-servidor" ? op("agua-bd-nuevo", "droplet", "Un bidón de agua", "Lo llenan entre todos esta semana.") : ""}</div>`;
 }
 /* Leer con amigos: tus libros (de Lecturas) que todavía lees solo */
 function atHojaLeer() {
@@ -275,6 +286,7 @@ function atHoja(k) {
   if (k === "objetivos") return { titulo: "🎯 Objetivos con amigos", cuerpo: atHojaObjetivos(amigos) };
   if (k === "listas") return { titulo: "📋 Listas con amigos", cuerpo: atHojaListas(amigos) };
   if (k === "lecturas") return { titulo: "📖 Leyendo juntos", cuerpo: atHojaLecturas() };
+  if (k === "bidon") return { titulo: "💧 El bidón con amigos", cuerpo: `<div class="at-bidon">${bdCuerpoHtml()}</div>${atPie(`<button class="btn-ghost" data-action="agua-abrir">Ir a Tu agua</button>`)}` };
   if (k === "amigos") return { titulo: "Tus amigos", cuerpo: amigosHoyHtml(l) };
   if (k === "ajustes") return { titulo: "Ajustes de Amigos", cuerpo: amigosInvitarHtml(true) + amigosMuestraHtml(l, true) };
   if (k === "nuevo") return { titulo: "Nuevo con amigos", cuerpo: atHojaNuevo() };

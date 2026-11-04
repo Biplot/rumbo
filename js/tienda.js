@@ -32,7 +32,7 @@ function tiendaTodos() {
   const cosEstado = it => isOwned(it.id) && cosActivo(it.id) ? "equipado" : estado(isOwned(it.id), it.costo, !!it.rango);
   COSMETICOS.forEach(it => {
     const sub = it.grupo === "marco" ? "perfil" : it.grupo === "plantilla" ? "informe" : it.grupo === "album" ? "album" : it.grupo === "agua" || it.grupo === "sabor" ? "agua" : it.grupo === "alcancia" || it.grupo === "moneda" ? "alcancia" : it.grupo === "jardin" ? "jardin" : it.grupo === "jardin-especial" ? "especiales" : "terminar";
-    const iconoHtml = (it.key === "agua" || it.key === "sabor" || it.key === "acuario") && typeof aguaFichaHtml === "function" ? aguaFichaHtml(it)
+    const iconoHtml = (it.key === "agua" || it.key === "sabor" || it.key === "acuario" || it.key === "bidon") && typeof aguaFichaHtml === "function" ? aguaFichaHtml(it)
       : (it.key === "alcancia" || it.key === "moneda") && typeof alcFichaHtml === "function" ? alcFichaHtml(it)
       : it.key === "jardin" && typeof jardinFichaHtml === "function" ? jardinFichaHtml(it) : undefined;
     items.push({ key: "cos:" + it.id, cat: "estilo", sub, icon: it.icon, iconoHtml, nombre: it.nombre, costo: it.costo, estado: cosEstado(it),

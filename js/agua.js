@@ -123,6 +123,7 @@ function aguaSumar(ml) {
   aguaCompactar(); saveState(); vibrar(10);
   aguaPintar(ml);
   clearTimeout(aguaSumar._t); aguaSumar._t = setTimeout(() => aguaRevisar(hoy), 950);   // después del chorro
+  if (typeof aguaJuntosCambio === "function") { aguaJuntosPintarYa(); aguaJuntosCambio(); }   // la fuente y tus bidones (agua-juntos.js)
   return true;
 }
 function aguaQuitar(id) {
@@ -130,6 +131,7 @@ function aguaQuitar(id) {
   const r = id ? regs.find(x => x.id === id) : regs[regs.length - 1]; if (!r) return;
   d.b.push(r.id); saveState();
   aguaPintar(-r.ml); aguaRevisar(hoy);
+  if (typeof aguaJuntosCambio === "function") { aguaJuntosPintarYa(); aguaJuntosCambio(); }
   if (id && typeof openAgua === "function" && document.getElementById("agua-hoja")) openAgua();
 }
 function aguaRevisar(fecha) {
@@ -294,6 +296,7 @@ function openAgua() {
     </div>
     <div class="agua-sec"><span class="cj-sub">Hoy</span><div id="agua-hoy-lista" class="agua-lista">${aguaListaHtml()}</div></div>
     <div class="agua-sec"><span class="cj-sub">Esta semana</span><div id="agua-semana">${aguaSemanaHtml()}</div></div>
+    ${typeof aguaJuntosHtml === "function" ? aguaJuntosHtml() : ""}
     <div class="agua-sec"><span class="cj-sub">Tu meta</span>
       ${elContador("agua-meta-v", a.meta > 0 ? a.meta : auto, { min: AGUA_META_MIN, max: AGUA_META_MAX, paso: 100, fmtFn: "aguaLitrosFmt", fmt: aguaLitrosFmt, unidad: "L",
         auto: { on: !(a.meta > 0), texto: `Automática · ${litrosTxt(auto)} L`, valor: auto }, fn: "aguaMetaElegir", label: "Tu meta diaria de agua" })}
@@ -303,6 +306,7 @@ function openAgua() {
     <label class="agua-inicio"><input type="checkbox" data-action="agua-inicio" ${a.inicio !== false ? "checked" : ""}> Mostrar «Agua de hoy» en Inicio</label>
     <label class="agua-inicio"><input type="checkbox" data-action="agua-fab" ${a.fab !== false ? "checked" : ""}> Botón de agua abajo a la derecha</label>
   </div>`, { ancho: true });
+  if (typeof aguaJuntosHojaAbierta === "function") aguaJuntosHojaAbierta();   // la fuente y el bidón, al día
 }
 /* La meta: un contador de a 100 ml (de 1 a 6 L), con «Automática» como interruptor encima */
 const AGUA_META_MIN = 1000, AGUA_META_MAX = 6000;
@@ -389,6 +393,7 @@ function aguaCalorAjusteHtml() {
 function aguaVolverA() { (document.getElementById("agua-probador") ? openAguaProbador : openAgua)(); if (typeof rerender === "function") rerender(); }
 function aguaAjuste(cambio) { Object.assign(aguaDatos(), cambio, { ts: Date.now() }); saveState(); aguaRevisar(todayISO()); openAgua(); if (typeof rerender === "function") rerender(); }
 function aguaAccion(a, d, el) {
+  if ((a.startsWith("agua-bd-") || a.startsWith("agua-fu-")) && typeof aguaJuntosAccion === "function") return aguaJuntosAccion(a, d, el);   // agua-juntos.js
   if (a === "agua-sumar") return aguaSumar(+d.ml);
   if (a === "agua-deshacer") return aguaQuitar();
   if (a === "agua-quitar") return aguaQuitar(d.id);
@@ -428,10 +433,12 @@ function aguaAccion(a, d, el) {
 function aguaFichaHtml(it) {
   if (it.key === "sabor") { const s = AGUA_SABORES.find(x => x.id === it.value); return `<svg class="agua-ficha-gota" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5s-7 8-7 12.5a7 7 0 0 0 14 0c0-4.5-7-12.5-7-12.5z" fill="${s && s.c ? s.c[1] : "#2E9BDB"}"/></svg>`; }
   if (it.key === "acuario") return `<canvas class="agua-ficha agua-ficha--ancha" data-agua="acuario" data-modo="muestra" aria-hidden="true"></canvas>`;
+  if (it.key === "bidon") return `<canvas class="agua-ficha" data-agua="bidon" data-modo="muestra" aria-hidden="true"></canvas>`;
   return `<canvas class="agua-ficha" data-agua="${escapeAttr(it.value)}" data-modo="muestra" data-frac="0.62" aria-hidden="true"></canvas>`;
 }
 function aguaMuestraHtml(it) {
   if (it.key === "acuario") return `<canvas class="agua-cv" data-agua="acuario" data-modo="muestra" style="aspect-ratio:280/190" aria-hidden="true"></canvas>`;
+  if (it.key === "bidon") return `<canvas class="agua-cv" data-agua="bidon" data-modo="muestra" style="aspect-ratio:140/210" aria-hidden="true"></canvas>`;
   const estilo = it.key === "sabor" ? aguaEstilo() : it.value, sabor = it.key === "sabor" ? it.value : "";
   return `<canvas class="agua-cv" data-agua="${escapeAttr(estilo)}" data-modo="muestra" data-frac="0.62" ${sabor ? `data-sabor="${escapeAttr(sabor)}"` : ""} style="aspect-ratio:140/200" aria-hidden="true"></canvas>`;
 }
@@ -538,7 +545,7 @@ function aguaFabCerrar() {
    y una escena por estilo, en un cuadro de 140 × 200. Cada lienzo anima solo mientras se ve.
    ============================================================ */
 const AGUA_MOTOR = (() => {
-  if (typeof document === "undefined") return { verter() {}, montar() {} };
+  if (typeof document === "undefined") return { verter() {}, montar() {}, brindar() {} };
   const DPR = Math.min(2, window.devicePixelRatio || 1), W = 140, H = 200;
   // redonda: el cuadro mide rw × rw, la escena (W × H) va al centro y el fondo llega a los bordes.
   // En la portilla hay más aire (la cifra va encima); en el botón en chico, la escena se ve más de cerca
@@ -620,6 +627,17 @@ const AGUA_MOTOR = (() => {
       for (let i = n; i >= 0; i--) { const y = this.y0 + (yFin - this.y0) * i / n, ww = w * (1 - 0.35 * i / n), dx = Math.sin(tiempo * 30 + i) * 0.5; ctx.lineTo(this.x + ww + dx, y); }
       ctx.closePath(); ctx.fillStyle = rgba(color, 0.85); ctx.fill();
     }
+  }
+  /* Chispas de fiesta: el bidón que se llena, el brindis y la fuente que se enciende */
+  class Chispas {
+    constructor() { this.l = []; }
+    soltar(x, y, n, cs) {
+      const col = cs && cs.length ? cs : [C.ambar, C.claro, "#ffffff", C.coral];
+      for (let i = 0; i < n; i++) { const a = azar(0, 6.28), v = azar(1.2, 3.2); this.l.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1.6, r: azar(1.2, 2.6), c: col[i % col.length], vida: 1 }); }
+      if (this.l.length > 160) this.l.splice(0, this.l.length - 160);
+    }
+    paso(k) { this.l = this.l.filter(p => { p.vy += 0.09 * k; p.vx *= 0.985; p.x += p.vx * k; p.y += p.vy * k; p.vida -= 0.018 * k; return p.vida > 0; }); }
+    pintar(ctx) { for (const p of this.l) { ctx.globalAlpha = Math.max(0, p.vida); ctx.fillStyle = p.c; ctx.fillRect(p.x - p.r / 2, p.y - p.r / 2, p.r, p.r * 1.6); } ctx.globalAlpha = 1; }
   }
   const redondeado = (x, y, w, h, r) => { const p = new Path2D(); p.moveTo(x + r, y); p.arcTo(x + w, y, x + w, y + h, r); p.arcTo(x + w, y + h, x, y + h, r); p.arcTo(x, y + h, x, y, r); p.arcTo(x, y, x + w, y, r); p.closePath(); return p; };
   const circulo = (x, y, r) => { const p = new Path2D(); p.arc(x, y, r, 0, 6.3); return p; };
@@ -1050,6 +1068,165 @@ const AGUA_MOTOR = (() => {
         },
       };
     },
+    /* El bidón de la semana con amigos (agua-juntos.js): una capa por persona, con su color; tu vaso cae desde tu botella */
+    bidon(cv, modo) {
+      const forma = new Path2D("M58 30 L82 30 L84 46 C84 54 122 54 122 72 L122 188 Q122 202 108 202 L32 202 Q18 202 18 188 L18 72 C18 54 56 54 56 46 Z");
+      const ARR = 66, ABA = 198, ola = new Ola(34), burb = new Burbujas(), gotas = new Gotas(), chorro = new Chorro(), chis = new Chispas();
+      const MUESTRA = { meta: 40, gente: [{ c: "#2E9BDB", l: 8, yo: true }, { c: "#E8606B", l: 9 }, { c: "#F4AE3D", l: 4.5 }, { c: "#7D6BD6", l: 6 }] };
+      let botella = 0, botellaMeta = 0, espera = 0, brindis = -1, eraLleno = null, chocaron = false;
+      const leer = () => (modo !== "muestra" && typeof aguaBidonDatos === "function" && aguaBidonDatos(cv.dataset.bidon)) || MUESTRA;
+      const vasoP = new Path2D("M-9 -16 L9 -16 L7 10 Q6 14 0 14 Q-6 14 -7 10 Z");
+      return {
+        tam: [140, 210],
+        verter(ml) {
+          if (!(ml > 0)) { ola.tocar(0.5, -3, 6); return; }
+          const d0 = leer(); if (d0.enCurso === false || !d0.gente.some(p => p.yo)) return;
+          botellaMeta = 1; espera = 0.6;
+          setTimeout(() => chorro.abrir(70, 4, 0.9), QUIETO ? 0 : 280); setTimeout(() => { botellaMeta = 0; }, QUIETO ? 0 : 1300);
+        },
+        tocar(x) { ola.tocar((x - 18) / 104, azar(-5, 5), 3); },
+        brindar() { brindis = 0; chocaron = false; },
+        dibujar(ctx, t, k, dt, e, nivel) {
+          const d = leer(), gente = d.gente.length ? d.gente : [{ c: C.agua, l: 0, yo: true }], tot = gente.reduce((s, p) => s + p.l, 0);
+          const f = d.meta > 0 ? Math.min(1, tot / d.meta) : 0, yo = gente.find(p => p.yo) || gente[0], lleno = d.meta > 0 && tot >= d.meta;
+          espera -= dt; chorro.paso(dt);
+          for (let i = 0; i < k; i++) { ola.paso(); botella += (botellaMeta - botella) * 0.12; }
+          if (QUIETO) botella = botellaMeta;
+          if (espera <= 0) nivel.paso(f); else nivel.paso(nivel.x);
+          if (eraLleno === false && lleno) chis.soltar(70, 60, 26, gente.map(p => p.c));   // se llenó mientras lo miras
+          eraLleno = lleno;
+          sombra(ctx, 70, 205, 56, 6);
+          ctx.fillStyle = C.oscuro ? "rgba(140,200,255,.08)" : "rgba(214,236,250,.7)"; ctx.fill(forma);
+          const y = ABA - (ABA - ARR) * nivel.x, arriba = gente[gente.length - 1].c;
+          const pts = pintarAgua(ctx, { vaso: forma, x0: 18, x1: 122, y, fondo: 202, ola, t, colores: [mezcla(arriba, "#ffffff", 0.35), arriba, mezcla(arriba, "#000000", 0.25)] });
+          // las capas de abajo (la de arriba es la superficie): cada una del alto de sus litros
+          if (gente.length > 1 && tot > 0) {
+            const cuerpo = new Path2D(); trazar(cuerpo, pts, true); cuerpo.lineTo(130, 230); cuerpo.lineTo(10, 230); cuerpo.closePath();
+            ctx.save(); ctx.clip(forma); ctx.clip(cuerpo);
+            const u = (ABA - y) / tot; let yb = 230;
+            gente.slice(0, -1).forEach((p, i) => {
+              const yt = (i === 0 ? ABA : yb) - p.l * u, desde = i === 0 ? 230 : yb;
+              ctx.fillStyle = mezcla(p.c, "#ffffff", 0.12); ctx.fillRect(0, yt, 140, desde - yt + 0.6);
+              ctx.strokeStyle = "rgba(255,255,255,.45)"; ctx.lineWidth = 1; ctx.beginPath();
+              for (let x = 18; x <= 122; x += 4) ctx.lineTo(x, yt + (QUIETO ? 0 : Math.sin(x * 0.2 + i + t * 2) * 0.8)); ctx.stroke();
+              yb = yt;
+            });
+            ctx.restore();
+          }
+          const ys = yEn(pts, 70);
+          if (chorro.on) { ola.tocar(0.5, 0.6 * k, 1); if (Math.random() < 0.5) burb.soltar(70, ys + 10, 1); if (Math.random() < 0.3) gotas.soltar(70, ys, 1, 0.9); }
+          ctx.save(); ctx.clip(forma); burb.paso(pts, k); burb.pintar(ctx); ctx.restore();
+          chorro.pintar(ctx, ys, t, yo.c); gotas.paso(pts, k); gotas.pintar(ctx, yo.c);
+          // la meta del grupo
+          ctx.setLineDash([4, 3]); ctx.strokeStyle = C.ambar; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(22, ARR); ctx.lineTo(50, ARR); ctx.stroke(); ctx.setLineDash([]);
+          ctx.font = "800 8px system-ui, sans-serif"; ctx.fillStyle = C.ambar; ctx.textAlign = "left"; ctx.fillText(`${litrosTxt(d.meta * 1000)} L`, 52, ARR + 3);
+          [96, 128, 160].forEach(yy => { ctx.strokeStyle = "rgba(255,255,255,.3)"; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(19, yy); ctx.lineTo(121, yy); ctx.stroke(); });
+          frente(ctx, forma, 18, 122, 30, 202, lleno);
+          ctx.fillStyle = "#2E7CC9"; ctx.fill(redondeado(55, 18, 30, 14, 4));
+          // tu botella, que vierte
+          if (botella > 0.02) {
+            ctx.save(); ctx.globalAlpha = Math.min(1, botella * 1.5); ctx.translate(98 - 18 * botella, -26 + 30 * botella); ctx.rotate(-2.2 * botella);
+            ctx.fillStyle = rgba(yo.c, 0.55); ctx.fill(redondeado(-7, -22, 14, 30, 4)); ctx.fillStyle = yo.c; ctx.fill(redondeado(-4, -28, 8, 7, 2)); ctx.restore();
+          }
+          // ¡Salud!: dos vasos que chocan
+          if (brindis >= 0) {
+            brindis += dt; const p = brindis / 1.6;
+            if (p >= 1) brindis = -1;
+            else {
+              const ent = Math.min(1, p * 4), choque = p < 0.35 ? 0 : p < 0.5 ? (p - 0.35) / 0.15 : 1, sale = p > 0.8 ? (1 - p) / 0.2 : 1;
+              ctx.save(); ctx.globalAlpha = ent * sale;
+              [-1, 1].forEach(sg => {
+                ctx.save(); ctx.translate(70 + sg * (26 - 12 * choque), 46); ctx.rotate(sg * (0.35 - 0.5 * choque));
+                ctx.fillStyle = "rgba(255,255,255,.8)"; ctx.fill(vasoP);
+                ctx.save(); ctx.clip(vasoP); ctx.fillStyle = sg < 0 ? yo.c : C.agua; ctx.fillRect(-10, -4 + Math.sin(t * 8) * 1.2, 20, 20); ctx.restore();
+                ctx.lineWidth = 1.6; ctx.strokeStyle = rgba(C.tinta, 0.6); ctx.stroke(vasoP); ctx.restore();
+              });
+              if (p > 0.48 && !chocaron) { chis.soltar(70, 30, 18); chocaron = true; }
+              ctx.restore();
+            }
+          }
+          chis.paso(k); chis.pintar(ctx);
+        },
+      };
+    },
+    /* La fuente de Rumbo (agua-juntos.js): se llena con los vasos de todos hoy. Llegan las gotas de los demás; la tuya,
+       más grande y ámbar, vuela desde abajo. Al llegar a la meta de la comunidad, la fuente se enciende */
+    fuente(cv, modo) {
+      const CX = 140, BY = 168, RX = 84, RY = 15, chorros = [], llegan = [], ondas = [], chis = new Chispas();
+      const MUESTRA = { ml: 41000, meta: 60000, personas: 30 };
+      let prox = 0.6, impulso = 0, eraEncendida = null;
+      const leer = () => (modo !== "muestra" && typeof aguaFuenteDatos === "function" && aguaFuenteDatos()) || MUESTRA;
+      const lanzar = tuyo => {
+        const desde = tuyo ? [CX, 214] : Math.random() < 0.5 ? [azar(-10, 30), azar(20, 120)] : [azar(250, 290), azar(20, 120)];
+        llegan.push({ x0: desde[0], y0: desde[1], x1: CX + azar(-50, 50), y1: BY + azar(-4, 4), t: 0, dur: tuyo ? 1.1 : azar(0.9, 1.5), tuyo, alto: tuyo ? 110 : azar(30, 70) });
+      };
+      return {
+        tam: [280, 210],
+        verter(ml) { if (ml > 0 && leer().tuyo !== false) lanzar(true); },
+        tocar(x) { ondas.push({ x: limitar(x, CX - RX + 10, CX + RX - 10), y: BY, r: 1, a: 0.7 }); impulso = Math.max(impulso, 0.5); },
+        dibujar(ctx, t, k, dt) {
+          const d = leer(), frac = d.meta > 0 ? Math.min(1, d.ml / d.meta) : 0, encendida = d.ml > 0 && d.ml >= d.meta;
+          if (eraEncendida === false && encendida) { impulso = 1.5; chis.soltar(CX, 70, 30, [C.ambar, C.claro, "#ffffff", C.coral]); }
+          eraEncendida = encendida;
+          // las gotas de los demás: las que llegaron desde la última vez y, si hay gente, algunas de vez en cuando
+          if (typeof aguaFuenteOtra === "function" && aguaFuenteOtra()) lanzar(false);
+          prox -= dt; if (prox <= 0) { if (!QUIETO && d.personas > 1) lanzar(false); prox = d.personas > 1 ? azar(0.6, 1.8) : azar(4, 8); }
+          impulso = Math.max(0, impulso - dt * 0.6);
+          const fuerza = 0.75 + 0.35 * frac + impulso * 0.35;
+          if (!QUIETO) for (let i = 0; i < 3 * k; i++) {
+            chorros.push({ x: CX + azar(-1, 1), y: 104, vx: azar(-0.55, 0.55), vy: -azar(2.2, 2.7) * fuerza, r: azar(1, 1.8) });
+            if (Math.random() < 0.5) { const sg = Math.random() < 0.5 ? -1 : 1; chorros.push({ x: CX + sg * 72, y: BY - 6, vx: -sg * azar(0.6, 0.9), vy: -azar(1.4, 1.8) * fuerza, r: azar(0.8, 1.4) }); }
+          }
+          // el cielo, la ciudad y los árboles
+          const cielo = ctx.createLinearGradient(0, 0, 0, 170); cielo.addColorStop(0, C.oscuro ? "#0C1430" : "#BFE3F6"); cielo.addColorStop(1, C.oscuro ? "#24346A" : "#EEF7FC");
+          ctx.fillStyle = cielo; ctx.fillRect(0, 0, 280, 210);
+          if (C.oscuro) for (let i = 0; i < 26; i++) { ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.4 * Math.abs(Math.sin(t + i))})`; ctx.fillRect((i * 53) % 280, (i * 29) % 70, 1.2, 1.2); }
+          [[0, 96, 26], [26, 82, 20], [46, 104, 24], [196, 90, 22], [218, 74, 26], [244, 98, 36]].forEach(([x, y, w], i) => {
+            ctx.fillStyle = C.oscuro ? "#1A2650" : "#C9D7E6"; ctx.fillRect(x, y, w, 150 - y);
+            for (let yy = y + 6; yy < 140; yy += 9) for (let xx = x + 4; xx < x + w - 4; xx += 7) { ctx.fillStyle = C.oscuro ? ((xx * 7 + yy * 3 + i) % 5 < 2 ? "rgba(255,214,120,.85)" : "rgba(255,255,255,.08)") : "rgba(255,255,255,.55)"; ctx.fillRect(xx, yy, 3, 4); }
+          });
+          [[22, 142, 20], [52, 148, 15], [232, 140, 22], [258, 150, 14]].forEach(([x, y, r]) => { ctx.fillStyle = C.oscuro ? "#1C3B34" : "#7CC28C"; ctx.beginPath(); ctx.arc(x, y - r * 0.4, r, 0, 6.3); ctx.fill(); ctx.fillStyle = C.oscuro ? "#24493F" : "#94D2A2"; ctx.beginPath(); ctx.arc(x - r * 0.3, y - r * 0.7, r * 0.55, 0, 6.3); ctx.fill(); ctx.fillStyle = "#6B4A2E"; ctx.fillRect(x - 2, y, 4, 14); });
+          // la plaza
+          const plaza = ctx.createLinearGradient(0, 150, 0, 210); plaza.addColorStop(0, C.oscuro ? "#2E3456" : "#E6E1D8"); plaza.addColorStop(1, C.oscuro ? "#20253F" : "#CFC8BA");
+          ctx.fillStyle = plaza; ctx.fillRect(0, 152, 280, 58);
+          ctx.strokeStyle = C.oscuro ? "rgba(255,255,255,.06)" : "rgba(0,0,0,.06)"; ctx.lineWidth = 1;
+          for (let i = -8; i <= 8; i++) { ctx.beginPath(); ctx.moveTo(CX + i * 12, 152); ctx.lineTo(CX + i * 40, 210); ctx.stroke(); }
+          [160, 172, 188].forEach(y => { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(280, y); ctx.stroke(); });
+          if (encendida) { ctx.fillStyle = "rgba(120,210,255,.12)"; ctx.beginPath(); ctx.ellipse(CX, BY - 30, 120, 70, 0, 0, 6.3); ctx.fill(); }
+          // la pila: borde de piedra, agua con ondas y frente
+          ctx.fillStyle = C.oscuro ? "#7A819A" : "#DCD6CA"; ctx.beginPath(); ctx.ellipse(CX, BY, RX + 8, RY + 5, 0, 0, 6.3); ctx.fill();
+          ctx.fillStyle = C.agua; ctx.beginPath(); ctx.ellipse(CX, BY, RX, RY, 0, 0, 6.3); ctx.fill();
+          ctx.save(); ctx.beginPath(); ctx.ellipse(CX, BY, RX, RY, 0, 0, 6.3); ctx.clip();
+          for (let i = ondas.length - 1; i >= 0; i--) { const o = ondas[i]; o.r += 0.5 * k; o.a -= 0.015 * k; if (o.a <= 0) { ondas.splice(i, 1); continue; } ctx.strokeStyle = `rgba(255,255,255,${o.a})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(o.x, o.y, o.r, o.r * 0.2, 0, 0, 6.3); ctx.stroke(); }
+          ctx.restore();
+          ctx.fillStyle = C.oscuro ? "#5E6582" : "#C7C0B2"; ctx.beginPath(); ctx.moveTo(CX - RX - 8, BY); ctx.lineTo(CX - RX - 8, BY + 12); ctx.ellipse(CX, BY + 12, RX + 8, RY + 5, 0, Math.PI, 0, true); ctx.lineTo(CX + RX + 8, BY); ctx.ellipse(CX, BY, RX + 8, RY + 5, 0, 0, Math.PI); ctx.closePath(); ctx.fill();
+          // la columna y su taza
+          ctx.fillStyle = C.oscuro ? "#7A819A" : "#DCD6CA"; ctx.fillRect(CX - 6, 112, 12, BY - 112); ctx.beginPath(); ctx.ellipse(CX, 112, 24, 6, 0, 0, 6.3); ctx.fill();
+          ctx.fillStyle = C.agua; ctx.beginPath(); ctx.ellipse(CX, 110.5, 20, 4, 0, 0, 6.3); ctx.fill();
+          // los chorros: cada gota cae y hace una onda
+          for (let i = chorros.length - 1; i >= 0; i--) {
+            const p = chorros[i]; p.vy += 0.075 * k; p.x += p.vx * k; p.y += p.vy * k;
+            if (p.vy > 0 && p.y > BY - 2 && Math.abs(p.x - CX) < RX - 4) { if (Math.random() < 0.08) ondas.push({ x: p.x, y: p.y, r: 1, a: 0.6 }); chorros.splice(i, 1); continue; }
+            if (p.y > 220) { chorros.splice(i, 1); continue; }
+            ctx.fillStyle = encendida ? `rgba(${120 + (i * 7) % 120},${200 + (i % 50)},255,.85)` : rgba(C.claro, 0.85); ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.3); ctx.fill();
+          }
+          if (chorros.length > 700) chorros.splice(0, chorros.length - 700);
+          // las gotas de la comunidad (y la tuya, más grande y ámbar)
+          for (let i = llegan.length - 1; i >= 0; i--) {
+            const g = llegan[i]; g.t += dt / g.dur; const e = Math.min(1, g.t);
+            const x = g.x0 + (g.x1 - g.x0) * e, y = g.y0 + (g.y1 - g.y0) * e - Math.sin(e * Math.PI) * g.alto;
+            if (g.t >= 1) {
+              llegan.splice(i, 1); ondas.push({ x: g.x1, y: g.y1, r: 1, a: g.tuyo ? 0.95 : 0.6 });
+              if (g.tuyo) { ondas.push({ x: g.x1, y: g.y1, r: 6, a: 0.8 }); impulso = 1; chis.soltar(g.x1, g.y1 - 6, 16); }
+              continue;
+            }
+            if (g.tuyo) { ctx.strokeStyle = rgba(C.ambar, 0.35); ctx.lineWidth = 3; ctx.beginPath(); for (let s = 0; s <= 8; s++) { const ee = Math.max(0, e - s * 0.025); ctx.lineTo(g.x0 + (g.x1 - g.x0) * ee, g.y0 + (g.y1 - g.y0) * ee - Math.sin(ee * Math.PI) * g.alto); } ctx.stroke(); }
+            gota(ctx, x, y, g.tuyo ? 5.5 : 2.6, g.tuyo ? C.ambar : C.agua);
+          }
+          chis.paso(k); chis.pintar(ctx);
+        },
+      };
+    },
   };
 
   /* -------- Tu elefante riega, en 3D: el mismo elefante de Tu casa (elefante-3d.js) junto a su planta --------
@@ -1258,5 +1435,7 @@ const AGUA_MOTOR = (() => {
   new MutationObserver(() => { if (espera) return; espera = setTimeout(() => { espera = null; document.querySelectorAll("canvas[data-agua]:not([data-listo])").forEach(montar); }, 20); })
     .observe(document.documentElement, { childList: true, subtree: true });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) vivas.forEach(o => o.despertar()); });
-  return { montar, verter };
+  /* ¡Salud! en el bidón que se ve (agua-juntos.js) */
+  function brindar(id) { vivas.forEach(o => { if (o.cv.isConnected && o.cv.dataset.bidon === id && o.escena.brindar) { o.escena.brindar(); o.despertar(); } }); }
+  return { montar, verter, brindar };
 })();

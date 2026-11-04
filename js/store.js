@@ -147,7 +147,7 @@ const LocalBackend = {
      Las cuentas locales comparten esta "base", así se prueban dos personas en un mismo equipo. -------- */
   _amDb() {
     const vacia = { perfiles: {}, amistades: [], animos: [], sig: 1, conjuntos: [], cmiembros: [], cmarcas: [], cdescansos: [], objetivos: [], omiembros: [], oaportes: [],
-      planes: [], pinvitados: [], popciones: [], pvotos: [], precuerdos: [], pgastos: [], listas: [], lmiembros: [], litems: [], lvotos: [], lecturas: [], ljmiembros: [] };
+      planes: [], pinvitados: [], popciones: [], pvotos: [], precuerdos: [], pgastos: [], listas: [], lmiembros: [], litems: [], lvotos: [], lecturas: [], ljmiembros: [], bidones: [], bmiembros: [], baportes: [], fuente: [] };
     try { return Object.assign(vacia, JSON.parse(localStorage.getItem("rumbo_amigos") || "{}")); } catch { return vacia; }
   },
   _amGuardar(db) { try { localStorage.setItem("rumbo_amigos", JSON.stringify(db)); } catch {} },
@@ -471,6 +471,118 @@ const LocalBackend = {
         aportes: aps.slice().sort((a, b) => b.creado - a.creado || b.id - a.id).slice(0, 30).map(a => ({ id: a.id, user_id: a.user_id, cantidad: a.cantidad, nota: a.nota, fecha: a.fecha })),
       };
     });
+  },
+  /* -------- 💧 Agua con otros sin servidor: las reglas de supabase/agua.sql --------
+     Los vasos del aviso («+ Un vaso») que anotó el servidor quedan en rumbo_agua_pend_<cuenta> (en las pruebas se ponen a mano) */
+  async aguaPendientesTomar() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const k = "rumbo_agua_pend_" + yo; let l = [];
+    try { l = JSON.parse(localStorage.getItem(k) || "[]"); localStorage.removeItem(k); } catch {}
+    return (Array.isArray(l) ? l : []).sort((a, b) => a.ts - b.ts);
+  },
+  _fuenteHoy(db, fecha, yo) {
+    const f = db.fuente.filter(x => x.fecha === fecha);
+    return { fecha, ml: f.reduce((t, x) => t + x.ml, 0), personas: f.filter(x => x.ml > 0).length, yo: (f.find(x => x.user_id === yo) || {}).ml || 0 };
+  },
+  async fuenteHoy(fecha) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    return this._fuenteHoy(this._amDb(), this._cjHoy(fecha), yo);
+  },
+  async fuenteSumar(fecha, ml) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), hoy = this._cjHoy(fecha); if (fecha !== hoy) return { error: "fecha" };
+    db.fuente = db.fuente.filter(x => !(x.fecha === hoy && x.user_id === yo) && x.fecha >= agSumar(todayISO(), -2));
+    db.fuente.push({ fecha: hoy, user_id: yo, ml: Math.min(4000, Math.max(0, Math.round(+ml || 0))) });
+    this._amGuardar(db);
+    return this._fuenteHoy(db, hoy, yo);
+  },
+  _bdLunes(iso) { const d = new Date(iso + "T12:00:00"); return agSumar(iso, -((d.getDay() + 6) % 7)); },
+  _bdActivo(db, b, yo) { return db.bmiembros.find(m => m.bidon === b && m.user_id === yo && m.estado === "activo"); },
+  _bdSacar(db, b, quien) {   // sale (lo que aportó sigue); si no queda nadie activo, se borra con sus aportes
+    db.bmiembros = db.bmiembros.filter(m => !(m.bidon === b && m.user_id === quien));
+    if (!db.bmiembros.some(m => m.bidon === b && m.estado === "activo")) {
+      db.bidones = db.bidones.filter(x => x.id !== b); db.bmiembros = db.bmiembros.filter(m => m.bidon !== b); db.baportes = db.baportes.filter(a => a.bidon !== b);
+    }
+  },
+  _bdRecalcular(db, b, hoy) {
+    const x = db.bidones.find(y => y.id === b), total = db.baportes.filter(a => a.bidon === b).reduce((t, a) => t + a.ml, 0), antes = x.lleno;
+    x.lleno = total >= x.meta_ml ? (x.lleno || hoy) : null;
+    return { total, lleno: !!x.lleno, recien: !antes && !!x.lleno };
+  },
+  async bidonCrear(nombre, metaMl, amigos, hoy) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), n = String(nombre || "").trim(), meta = Math.round(+metaMl || 0);
+    if (!n || n.length > 40) return { error: "nombre" };
+    if (!(meta >= 5000 && meta <= 300000)) return { error: "meta" };
+    const ids = [...new Set(amigos || [])].filter(x => x && x !== yo);
+    if (!ids.length || ids.length > 7) return { error: "amigos" };
+    if (ids.some(x => { const f = this._amPar(db, yo, x); return !f || f.estado !== "aceptada"; })) return { error: "no-amigos" };
+    const d = this._cjHoy(hoy), lunes = this._bdLunes(d);
+    if (db.bidones.filter(b => b.creador === yo && b.lunes === lunes).length >= 3) return { error: "limite" };
+    db.bidones.filter(b => b.lunes < agSumar(todayISO(), -21)).forEach(b => { db.bidones = db.bidones.filter(x => x !== b); db.bmiembros = db.bmiembros.filter(m => m.bidon !== b.id); db.baportes = db.baportes.filter(a => a.bidon !== b.id); });
+    const id = "bd" + (db.sig++) + Date.now().toString(36), t = Date.now();
+    db.bidones.push({ id, nombre: n, meta_ml: meta, lunes, creador: yo, lleno: null });
+    db.bmiembros.push({ bidon: id, user_id: yo, estado: "activo", color: 0, invita: null, desde: d, creado: t });
+    ids.forEach((x, i) => db.bmiembros.push({ bidon: id, user_id: x, estado: "invitado", color: i + 1, invita: yo, desde: null, creado: t + 1 + i }));
+    this._amGuardar(db);
+    return { id };
+  },
+  async bidonInvitar(b, amigos) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._bdActivo(db, b, yo)) return { error: "no-miembro" };
+    const ids = [...new Set(amigos || [])].filter(x => x && x !== yo && !db.bmiembros.some(m => m.bidon === b && m.user_id === x));
+    if (ids.some(x => { const f = this._amPar(db, yo, x); return !f || f.estado !== "aceptada"; })) return { error: "no-amigos" };
+    if (db.bmiembros.filter(m => m.bidon === b).length + ids.length > 8) return { error: "limite" };
+    const usados = new Set(db.bmiembros.filter(m => m.bidon === b).map(m => m.color)), libres = [0, 1, 2, 3, 4, 5, 6, 7].filter(c => !usados.has(c));
+    ids.forEach((x, i) => db.bmiembros.push({ bidon: b, user_id: x, estado: "invitado", color: libres[i], invita: yo, desde: null, creado: Date.now() + i }));
+    this._amGuardar(db);
+    return { n: ids.length };
+  },
+  async bidonResponder(b, acepta, hoy) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    const m = db.bmiembros.find(x => x.bidon === b && x.user_id === yo && x.estado === "invitado");
+    if (!m) return { r: "nada" };
+    if (!acepta) { this._bdSacar(db, b, yo); this._amGuardar(db); return { r: "rechazado" }; }
+    const lunes = this._bdLunes(todayISO());
+    if (db.bmiembros.filter(x => x.user_id === yo && x.estado === "activo" && (db.bidones.find(y => y.id === x.bidon) || {}).lunes >= lunes).length >= 5) return { error: "limite" };
+    m.estado = "activo"; m.desde = this._cjHoy(hoy);
+    this._amGuardar(db);
+    return { r: "unido" };
+  },
+  async bidonSalir(b) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!db.bmiembros.some(m => m.bidon === b && m.user_id === yo)) return { r: "nada" };
+    this._bdSacar(db, b, yo); this._amGuardar(db);
+    return { r: "salio" };
+  },
+  async bidonAportar(b, dias, hoy) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb();
+    if (!this._bdActivo(db, b, yo)) return { error: "no-miembro" };
+    if (!dias || typeof dias !== "object") return { error: "dias" };
+    const x = db.bidones.find(y => y.id === b), d = this._cjHoy(hoy), fin = agSumar(x.lunes, 6);
+    Object.keys(dias).forEach(f => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(f) || f < x.lunes || f > fin || f > d || typeof dias[f] !== "number") return;
+      db.baportes = db.baportes.filter(a => !(a.bidon === b && a.user_id === yo && a.fecha === f));
+      db.baportes.push({ bidon: b, user_id: yo, fecha: f, ml: Math.min(5000, Math.max(0, Math.round(dias[f]))) });
+    });
+    const r = this._bdRecalcular(db, b, d);
+    this._amGuardar(db);
+    return r;
+  },
+  async bidonLista() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), desde = agSumar(this._bdLunes(todayISO()), -7), hoy = todayISO();
+    return db.bmiembros.filter(m => m.user_id === yo).map(mio => ({ mio, b: db.bidones.find(x => x.id === mio.bidon) }))
+      .filter(x => x.b && x.b.lunes >= desde).sort((x, y) => y.b.lunes.localeCompare(x.b.lunes) || x.mio.creado - y.mio.creado).map(({ mio, b }) => {
+        const tot = {};
+        db.baportes.filter(a => a.bidon === b.id).forEach(a => { const t = tot[a.user_id] || (tot[a.user_id] = { ml: 0, hoy: 0 }); t.ml += a.ml; if (a.fecha === hoy) t.hoy += a.ml; });
+        return {
+          id: b.id, nombre: b.nombre, meta_ml: b.meta_ml, lunes: b.lunes, lleno: b.lleno, creador: b.creador, estado: mio.estado, invita: mio.invita,
+          miembros: db.bmiembros.filter(m => m.bidon === b.id).sort((p, q) => p.color - q.color)
+            .map(m => Object.assign(this._amFicha(db, m.user_id), { yo: m.user_id === yo, estado: m.estado, color: m.color, desde: m.desde })),
+          totales: Object.keys(tot).map(id => ({ id, nombre: this._amFicha(db, id).nombre, ml: tot[id].ml, hoy: tot[id].hoy })),
+        };
+      });
   },
   /* -------- Planes con amigos sin servidor: las reglas de supabase/planes.sql -------- */
   _plHora(h) { return h == null || h === "" ? null : /^([01]\d|2[0-3]):[0-5]\d$/.test(h) ? h : false; },
@@ -923,7 +1035,7 @@ function aguaMerge(l, s) {
     if (a.cp || b.cp) dias[k].cp = true;
   });
   const clima = nuevo.clima && typeof nuevo.clima === "object" ? { on: !!nuevo.clima.on, ciudad: String(nuevo.clima.ciudad || ""), lat: +nuevo.clima.lat, lon: +nuevo.clima.lon } : null;
-  return { meta: +nuevo.meta || 0, vaso: +nuevo.vaso || 250, botella: +nuevo.botella || 500, inicio: nuevo.inicio !== false, fab: nuevo.fab !== false, clima, ts: Math.max(l.ts || 0, s.ts || 0), dias };
+  return { meta: +nuevo.meta || 0, vaso: +nuevo.vaso || 250, botella: +nuevo.botella || 500, inicio: nuevo.inicio !== false, fab: nuevo.fab !== false, fuente: nuevo.fuente !== false, clima, ts: Math.max(l.ts || 0, s.ts || 0), dias };
 }
 /* Las alcancías en dos equipos: cada una por id; nombre, meta, fecha, estilo y destino, del ts más nuevo; los aportes se juntan
    por id y lo deshecho no vuelve; cerrada en cualquiera de los dos queda cerrada; las borradas no reviven. Ocultar, del más nuevo */
@@ -1331,6 +1443,16 @@ const SupabaseBackend = {
   },
   async objetivoAportar(o, cantidad, nota, hoy) { const r = await this._amRpc("objetivo_aportar", { p_id: o, p_cantidad: cantidad, p_nota: nota || "", p_hoy: hoy }); return r.error ? r : r.data; },
   async objetivoBorrarAporte(aporte) { const r = await this._amRpc("objetivo_borrar_aporte", { p_aporte: aporte }); return r.error ? r : r.data; },
+  /* -------- 💧 Agua con otros (supabase/agua.sql): los vasos del aviso, la fuente de Rumbo y el bidón -------- */
+  async aguaPendientesTomar() { const r = await this._amRpc("agua_pendientes_tomar"); return r.error ? r : r.data || []; },
+  async fuenteHoy(fecha) { const r = await this._amRpc("fuente_hoy", { p_fecha: fecha }); return r.error ? r : r.data; },
+  async fuenteSumar(fecha, ml) { const r = await this._amRpc("fuente_sumar", { p_fecha: fecha, p_ml: Math.round(ml) }); return r.error ? r : r.data; },
+  async bidonLista() { const r = await this._amRpc("bidon_lista"); return r.error ? r : r.data || []; },
+  async bidonCrear(nombre, metaMl, amigos, hoy) { const r = await this._amRpc("bidon_crear", { p_nombre: nombre, p_meta_ml: Math.round(metaMl), p_amigos: amigos, p_hoy: hoy }); return r.error ? r : { id: r.data }; },
+  async bidonInvitar(b, amigos) { const r = await this._amRpc("bidon_invitar", { p_id: b, p_amigos: amigos }); return r.error ? r : { n: r.data }; },
+  async bidonResponder(b, acepta, hoy) { const r = await this._amRpc("bidon_responder", { p_id: b, p_acepta: !!acepta, p_hoy: hoy }); return r.error ? r : { r: r.data }; },
+  async bidonSalir(b) { const r = await this._amRpc("bidon_salir", { p_id: b }); return r.error ? r : { r: r.data }; },
+  async bidonAportar(b, dias, hoy) { const r = await this._amRpc("bidon_aportar", { p_id: b, p_dias: dias, p_hoy: hoy }); return r.error ? r : r.data; },
   /* -------- Planes con amigos (supabase/planes.sql) -------- */
   async planLista(hoy) { const r = await this._amRpc("plan_lista", { p_hoy: hoy }); return r.error ? r : r.data || []; },
   async planCrear(p, amigos, hoy) {

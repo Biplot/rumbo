@@ -68,6 +68,19 @@ export function textoAgua({ ml }, hoy) {
   return una(hoy, "agua", [`Llevas ${litros(ml)} L hoy. ¿Un vaso? Yo ya me tomé un balde.`, `Vas en ${litros(ml)} L. Un vaso ahora y llegas mejor a la noche.`]);
 }
 
+/* «+ Un vaso» y «+ Tu botella» en el aviso del agua (Android y computador; en iPhone, tocarlo abre la portilla).
+   El service worker (sw.js) los anota sin abrir la app, con la firma del aviso (notifier/vaso.mjs) */
+export function vasoDe(data) { const v = +(data && data.agua && data.agua.vaso); return v >= 100 && v <= 1000 ? v : 250; }
+export function botellaDe(data) { const v = +(data && data.agua && data.agua.botella); return v >= 250 && v <= 3000 ? v : 500; }
+const mlTxt = ml => (ml >= 1000 ? litros(ml) + " L" : ml + " ml");
+export function accionesAgua({ data, uid, hoy, ml, meta, firma }) {
+  const vaso = vasoDe(data), botella = botellaDe(data);
+  return {
+    actions: [{ action: "vaso", title: `+ Un vaso (${mlTxt(vaso)})` }, { action: "botella", title: `+ Tu botella (${mlTxt(botella)})` }],
+    agua: { u: uid, d: hoy, f: firma, vaso, botella, ml: Math.round(ml || 0), meta: Math.round(meta || 0) },
+  };
+}
+
 /* Los avisos de siempre, con la voz de tu elefante (título y texto; el título queda corto) */
 export const VOZ = {
   manana: ["🌅 Buenos días", ["Ya estoy despierto y con la trompa lista. ¿Abrimos tu día y elegimos tu primer bocado?", "Te guardé un café. Abre tu día y dime qué va primero.", "Un día nuevo: ¿lo abrimos juntos? Son dos minutos."]],

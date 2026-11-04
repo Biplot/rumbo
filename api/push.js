@@ -30,6 +30,11 @@
              (supabase/planes.sql). El recordatorio del día («Hoy: …») sale con los demás recordatorios.
            { accion: "amigos", tipo: "lista-invita" | "lista-acepta" | "lista-agrega", lista, item? }
              -> listas compartidas: te invitan, alguien se sumó, alguien agregó algo (supabase/listas.sql)
+           { accion: "amigos", tipo: "bidon-invita" | "bidon-acepta" | "bidon-lleno", bidon }
+             -> el bidón con amigos: te invitan, alguien se sumó, ¡lo llenaron! (supabase/agua.sql)
+     POST  { accion: "vaso", u, d, f, id, ml, ts, fecha }  (sin sesión: lo manda el service worker)
+           -> «+ Un vaso» desde el aviso del agua: con la firma que traía el aviso se anota en agua_pendientes
+             (notifier/vaso.mjs) y la app lo suma al abrirse
 
    Variables de entorno (Vercel → Settings → Environment Variables):
      SUPABASE_SERVICE_ROLE_KEY   clave secreta de Supabase (service_role o sb_secret_…)
@@ -222,6 +227,12 @@ async function recordatoriosCumplesApi(config, host) {
   }
 }
 
+/* Un aviso del bidón con amigos: notifier/bidon.mjs revisa en la base que corresponda */
+async function avisoBidonApi(config, yo, body, host) {
+  const { avisoBidon } = await import("../notifier/bidon.mjs");
+  return avisoBidon({ sb: admin(), yo, body, enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+}
+
 /* Un aviso de un hábito en conjunto: notifier/conjunto.mjs revisa en la base que corresponda */
 async function avisoConjuntoApi(config, yo, body, host) {
   const { avisoConjunto } = await import("../notifier/conjunto.mjs");
@@ -249,11 +260,19 @@ module.exports = async function handler(req, res) {
     if (req.headers["x-push-secreto"] != null) {
       if (!secretoValido(req.headers["x-push-secreto"], config.secreto)) return res.status(401).json({ error: "No autorizado" });
       const { enviarRecordatorios } = await import("../notifier/recordatorios.mjs");
-      const r = await enviarRecordatorios({ sb: admin(), enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+      const { firmaVaso } = await import("../notifier/vaso.mjs");
+      const r = await enviarRecordatorios({ sb: admin(), enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host), firmar: (uid, dia) => firmaVaso(config.secreto, uid, dia) });
       r.planes = await recordatoriosPlanesApi(config, host);
       r.cumples = await recordatoriosCumplesApi(config, host);
       console.log("recordatorios", JSON.stringify(r));
       return res.status(200).json(r);
+    }
+
+    /* El service worker: «+ Un vaso» desde el aviso del agua (sin sesión: vale la firma que traía el aviso) */
+    const cuerpo0 = cuerpoJSON(req);
+    if (cuerpo0.accion === "vaso") {
+      const { vasoDesdeAviso } = await import("../notifier/vaso.mjs");
+      return res.status(200).json(await vasoDesdeAviso({ sb: admin(), body: cuerpo0, secreto: config.secreto }));
     }
 
     /* La app: una prueba a este dispositivo (debe ser de quien llama) */
@@ -267,6 +286,7 @@ module.exports = async function handler(req, res) {
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("plan-")) return res.status(200).json(await avisoPlanApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("lista-")) return res.status(200).json(await avisoListaApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("lectura-")) return res.status(200).json(await avisoLecturaApi(config, u.user.id, body, host));
+    if (body.accion === "amigos" && String(body.tipo || "").startsWith("bidon-")) return res.status(200).json(await avisoBidonApi(config, u.user.id, body, host));
     if (body.accion === "amigos") return res.status(200).json(await avisoAmigos(config, u.user.id, body, host));
     if (body.accion !== "prueba" || typeof body.endpoint !== "string") return res.status(400).json({ error: "Acción no válida" });
     const { data: fila, error: eFila } = await admin().from("suscripciones_push")

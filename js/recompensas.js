@@ -115,6 +115,7 @@ function buyItem(id) {
   if (!res.ok) return res.yaTenia ? rerender() : toast("Te faltan " + res.falta + " ⭐", true);
   if (esDelCuarto(it)) cuartoComprado(it);
   if (it.key === "acuario") { saveState(); updateTopbar(); rerender(); return toast("🐠 El acuario del mes: ya está en Salud. Cada día que cumples tu meta llega un pez"); }
+  if (it.key === "bidon") { saveState(); updateTopbar(); rerender(); if (typeof openBidonForm === "function" && AMIGOS.lista && (AMIGOS.lista.amigos || []).length) { closeModal(); setTimeout(() => openBidonForm([]), 200); } return toast("💧 El bidón es tuyo: ármalo con tus amigos (en «Tu agua» o en Amigos)"); }
   if (it.key === "alcancia") { saveState(); updateTopbar(); rerender(); return toast(`🐷 ${it.nombre.replace("Alcancía: ", "")}: elígelo al crear o editar una alcancía en Finanzas`); }
   if (it.key === "moneda" && typeof eqCos === "function") { eqCos().moneda = it.value; saveState(); updateTopbar(); rerender(); return toast(`🪙 ${it.nombre}: ya caen en tus alcancías`); }
   if (it.key === "jardin" && typeof eqCos === "function") { eqCos().jardin = it.value; saveState(); updateTopbar(); rerender(); return toast(`${it.grupo === "jardin-especial" ? "🚀" : "🌱"} ${it.nombre.replace("Jardín: ", "")}: ya lo ves en Hábitos`); }   // jardin.js: se usa al tiro

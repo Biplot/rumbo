@@ -43,24 +43,48 @@ module.exports = async ({ b, ok, errs }) => {
   ok(n >= 4 && n <= 8 && await p.locator(".tuanio__barras span").count() === n, `una barra por lámina (${n})`);
   const L = await p.evaluate(() => TA.laminas);
   ok(L[0] === "portada" && L[n - 1] === "final" && ["cerrados", "habitos", "libros"].every(k => L.includes(k)) && !L.includes("agua"), "con lo que hubo: portada, días cerrados, tu hábito, tus libros y el cierre (sin agua si no tomaste) · " + L.join(" "));
-  let alt = await p.locator("#ta-img").getAttribute("alt");
-  ok(/2026 en Rumbo/.test(alt) && /Camila/.test(alt), "la portada se lee: «2026 en Rumbo», con tu nombre");
-  ok(await p.evaluate(() => new Promise(r => { const i = document.getElementById("ta-img"); const f = () => r([i.naturalWidth, i.naturalHeight]); i.complete && i.naturalWidth ? f() : i.onload = f; })).then(x => x[0] === 1080 && x[1] === 1920), "cada lámina es de 1080 × 1920 (historia de Instagram o WhatsApp)");
-  await p.click('[data-action="ta-sig"]'); await p.waitForTimeout(200);
-  alt = await p.locator("#ta-img").getAttribute("alt");
-  ok(await p.evaluate(() => TA.i) === 1 && /Cerraste 20 días/.test(alt) && /20 días seguidos/.test(alt), "tocar a la derecha: la siguiente (20 días cerrados, 20 seguidos)");
+  const alt = () => p.locator("#ta-cv").getAttribute("aria-label");
+  ok(/2026 en Rumbo/.test(await alt()) && /Camila/.test(await alt()), "la portada se lee: «2026 en Rumbo», con tu nombre");
+  ok(await p.evaluate(() => { const c = document.getElementById("ta-cv"); return c.width === 1080 && c.height === 1920 && c.getAttribute("role") === "img"; }), "cada lámina es de 1080 × 1920 (historia de Instagram o WhatsApp)");
+  // Se mueve: el reloj de la lámina avanza y los cuadros se pintan
+  const mov = await p.evaluate(() => new Promise(r => { const a = TA.cuadros, t0 = taTiempo(); setTimeout(() => r([TA.cuadros - a, taTiempo() - t0]), 600); }));
+  ok(mov[0] >= 10 && mov[1] >= 400, `la lámina se mueve (${mov[0]} cuadros en 0,6 s)`);
+  ok(await p.evaluate(() => { const T = tuAnioTexto("cerrados", TA.d); return taCuentaTxt(T, 0) === "0" && taCuentaTxt(T, 0.5) !== "20" && taCuentaTxt(T, 1) === "20"; }), "el número grande cuenta de 0 a 20");
+  // Mantener el dedo: se detiene el movimiento y la barra
+  const lam = await p.locator("#ta-lam").boundingBox();
+  await p.mouse.move(lam.x + lam.width * 0.7, lam.y + lam.height / 2); await p.mouse.down();
+  const quieto = await p.evaluate(() => new Promise(r => { const t0 = taTiempo(); setTimeout(() => r(taTiempo() - t0), 500); }));
+  ok(quieto === 0 && await p.evaluate(() => TA.pausa), "mantener el dedo la pausa (el tiempo no corre)");
+  await p.mouse.up(); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => TA.i) === 1 && /Cerraste 20 días/.test(await alt()) && /20 días seguidos/.test(await alt()), "al soltar a la derecha: la siguiente (20 días cerrados, 20 seguidos)");
   ok(await p.evaluate(() => document.getElementById("ta-b0").style.width) === "100%", "la barra de la que pasó queda llena");
+  ok(await p.evaluate(() => TA.prevOk === true || taTiempo() > 520), "entra con un círculo que crece sobre la anterior");
   await p.click('[data-action="ta-ant"]'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => TA.i) === 0, "tocar a la izquierda: vuelve");
   ok(await p.evaluate(() => document.documentElement.scrollWidth) <= 390, "sin scroll de lado");
+  await p.waitForTimeout(1800);
   await shot(p, "tu-anio-visor");
 
-  // 4) Compartir (con menú del teléfono)
-  await p.evaluate(() => { window.__comp = []; navigator.canShare = () => true; navigator.share = async o => { window.__comp.push(o.files.map(f => f.name + "|" + f.type)); }; });
-  await p.click('[data-action="ta-compartir"]'); await p.waitForTimeout(800);
-  await p.click('[data-action="ta-todas"]'); await p.waitForTimeout(1500);
+  // 4) Compartir (con menú del teléfono): esta como video o como imagen, y todas en imágenes
+  await p.evaluate(() => { window.__comp = []; navigator.canShare = () => true; navigator.share = async o => { window.__comp.push(o.files.map(f => f.name + "|" + f.type + "|" + f.size)); }; });
+  await p.click('[data-action="ta-compartir"]'); await p.waitForTimeout(300);
+  let hoja = await p.locator("#ta-hoja").innerText();
+  ok(/Como video/.test(hoja) && /Como imagen/.test(hoja), "«Compartir esta»: como video o como imagen");
+  await p.click('[data-action="ta-imagen"]'); await p.waitForTimeout(1200);
+  await p.click('[data-action="ta-compartir"]'); await p.waitForTimeout(300);
+  await p.click('[data-action="ta-video"]'); await p.waitForTimeout(400);
+  ok(/Grabando tu video/.test(await p.locator("#ta-hoja").innerText()) && await p.evaluate(() => TA.grabando), "grabando: la lámina se repite desde el comienzo");
+  await p.click('[data-action="ta-sig"]', { force: true }).catch(() => {}); await p.keyboard.press("Escape");
+  ok(await p.evaluate(() => TA.i === 0 && TA.grabando && !document.getElementById("tuanio").hidden), "mientras graba no se cambia de lámina ni se cierra");
+  await p.waitForFunction(() => /Tu video está listo|No se pudo/.test(document.getElementById("ta-hoja").innerText), null, { timeout: 15000 });
+  ok(/Tu video está listo/.test(await p.locator("#ta-hoja").innerText()), "a los 6 segundos: «Tu video está listo»");
+  await p.click('[data-action="ta-video-mandar"]'); await p.waitForTimeout(500);
+  await p.click('[data-action="ta-todas"]'); await p.waitForTimeout(2500);
   const comp = await p.evaluate(() => window.__comp);
-  ok(comp.length === 2 && comp[0].length === 1 && comp[0][0] === "rumbo-2026-1.jpg|image/jpeg" && comp[1].length === n, `«Compartir esta» manda una imagen y «Compartir las ${n}» todas`);
+  ok(comp.length === 3 && comp[0].length === 1 && /^rumbo-2026-1\.jpg\|image\/jpeg\|\d+$/.test(comp[0][0]), "como imagen: rumbo-2026-1.jpg · " + (comp[0] || []).join(","));
+  ok(comp[1] && comp[1].length === 1 && /^rumbo-2026-1\.(mp4|webm)\|video\/(mp4|webm)\|(\d+)$/.test(comp[1][0]) && +comp[1][0].split("|")[2] > 20000, "como video: un mp4 (o webm) de la lámina moviéndose · " + (comp[1] || []).join(","));
+  ok(comp[2] && comp[2].length === n, `«Compartir las ${n}»: todas en imágenes`);
+  ok(await p.locator("#ta-hoja").isHidden(), "al compartir el video la hoja se cierra");
 
   // 5) Cerrar: queda vista y la tarjeta se va
   await p.keyboard.press("Escape"); await p.waitForTimeout(300);

@@ -562,7 +562,7 @@ const NOVEDADES = {
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
   ],
   74: [
-    ["🎆", "Tu año en Rumbo, desde el 1 de diciembre", "Tu año contado en una historia de hasta 8 láminas: tus días cerrados y tu mejor racha, tu hábito del año, tus medallas, el agua que tomaste, tus libros, tus objetivos y en qué va tu elefante. Del tamaño de una historia de Instagram o WhatsApp, lista para compartir. Aparece en Inicio, en Tendencias y en el cierre de diciembre."],
+    ["🎆", "Tu año en Rumbo, desde el 1 de diciembre", "Tu año contado en una historia animada de hasta 8 láminas: tus días cerrados y tu mejor racha, tu hábito del año, tus medallas, el agua que tomaste, tus libros, tus objetivos y en qué va tu elefante. Los números cuentan, las medallas caen y el agua sube. Compártela en Instagram o WhatsApp como video o como imagen. Aparece en Inicio, en Tendencias y en el cierre de diciembre."],
   ],
   73: [
     ["⏱️", "El Foco, nuevo y gratis", "«Enfocarme» ahora sabe para qué es tu tiempo: eliges tu primer bocado, una tarea, una prioridad de la semana, un objetivo, un hábito o el libro que lees, y lo que hagas se suma ahí. De 10 a 90 minutos, libre o en ciclos con descansos (y un vaso de agua en el descanso, si quieres)."],

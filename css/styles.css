@@ -4141,3 +4141,37 @@ body.en-foco { overflow: hidden; }
 .fo-muestra { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
 .fo-muestra svg { width: 100%; height: auto; background: #0C0F1E; border-radius: 12px; }
 .fo-muestra-c { margin-bottom: 10px; }
+
+/* ============================================================
+   🎆 TU AÑO EN RUMBO (v141): la historia a pantalla completa y la tarjeta de diciembre en Inicio
+   ============================================================ */
+.tuanio { position: fixed; inset: 0; z-index: 130; background: #05060D; color: #FFFFFF; display: grid; place-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) max(12px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 12px) max(12px, env(safe-area-inset-left, 0px)); }
+.tuanio[hidden] { display: none; }
+.tuanio__in { position: relative; width: min(100%, calc((100dvh - 150px) * 9 / 16), 460px); display: grid; gap: 10px; }
+.tuanio__barras { display: flex; gap: 4px; }
+.tuanio__barras span { flex: 1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .28); overflow: hidden; }
+.tuanio__barras i { display: block; height: 100%; width: 0; background: #FFFFFF; }
+.tuanio__x { position: absolute; top: 14px; right: 6px; z-index: 2; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .35); color: #FFFFFF; font-size: 18px; cursor: pointer; }
+.tuanio__lam { position: relative; border-radius: 18px; overflow: hidden; aspect-ratio: 9 / 16; background: #11131F; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.tuanio__lam img { display: block; width: 100%; height: 100%; object-fit: cover; -webkit-user-drag: none; }
+@media (prefers-reduced-motion: no-preference) { .tuanio__lam img.is-entra { animation: ta-entra .45s ease-out; } @keyframes ta-entra { from { opacity: .2; transform: scale(1.03); } } }
+.tuanio__zona { position: absolute; top: 0; bottom: 0; border: 0; background: none; cursor: pointer; padding: 0; }
+.tuanio__zona--a { left: 0; width: 34%; }
+.tuanio__zona--s { right: 0; width: 66%; }
+.tuanio__acc { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tuanio__btn { border: 0; border-radius: 14px; padding: 12px 10px; font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; background: #1C2242; color: #EEF0F8; }
+.tuanio__btn--p { background: #FFBE55; color: #1A1300; }
+.tuanio__nota { margin: 0; font-size: 12px; color: #9AA1C0; text-align: center; }
+.tuanio :focus-visible { outline: 3px solid #8D9BFF; outline-offset: 2px; }
+.tuanio-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; margin-bottom: 20px; color: #FFFFFF; border: 0;
+  background: radial-gradient(circle at 90% 10%, rgba(255, 190, 85, .35), transparent 55%), linear-gradient(135deg, #3B4BD8, #141A55); }
+.tuanio-card__k { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #FFD38A; }
+.tuanio-card__t { font-family: var(--font-display); font-size: clamp(24px, 6vw, 30px); margin: 4px 0 6px; color: #FFFFFF; }
+.tuanio-card p { margin: 0 0 12px; color: #C9D0FF; font-size: 14.5px; }
+.tuanio-card .tuanio-card__btn { background: #FFBE55; color: #1A1300; border: 0; font-weight: 800; }
+.tuanio-card .tuanio-card__btn:hover { background: #FFCB73; }
+.tuanio-card__mini { width: 92px; aspect-ratio: 9 / 16; border-radius: 12px; background: linear-gradient(180deg, #FFC970, #F59A2C); color: #1A1300; display: grid; place-content: center; text-align: center; padding: 6px; box-shadow: 0 10px 24px -12px rgba(0, 0, 0, .6); transform: rotate(4deg); }
+.tuanio-card__mini b { font-family: var(--font-display); font-size: 28px; line-height: 1; }
+.tuanio-card__mini span { font-size: 11px; font-weight: 700; }
+.tuanio-cierre { display: grid; gap: 8px; }

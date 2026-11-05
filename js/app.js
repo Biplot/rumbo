@@ -172,7 +172,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 73;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 74;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -560,6 +560,9 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  74: [
+    ["🎆", "Tu año en Rumbo, desde el 1 de diciembre", "Tu año contado en una historia de hasta 8 láminas: tus días cerrados y tu mejor racha, tu hábito del año, tus medallas, el agua que tomaste, tus libros, tus objetivos y en qué va tu elefante. Del tamaño de una historia de Instagram o WhatsApp, lista para compartir. Aparece en Inicio, en Tendencias y en el cierre de diciembre."],
   ],
   73: [
     ["⏱️", "El Foco, nuevo y gratis", "«Enfocarme» ahora sabe para qué es tu tiempo: eliges tu primer bocado, una tarea, una prioridad de la semana, un objetivo, un hábito o el libro que lees, y lo que hagas se suma ahí. De 10 a 90 minutos, libre o en ciclos con descansos (y un vaso de agua en el descanso, si quieres)."],
@@ -1134,6 +1137,7 @@ function onClick(e) {
   if (a.startsWith("inv-") && typeof invitaAccion === "function") { invitaAccion(a, d, el); return; }   // 🎁 Invita y gana (invita.js)
   if (a.startsWith("ru-") && typeof ruedaAccion === "function") { ruedaAccion(a, d, el); return; }   // 🧭 la Rueda de la vida (rueda-pantalla.js)
   if (a.startsWith("foco-") && typeof focoAccion === "function") { focoAccion(a, d, el); return; }   // ⏱️ el Foco (foco-pantalla.js y foco-amigos.js)
+  if (a.startsWith("ta-") && typeof tuAnioAccion === "function") { tuAnioAccion(a, d, el); return; }   // 🎆 tu año en Rumbo (tu-anio.js)
   if (a.startsWith("cj-")) { conjuntoAccion(a, d); return; }      // hábitos en conjunto (conjunto.js)
   if (a.startsWith("oj-")) { objetivosAccion(a, d); return; }     // objetivos en conjunto (objetivos.js)
   if (a.startsWith("vis-")) { visitaAccion(a, d); return; }        // de visita en la casa de un amigo (visitas.js)
@@ -2162,6 +2166,7 @@ function renderInicio() {
   ${renderPendingYesterday()}
   ${primeraSemana ? inicioRitualesPrimeraSemana() : renderTrimestreBanner() + renderMesBanner() + renderSemanaBanner()}
   ${primeraSemana ? inicioGuiaHtml() : ""}
+  ${typeof tuAnioInicioHtml === "function" ? tuAnioInicioHtml() : ""}
   <div data-tour="dia">${renderDayHero()}</div>
   ${primeraSemana ? renderMisionCard() : ""}
   ${renderAtajos()}

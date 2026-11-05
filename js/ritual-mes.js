@@ -320,7 +320,8 @@ function mesCierrePaso(w) {
   }
   if (w.paso === 4) return albumPasoHtml(w);   // 📷 las fotos de los mejores momentos (album.js)
   if (w.paso === 6) return resumenAnioHtml(resumenAnio(STATE, w.y, d.nota))
-    + (typeof medallasCierreHtml === "function" ? medallasCierreHtml(medallasDelAnio(STATE, w.y), "🏅 Tus medallas del año", "Todas brillan en tu vitrina.") : "");
+    + (typeof medallasCierreHtml === "function" ? medallasCierreHtml(medallasDelAnio(STATE, w.y), "🏅 Tus medallas del año", "Todas brillan en tu vitrina.") : "")
+    + (typeof tuAnioBoton === "function" && tuAnioBoton(w.y) ? `<div class="card mt-16 tuanio-cierre"><b>🎆 La historia de tu ${w.y}</b><p class="text-sm muted">Tu año en láminas, para guardar o compartir.</p>${tuAnioBoton(w.y, "btn--primary btn-block")}</div>` : "");
   return `<div class="field"><label for="mc-nota">Nota de ${MESES[w.m]}</label>${elNota("mc-nota", d.nota, { label: "Nota de " + MESES[w.m] })}</div>
     <p class="text-xs muted">📔 El cierre queda también en tu Diario.</p>`;
 }

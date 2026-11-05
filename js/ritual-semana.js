@@ -116,6 +116,9 @@ function resumenSemanaRitual(lunes, S, evaluacion) {
     tareas: [tm.hechas, tm.tareas],
     postergacion: tm.tareas ? tm.indice : null, arrastre: tm.arrastre,
     soltadas: tm.soltadas, delegadas: tm.delegadas,
+    // ⏱️ el foco de la semana y cuánto fue a tus prioridades y objetivos (foco.js); 0 si no lo usaste
+    foco: typeof minutosFoco === "function" ? minutosFoco(S, lunes, fin) : 0,
+    focoPrio: typeof minutosFoco === "function" ? minutosFoco(S, lunes, fin, x => !!x.objId || x.tipo === "prioridad" || (x.tipo === "tarea" && prios.some(p => tareasDelDia(x.fecha, S).some(t => t.id === x.ref && t.prioridad === p.id)))) : 0,
   };
 }
 function resumenSemanaHtml(r, ant) {
@@ -137,6 +140,7 @@ function resumenSemanaHtml(r, ant) {
     ${n("🌅", "días abiertos", `${r.abiertos}/7`)}
     ${n("🌙", "días cerrados", `${r.cerrados}/7`)}
     ${n("✕", "soltadas · @ delegadas", `${r.soltadas} · ${r.delegadas}`)}
+    ${r.foco > 0 && typeof fmtFoco === "function" ? n("⏱️", r.focoPrio ? `de foco · ${fmtFoco(r.focoPrio)} en tus prioridades` : "de foco", fmtFoco(r.foco)) : ""}
   </div>`;
 }
 

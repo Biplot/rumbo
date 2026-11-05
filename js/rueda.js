@@ -140,6 +140,7 @@ function ruedaPistas(S, y, m, k) {
     if (RUEDA_HAB_NOMBRE[k]) deNombre(RUEDA_HAB_NOMBRE[k]).forEach(h => { const n = ruedaDiasHabito(S, h, y, m); if (n) out.push(`${h.nombre}: ${plural(n, "día", "días")}`); });
   }
   etiquetados.forEach(h => out.push(`${h.nombre}: ${plural(ruedaDiasHabito(S, h, y, m), "día", "días")} este mes`));
+  if (typeof focoMinArea === "function") { const fm = focoMinArea(S, y, m, k); if (fm >= 1) out.push(`${fmtFoco(fm)} de foco este mes`); }   // ⏱️ el foco en sus hábitos y objetivos (foco.js)
   ((datosAnio(S, y).metas.mensuales || [])[m] || []).filter(o => o && o.area === k).forEach(o => out.push(`Objetivo: «${o.texto}»${o.done ? " ✓" : ""}`));
   return out.slice(0, 4);
 }

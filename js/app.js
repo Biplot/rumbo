@@ -74,7 +74,7 @@ async function boot() {
   window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
   // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube;
   // al ocultarla/cerrarla, subir de inmediato lo pendiente (no perder el cierre recién hecho).
-  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); retomarEnfoque(); if (CURRENT_USER && typeof aguaJuntosAlVolver === "function") aguaJuntosAlVolver(); } });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); retomarFoco(); if (typeof focoSalaRevisar === "function") focoSalaRevisar(); if (CURRENT_USER && typeof aguaJuntosAlVolver === "function") aguaJuntosAlVolver(); } });
   window.addEventListener("focus", () => syncFromCloud());
   window.addEventListener("pagehide", () => flushCloudSave());
   window.addEventListener("hashchange", onRoute);
@@ -131,7 +131,8 @@ async function enterApp(user) {
   updateTopbar();
   onRoute();
   quitarSplash();
-  retomarEnfoque();       // ⏱️ sesión de enfoque en curso en este equipo
+  retomarFoco();          // ⏱️ sesión de foco en curso en este equipo (foco-pantalla.js)
+  setTimeout(() => { if (typeof focoSalaRevisar === "function") focoSalaRevisar(true); }, 2500);   // ¿un amigo te invitó a enfocarse? (foco-amigos.js)
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
   revisarDispositivoPush();              // 🔔 ¿este dispositivo sigue activado para esta cuenta?
   if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
@@ -171,7 +172,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 72;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 73;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -560,6 +561,11 @@ const NOVEDADES = {
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
   ],
+  73: [
+    ["⏱️", "El Foco, nuevo y gratis", "«Enfocarme» ahora sabe para qué es tu tiempo: eliges tu primer bocado, una tarea, una prioridad de la semana, un objetivo, un hábito o el libro que lees, y lo que hagas se suma ahí. De 10 a 90 minutos, libre o en ciclos con descansos (y un vaso de agua en el descanso, si quieres)."],
+    ["▶", "Hábitos con tiempo", "Ponle duración a un hábito («Meditar 10 min») y su tarjeta trae un ▶: al completar los minutos de hoy queda marcado solo, aunque lo hagas en dos tandas. Tus objetivos muestran las horas que les diste y tu libro avanza de página al terminar."],
+    ["👥", "En la barra, «qué sigue» y con un amigo", "Deja el reloj en la barra de arriba y sigue usando Rumbo; anota lo que se te cruza sin cortar la sesión; al terminar, «¿qué sigue?» te espera la próxima vez. Y enfócate a la misma hora que un amigo, cada uno en lo suyo. Relojes y sonidos nuevos en la Tienda; si ya tenías el modo enfoque, el reloj de arena y la lluvia son tuyos."],
+  ],
   72: [
     ["🧭", "La nueva Rueda de la vida", "Ahora es una rosa de los vientos: arrastra cada punta hasta su nota (o hazlo en «El minuto de la rueda»). La sombra punteada es tu mes pasado y abajo está tu rumbo del mes: el área que más subió y la que pide cariño."],
     ["💡", "Lo que dice tu Rumbo", "Cada área trae pistas de tu mes (tu agua, tus tareas Pro, tu ánimo del Diario, tus libros…), una frase si quieres y, para el área más baja, un paso chico que se crea en un toque. Tú pones la nota."],
@@ -740,6 +746,7 @@ async function doForgot() {
 async function doLogout() {
   await soltarDispositivoPush();   // 🔔 este dispositivo deja de recibir los avisos de quien sale
   await BACKEND.logout();
+  if (typeof cerrarFoco === "function") { cerrarFoco(); focoCallar(0.2); }   // ⏱️ la sesión de foco queda guardada en este equipo para cuando vuelvas
   CURRENT_USER = null; STATE = null; location.hash = "";
   amigosOlvidar();   // lo de tus amigos en memoria no queda para quien entre después
   albumOlvidar();    // ni las direcciones de las fotos del álbum
@@ -1126,6 +1133,7 @@ function onClick(e) {
   if (a.startsWith("am-")) { amigosAccion(a, d, el); return; }   // 🤝 Amigos (amigos.js)
   if (a.startsWith("inv-") && typeof invitaAccion === "function") { invitaAccion(a, d, el); return; }   // 🎁 Invita y gana (invita.js)
   if (a.startsWith("ru-") && typeof ruedaAccion === "function") { ruedaAccion(a, d, el); return; }   // 🧭 la Rueda de la vida (rueda-pantalla.js)
+  if (a.startsWith("foco-") && typeof focoAccion === "function") { focoAccion(a, d, el); return; }   // ⏱️ el Foco (foco-pantalla.js y foco-amigos.js)
   if (a.startsWith("cj-")) { conjuntoAccion(a, d); return; }      // hábitos en conjunto (conjunto.js)
   if (a.startsWith("oj-")) { objetivosAccion(a, d); return; }     // objetivos en conjunto (objetivos.js)
   if (a.startsWith("vis-")) { visitaAccion(a, d); return; }        // de visita en la casa de un amigo (visitas.js)
@@ -1253,11 +1261,7 @@ function onClick(e) {
 
     /* Tienda · funciones */
     case "fun-buy": comprarFuncion(d.id); break;
-    case "enfoque-open": openEnfoque(); break;
-    case "enfoque-iniciar": iniciarEnfoque(); break;
-    case "enfoque-pausa": pausarEnfoque(); break;
-    case "enfoque-terminar": terminarEnfoque(false); break;
-    case "enfoque-hecha": enfoqueTareaHecha(d.fecha, d.id); break;
+    case "enfoque-open": openFoco(); break;   // ⏱️ el botón de siempre abre el Foco (foco-pantalla.js)
     case "plantillas-open": openPlantillas(); break;
     case "plantilla-aplicar": aplicarPlantillaUI(d.id); break;
     case "informe-anio": openInformeAnio(+d.y); break;
@@ -2008,6 +2012,7 @@ function renderCierreResumen(r) {
   const filas = fila("Misión", `${r.mision ? escapeHtml(r.mision) : "—"} ${cumpliChip(c.mision)}`)
     + (tot[1] ? fila("Tareas", `${tot[0]} de ${tot[1]} hechas${movidas.length ? `<span class="recibo__mov">${movidas.map(m => `<span class="chip">${m}</span>`).join("")}</span>` : ""}`) : "")
     + (s.habTotal ? fila("Hábitos", `${s.habDone} de ${s.habTotal}`) : "")
+    + (typeof focoReciboTxt === "function" && focoReciboTxt(iso) ? fila("Foco", focoReciboTxt(iso)) : "")   // ⏱️ solo si te enfocaste hoy
     + fila("Energía", `${r.energia || "—"} → ${c.energia || "—"} de 5`);
   const notas = (c.mejor ? `<div class="recibo__nota"><span>Agradeces</span>${escapeHtml(c.mejor)}</div>` : "")
     + (c.manana ? `<div class="recibo__nota"><span>Para mañana</span><b class="hl-cian">${escapeHtml(c.manana)}</b></div>` : "")
@@ -2141,7 +2146,7 @@ function renderInicio() {
       <a href="#tendencias">Ver métricas →</a></div>` : "";
   const tareasCard = `<div class="card">
     <div class="card__head"><div class="card__title">📋 Tareas de hoy</div>
-      <div class="row" style="gap:10px">${funcion("enfoque") ? `<button class="btn-ghost" data-action="enfoque-open" style="padding:4px 10px">⏱️ Enfocarme</button>` : ""}<a class="card__hint" href="#semana">Ver semana →</a></div></div>
+      <div class="row" style="gap:10px"><button class="btn-ghost" data-action="foco-abrir" style="padding:4px 10px">⏱️ Enfocarme</button><a class="card__hint" href="#semana">Ver semana →</a></div></div>
     ${renderBandejaPendientes()}
     ${tareasHoy.length ? (bocado ? tareaRowHtml(bocado, hoyISO, { sinSub: true }) : "") + grupo("pro") + grupo("per")
     : '<div class="empty" style="padding:14px">Sin tareas para hoy. Defínelas en tu ritual de apertura.</div>'}

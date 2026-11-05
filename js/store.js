@@ -304,6 +304,49 @@ const LocalBackend = {
   },
   async amigosAvisar() { return { ok: true }; },   // sin servidor no hay avisos al celular
 
+  /* -------- ⏱️ Foco sin servidor: el aviso de fin no sale (no hay servidor) y las salas siguen supabase/foco.sql -------- */
+  async focoAviso() { return { r: "ok" }; },
+  async focoAvisoQuitar() { return { r: "ok" }; },
+  _fsViva(x, ahora) { return (x.estado === "invitada" && ahora - x.creada < 15 * 60000) || (x.estado === "activa" && x.fin > ahora); },
+  async focoSalaInvitar(otro, min, titulo) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), f = this._amPar(db, yo, otro), ahora = Date.now(); db.fsalas = db.fsalas || [];
+    if (!otro || otro === yo || !f || f.estado !== "aceptada") return { error: "no-amigos" };
+    min = Math.round(+min); if (!(min >= 5 && min <= 120)) return { error: "no-valido" };
+    if (db.fsalas.some(x => [x.anfitrion, x.invitado].some(u => u === yo || u === otro) && x.estado === "activa" && x.fin > ahora)) return { error: "ocupado" };
+    db.fsalas.forEach(x => { if (x.anfitrion === yo && x.estado === "invitada") x.estado = "cancelada"; });
+    const id = db.sig++;
+    db.fsalas.push({ id, anfitrion: yo, invitado: otro, min, titulo_a: String(titulo || "").slice(0, 80), titulo_b: "", estado: "invitada", creada: ahora, inicio: 0, fin: 0, salio: null });
+    this._amGuardar(db); return { id };
+  },
+  async focoSalaResponder(id, acepta, titulo) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), x = (db.fsalas || []).find(y => y.id === +id && y.invitado === yo), ahora = Date.now();
+    if (!x) return { error: "no-existe" };
+    if (x.estado !== "invitada" || ahora - x.creada >= 15 * 60000) return { r: "vencida" };
+    if (!acepta) { x.estado = "rechazada"; this._amGuardar(db); return { r: "rechazada" }; }
+    Object.assign(x, { estado: "activa", inicio: ahora, fin: ahora + x.min * 60000, titulo_b: String(titulo || "").slice(0, 80) }); this._amGuardar(db);
+    return { r: "activa" };
+  },
+  async focoSalaSalir(id) {
+    const yo = localStorage.getItem("rumbo_session"), db = this._amDb(), x = (db.fsalas || []).find(y => y.id === +id && (y.anfitrion === yo || y.invitado === yo));
+    if (!x) return { error: "no-existe" };
+    let r = "ya";
+    if (x.estado === "invitada") { x.estado = yo === x.anfitrion ? "cancelada" : "rechazada"; r = "cancelada"; }
+    else if (x.estado === "activa" && !x.salio) { x.salio = yo; r = "salio"; }
+    else if (x.estado === "activa" && x.salio !== yo) { x.estado = "terminada"; r = "terminada"; }
+    this._amGuardar(db); return { r };
+  },
+  async focoSalaMia() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._amDb(), ahora = Date.now();
+    const xs = (db.fsalas || []).filter(x => (x.anfitrion === yo || x.invitado === yo) && this._fsViva(x, ahora))
+      .sort((a, b) => (b.estado === "activa") - (a.estado === "activa") || (b.invitado === yo) - (a.invitado === yo) || b.creada - a.creada);
+    const x = xs[0]; if (!x) return null;
+    const soy = x.anfitrion === yo ? "anfitrion" : "invitado", otro = soy === "anfitrion" ? x.invitado : x.anfitrion, iso = t => t ? new Date(t).toISOString() : null;
+    return { id: x.id, soy, otro: this._amFicha(db, otro), min: x.min, estado: x.estado, creada: iso(x.creada), inicio: iso(x.inicio), fin: iso(x.fin), ahora: new Date(ahora).toISOString(),
+      mi_titulo: soy === "anfitrion" ? x.titulo_a : x.titulo_b, su_titulo: soy === "anfitrion" ? x.titulo_b : x.titulo_a, salio: !x.salio ? null : x.salio === yo ? "yo" : "otro" };
+  },
+
   /* -------- Hábitos en conjunto sin servidor: las reglas de supabase/conjunto.sql -------- */
   _cjHoy(hoy) {   // el día del teléfono, si no se aleja más de un día
     const t = todayISO(), d = Math.round((new Date(hoy + "T12:00:00") - new Date(t + "T12:00:00")) / 864e5);
@@ -1303,7 +1346,9 @@ function mergeStates(server, local) {
   const lc = local.gamif && local.gamif.equipped && local.gamif.equipped.cuarto, sc = server.gamif && server.gamif.equipped && server.gamif.equipped.cuarto;
   if (sc && out.gamif && out.gamif.equipped && (!lc || (sc.ts || 0) > (lc.ts || 0))) out.gamif.equipped.cuarto = JSON.parse(JSON.stringify(sc));
   // Sesiones de enfoque: por id (cada sesión se crea en un solo equipo)
-  if (local.enfoque || server.enfoque) out.enfoque = { ...(out.enfoque || {}), sesiones: JSON.parse(JSON.stringify(usosMerge((local.enfoque || {}).sesiones, (server.enfoque || {}).sesiones))) };
+  // ⏱️ Foco: sesiones por id, «qué sigue» por clave y las preferencias, la más nueva (foco.js)
+  if (local.enfoque || server.enfoque) out.enfoque = typeof focoMerge === "function" ? JSON.parse(JSON.stringify(focoMerge(local.enfoque, server.enfoque)))
+    : { ...(out.enfoque || {}), sesiones: JSON.parse(JSON.stringify(usosMerge((local.enfoque || {}).sesiones, (server.enfoque || {}).sesiones))) };
   // Suscripciones push: unir por endpoint (cada dispositivo tiene la suya)
   const ln = local.settings && local.settings.notif, sn = server.settings && server.settings.notif;
   if (ln && sn && out.settings && out.settings.notif) {
@@ -1510,6 +1555,13 @@ const SupabaseBackend = {
   async bibRecomendacionesVistas(ids) { const r = await this._amRpc("libro_recomendaciones_vistas", { p_ids: ids }); return r.error ? r : { n: r.data }; },
   /* 🎁 Invita y gana (supabase/invitaciones.sql) */
   async invitacionRegistrar(otro) { const r = await this._amRpc("invitacion_registrar", { p_otro: otro }); return r.error ? r : { r: r.data }; },
+  /* ⏱️ Foco (supabase/foco.sql): el aviso de «¡Tiempo!» aunque cierres la app y el foco con un amigo */
+  async focoAviso(fin, titulo, tipo) { const r = await this._amRpc("foco_aviso", { p_fin: fin, p_titulo: titulo || "", p_tipo: tipo || "fin" }); return r.error ? r : { r: r.data }; },
+  async focoAvisoQuitar() { const r = await this._amRpc("foco_aviso_quitar"); return r.error ? r : { r: r.data }; },
+  async focoSalaInvitar(otro, min, titulo) { const r = await this._amRpc("foco_sala_invitar", { p_otro: otro, p_min: min, p_titulo: titulo || "" }); return r.error ? r : { id: r.data }; },
+  async focoSalaResponder(id, acepta, titulo) { const r = await this._amRpc("foco_sala_responder", { p_id: id, p_acepta: !!acepta, p_titulo: titulo || "" }); return r.error ? r : { r: r.data }; },
+  async focoSalaSalir(id) { const r = await this._amRpc("foco_sala_salir", { p_id: id }); return r.error ? r : { r: r.data }; },
+  async focoSalaMia() { const r = await this._amRpc("foco_sala_mia"); return r.error ? r : r.data || null; },
   async invitacionActivar() { const r = await this._amRpc("invitacion_activar"); return r.error ? r : { r: r.data }; },
   async invitaciones() { const r = await this._amRpc("invitaciones_mias"); return r.error ? r : r.data || { invitados: [], invito: null }; },
   async fuenteHoy(fecha) { const r = await this._amRpc("fuente_hoy", { p_fecha: fecha }); return r.error ? r : r.data; },

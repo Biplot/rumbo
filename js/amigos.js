@@ -97,7 +97,8 @@ function amigosOlvidar() {
   Object.assign(LJ, { lista: null, t: 0, cargando: false, error: null, guardando: false, vistas: [] });
   Object.assign(AT, { hoja: null, toda: false, pestana: "proximos" });
   if (typeof aguaJuntosOlvidar === "function") aguaJuntosOlvidar();
-  if (typeof invitaOlvidar === "function") invitaOlvidar();   // el bidón y la fuente (agua-juntos.js)
+  if (typeof invitaOlvidar === "function") invitaOlvidar();
+  if (typeof focoAmigosOlvidar === "function") focoAmigosOlvidar();   // ⏱️ el foco con un amigo (foco-amigos.js)   // el bidón y la fuente (agua-juntos.js)
 }
 /* Cuántas cosas esperan tu respuesta: lo de «Para responder» (amPendientes, en amigos-tablero.js) */
 function amigosNuevos() { return amPendientes().length; }

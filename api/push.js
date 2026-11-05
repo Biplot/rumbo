@@ -34,6 +34,9 @@
            { accion: "amigos", tipo: "invita" } -> «Bruno cerró su primer día»: a quien lo invitó, una vez (supabase/invitaciones.sql)
            { accion: "amigos", tipo: "bidon-invita" | "bidon-acepta" | "bidon-lleno", bidon }
              -> el bidón con amigos: te invitan, alguien se sumó, ¡lo llenaron! (supabase/agua.sql)
+           { accion: "amigos", tipo: "foco-invita" | "foco-acepta", sala }
+             -> el foco con un amigo: te invitan a enfocarse juntos, se sumó (supabase/foco.sql)
+           La base, cada 5 minutos, también manda el «¡Tiempo!» del foco a quien cerró la app (notifier/foco.mjs).
      POST  { accion: "vaso", u, d, f, id, ml, ts, fecha }  (sin sesión: lo manda el service worker)
            -> «+ Un vaso» desde el aviso del agua: con la firma que traía el aviso se anota en agua_pendientes
              (notifier/vaso.mjs) y la app lo suma al abrirse
@@ -241,6 +244,17 @@ async function avisoLibroApi(config, yo, body, host) {
   return avisoLibro({ sb: admin(), yo, body, enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
 }
 
+/* ⏱️ El foco: el «¡Tiempo!» de las sesiones que terminaron con la app cerrada y la sala con un amigo (notifier/foco.mjs) */
+async function avisosFocoApi(config, host) {
+  try {
+    const { avisosFoco } = await import("../notifier/foco.mjs");
+    return await avisosFoco({ sb: admin(), enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+  } catch (e) { console.error("foco", e); return { error: (e && e.message) || "error" }; }   // sin supabase/foco.sql todavía: no corta los demás avisos
+}
+async function avisoSalaApi(config, yo, body, host) {
+  const { avisoSala } = await import("../notifier/foco.mjs");
+  return avisoSala({ sb: admin(), yo, body, enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host) });
+}
 /* «Bruno cerró su primer día»: notifier/invitaciones.mjs revisa en la base que corresponda */
 async function avisoInvitaApi(config, yo, host) {
   const { avisoInvita } = await import("../notifier/invitaciones.mjs");
@@ -278,6 +292,7 @@ module.exports = async function handler(req, res) {
       const r = await enviarRecordatorios({ sb: admin(), enviar: (dispositivos, msg) => enviarPush(config, dispositivos, msg, host), firmar: (uid, dia) => firmaVaso(config.secreto, uid, dia) });
       r.planes = await recordatoriosPlanesApi(config, host);
       r.cumples = await recordatoriosCumplesApi(config, host);
+      r.foco = await avisosFocoApi(config, host);
       console.log("recordatorios", JSON.stringify(r));
       return res.status(200).json(r);
     }
@@ -302,6 +317,7 @@ module.exports = async function handler(req, res) {
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("lectura-")) return res.status(200).json(await avisoLecturaApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && String(body.tipo || "").startsWith("bidon-")) return res.status(200).json(await avisoBidonApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && body.tipo === "libro-recomienda") return res.status(200).json(await avisoLibroApi(config, u.user.id, body, host));
+    if (body.accion === "amigos" && String(body.tipo || "").startsWith("foco-")) return res.status(200).json(await avisoSalaApi(config, u.user.id, body, host));
     if (body.accion === "amigos" && body.tipo === "invita") return res.status(200).json(await avisoInvitaApi(config, u.user.id, host));
     if (body.accion === "amigos") return res.status(200).json(await avisoAmigos(config, u.user.id, body, host));
     if (body.accion !== "prueba" || typeof body.endpoint !== "string") return res.status(400).json({ error: "Acción no válida" });

@@ -340,8 +340,11 @@ function migrate(s) {
   retirarFunciones(s);     // v73: el aviso de mediodía es gratis (se devuelve lo pagado)
   retirarTemas(s);         // v92: Grafito y Medianoche ya no se venden (se devuelve lo pagado)
   bosqueFamilia(s);        // v95: Bosque es una sola compra (900 ⭐): quien compró los dos recupera la diferencia
+  focoRegalo(s);           // v140: el modo enfoque es gratis (el Foco); quien lo compró recibe el reloj de arena y la lluvia
   if (!s.enfoque || typeof s.enfoque !== "object" || Array.isArray(s.enfoque)) s.enfoque = {};
-  if (!Array.isArray(s.enfoque.sesiones)) s.enfoque.sesiones = [];   // modo enfoque
+  if (!Array.isArray(s.enfoque.sesiones)) s.enfoque.sesiones = [];   // ⏱️ el Foco (foco.js)
+  if (!s.enfoque.sigue || typeof s.enfoque.sigue !== "object" || Array.isArray(s.enfoque.sigue)) s.enfoque.sigue = {};
+  if (!s.enfoque.pref || typeof s.enfoque.pref !== "object" || Array.isArray(s.enfoque.pref)) s.enfoque.pref = {};
   if (s.settings && s.settings.onboarded == null) s.settings.onboarded = true; // usuarios existentes ya pasaron
   // Versión de la introducción vista: los existentes quedan en 1 (verán "Novedades" una vez)
   if (s.settings && s.settings.introVersion == null) s.settings.introVersion = s.settings.onboarded ? 1 : 0;
@@ -506,6 +509,15 @@ function bosqueFamilia(s) {
     ledgerRegistrar(s, "devolucion:bosque", 300, 0, "Bosque, ahora una sola compra: te devolvemos la diferencia");
     recalcGamif(s);
   }
+  return s;
+}
+/* v140: el modo enfoque (600 ⭐) pasó a ser el Foco, gratis. Quien lo había comprado no pierde nada: recibe el
+   reloj de arena y la lluvia del Foco (compras de 0 ⭐ con un motivo, una sola vez; ids fijos en el ledger). */
+function focoRegalo(s) {
+  const g = s && s.gamif;
+  if (!g || !Array.isArray(g.ledger) || typeof ledgerRegistrar !== "function") return s;
+  if (!g.ledger.some(m => m && !m.anulado && m.id === "compra:fun-enfoque")) return s;
+  ["foco-arena", "foco-lluvia"].forEach(id => { if (!g.ledger.some(m => m && m.id === "compra:" + id)) ledgerRegistrar(s, "compra:" + id, 0, 0, "Regalo: ya tenías el modo enfoque"); });
   return s;
 }
 /* Anula las compras vigentes con esos ids. Idempotente: una segunda pasada no encuentra nada que anular. */

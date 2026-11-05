@@ -65,4 +65,21 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(texto("final", d).big, "1.020");
     assert.ok(/Tu elefante ya es/.test(alt("final", d)) && /1\.020 estrellas ganadas este año Nos vemos en 2027\./.test(alt("final", d)), "el texto alternativo dice lo mismo que la lámina");
   });
+  test("el movimiento: los tiempos, las curvas y los números que cuentan", () => {
+    const taP = G("taP"), FIN = G("TA_FIN"), taSale = G("taSale"), taRebote = G("taRebote"), taBote = G("taBote"), cuenta = G("taCuentaTxt"), formas = G("TA_FORMAS"), pal = G("TA_PAL");
+    assert.deepEqual([taP(0, 100, 200), taP(200, 100, 200), taP(400, 100, 200), taP(FIN, 100, 200)], [0, 0.5, 1, 1], "antes, a la mitad, después y quieta");
+    [taSale, taRebote, taBote].forEach(f => { assert.equal(Math.round(f(0) * 1000) / 1000, 0); assert.equal(Math.round(f(1) * 1000) / 1000, 1); });
+    assert.ok(Math.max(...[0.6, 0.7, 0.8, 0.9].map(taRebote)) > 1, "el salto se pasa un poco antes de volver");
+    const S = nuevo(); for (let i = 1; i <= 9; i++) S.ritual.dias[`2026-03-0${i}`] = { hecho: true, cerrado: true };
+    S.agua = { meta: 2000, vaso: 250, dias: { "2026-05-01": { r: [{ id: "a", ml: 3500 }], b: [] } } };
+    const d = datos(S, 2026, "2026-12-06");
+    const T = texto("cerrados", d);
+    assert.deepEqual([cuenta(T, 0), cuenta(T, 1), cuenta(T, 2)], ["0", "9", "9"], "de 0 a 9 días");
+    assert.equal(cuenta(texto("agua", d), 1), "3,5"); assert.equal(cuenta(texto("agua", d), 0), "0");
+    const D = datosAnio(S, 2026, true); D.metas.mensuales[3] = [{ id: "o1", texto: "A", done: true }, { id: "o2", texto: "B", done: true }, { id: "o3", texto: "C" }];
+    const d2 = datos(S, 2026, "2026-12-06");
+    assert.deepEqual([cuenta(texto("objetivos", d2), 0), cuenta(texto("objetivos", d2), 1)], ["0/3", "2/3"], "los objetivos cuentan arriba y el total queda");
+    assert.equal(cuenta(texto("portada", d2), 0), "2026", "el año no cuenta: cae cifra por cifra");
+    Object.keys(pal).forEach(id => assert.ok(Array.isArray(formas[id]) && formas[id].length, "figuras para " + id));
+  });
 }

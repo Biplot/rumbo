@@ -1,4 +1,5 @@
-/* Pruebas en navegador · Tienda: funciones (enfoque, pronóstico, comparar meses, informe del año, plantillas, íconos, mediodía) */
+/* Pruebas en navegador · Tienda: funciones (pronóstico, comparar meses, informe del año, plantillas, íconos, mediodía) y el Foco,
+   que antes era el «Modo enfoque» de la Tienda y ahora es gratis (lo demás del Foco está en foco.cjs) */
 const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 module.exports = async ({ b, ok, errs }) => {
   const ctx = await nuevoContexto(b, { fecha: "2026-12-14T10:00:00", w: 1280, h: 860 });
@@ -13,25 +14,22 @@ module.exports = async ({ b, ok, errs }) => {
     saveState();
   });
 
-  // 1) Tienda: sección Funciones; comprar Modo enfoque
+  // 1) Tienda: sección Funciones (el modo enfoque ya no se vende: es el Foco, gratis)
   await p.goto(URL + "#tienda"); await p.waitForTimeout(400);
-  ok(await p.locator("[data-fun]").count() === 4, "la Tienda muestra las 4 funciones (el aviso de mediodía ya no se vende)");
-  await p.click('.ficha[data-fun="fun:enfoque"]'); await p.waitForTimeout(200);
-  await p.click('#modal [data-action="fun-buy"]'); await p.waitForTimeout(300); await p.evaluate(() => closeModal());
-  ok(await p.evaluate(() => funcion("enfoque")), "Modo enfoque desbloqueado");
+  ok(await p.locator("[data-fun]").count() === 3 && await p.locator('[data-fun="fun:enfoque"]').count() === 0, "la Tienda muestra las 3 funciones (el modo enfoque y el aviso de mediodía ya no se venden)");
 
-  // 2) Enfoque: elegir el bocado, 25 min, llegar al final y marcarla hecha
+  // 2) El Foco: sin comprar nada, el bocado primero, 25 min, llegar al final y marcarla hecha
   await p.goto(URL + "#inicio"); await p.waitForTimeout(400);
-  await p.click('[data-action="enfoque-open"]'); await p.waitForTimeout(300);
-  await p.click('[data-action="enfoque-iniciar"]'); await p.waitForTimeout(1300);
-  ok(await p.locator("#enfoque").isVisible() && (await p.locator(".enfoque__t").innerText()).includes("Cerrar la propuesta"), "la pantalla de enfoque muestra solo la tarea");
-  ok((await p.locator("#enf-reloj").innerText()) === "25:00", "el reloj parte en 25:00");
+  await p.click('[data-action="foco-abrir"]'); await p.waitForTimeout(300);
+  await p.click('[data-action="foco-empezar"]'); await p.waitForTimeout(1300);
+  ok(await p.locator("#foco").isVisible() && (await p.locator(".foco__t").innerText()).includes("Cerrar la propuesta"), "la pantalla de foco muestra la tarea (el bocado, que va primero)");
+  ok((await p.locator("#fo-num").innerText()) === "25:00", "el reloj parte en 25:00");
   await shot(p, "enfoque");
   await p.reload(); await p.waitForTimeout(1200);
-  ok(await p.locator("#enfoque").isVisible(), "al recargar, la sesión sigue");
+  ok(await p.locator("#foco").isVisible(), "al recargar, la sesión sigue");
   await ctx.clock.setFixedTime(new Date("2026-12-14T10:25:02")); await p.waitForTimeout(1500);
-  ok(await p.locator('[data-action="enfoque-hecha"]').isVisible(), "al terminar pregunta si terminaste la tarea");
-  await p.click('[data-action="enfoque-hecha"]'); await p.waitForTimeout(300);
+  ok(await p.locator('[data-action="foco-tarea-hecha"]').isVisible(), "al terminar pregunta si terminaste la tarea");
+  await p.click('[data-action="foco-tarea-hecha"]'); await p.waitForTimeout(300); await p.click('[data-action="foco-cierre-ok"]'); await p.waitForTimeout(300);
   const e = await p.evaluate(() => ({ s: STATE.enfoque.sesiones.length, real: STATE.enfoque.sesiones[0].real, hecha: estadoTarea(tareasDelDia("2026-12-14")[0]) }));
   ok(e.s === 1 && e.real === 25 && e.hecha === "hecha", "registra 25 min de foco y la tarea queda hecha: " + JSON.stringify(e));
   await p.goto(URL + "#tendencias"); await p.waitForTimeout(400);

@@ -70,6 +70,12 @@ const COSMETICOS = [
   { id: "rueda-constelacion", grupo: "rueda", icon: "✨", nombre: "Rueda: la constelación", costo: 500, key: "rueda", value: "constelacion", animado: true, cuando: "ocho estrellas de noche que brillan más mientras más alta la nota" },
   { id: "rueda-mandala", grupo: "rueda", icon: "🧭", nombre: "Rueda: el mandala", costo: 500, key: "rueda", value: "mandala", cuando: "cuentas de colores, una por cada punto de nota" },
   { id: "rueda-vitral", grupo: "rueda", icon: "🧭", nombre: "Rueda: el vitral", costo: 600, key: "rueda", value: "vitral", cuando: "vidrios de colores separados por plomo que se iluminan hasta tu nota" },
+  // ⏱️ Tu foco (foco-pantalla.js): el dibujo del reloj y el sonido de fondo se eligen al enfocarte
+  { id: "foco-arena", grupo: "foco", icon: "⏳", nombre: "Foco: reloj de arena", costo: 250, key: "foco", value: "arena", cuando: "la arena cae mientras te enfocas; en el descanso, en índigo" },
+  { id: "foco-vela", grupo: "foco", icon: "🕯️", nombre: "Foco: la vela", costo: 250, key: "foco", value: "vela", animado: true, cuando: "una vela que se consume con tu sesión, con su llama que titila" },
+  { id: "foco-luna", grupo: "foco", icon: "🌙", nombre: "Foco: la luna", costo: 300, key: "foco", value: "luna", cuando: "de luna nueva a luna llena mientras pasa tu sesión" },
+  { id: "foco-lluvia", grupo: "foco", icon: "🌧️", nombre: "Sonido: lluvia", costo: 200, key: "foco-sonido", value: "lluvia", cuando: "lluvia suave de fondo, hecha en tu teléfono (sin descargas)" },
+  { id: "foco-mar", grupo: "foco", icon: "🌊", nombre: "Sonido: mar", costo: 200, key: "foco-sonido", value: "mar", cuando: "olas que van y vienen, lentas, para no pensar en nada más" },
   { id: "mon-plata", grupo: "moneda", icon: "🪙", nombre: "Monedas de plata", costo: 100, key: "moneda", value: "plata", cuando: "en todas tus alcancías y en la torre del año" },
   { id: "mon-cobre", grupo: "moneda", icon: "🪙", nombre: "Monedas de cobre", costo: 100, key: "moneda", value: "cobre", cuando: "en todas tus alcancías y en la torre del año" },
   { id: "mon-estrella", grupo: "moneda", icon: "🪙", nombre: "Monedas estrella", costo: 100, key: "moneda", value: "estrella", cuando: "doradas con una estrella índigo, en todas tus alcancías" },
@@ -86,7 +92,7 @@ function cosActivo(id) {
   const eq = eqCos();
   if (it.key === "celebra") return !eq.celebraOff.includes(id);
   if (it.key === "sonidos") return eq.sonidos !== false;
-  if (it.key === "plantilla" || it.key === "album" || it.key === "acuario" || it.key === "alcancia" || it.key === "bidon") return true;
+  if (it.key === "plantilla" || it.key === "album" || it.key === "acuario" || it.key === "alcancia" || it.key === "bidon" || it.key === "foco" || it.key === "foco-sonido") return true;
   return eq[it.key] === it.value;
 }
 /* Equipar / quitar (lo llama equipItem de recompensas.js) */
@@ -202,6 +208,7 @@ function cosmeticoCard(it) {
   else if (it.key === "acuario") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Lo ves en Salud y en tu cierre de mes</div>`;
   else if (it.key === "bidon") pie = `<button class="btn btn--cian btn-block" data-action="agua-bd-nuevo">💧 Armar un bidón</button>`;
   else if (it.key === "alcancia") pie = `<div class="chip chip--cian mt-8" style="display:inline-block">✓ Elígelo al crear o editar una alcancía (Finanzas)</div>`;
+  else if (it.key === "foco" || it.key === "foco-sonido") pie = `<button class="btn btn--cian btn-block" data-action="foco-abrir">✓ Elígelo al enfocarte · Enfocarme ahora</button>`;
   else pie = `<button class="btn ${activo ? "btn--soft" : "btn--cian"} btn-block" data-action="cos-equip" data-id="${it.id}">${activo ? (it.key === "celebra" || it.key === "sonidos" ? "✓ Activo — apagar" : "✓ Equipado — quitar") : (it.key === "celebra" || it.key === "sonidos" ? "Activar" : "Equipar")}</button>`;
   const vista = it.key === "marco" ? `<div class="account__avatar marco marco--${it.value}" style="margin:0 auto 8px">${typeof avatarActualHtml === "function" ? avatarActualHtml((((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()) : escapeHtml(((STATE.profile && STATE.profile.name) || "R").trim()[0] || "R").toUpperCase()}</div>`
     : `<span style="font-size:24px">${it.icon}</span>`;
@@ -213,6 +220,7 @@ function cosmeticoCard(it) {
     ${it.key === "jardin" && typeof jardinMuestraHtml === "function" ? `<div class="jar-muestra">${jardinMuestraHtml(it)}</div>` : ""}
     ${it.key === "biblioteca" && typeof bibMuestraHtml === "function" ? `<div class="bib-muestra">${bibMuestraHtml(it)}</div>` : ""}
     ${it.key === "rueda" && typeof ruedaMuestraHtml === "function" ? `<div class="rd-muestra">${ruedaMuestraHtml(it)}</div>` : ""}
+    ${(it.key === "foco" || it.key === "foco-sonido") && typeof focoMuestraHtml === "function" ? `<div class="fo-muestra-c">${focoMuestraHtml(it)}</div>` : ""}
     <div class="row" style="gap:10px">${it.key === "marco" ? "" : vista}
       <div style="flex:1;min-width:0"><div class="card__title" style="font-size:14px">${it.nombre}${it.animado ? ' <span class="chip">animado</span>' : ""}</div>
         <div class="text-xs muted">${owned ? "Desbloqueado" : it.rango ? "Por rango" : it.costo + " ⭐"}${it.cuando ? " · " + it.cuando : ""}</div></div></div>

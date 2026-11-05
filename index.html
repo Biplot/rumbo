@@ -34,7 +34,7 @@
   <!-- Las fuentes no frenan el primer dibujo: se ve la letra del sistema y luego la de Rumbo -->
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <noscript><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" /></noscript>
-  <link rel="stylesheet" href="css/styles.css?v=139" />
+  <link rel="stylesheet" href="css/styles.css?v=140" />
   <style>
     /* Pantalla de carga: se dibuja al tiro (antes que el código) y se va al aparecer la app o el acceso */
     .splash { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -148,6 +148,8 @@
           <button class="tour-help" id="helpBtn" data-action="tour-pantalla" title="Ayuda de esta pantalla" aria-label="Ayuda de esta pantalla" hidden>?</button>
           <div class="topbar__meta">
             <div class="save-status" id="saveStatus" hidden></div>
+            <!-- ⏱️ La sesión de foco en curso, cuando está «en la barra» (foco-pantalla.js) -->
+            <button class="foco-pill" id="focoPill" data-action="foco-ver" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/></svg><span class="foco-pill__t">--:--</span></button>
             <div class="pill pill--date" id="todayPill"></div>
             <button class="pill pill--streak" id="streakPill" data-action="info-racha" title="Días cerrados seguidos" aria-label="Días cerrados seguidos"><svg class="pill__ico pill__ico--llama" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 .3 1.8 1.2 2.8 2.5 3.2C12 9 11 6 12 3z"/></svg> <span id="streakVal">0</span><span class="pill__txt"> días cerrados</span></button>
             <!-- Las puertas a tus lugares: la cara de tu elefante (Tu casa) y tus medallas (Tu vitrina) -->
@@ -184,72 +186,75 @@
 
   <!-- supabase-js 2.117.2 guardada en el repositorio: una versión nueva del CDN ya no puede romper el inicio de sesión -->
   <script src="js/vendor/supabase-2.117.2.js"></script>
-  <script src="js/store.js?v=139"></script>
-  <script src="js/state.js?v=139"></script>
-  <script src="js/anios.js?v=139"></script>
-  <script src="js/agenda.js?v=139"></script>
-  <script src="js/tareas-motor.js?v=139"></script>
-  <script src="js/habitos-motor.js?v=139"></script>
-  <script src="js/modules.js?v=139"></script>
-  <script src="js/modules2.js?v=139"></script>
-  <script src="js/salud.js?v=139"></script>
-  <script src="js/notas.js?v=139"></script>
-  <script src="js/tienda.js?v=139"></script>
-  <script src="js/ritual-mes.js?v=139"></script>
-  <script src="js/ritual-semana.js?v=139"></script>
-  <script src="js/ritual-trimestre.js?v=139"></script>
-  <script src="js/informe-mes.js?v=139"></script>
-  <script src="js/tutorial.js?v=139"></script>
-  <script src="js/bienvenida.js?v=139"></script>
-  <script src="js/gcal.js?v=139"></script>
-  <script src="js/ritual-express.js?v=139"></script>
-  <script src="js/tendencias.js?v=139"></script>
-  <script src="js/recompensas.js?v=139"></script>
+  <script src="js/store.js?v=140"></script>
+  <script src="js/state.js?v=140"></script>
+  <script src="js/anios.js?v=140"></script>
+  <script src="js/agenda.js?v=140"></script>
+  <script src="js/tareas-motor.js?v=140"></script>
+  <script src="js/habitos-motor.js?v=140"></script>
+  <script src="js/modules.js?v=140"></script>
+  <script src="js/modules2.js?v=140"></script>
+  <script src="js/salud.js?v=140"></script>
+  <script src="js/notas.js?v=140"></script>
+  <script src="js/tienda.js?v=140"></script>
+  <script src="js/ritual-mes.js?v=140"></script>
+  <script src="js/ritual-semana.js?v=140"></script>
+  <script src="js/ritual-trimestre.js?v=140"></script>
+  <script src="js/informe-mes.js?v=140"></script>
+  <script src="js/tutorial.js?v=140"></script>
+  <script src="js/bienvenida.js?v=140"></script>
+  <script src="js/gcal.js?v=140"></script>
+  <script src="js/ritual-express.js?v=140"></script>
+  <script src="js/tendencias.js?v=140"></script>
+  <script src="js/recompensas.js?v=140"></script>
   <!-- Tienda: útiles, funciones, cosméticos y logros (después de recompensas.js) -->
-  <script src="js/consumibles.js?v=139"></script>
-  <script src="js/funciones.js?v=139"></script>
-  <script src="js/cosmeticos.js?v=139"></script>
-  <script src="js/logros.js?v=139"></script>
-  <script src="js/cielo.js?v=139"></script>
-  <script src="js/lugar.js?v=139"></script>
-  <script src="js/casa.js?v=139"></script>
-  <script src="js/elefante.js?v=139"></script>
-  <script src="js/consultorio.js?v=139"></script>
-  <script src="js/avatares.js?v=139"></script>
-  <script src="js/vida.js?v=139"></script>
-  <script src="js/amigos.js?v=139"></script>
-  <script src="js/conjunto.js?v=139"></script>
-  <script src="js/objetivos.js?v=139"></script>
-  <script src="js/visitas.js?v=139"></script>
-  <script src="js/planes.js?v=139"></script>
-  <script src="js/planes-despues.js?v=139"></script>
-  <script src="js/listas-amigos.js?v=139"></script>
-  <script src="js/lecturas-amigos.js?v=139"></script>
-  <script src="js/amigos-tablero.js?v=139"></script>
-  <script src="js/invita.js?v=139"></script>
-  <script src="js/rueda.js?v=139"></script>
-  <script src="js/rueda-pantalla.js?v=139"></script>
-  <script src="js/album.js?v=139"></script>
-  <script src="js/album-compartir.js?v=139"></script>
-  <script src="js/agua.js?v=139"></script>
-  <script src="js/agua-juntos.js?v=139"></script>
-  <script src="js/biblioteca-motor.js?v=139"></script>
-  <script src="js/biblioteca.js?v=139"></script>
-  <script src="js/alcancias.js?v=139"></script>
-  <script src="js/alcancia-motor.js?v=139"></script>
-  <script src="js/deseos.js?v=139"></script>
-  <script src="js/jardin.js?v=139"></script>
-  <script src="js/jardin-motor.js?v=139"></script>
-  <script src="js/descansos.js?v=139"></script>
-  <script src="js/dejar.js?v=139"></script>
-  <script src="js/notifs.js?v=139"></script>
-  <script src="js/iconos.js?v=139"></script>
-  <script src="js/navegacion.js?v=139"></script>
-  <script src="js/detalles.js?v=139"></script>
-  <script src="js/elegir.js?v=139"></script>
-  <script src="js/zona.js?v=139"></script>
-  <script src="js/nota-elefante.js?v=139"></script>
-  <script src="js/app.js?v=139"></script>
+  <script src="js/consumibles.js?v=140"></script>
+  <script src="js/funciones.js?v=140"></script>
+  <script src="js/foco.js?v=140"></script>
+  <script src="js/foco-pantalla.js?v=140"></script>
+  <script src="js/foco-amigos.js?v=140"></script>
+  <script src="js/cosmeticos.js?v=140"></script>
+  <script src="js/logros.js?v=140"></script>
+  <script src="js/cielo.js?v=140"></script>
+  <script src="js/lugar.js?v=140"></script>
+  <script src="js/casa.js?v=140"></script>
+  <script src="js/elefante.js?v=140"></script>
+  <script src="js/consultorio.js?v=140"></script>
+  <script src="js/avatares.js?v=140"></script>
+  <script src="js/vida.js?v=140"></script>
+  <script src="js/amigos.js?v=140"></script>
+  <script src="js/conjunto.js?v=140"></script>
+  <script src="js/objetivos.js?v=140"></script>
+  <script src="js/visitas.js?v=140"></script>
+  <script src="js/planes.js?v=140"></script>
+  <script src="js/planes-despues.js?v=140"></script>
+  <script src="js/listas-amigos.js?v=140"></script>
+  <script src="js/lecturas-amigos.js?v=140"></script>
+  <script src="js/amigos-tablero.js?v=140"></script>
+  <script src="js/invita.js?v=140"></script>
+  <script src="js/rueda.js?v=140"></script>
+  <script src="js/rueda-pantalla.js?v=140"></script>
+  <script src="js/album.js?v=140"></script>
+  <script src="js/album-compartir.js?v=140"></script>
+  <script src="js/agua.js?v=140"></script>
+  <script src="js/agua-juntos.js?v=140"></script>
+  <script src="js/biblioteca-motor.js?v=140"></script>
+  <script src="js/biblioteca.js?v=140"></script>
+  <script src="js/alcancias.js?v=140"></script>
+  <script src="js/alcancia-motor.js?v=140"></script>
+  <script src="js/deseos.js?v=140"></script>
+  <script src="js/jardin.js?v=140"></script>
+  <script src="js/jardin-motor.js?v=140"></script>
+  <script src="js/descansos.js?v=140"></script>
+  <script src="js/dejar.js?v=140"></script>
+  <script src="js/notifs.js?v=140"></script>
+  <script src="js/iconos.js?v=140"></script>
+  <script src="js/navegacion.js?v=140"></script>
+  <script src="js/detalles.js?v=140"></script>
+  <script src="js/elegir.js?v=140"></script>
+  <script src="js/zona.js?v=140"></script>
+  <script src="js/nota-elefante.js?v=140"></script>
+  <script src="js/app.js?v=140"></script>
   <script>
     /* Versión nueva: el service worker nuevo se activa solo y toma la página. Si la app recién se abrió
        (o volvió del fondo), se recarga al tiro para mostrar lo nuevo; si la estás usando, un aviso ofrece

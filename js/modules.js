@@ -216,7 +216,9 @@ function metaRow(m, bucket, idx, y) {
     <span class="check ${m.done ? "is-on" : ""}" data-action="meta-toggle" data-bucket="${bucket}" data-idx="${idx}" data-anio="${y}" data-id="${m.id}">${m.done ? "✓" : ""}</span>
     <div class="item-row__main"><div class="item-row__title ${m.done ? "strike" : ""}">${m.ambito ? AMBITOS[ambitoDe(m)].icon + " " : ""}${escapeHtml(m.texto)} ${estado}</div>
       ${tri ? `<div class="item-row__sub">↳ 🎯 ${escapeHtml(tri.texto)}</div>` : ""}
-      ${nPrio ? `<div class="item-row__sub">📅 ${nPrio} prioridad${nPrio === 1 ? "" : "es"} semanal${nPrio === 1 ? "" : "es"}</div>` : ""}</div>
+      ${nPrio ? `<div class="item-row__sub">📅 ${nPrio} prioridad${nPrio === 1 ? "" : "es"} semanal${nPrio === 1 ? "" : "es"}</div>` : ""}
+      ${bucket === "mes" && typeof focoMetaSub === "function" ? focoMetaSub(m, y, idx) : ""}</div>
+    ${bucket === "mes" && typeof focoMetaBoton === "function" ? focoMetaBoton(m, y, idx) : ""}
     ${typeof ruedaMetaChip === "function" ? ruedaMetaChip(m, bucket, idx, y) : ""}
     <button class="icon-btn" data-action="meta-del" data-bucket="${bucket}" data-idx="${idx}" data-anio="${y}" data-id="${m.id}">🗑</button>
   </div>`;
@@ -251,7 +253,7 @@ function freqChip(h) {
 }
 function rachaTxt(h) {
   const r = rachaPeriodos(h);
-  return r.n ? `🔥 ${r.n} ${r.unidad}` : "";
+  return r.n ? `🔥 ${r.n} ${r.unidad === "días" && r.n === 1 ? "día" : r.unidad}` : "";
 }
 /* Hábitos para hoy: los que tocan (pendientes), los que descansan hoy (descanso o vacaciones, sin hacer)
    y los ya cumplidos en el período */
@@ -298,6 +300,7 @@ function habitTodayCard(h) {
       <div class="hb-today__ico">${icoHab(h.icon, 28)}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
       <div class="hb-today__prog">${pase ? "🎟️ Pase usado hoy" : libre ? "🌴 Día libre" : prog.texto}${rachaTxt(h) ? " · " + rachaTxt(h) : ""}</div>
       ${h.conjunto ? cjResumenHtml(h) : ""}
+      ${typeof focoHabitoBoton === "function" && !h.conjunto ? focoHabitoBoton(h) : ""}
       <div class="hb-today__check">${on ? "✓" : pase ? "🎟️" : ""}</div>
       <button class="hb-today__edit icon-btn" data-action="habit-edit" data-id="${h.id}" title="Editar hábito" aria-label="Editar">✎</button></div>`;
 }
@@ -427,7 +430,7 @@ function habitViewAnual() {
     <div class="card"><div class="card__title">Top del año</div>
       <div class="mt-16">${ranking.map((x, i) => `<div class="flex-between" style="padding:6px 0;gap:8px">
         <span class="text-sm">${i + 1}. ${icoHab(x.h.icon, 16)} ${escapeHtml(x.h.nombre)} ${freqChip(x.h)}</span>
-        <span class="text-xs muted">${x.r.n ? "🔥 " + x.r.n + " " + x.r.unidad : ""}</span>
+        <span class="text-xs muted">${x.r.n ? "🔥 " + x.r.n + " " + (x.r.unidad === "días" && x.r.n === 1 ? "día" : x.r.unidad) : ""}</span>
         <span class="hl-cian">${x.c.pct == null ? "—" : x.c.pct + "%"}</span></div>`).join("")}</div></div>
   </div>`;
 }
@@ -461,7 +464,9 @@ function openHabitModal(id, op) {
         ${elContador("h-veces", f.veces || 3, { min: 1, max: mensual ? 25 : 6, label: "Veces", unidad: "veces" })}</div>
       <div id="h-dias-box" class="mt-8" ${f.tipo === "dias" ? "" : "hidden"}>
         ${elFichas(HM_DIAS.map((d, i) => [i, DIAS_L[i][0], { aria: DIAS_L[i] }]), dias, { id: "h-dias", dias: true, label: "Días fijos" })}</div>
-      <div class="text-xs muted mt-8">Se mide contra este objetivo, no contra 7 días. La semana va de lunes a domingo.</div></div>
+      <div class="text-xs muted mt-8">Se mide contra este objetivo, no contra 7 días. La semana va de lunes a domingo.</div>
+      <div class="mt-16" id="h-min-box" ${h && h.conjunto ? "hidden" : ""}><label class="text-xs muted">¿Tiene duración? <span>(opcional: con el ▶ te enfocas y queda marcado solo al completar los minutos)</span></label>
+        ${elContador("h-minutos", (h && +h.minutos) || +pre.minutos || 0, { min: 0, max: 180, paso: 5, label: "Duración", fmt: v => (typeof focoFmtMin === "function" ? focoFmtMin(v) : v + " min"), fmtFn: "focoFmtMin" })}</div></div>
     <div id="h-cj-box" ${h && hmMeta(h) !== "hacer" ? "hidden" : ""}>${cjSeccionModal(h, op && op.amigos)}</div>
     ${h && hmMeta(h) === "hacer" ? dscHojaHtml(h) : ""}
     ${h && !h.conjunto ? `<label class="row" style="gap:8px;margin-bottom:14px"><input type="checkbox" id="h-pausado" ${h.pausado ? "checked" : ""}> ⏸ Pausar este hábito (no se mide mientras esté pausado)</label>` : ""}
@@ -507,14 +512,16 @@ async function saveHabit() {
     return;
   }
   const arEl = document.getElementById("h-area"), area = arEl && arEl.value !== "" ? +arEl.value : null;   // 🧭 el área de tu rueda
+  const minEl = document.getElementById("h-minutos"), minutos = !dj && minEl ? Math.max(0, Math.min(180, Math.round(+minEl.value || 0))) : 0;   // ⏱️ la duración (foco.js)
   if (h) {
     h.nombre = nombre; h.icon = val("h-icon") || h.icon; h.frecuencia = frecuencia;
     if (arEl) { if (area == null) delete h.area; else h.area = area; }
+    if (minutos) h.minutos = minutos; else delete h.minutos;
     if (dj) Object.assign(h, dj);
     const p = document.getElementById("h-pausado"); h.pausado = !!(p && p.checked);
     h.ts = Date.now();   // en la fusión gana la edición más reciente
   } else {
-    STATE.habitos.defs.push(Object.assign({ id: uid(), nombre, icon: val("h-icon") || "✅", frecuencia, creado: todayISO(), ts: Date.now() }, area != null ? { area } : {}, dj || {}));
+    STATE.habitos.defs.push(Object.assign({ id: uid(), nombre, icon: val("h-icon") || "✅", frecuencia, creado: todayISO(), ts: Date.now() }, area != null ? { area } : {}, minutos ? { minutos } : {}, dj || {}));
   }
   HABIT_EDIT = null;
   saveState(); closeModal(); rerender(); toast(h ? "Hábito actualizado" : "Hábito creado");
@@ -623,7 +630,7 @@ function renderLecturas() {
             <span class="text-xs muted">/ ${l.paginas || "—"} · ${pct}%</span>
           </div>
           ${ljAvanceHtml(l)}
-          ${typeof bibBotonTermine === "function" ? `<div class="lect-now__fin">${bibBotonTermine(l)}${l.relee ? "" : `<button type="button" class="btn-ghost" data-action="bib-dejar" data-id="${l.id}">Lo dejé</button>`}</div>` : ""}
+          ${typeof bibBotonTermine === "function" ? `<div class="lect-now__fin">${bibBotonTermine(l)}<button type="button" class="btn-ghost" data-action="foco-libro" data-id="${l.id}" title="Una sesión de foco con este libro">⏱️ Leer ahora</button>${l.relee ? "" : `<button type="button" class="btn-ghost" data-action="bib-dejar" data-id="${l.id}">Lo dejé</button>`}</div>` : ""}
         </div>`;
       }).join("")}
     </div>` : "";

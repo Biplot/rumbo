@@ -1,6 +1,6 @@
 {
   "_leeme": "Guion del teaser. Cambia textos, orden y duración aquí, sin tocar el motor. Tiempos en segundos. Las coordenadas (x, y, fx, fy) son puntos de la pantalla del teléfono, en el tamaño de la app (390 × 844). En el texto, *así* va en ámbar. La cámara interpola entre sus puntos con inercia: s = zoom, fx/fy = punto que mira, rx/ry/rz = giros en grados, dx/dy = corrimiento del teléfono en píxeles del video (9:16).",
-  "fps": 30,
+  "fps": 60,
   "duracion": 27,
   "bpm": 120,
   "primerBeat": 2.0,

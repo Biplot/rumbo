@@ -15,7 +15,7 @@ const RAIZ = path.join(__dirname, "..");
 const E2E = path.join(RAIZ, "tests", "e2e");
 const { chromium, URL, registrar } = require(path.join(E2E, "lib.cjs"));
 
-const FPS = 30;
+const FPS = 60;
 const HOY = "2026-11-18";
 const SALIDA = path.join(__dirname, "tomas");
 
@@ -157,7 +157,15 @@ async function grabar(b, id, T) {
     const res = await r.fetch();
     r.fulfill({ status: 200, headers: { "content-type": "text/javascript" }, body: (await res.text()).replace("const BACKEND = SupabaseBackend;", "const BACKEND = LocalBackend;") });
   });
-  await ctx.clock.install({ time: new Date(HOY + "T10:30:00") });   // corre normal hasta que se pausa para grabar
+  await ctx.clock.install({ time: new Date(HOY + "T10:30:00") });
+  // El 3D de Rumbo baja a 15 cuadros por segundo si el navegador dibuja por software (como el de la grabación):
+  // aquí se presenta con una tarjeta gráfica, para que la casa, la vitrina y el jardín se graben a ritmo completo.
+  await ctx.addInitScript(() => {
+    [self.WebGLRenderingContext, self.WebGL2RenderingContext].forEach(C => {
+      if (!C) return; const orig = C.prototype.getParameter;
+      C.prototype.getParameter = function (p) { return p === 0x9246 || p === 0x1F01 ? "ANGLE (Apple, Apple M2, OpenGL 4.1)" : orig.call(this, p); };
+    });
+  });   // corre normal hasta que se pausa para grabar
   const p = await ctx.newPage();
   const errs = []; p.on("pageerror", e => errs.push(e.message));
   await registrar(p, "camila@ejemplo.cl");
@@ -194,7 +202,7 @@ async function grabar(b, id, T) {
       if (!apretado) { await p.mouse.move(a.x0, a.y); await p.mouse.down(); apretado = true; }
       await p.mouse.move(x, a.y);
     } else if (a && apretado && t > a.hasta) { await p.mouse.up(); apretado = false; }
-    await p.clock.runFor(Math.round(1000 / FPS));
+    await p.clock.runFor(1000 / FPS);
     await cuadroCss(1000 / FPS);
     await p.screenshot({ path: path.join(dir, String(f).padStart(4, "0") + ".jpg"), type: "jpeg", quality: 92, animations: "allow", timeout: 15000 });
   }

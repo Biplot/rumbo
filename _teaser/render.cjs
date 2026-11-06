@@ -2,7 +2,7 @@
    Rumbo · Teaser · Render
    Saca una foto de componer.html por cuadro y arma el MP4 (H.264) con ffmpeg.
    Uso:
-     node _teaser/render.cjs                       9:16 final (1080 × 1920, 30 fps)
+     node _teaser/render.cjs                       9:16 final (1080 × 1920, a los fps del guion: 60)
      node _teaser/render.cjs --formato 169         16:9 final (1920 × 1080)
      node _teaser/render.cjs --borrador            mitad de resolución y 15 fps, para revisar rápido
      node _teaser/render.cjs --fotos 1,5.5,23      solo esos instantes, como PNG (para revisar)

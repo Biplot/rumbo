@@ -110,15 +110,25 @@ function fondo(t, junta) {
 /* ---------- Cámara: puntos con inercia ---------- */
 const BASE = { s: 1, fx: 195, fy: 422, rx: 0, ry: 0, rz: 0, dx: 0, dy: 0, op: 1 };
 function camara(kfs, tl) {
-  // Cada punto hereda lo que no dice del anterior
+  // Cada punto hereda lo que no dice del anterior. Entre puntos, una curva continua (Hermite, tangentes de
+  // Catmull-Rom): la cámara no frena en cada punto. Parte rápido (entra con inercia) y sigue derivando al final.
   const pts = []; let prev = Object.assign({}, BASE);
   kfs.forEach(([t, v]) => { prev = Object.assign({}, prev, v); pts.push([t, prev]); });
-  if (tl <= pts[0][0]) return pts[0][1];
-  for (let i = 0; i < pts.length - 1; i++) {
-    const [t0, a] = pts[i], [t1, b] = pts[i + 1];
-    if (tl <= t1) { const p = inercia((tl - t0) / (t1 - t0)); const r = {}; for (const k in BASE) r[k] = lerp(a[k], b[k], p); return r; }
-  }
-  return pts[pts.length - 1][1];
+  const n = pts.length;
+  if (n === 1 || tl <= pts[0][0]) return pts[0][1];
+  if (tl >= pts[n - 1][0]) return pts[n - 1][1];
+  let i = 0; while (i < n - 2 && tl > pts[i + 1][0]) i++;
+  const [t0, a] = pts[i], [t1, b] = pts[i + 1], h = t1 - t0, u = (tl - t0) / h;
+  const tang = (j, k) => {
+    if (j === 0) return 1.8 * (pts[1][1][k] - pts[0][1][k]) / (pts[1][0] - pts[0][0]);            // sale rápido
+    if (j === n - 1) return 0.5 * (pts[n - 1][1][k] - pts[n - 2][1][k]) / (pts[n - 1][0] - pts[n - 2][0]);   // y sigue derivando
+    return (pts[j + 1][1][k] - pts[j - 1][1][k]) / (pts[j + 1][0] - pts[j - 1][0]);
+  };
+  const h00 = 2 * u * u * u - 3 * u * u + 1, h10 = u * u * u - 2 * u * u + u, h01 = -2 * u * u * u + 3 * u * u, h11 = u * u * u - u * u;
+  const r = {};
+  for (const k in BASE) r[k] = h00 * a[k] + h10 * h * tang(i, k) + h01 * b[k] + h11 * h * tang(i + 1, k);
+  r.op = clamp(r.op);
+  return r;
 }
 const ESC = 410 / 390;   // de la app a la pantalla del teléfono
 function ponerTelefono(c) {

@@ -7,7 +7,7 @@ cámara virtual, textos cortos y el cierre con el logo. No se publica en rumbo.b
 ## Archivos
 - `escenas.json` — **el guion**: orden, duración, textos (`*palabra*` va en ámbar), toma de la app, toques y cámara de cada
   escena, el cierre, los fps y el pulso de la música (bpm y primer beat). Se edita sin tocar el motor.
-- `grabar.cjs` — graba las tomas de la app cuadro a cuadro (390 × 844 al triple) con el reloj de la página en pausa, para
+- `grabar.cjs` — graba las tomas de la app cuadro a cuadro (390 × 844 al triple, 60 cuadros por segundo) con el reloj de la página en pausa, para
   que salgan nítidas y fluidas. Deja los cuadros en `tomas/` (no se suben al repo).
 - `componer.html` — el compositor: fondo, teléfono, cámara, toques, textos, el elefante y el cierre. Abierto en el
   navegador (`node serve.js` y `http://localhost:5178/_teaser/componer.html?formato=916`) se reproduce solo; con `&guia`

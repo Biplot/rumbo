@@ -75,12 +75,36 @@ export default async function ({ G, test, assert, clone }) {
     G("datosAnio")(s, y, true).salud.meses[m].peso = 30; assert.equal(metaAuto(s), 1500);
     G("datosAnio")(s, y, true).salud.meses[m].peso = 140; assert.equal(metaAuto(s), 3500);
   });
-  test("pasados 14 días, un día queda solo con su total", () => {
+  test("pasadas las 5 semanas que se pueden corregir, un día queda solo con su total", () => {
     const s = defaultState();
-    s.agua.dias = { "2026-10-01": dia([["a", 250, 1], ["b", 500, 2]], ["a"]), "2026-10-20": dia([["c", 250, 3]]) };
+    s.agua.dias = { "2026-09-20": dia([["a", 250, 1], ["b", 500, 2]], ["a"]), "2026-10-01": dia([["c", 250, 3]]), "2026-10-20": dia([["d", 250, 4]]) };
     compactar(s, "2026-10-31");
-    assert.deepEqual(clone(s.agua.dias["2026-10-01"]), { ml: 500 });
-    assert.equal(s.agua.dias["2026-10-20"].r.length, 1, "los últimos 14 días guardan cada vaso");
+    assert.deepEqual(clone(s.agua.dias["2026-09-20"]), { ml: 500 });
+    assert.equal(s.agua.dias["2026-10-01"].r.length, 1, "los últimos 35 días guardan cada vaso (ahí se puede corregir)");
+    assert.equal(s.agua.dias["2026-10-20"].r.length, 1);
+  });
+  test("corregir otros días: la semana de hoy y las 4 anteriores, nunca mañana", () => {
+    const lunes = G("aguaLunes"), desde = G("aguaEditaDesde"), editable = G("aguaEditable");
+    assert.deepEqual([lunes("2026-11-06"), lunes("2026-11-02"), lunes("2026-11-08")], ["2026-11-02", "2026-11-02", "2026-11-02"], "la semana parte el lunes (el domingo es el último día)");
+    assert.equal(desde("2026-11-06"), "2026-10-05", "4 semanas antes del lunes de esta semana");
+    assert.deepEqual(["2026-11-06", "2026-11-01", "2026-10-05", "2026-10-04", "2026-11-07", "nada"].map(f => editable(f, "2026-11-06")), [true, true, true, false, false, false]);
+    assert.equal(G("AGUA_DETALLE") >= 7 * 4 + 7, true, "los días que se pueden corregir guardan cada vaso");
+  });
+  test("corregir otros días: la hora de cada vaso y el nombre del día", () => {
+    const hora = G("aguaRegHora"), txt = G("aguaDiaTxt");
+    assert.equal(hora({ ts: new Date(2026, 10, 4, 9, 5).getTime() }, "2026-11-04"), "09:05");
+    assert.equal(hora({ ts: new Date(2026, 10, 6, 20, 0).getTime() }, "2026-11-04"), "anotado después", "lo que anotaste otro día no muestra una hora falsa");
+    assert.equal(hora({ ts: 0 }, "2026-11-04"), "—");
+    assert.equal(txt("2026-11-04"), "miércoles 4 de noviembre");
+  });
+  test("corregir otros días en dos equipos: lo que agregaste y lo que quitaste se conservan", () => {
+    const viejo = dia([["a", 250, 1], ["b", 250, 2]]);
+    const tel = { ts: 5, dias: { "2026-10-10": { r: [...viejo.r, { id: "z", ml: 1500, ts: 99 }], b: ["a"] } } };   // en el teléfono: +1,5 L y quitaste a
+    const pc = { ts: 5, dias: { "2026-10-10": clone(viejo) } };
+    const d = clone(merge(pc, tel)).dias["2026-10-10"];
+    assert.equal(total(d), 1750, "250 + 1500: el a quitado no vuelve");
+    const resumido = clone(merge({ ts: 1, dias: { "2026-10-12": { ml: 2000 } } }, { ts: 1, dias: { "2026-10-12": { r: [{ id: "resumen", ml: 2000, ts: 0 }], b: ["resumen"] } } })).dias["2026-10-12"];
+    assert.equal(total(resumido), 0, "un día resumido que corregiste: lo quitado tampoco vuelve");
   });
   test("el reloj de agua: un vaso cada (14 h / vasos de la meta); se vacía desde el último vaso", () => {
     assert.equal(ritmo(2000, 250), 105, "8 vasos en 14 h: uno cada 1 h 45");

@@ -172,7 +172,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 74;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 75;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -560,6 +560,9 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  75: [
+    ["💧", "Corrige el agua de otros días", "¿Olvidaste anotar el agua? En «Tu agua», «Tus días» muestra la semana y ‹ › te lleva hasta 4 semanas atrás. Toca un día para sumar un vaso o tu botella, quitar uno o marcar «Cumplí la meta». Cuenta igual que hoy: +10 ⭐ y tu hábito «Agua» de ese día."],
   ],
   74: [
     ["🎆", "Tu año en Rumbo, desde el 1 de diciembre", "Tu año contado en una historia animada de hasta 8 láminas: tus días cerrados y tu mejor racha, tu hábito del año, tus medallas, el agua que tomaste, tus libros, tus objetivos y en qué va tu elefante. Los números cuentan, las medallas caen y el agua sube. Compártela en Instagram o WhatsApp como video o como imagen. Aparece en Inicio, en Tendencias y en el cierre de diciembre."],

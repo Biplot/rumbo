@@ -3104,11 +3104,29 @@ span.alb-tapa.is-vacia { cursor: default; opacity: .6; }
 .agua-reg .icon-btn { width: 28px; height: 28px; }
 .agua-semana { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; height: 110px; align-items: end; padding-bottom: 18px; }
 .agua-semana__meta { position: absolute; left: 0; right: 0; border-top: 1.5px dashed #F4AE3D; margin-bottom: 18px; pointer-events: none; }
-.agua-semana__d { position: relative; height: 100%; display: grid; align-items: end; justify-items: center; }
+.agua-semana__d { position: relative; height: 100%; display: grid; align-items: end; justify-items: center; border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; border-radius: 8px; }
+.agua-semana__d:disabled { cursor: default; opacity: .35; }
+.agua-semana__d:not(:disabled):hover .agua-semana__b { filter: brightness(1.08); }
+.agua-semana__d.is-sel .agua-semana__b { box-shadow: 0 0 0 2.5px var(--surface), 0 0 0 4.5px #2E9BDB; }
+.agua-semana__d.is-sel small { color: #2E9BDB; font-weight: 800; }
 .agua-semana__b { width: 100%; max-width: 26px; min-height: 2px; border-radius: 6px 6px 3px 3px; background: color-mix(in srgb, #2E9BDB 45%, var(--surface-2)); }
 .agua-semana__b.is-ok { background: #2E9BDB; }
 .agua-semana__d small { position: absolute; bottom: -18px; font-size: 11px; color: var(--text-muted); font-weight: 600; }
 .agua-semana__d.is-hoy small { color: var(--text); font-weight: 800; }
+/* Tus días: ‹ semana › y el día para corregir */
+.agua-dias__cab { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-bottom: 18px; text-align: center; }
+.agua-dias__cab b { display: block; font-size: 14.5px; }
+.agua-dias__cab small { display: block; font-size: 12px; color: var(--text-muted); }
+.agua-dias__cab .icon-btn:disabled { opacity: .3; cursor: default; }
+.agua-dias__pista { margin: 22px 0 0; text-align: center; }
+.agua-dia { margin-top: 26px; padding: 12px 14px; border-radius: 14px; background: var(--surface-2); display: grid; gap: 10px; }
+.agua-dia__cab { display: grid; gap: 2px; }
+.agua-dia__cab b { font-size: 15px; }
+.agua-dia__cab span { font-size: 13px; color: var(--text-muted); }
+.agua-dia__ok { color: #2E9BDB; font-weight: 700; }
+.agua-dia__btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.agua-dia__btns .btn { flex: 1 1 auto; }
+html .agua-dia__btns .btn.btn--soft { background: var(--surface); border: 1px solid var(--line-strong); }   /* más fuerte que el «.btn--soft» de cada tema */
 .agua-inicio { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-soft); }
 .agua-muestra { max-width: 150px; margin: 0 auto 10px; }
 .ficha__ico .agua-ficha { width: 64%; height: auto; aspect-ratio: 140 / 200; display: block; }   /* ancho fijo: si no, el lienzo crecería con su propia resolución */

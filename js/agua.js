@@ -13,7 +13,7 @@
    y un litro sobre 32 °C. El agua se dibuja en canvas: olas con resortes, burbujas y chorros.
    Datos: STATE.agua (ver state.js); entre equipos se fusiona con aguaMerge (store.js).
    ============================================================ */
-const AGUA_PREMIO = 10, AGUA_DETALLE = 14, AGUA_TOPE = 8000;
+const AGUA_PREMIO = 10, AGUA_DETALLE = 35, AGUA_TOPE = 8000;   // AGUA_DETALLE: los días que guardan cada vaso (las 5 semanas que se pueden corregir)
 const AGUA_ESTILOS = [
   { id: "botella", nombre: "La botella", cos: null, desc: "se llena vaso a vaso" },
   { id: "burbuja", nombre: "La burbuja", cos: "agua-burbuja", desc: "flota, tiembla y se llena por volumen" },
@@ -77,7 +77,7 @@ const AGUA_BOTELLAS = [500, 600, 750, 1000, 1500], AGUA_BOTELLA_MIN = 250, AGUA_
 function aguaBotella(S) { const v = +aguaDatos(S).botella; return v >= AGUA_BOTELLA_MIN && v <= AGUA_BOTELLA_MAX ? v : 500; }
 /* 250 ml · 1 L · 1,5 L */
 function aguaMlTxt(ml) { return ml >= 1000 ? litrosTxt(ml) + " L" : ml + " ml"; }
-/* Pasados 14 días, cada día queda solo con su total (el documento no crece de más) */
+/* Pasadas las 5 semanas que se pueden corregir, cada día queda solo con su total (el documento no crece de más) */
 function aguaCompactar(S, hoy) {
   const a = aguaDatos(S), corte = agSumar(hoy || todayISO(), -AGUA_DETALLE);
   Object.keys(a.dias).forEach(k => { const d = a.dias[k]; if (k < corte && d && d.r) a.dias[k] = { ml: aguaTotal(d) }; });
@@ -136,19 +136,63 @@ function aguaQuitar(id) {
 }
 function aguaRevisar(fecha) {
   const d = aguaDia(fecha); if (!d) return;
-  const total = aguaTotal(d), meta = aguaMeta(null, fecha), mov = "agua:" + fecha, h = aguaHabito();
+  const total = aguaTotal(d), meta = aguaMeta(null, fecha), mov = "agua:" + fecha, h = aguaHabito(), esHoy = fecha === todayISO();
   const [y, m, dd] = fecha.split("-").map(Number);
   if (total >= meta && !d.p) {
     d.p = true; saveState();
-    registrarMovimiento(mov, AGUA_PREMIO, AGUA_PREMIO, "Meta de agua", true);
-    toast(`💧 ¡Meta de agua cumplida! +${AGUA_PREMIO} ⭐${typeof isOwned === "function" && isOwned("agua-acuario") ? " · llegó un pez a tu acuario" : ""}`);
-    // Marca el hábito «Agua» si tocaba hoy (o si descansaba y igual llegaste: cuenta como siempre)
-    if (h && !habitDone(h.id, m - 1, dd, y) && (typeof tocaHoy !== "function" || tocaHoy(h) || (typeof hmDescanso === "function" && hmDescanso(h, fecha)))) { d.h = true; saveState(); toggleHabitDate(h.id, y, m - 1, dd); return; }
+    const dado = registrarMovimiento(mov, AGUA_PREMIO, AGUA_PREMIO, esHoy ? "Meta de agua" : "Meta de agua del " + aguaDiaTxt(fecha), true) !== false;   // una vez por día: si ese día ya tenía sus ⭐, no se repiten
+    toast(esHoy ? `💧 ¡Meta de agua cumplida! +${AGUA_PREMIO} ⭐${typeof isOwned === "function" && isOwned("agua-acuario") ? " · llegó un pez a tu acuario" : ""}`
+      : `💧 Meta del ${aguaDiaTxt(fecha)} cumplida${dado ? `: +${AGUA_PREMIO} ⭐` : ""}`);
+    // Marca el hábito «Agua» si tocaba ese día (o si descansaba y igual llegaste: cuenta como siempre)
+    const toca = esHoy ? (typeof tocaHoy !== "function" || tocaHoy(h)) : (typeof hmProgramado !== "function" || hmProgramado(h, fecha));
+    if (h && !habitDone(h.id, m - 1, dd, y) && (toca || (typeof hmDescanso === "function" && hmDescanso(h, fecha)))) { d.h = true; saveState(); toggleHabitDate(h.id, y, m - 1, dd); return; }
   } else if (total < meta && d.p) {
     d.p = false; saveState(); anularMovimiento(mov);
     if (d.h) { d.h = false; saveState(); if (h && habitDone(h.id, m - 1, dd, y)) { toggleHabitDate(h.id, y, m - 1, dd); return; } }
   }
   if (typeof updateTopbar === "function") updateTopbar();
+}
+
+/* -------- Corregir otros días: la semana de hoy y las 4 anteriores --------
+   Para lo que tomaste y olvidaste marcar. Cuenta igual que hoy: al llegar a la meta de ese día, +10 ⭐ y el hábito «Agua»
+   de ese día marcado (como al marcar un hábito en un día pasado); si quitas y quedas bajo la meta, se devuelven.
+   Esos días guardan cada vaso (AGUA_DETALLE), así agregar o quitar se junta bien entre equipos. */
+const AGUA_SEMANAS_ATRAS = 4, AGUA_DIAS_NOMBRE = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+function aguaLunes(iso) { const dow = new Date(iso + "T12:00").getDay(); return agSumar(iso, -((dow + 6) % 7)); }
+function aguaEditaDesde(hoy) { return agSumar(aguaLunes(hoy || todayISO()), -7 * AGUA_SEMANAS_ATRAS); }
+function aguaEditable(fecha, hoy) { hoy = hoy || todayISO(); return /^\d{4}-\d{2}-\d{2}$/.test(String(fecha || "")) && fecha <= hoy && fecha >= aguaEditaDesde(hoy); }
+/* «martes 4 de noviembre» */
+function aguaDiaTxt(f) { const dt = new Date(f + "T12:00"); return `${AGUA_DIAS_NOMBRE[dt.getDay()]} ${dt.getDate()} de ${MESES[dt.getMonth()].toLowerCase()}`; }
+/* La hora de un vaso; si lo anotaste otro día, «anotado después» */
+function aguaRegHora(r, f) {
+  if (!r || !r.ts) return "—";
+  const dt = new Date(r.ts);
+  return isoLocal(dt) === f ? dt.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false }) : "anotado después";
+}
+function aguaSumarDia(fecha, ml) {
+  if (fecha === todayISO()) return aguaSumar(ml);
+  ml = Math.round(+ml); if (!(ml > 0) || !aguaEditable(fecha)) return;
+  const d = aguaDia(fecha, true);
+  if (aguaTotal(d) + ml > AGUA_TOPE) return toast("Ese día ya tiene mucha agua anotada.", true);
+  d.r.push({ id: "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ml, ts: Date.now() });
+  saveState(); vibrar(10);
+  aguaRevisar(fecha);
+  if (typeof aguaJuntosCambio === "function") aguaJuntosCambio();   // tu bidón de esta semana suma lo de cada día (agua-juntos.js)
+  return true;
+}
+function aguaQuitarDia(fecha, id) {
+  if (fecha === todayISO()) return aguaQuitar(id);
+  if (!aguaEditable(fecha) || !aguaDatos().dias[fecha]) return;
+  const d = aguaDia(fecha, true), r = aguaRegistros(d).find(x => x.id === id); if (!r) return;   // un día resumido pasa a tener su total como un vaso
+  d.b.push(r.id); saveState();
+  aguaRevisar(fecha);
+  if (typeof aguaJuntosCambio === "function") aguaJuntosCambio();
+  return true;
+}
+/* «Cumplí la meta»: lo que faltaba ese día, de una vez (redondeado a 50 ml) */
+function aguaLlenarDia(fecha) {
+  const falta = aguaMeta(null, fecha) - aguaTotal(aguaDia(fecha));
+  return falta > 0 ? aguaSumarDia(fecha, Math.ceil(falta / 50) * 50) : undefined;
 }
 
 /* -------- El clima de tu ciudad (Open-Meteo, gratis y sin cuenta) --------
@@ -273,15 +317,51 @@ function aguaListaHtml() {
   return regs.slice().reverse().map(r => `<div class="agua-reg"><span>${r.ts ? new Date(r.ts).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false }) : "—"}</span><b>${r.ml} ml</b>
     <button class="icon-btn" data-action="agua-quitar" data-id="${escapeAttr(r.id)}" aria-label="Quitar ${r.ml} ml">✕</button></div>`).join("");
 }
-function aguaSemanaHtml() {
-  const hoy = todayISO(), meta = aguaMeta(), dias = Array.from({ length: 7 }, (_, i) => agSumar(hoy, i - 6));
-  const vals = dias.map(f => aguaTotal(aguaDia(f))), tope = Math.max(meta, ...vals) * 1.08;
-  return `<div class="agua-semana" role="img" aria-label="Agua de los últimos 7 días">
-    <i class="agua-semana__meta" style="bottom:${(meta / tope * 100).toFixed(1)}%"></i>
-    ${dias.map((f, i) => `<div class="agua-semana__d${f === hoy ? " is-hoy" : ""}"><span class="agua-semana__b${vals[i] >= meta ? " is-ok" : ""}" style="height:${(vals[i] / tope * 100).toFixed(1)}%" title="${litrosTxt(vals[i])} L"></span>
-      <small>${["D", "L", "M", "M", "J", "V", "S"][new Date(f + "T12:00").getDay()]}</small></div>`).join("")}</div>`;
+/* Tus días: la semana (de lunes a domingo) con una barra por día; ‹ › para ir a las 4 semanas anteriores; tocar un día lo abre para corregirlo */
+const AGUA_SEM = { atras: 0, dia: null };
+function aguaRangoTxt(a, b) {
+  const x = new Date(a + "T12:00"), y = new Date(b + "T12:00"), mx = MESES_CORTO[x.getMonth()].toLowerCase(), my = MESES_CORTO[y.getMonth()].toLowerCase();
+  return mx === my ? `${x.getDate()} – ${y.getDate()} ${my}` : `${x.getDate()} ${mx} – ${y.getDate()} ${my}`;
 }
+function aguaSemanaHtml() {
+  const hoy = todayISO(), lunes = agSumar(aguaLunes(hoy), -7 * AGUA_SEM.atras), dias = Array.from({ length: 7 }, (_, i) => agSumar(lunes, i));
+  const metas = dias.map(f => aguaMeta(null, f)), vals = dias.map(f => aguaTotal(aguaDia(f))), base = aguaMetaBase(), tope = Math.max(base, ...metas, ...vals) * 1.08;
+  const sel = dias.includes(AGUA_SEM.dia) ? AGUA_SEM.dia : null;
+  const titulo = AGUA_SEM.atras === 0 ? "Esta semana" : AGUA_SEM.atras === 1 ? "La semana pasada" : `Hace ${AGUA_SEM.atras} semanas`;
+  return `<div class="agua-dias__cab">
+      <button type="button" class="icon-btn" data-action="agua-sem" data-d="1" aria-label="Semana anterior"${AGUA_SEM.atras >= AGUA_SEMANAS_ATRAS ? " disabled" : ""}>‹</button>
+      <div><b>${titulo}</b><small>${aguaRangoTxt(dias[0], dias[6])}</small></div>
+      <button type="button" class="icon-btn" data-action="agua-sem" data-d="-1" aria-label="Semana siguiente"${AGUA_SEM.atras <= 0 ? " disabled" : ""}>›</button></div>
+    <div class="agua-semana" role="group" aria-label="Tu agua de cada día">
+    <i class="agua-semana__meta" style="bottom:${(base / tope * 100).toFixed(1)}%" aria-hidden="true"></i>
+    ${dias.map((f, i) => `<button type="button" class="agua-semana__d${f === hoy ? " is-hoy" : ""}${f === sel ? " is-sel" : ""}" data-action="agua-dia" data-f="${f}"${f > hoy ? " disabled" : ""}
+      aria-pressed="${f === sel}" aria-label="${escapeAttr(aguaDiaTxt(f))}: ${litrosTxt(vals[i])} L${vals[i] >= metas[i] ? ", meta cumplida" : ""}">
+      <span class="agua-semana__b${vals[i] >= metas[i] ? " is-ok" : ""}" style="height:${(vals[i] / tope * 100).toFixed(1)}%"></span>
+      <small>${"LMMJVSD"[i]}</small></button>`).join("")}</div>
+    ${sel ? aguaDiaPanelHtml(sel) : `<p class="text-xs muted agua-dias__pista">¿Olvidaste anotar un día? Tócalo para corregirlo.</p>`}`;
+}
+/* El día elegido: sus vasos, sumar o quitar, y «Cumplí la meta» */
+function aguaDiaPanelHtml(f) {
+  const hoy = todayISO(), d = aguaDia(f), ml = aguaTotal(d), meta = aguaMeta(null, f), vaso = aguaVaso(), bot = aguaBotella(), esHoy = f === hoy;
+  const filas = !d ? [] : !d.r ? (ml ? [`<div class="agua-reg"><span>Total del día</span><b>${aguaMlTxt(ml)}</b>
+      <button class="icon-btn" data-action="agua-dia-quitar" data-f="${f}" data-id="resumen" aria-label="Quitar ${aguaMlTxt(ml)}">✕</button></div>`] : [])
+    : aguaRegistros(d).slice().reverse().map(r => `<div class="agua-reg"><span>${escapeHtml(aguaRegHora(r, f))}</span><b>${r.ml} ml</b>
+      <button class="icon-btn" data-action="agua-dia-quitar" data-f="${f}" data-id="${escapeAttr(r.id)}" aria-label="Quitar ${r.ml} ml">✕</button></div>`);
+  const estado = ml >= meta ? `<span class="agua-dia__ok">✓ Meta cumplida</span>` : `${esHoy ? "Te faltan" : "Te faltaron"} ${aguaMlTxt(meta - ml)}`;
+  return `<div class="agua-dia" id="agua-dia">
+    <div class="agua-dia__cab"><b>${esHoy ? "Hoy" : escapeHtml(aguaDiaTxt(f).replace(/^./, c => c.toUpperCase()))}</b>
+      <span>${litrosTxt(ml)} de ${litrosTxt(meta)} L · ${estado}</span></div>
+    <div class="agua-lista">${filas.length ? filas.join("") : `<p class="text-sm muted" style="margin:0">Sin agua anotada ese día.</p>`}</div>
+    <div class="agua-dia__btns">
+      <button type="button" class="btn btn--soft" data-action="agua-dia-sumar" data-f="${f}" data-ml="${vaso}">+ Vaso · ${aguaMlTxt(vaso)}</button>
+      <button type="button" class="btn btn--soft" data-action="agua-dia-sumar" data-f="${f}" data-ml="${bot}">+ Botella · ${aguaMlTxt(bot)}</button>
+      ${ml < meta ? `<button type="button" class="btn btn--primary" data-action="agua-dia-llenar" data-f="${f}">Cumplí la meta</button>` : ""}</div>
+    <small class="text-xs muted">Al llegar a la meta de ese día: +${AGUA_PREMIO} ⭐ y tu hábito «Agua» de ese día marcado.</small></div>`;
+}
+function aguaHojaAbierta() { if (typeof document === "undefined") return false; const o = document.getElementById("modalOverlay"); return !!document.getElementById("agua-hoja") && !!o && !o.hidden; }
+function aguaSemanaPintar() { const el = document.getElementById("agua-semana"); if (el) el.innerHTML = aguaSemanaHtml(); }
 function openAgua() {
+  if (!aguaHojaAbierta()) { AGUA_SEM.atras = 0; AGUA_SEM.dia = null; }   // se abre desde cero: esta semana
   const a = aguaDatos(), e = aguaEstado(), estilo = aguaEstilo(), auto = aguaMetaAuto();
   const peso = typeof pesoActualGlobal === "function" ? pesoActualGlobal(STATE) : null;
   openModal("Tu agua", `<div class="agua-hoja" id="agua-hoja">
@@ -295,7 +375,7 @@ function openAgua() {
       </div>
     </div>
     <div class="agua-sec"><span class="cj-sub">Hoy</span><div id="agua-hoy-lista" class="agua-lista">${aguaListaHtml()}</div></div>
-    <div class="agua-sec"><span class="cj-sub">Esta semana</span><div id="agua-semana">${aguaSemanaHtml()}</div></div>
+    <div class="agua-sec"><span class="cj-sub">Tus días</span><div id="agua-semana" class="agua-dias">${aguaSemanaHtml()}</div></div>
     ${typeof aguaJuntosHtml === "function" ? aguaJuntosHtml() : ""}
     <div class="agua-sec"><span class="cj-sub">Tu meta</span>
       ${elContador("agua-meta-v", a.meta > 0 ? a.meta : auto, { min: AGUA_META_MIN, max: AGUA_META_MAX, paso: 100, fmtFn: "aguaLitrosFmt", fmt: aguaLitrosFmt, unidad: "L",
@@ -397,6 +477,12 @@ function aguaAccion(a, d, el) {
   if (a === "agua-sumar") return aguaSumar(+d.ml);
   if (a === "agua-deshacer") return aguaQuitar();
   if (a === "agua-quitar") return aguaQuitar(d.id);
+  // tus días: ir a otra semana, elegir un día y corregirlo
+  if (a === "agua-sem") { AGUA_SEM.atras = Math.max(0, Math.min(AGUA_SEMANAS_ATRAS, AGUA_SEM.atras + (+d.d || 0))); AGUA_SEM.dia = null; return aguaSemanaPintar(); }
+  if (a === "agua-dia") { AGUA_SEM.dia = AGUA_SEM.dia === d.f ? null : d.f; aguaSemanaPintar(); const p = document.getElementById("agua-dia"); if (p && p.scrollIntoView) p.scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
+  if (a === "agua-dia-sumar") { aguaSumarDia(d.f, +d.ml); return aguaSemanaPintar(); }
+  if (a === "agua-dia-quitar") { aguaQuitarDia(d.f, d.id); return aguaSemanaPintar(); }
+  if (a === "agua-dia-llenar") { aguaLlenarDia(d.f); return aguaSemanaPintar(); }
   if (a === "agua-abrir") return openAgua();
   if (a === "agua-probador") return openAguaProbador();
   if (a === "agua-meta") return aguaAjuste({ meta: +d.v || 0 });

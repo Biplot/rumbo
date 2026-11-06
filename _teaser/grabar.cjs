@@ -43,6 +43,58 @@ function sembrarMas() {
   saveState(); rerender();
 }
 
+/* El contraste: la misma cuenta el día 1 y el día 120 */
+function estadoAntes() {
+  const S = STATE, hoy = todayISO();
+  // casi sin experiencia: cría, rango bajo y una sola medalla
+  (S.gamif.ledger || []).forEach(m => { if (m.id === "demo-capturas" || (typeof m.id === "string" && m.id.startsWith("insignia:") && m.id !== "insignia:primer-paso")) m.anulado = true; });
+  S.gamif.equipped.ele = { tipo: "clasico", ropa: {}, ts: 1 };
+  S.gamif.equipped.cuarto = { off: [], pared: null, ts: 1 };
+  // hábitos recién creados: solo hoy
+  S.habitos.defs.forEach(h => { h.creado = hoy; });
+  S.habitos.log = {}; const k = monthKey(+hoy.slice(0, 4), +hoy.slice(5, 7) - 1), d = +hoy.slice(8);
+  S.habitos.log[k] = { agua: { [d]: true }, meditar: { [d]: true } };
+  S.jardin = Object.assign(S.jardin || {}, { raices: {}, ts: 1 });
+  S.lecturas = S.lecturas.filter(l => l.estado !== "terminado");
+  S.agua.dias = {};
+  recalcGamif(S);
+  S.gamif.badges = ["primer-paso"]; if (typeof cieloGuardarVisto === "function") cieloGuardarVisto(S.gamif.badges.slice());
+  saveState(); rerender();
+}
+function estadoDespues() {
+  const S = STATE, hoy = todayISO(), dia = 864e5, ahora = Date.parse(hoy + "T10:30:00");
+  recalcGamif(S);
+  // Sabio con corona (12.000 de experiencia) y su pieza decorada con lo de la Tienda
+  ledgerRegistrar(S, "demo-dia-120", 2400, Math.max(0, 12600 - (S.gamif.xp || 0)), "Cuenta de ejemplo, día 120");
+  CUARTO_TIENDA.forEach(it => ledgerRegistrar(S, "compra:" + it.id, 0, 0, "Compra de ejemplo"));
+  S.gamif.equipped.cuarto = { off: [], pared: "par-salvia", ts: 1 };
+  S.gamif.equipped.ele = { tipo: "clasico", ropa: { cabeza: "corona" }, ts: 1 };
+  // todas las medallas, repartidas en el año
+  BADGES.forEach((b, i) => ledgerRegistrar(S, "insignia:" + b.id, 0, 0, "Insignia " + b.nombre, ahora - (i + 1) * 3 * dia));
+  // hábitos de 120 días: echan raíces y pasan al patio como árboles
+  const desde = new Date(ahora - 120 * dia);
+  S.habitos.defs.forEach(h => { h.creado = isoLocal(desde); });
+  S.habitos.log = {};
+  for (let x = new Date(desde); x <= new Date(ahora); x = new Date(x.getTime() + dia)) {
+    const k = monthKey(x.getFullYear(), x.getMonth()), d = x.getDate(); S.habitos.log[k] = S.habitos.log[k] || {};
+    ["agua", "meditar", "leer", "ingles"].forEach((hid, j) => { if ((d + j) % 9 !== 0) { S.habitos.log[k][hid] = S.habitos.log[k][hid] || {}; S.habitos.log[k][hid][d] = true; } });
+    if (x.getDay() % 2) { S.habitos.log[k].gim = S.habitos.log[k].gim || {}; S.habitos.log[k].gim[d] = true; }
+  }
+  // la repisa llena: 10 de 10
+  const mas = [["b8", "Rayuela", "Julio Cortázar", "#E9A21F", 600, "2026-10-20", 5], ["b9", "Ficciones", "Jorge Luis Borges", "#8B5CF6", 200, "2026-11-02", 4], ["b10", "La casa de los espíritus", "Isabel Allende", "#C2410C", 450, "2026-11-12", 5], ["b11", "Momo", "Michael Ende", "#0E8AA8", 280, "2026-11-16", 5]];
+  mas.forEach(([id, titulo, autor, color, paginas, fin, valoracion]) => S.lecturas.push({ id, titulo, autor, color, paginas, estado: "terminado", fin, valoracion, formato: "normal", ts: 1 }));
+  // el agua de hoy, a un vaso de la meta
+  S.agua.dias = {}; const ad = aguaDia(hoy, true, S); ad.r.push({ id: "a1", ml: 1750, ts: ahora - 3600e3 });
+  // las raíces ya celebradas (si no, el aviso «Echó raíces» sale encima de la toma)
+  const hace = isoLocal(new Date(ahora - 50 * dia));
+  S.jardin = Object.assign(S.jardin || {}, { raices: { agua: hace, meditar: hace, leer: hace, ingles: hace }, ts: 1 });
+  recalcGamif(S);
+  // la vitrina enciende lo que está en gamif.badges: todas, y ya vistas (sin la animación de medalla nueva)
+  S.gamif.badges = (typeof cieloOrden === "function" ? cieloOrden() : BADGES.map(b => b.id)).slice();
+  if (typeof cieloGuardarVisto === "function") cieloGuardarVisto(S.gamif.badges.slice());
+  saveState(); rerender();
+}
+
 /* Las tomas: dónde parte, cuánto dura y qué pasa en cada momento (segundos desde el inicio de la toma).
    «cada» corre en todos los cuadros entre desde y hasta, con p de 0 a 1 (para desplazar la pantalla). */
 const suave = p => 1 - Math.pow(1 - p, 3);
@@ -78,6 +130,21 @@ const TOMAS = {
   },
   casa: { ruta: "cuarto", dur: 3.0, arrastre: { desde: 0.2, hasta: 2.8, x0: 120, x1: 290, y: 330 } },
   cielo: { ruta: "cielo", dur: 3.0, arrastre: { desde: 0.2, hasta: 2.8, x0: 110, x1: 300, y: 300 } },
+  // El contraste: la misma pantalla el día 1 y el día 120
+  "jardin-antes": { estado: estadoAntes, ruta: "habitos", dur: 2.0, momentos: [{ t: 0.1, js: () => document.querySelector('[data-action="jar-abrir"]').click() }] },
+  "jardin-despues": { estado: estadoDespues, ruta: "habitos", dur: 2.6, momentos: [{ t: 0.0, js: () => document.querySelector('[data-action="jar-abrir"]').click() }] },
+  "agua-antes": { estado: estadoAntes, ruta: "inicio", dur: 2.0, momentos: [
+    { t: 0.1, js: () => document.querySelector('[data-action="agua-fab-abrir"]').click() },
+    { t: 0.8, js: () => document.querySelector('[data-action="agua-fab-tomar"]').click() }] },
+  "agua-despues": { estado: estadoDespues, ruta: "inicio", dur: 2.6, momentos: [
+    { t: 0.0, js: () => document.querySelector('[data-action="agua-fab-abrir"]').click() },
+    { t: 0.6, js: () => document.querySelector('[data-action="agua-fab-tomar"]').click() }] },
+  "biblioteca-antes": { estado: estadoAntes, ruta: "lecturas", dur: 2.0 },
+  "biblioteca-despues": { estado: estadoDespues, ruta: "lecturas", dur: 2.6 },
+  "casa-antes": { estado: estadoAntes, ruta: "cuarto", dur: 2.0, arrastre: { desde: 0.1, hasta: 1.9, x0: 150, x1: 230, y: 330 } },
+  "casa-despues": { estado: estadoDespues, ruta: "cuarto", dur: 2.6, arrastre: { desde: 0.1, hasta: 2.5, x0: 230, x1: 330, y: 330 } },
+  "cielo-antes": { estado: estadoAntes, ruta: "cielo", dur: 2.0, arrastre: { desde: 0.1, hasta: 1.9, x0: 150, x1: 230, y: 300 } },
+  "cielo-despues": { estado: estadoDespues, ruta: "cielo", dur: 2.6, arrastre: { desde: 0.1, hasta: 2.5, x0: 230, x1: 330, y: 300 } },
 };
 
 const arriba = () => new Promise(res => http.get(URL, r => { r.resume(); res(true); }).on("error", () => res(false)));
@@ -96,6 +163,7 @@ async function grabar(b, id, T) {
   await registrar(p, "camila@ejemplo.cl");
   await p.evaluate(sembrar, HOY);
   await p.evaluate(sembrarMas);
+  if (T.estado) await p.evaluate(T.estado);
   await p.evaluate(() => { STATE.settings.theme = "norte-noche"; saveState(); applyTheme("norte-noche"); });
   await p.addStyleTag({ content: ".toast{display:none!important}" });
   await p.goto(URL + "#" + T.ruta); await p.waitForTimeout(1500);
@@ -146,5 +214,8 @@ async function grabar(b, id, T) {
   let errores = 0;
   for (const id of pedidas) { if (!TOMAS[id]) { console.log("No conozco la toma " + id); continue; } errores += await grabar(b, id, TOMAS[id]); }
   await b.close(); if (server) server.kill();
+  // cuántos cuadros tiene cada toma (lo lee componer.html)
+  const man = {}; fs.readdirSync(SALIDA).forEach(d => { const dd = path.join(SALIDA, d); if (fs.statSync(dd).isDirectory()) man[d] = fs.readdirSync(dd).filter(f => f.endsWith(".jpg")).length; });
+  fs.writeFileSync(path.join(SALIDA, "manifiesto.json"), JSON.stringify(man, null, 1));
   process.exit(errores ? 1 : 0);
 })();

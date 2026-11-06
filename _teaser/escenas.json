@@ -6,67 +6,385 @@
   "primerBeat": 2.0,
   "escenas": [
     {
-      "id": "gancho", "desde": 0, "hasta": 2,
-      "toma": "inicio", "tomaDesde": 0, "congelar": true,
-      "texto": ["¿Cómo te comes", "un *elefante?*"],
+      "id": "gancho",
+      "desde": 0,
+      "hasta": 2,
+      "toma": "inicio",
+      "tomaDesde": 0,
+      "congelar": true,
+      "texto": [
+        "¿Cómo te comes",
+        "un *elefante?*"
+      ],
       "elefante": true,
-      "camara": [[0, { "s": 0.9, "dy": 900, "rz": 10, "ry": -30 }], [1.1, { "s": 1, "dy": 0, "rz": 0, "ry": 0 }], [2, { "s": 1.04 }]]
+      "camara": [
+        [
+          0,
+          {
+            "s": 0.9,
+            "dy": 900,
+            "rz": 10,
+            "ry": -30
+          }
+        ],
+        [
+          1.1,
+          {
+            "s": 1,
+            "dy": 0,
+            "rz": 0,
+            "ry": 0
+          }
+        ],
+        [
+          2,
+          {
+            "s": 1.04
+          }
+        ]
+      ]
     },
     {
-      "id": "abrir", "desde": 2, "hasta": 4.5,
-      "toma": "inicio", "tomaDesde": 0,
-      "texto": ["Abre tu día", "en *2 minutos*"],
-      "camara": [[0, { "s": 1.04, "fx": 195, "fy": 422 }], [0.9, { "s": 1.99, "fx": 195, "fy": 260 }], [2.5, { "s": 2.17, "fx": 195, "fy": 250 }]]
+      "id": "abrir",
+      "desde": 2,
+      "hasta": 4.5,
+      "toma": "inicio",
+      "tomaDesde": 0,
+      "texto": [
+        "Abre tu día",
+        "en *2 minutos*"
+      ],
+      "camara": [
+        [
+          0,
+          {
+            "s": 1.04,
+            "fx": 195,
+            "fy": 422
+          }
+        ],
+        [
+          0.9,
+          {
+            "s": 1.99,
+            "fx": 195,
+            "fy": 260
+          }
+        ],
+        [
+          2.5,
+          {
+            "s": 2.17,
+            "fx": 195,
+            "fy": 250
+          }
+        ]
+      ]
     },
     {
-      "id": "bocado", "desde": 4.5, "hasta": 7,
-      "toma": "inicio", "tomaDesde": 2.5,
-      "texto": ["Un bocado", "a la *vez*"],
-      "toques": [{ "t": 0.2, "x": 322, "y": 240 }],
-      "camara": [[0, { "s": 2.17, "fx": 195, "fy": 250, "ry": 0 }], [0.6, { "s": 2.95, "fx": 270, "fy": 240, "ry": -14, "rx": 4 }], [2.5, { "s": 3.08, "fx": 260, "fy": 245, "ry": -10, "rx": 3 }]]
+      "id": "bocado",
+      "desde": 4.5,
+      "hasta": 7,
+      "toma": "inicio",
+      "tomaDesde": 2.5,
+      "texto": [
+        "Un bocado",
+        "a la *vez*"
+      ],
+      "toques": [
+        {
+          "t": 0.2,
+          "x": 322,
+          "y": 240
+        }
+      ],
+      "camara": [
+        [
+          0,
+          {
+            "s": 2.17,
+            "fx": 195,
+            "fy": 250,
+            "ry": 0
+          }
+        ],
+        [
+          0.6,
+          {
+            "s": 2.95,
+            "fx": 270,
+            "fy": 240,
+            "ry": -14,
+            "rx": 4
+          }
+        ],
+        [
+          2.5,
+          {
+            "s": 3.08,
+            "fx": 260,
+            "fy": 245,
+            "ry": -10,
+            "rx": 3
+          }
+        ]
+      ]
     },
     {
-      "id": "habitos", "desde": 7, "hasta": 9.5,
-      "toma": "habitos", "tomaDesde": 0,
-      "texto": ["Tus hábitos", "*florecen*"],
-      "toques": [{ "t": 0.7, "x": 292, "y": 238 }],
-      "camara": [[0, { "s": 1.26, "fx": 195, "fy": 360, "dy": 520, "rx": 18 }], [0.7, { "s": 1.52, "fx": 230, "fy": 300, "dy": 0, "rx": 0 }], [2.5, { "s": 1.65, "fx": 195, "fy": 260 }]]
+      "id": "jardin",
+      "desde": 7,
+      "hasta": 10,
+      "toma": "jardin-antes",
+      "tomaDesde": 0.35,
+      "despues": {
+        "t": 1.4,
+        "toma": "jardin-despues",
+        "tomaDesde": 0.25
+      },
+      "etiquetas": [
+        "Día 1",
+        "Día 120"
+      ],
+      "texto": [
+        "Tus hábitos",
+        "*florecen*"
+      ],
+      "camara": [
+        [
+          0,
+          {
+            "s": 1.6,
+            "fx": 195,
+            "fy": 300,
+            "dy": 420,
+            "rx": 14
+          }
+        ],
+        [
+          0.7,
+          {
+            "s": 2.25,
+            "fx": 195,
+            "fy": 225,
+            "dy": 0,
+            "rx": 0
+          }
+        ],
+        [
+          3,
+          {
+            "s": 2.45,
+            "fx": 195,
+            "fy": 220
+          }
+        ]
+      ]
     },
     {
-      "id": "jardin", "desde": 9.5, "hasta": 12,
-      "toma": "jardin", "tomaDesde": 0,
-      "texto": ["Sin culpa si", "un día *no sale*"],
-      "toques": [{ "t": 0.3, "x": 362, "y": 263 }],
-      "camara": [[0, { "s": 1.65, "fx": 195, "fy": 260 }], [0.8, { "s": 2.3, "fx": 195, "fy": 230, "ry": 8 }], [2.5, { "s": 2.61, "fx": 195, "fy": 225, "ry": 4 }]]
+      "id": "agua",
+      "desde": 10,
+      "hasta": 13,
+      "toma": "agua-antes",
+      "tomaDesde": 0.1,
+      "despues": {
+        "t": 1.4,
+        "toma": "agua-despues",
+        "tomaDesde": 0.0
+      },
+      "etiquetas": [
+        "9:00",
+        "21:00"
+      ],
+      "texto": [
+        "Un toque,",
+        "un *vaso*"
+      ],
+      "camara": [
+        [
+          0,
+          {
+            "s": 1.5,
+            "fx": 300,
+            "fy": 660
+          }
+        ],
+        [
+          0.6,
+          {
+            "s": 2.45,
+            "fx": 250,
+            "fy": 630,
+            "rz": -2
+          }
+        ],
+        [
+          3,
+          {
+            "s": 2.6,
+            "fx": 250,
+            "fy": 625,
+            "rz": 0
+          }
+        ]
+      ]
     },
     {
-      "id": "agua", "desde": 12, "hasta": 14.5,
-      "toma": "agua", "tomaDesde": 0.2,
-      "entrada": { "tipo": "circulo", "x": 345, "y": 743, "dur": 0.45 },
-      "texto": ["Un toque,", "un *vaso*"],
-      "toques": [{ "t": 0.05, "x": 345, "y": 743 }, { "t": 0.75, "x": 268, "y": 650 }, { "t": 1.35, "x": 268, "y": 650 }, { "t": 1.95, "x": 268, "y": 650 }],
-      "camara": [[0, { "s": 1.52, "fx": 300, "fy": 650 }], [0.6, { "s": 2.69, "fx": 262, "fy": 620, "rz": -2 }], [2.5, { "s": 2.87, "fx": 262, "fy": 615, "rz": 0 }]]
+      "id": "biblioteca",
+      "desde": 13,
+      "hasta": 16,
+      "toma": "biblioteca-antes",
+      "tomaDesde": 0,
+      "despues": {
+        "t": 1.4,
+        "toma": "biblioteca-despues",
+        "tomaDesde": 0.3
+      },
+      "etiquetas": [
+        "Enero",
+        "Noviembre"
+      ],
+      "texto": [
+        "Tu repisa",
+        "se *llena*"
+      ],
+      "camara": [
+        [
+          0,
+          {
+            "s": 1.9,
+            "fx": 195,
+            "fy": 420,
+            "dx": 900,
+            "rz": 6
+          }
+        ],
+        [
+          0.8,
+          {
+            "s": 2.2,
+            "fx": 175,
+            "fy": 395,
+            "dx": 0,
+            "rz": 0
+          }
+        ],
+        [
+          3,
+          {
+            "s": 2.35,
+            "fx": 175,
+            "fy": 390
+          }
+        ]
+      ]
     },
     {
-      "id": "biblioteca", "desde": 14.5, "hasta": 17,
-      "toma": "biblioteca", "tomaDesde": 0,
-      "texto": ["Tus libros,", "de pie en tu *repisa*"],
-      "camara": [[0, { "s": 2.04, "fx": 195, "fy": 470, "dx": 900, "rz": 6 }], [0.8, { "s": 2.3, "fx": 195, "fy": 450, "dx": 0, "rz": 0 }], [2.5, { "s": 2.51, "fx": 205, "fy": 440 }]]
+      "id": "casa",
+      "desde": 16,
+      "hasta": 19,
+      "toma": "casa-antes",
+      "tomaDesde": 0,
+      "despues": {
+        "t": 1.4,
+        "toma": "casa-despues",
+        "tomaDesde": 0.2
+      },
+      "etiquetas": [
+        "Día 1",
+        "Día 120"
+      ],
+      "texto": [
+        "Tu elefante",
+        "*crece* contigo"
+      ],
+      "camara": [
+        [
+          0,
+          {
+            "s": 1.3,
+            "fx": 195,
+            "fy": 320,
+            "ry": 60
+          }
+        ],
+        [
+          0.8,
+          {
+            "s": 1.7,
+            "fx": 195,
+            "fy": 310,
+            "ry": 0
+          }
+        ],
+        [
+          3,
+          {
+            "s": 1.85,
+            "fx": 195,
+            "fy": 315,
+            "ry": -5
+          }
+        ]
+      ]
     },
     {
-      "id": "casa", "desde": 17, "hasta": 19.5,
-      "toma": "casa", "tomaDesde": 0,
-      "texto": ["Un elefante que", "*crece* contigo"],
-      "camara": [[0, { "s": 1.26, "fx": 195, "fy": 330, "ry": 70 }], [0.8, { "s": 1.65, "fx": 195, "fy": 320, "ry": 0 }], [2.5, { "s": 1.83, "fx": 195, "fy": 330, "ry": -6 }]]
+      "id": "cielo",
+      "desde": 19,
+      "hasta": 22,
+      "toma": "cielo-antes",
+      "tomaDesde": 0,
+      "despues": {
+        "t": 1.4,
+        "toma": "cielo-despues",
+        "tomaDesde": 0.2
+      },
+      "etiquetas": [
+        "Día 1",
+        "Un año"
+      ],
+      "texto": [
+        "Tu esfuerzo,",
+        "en tu *cielo*"
+      ],
+      "camara": [
+        [
+          0,
+          {
+            "s": 1.75,
+            "fx": 195,
+            "fy": 300
+          }
+        ],
+        [
+          1.4,
+          {
+            "s": 1.55,
+            "fx": 195,
+            "fy": 320
+          }
+        ],
+        [
+          2.7,
+          {
+            "s": 1.2,
+            "fx": 195,
+            "fy": 400
+          }
+        ],
+        [
+          3,
+          {
+            "s": 0.9,
+            "dy": -80,
+            "op": 0
+          }
+        ]
+      ]
     },
     {
-      "id": "cielo", "desde": 19.5, "hasta": 22,
-      "toma": "cielo", "tomaDesde": 0,
-      "texto": ["Tu esfuerzo,", "en tu *cielo*"],
-      "camara": [[0, { "s": 2.3, "fx": 195, "fy": 330 }], [1.4, { "s": 1.39, "fx": 195, "fy": 380 }], [2.15, { "s": 1.05, "fx": 195, "fy": 422 }], [2.5, { "s": 0.8, "dy": -120, "op": 0 }]]
-    },
-    {
-      "id": "cierre", "desde": 22, "hasta": 27,
+      "id": "cierre",
+      "desde": 22,
+      "hasta": 27,
       "cierre": true,
       "frase": "Un bocado a la vez.",
       "llamado": "Gratis hasta enero · rumbo.biplot.cl"

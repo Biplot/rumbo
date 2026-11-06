@@ -27,6 +27,9 @@ html,body{background:#000;overflow:hidden}
 #texto .linea{display:block;white-space:nowrap}
 #texto .p{display:inline-block;will-change:transform,opacity}
 #texto .acento{color:var(--ambar)}
+#texto .etq{display:inline-block;margin-top:30px;padding:10px 28px;border-radius:999px;font:700 46px/1.2 Figtree,sans-serif;letter-spacing:0;text-shadow:none;background:rgba(141,155,255,.16);box-shadow:inset 0 0 0 2px rgba(141,155,255,.55);color:var(--txt);font-variant-numeric:tabular-nums}
+#texto .etq.ya{background:var(--ambar);box-shadow:0 10px 30px -8px rgba(255,190,85,.7);color:var(--tinta)}
+#barrido{position:absolute;left:0;right:0;height:6px;margin-top:-3px;background:var(--ambar);box-shadow:0 0 24px 8px rgba(255,190,85,.75);opacity:0;z-index:2}
 #velo{position:absolute;left:0;right:0;top:0;pointer-events:none}
 #ele{position:absolute;left:0;top:0;transform-origin:50% 100%}
 #ele svg{width:100%;height:100%;overflow:visible}
@@ -48,7 +51,7 @@ html,body{background:#000;overflow:hidden}
 <body>
 <div id="lienzo">
   <canvas id="estrellas"></canvas>
-  <div id="tel"><div class="marco"></div><div class="pantalla"><img id="toma" alt=""><div class="isla"></div><div class="toque" id="toque"><i></i></div></div></div>
+  <div id="tel"><div class="marco"></div><div class="pantalla"><img id="toma" alt=""><img id="toma2" alt=""><div id="barrido"></div><div class="isla"></div><div class="toque" id="toque"><i></i></div></div></div>
   <div id="velo"></div>
   <div id="ele"></div>
   <div id="texto"></div>
@@ -135,7 +138,17 @@ function ponerTexto(esc, tl, dur) {
     el.innerHTML = (esc.texto || []).map(l => `<span class="linea">${l.split(" ").map(w => {
       const acento = /\*/.test(w); w = w.replace(/\*/g, "");
       return `<span class="p${acento ? " acento" : ""}" data-i="${n++}">${w}</span>`;
-    }).join(" ")}</span>`).join("");
+    }).join(" ")}</span>`).join("") + (esc.etiquetas ? `<span class="linea"><span class="etq"></span></span>` : "");
+  }
+  const etq = el.querySelector(".etq");
+  if (etq) {
+    const [a, b] = esc.etiquetas, c = esc.despues.t, p = clamp((tl - c) / 0.45);
+    const ma = a.match(/^(\D*)(\d+)(\D*)$/), mb = b.match(/^(\D*)(\d+)(\D*)$/);
+    etq.textContent = ma && mb && ma[1] === mb[1] && ma[3] === mb[3] ? ma[1] + Math.round(lerp(+ma[2], +mb[2], inercia(p))) + ma[3] : (p < 0.5 ? a : b);
+    etq.classList.toggle("ya", p >= 0.5);
+    const pin = inercia((tl - 0.25) / 0.4), pout = clamp((tl - (dur - 0.22)) / 0.2);
+    etq.style.opacity = pin * (1 - pout);
+    etq.style.transform = `translateY(${(1 - pin) * 30}px) scale(${1 + (p > 0 && p < 1 ? Math.sin(p * Math.PI) * 0.12 : 0)})`;
   }
   el.querySelectorAll(".p").forEach(s => {
     const i = +s.dataset.i, pin = inercia((tl - 0.08 - i * 0.07) / 0.42), pout = clamp((tl - (dur - 0.22)) / 0.2);
@@ -204,6 +217,16 @@ async function cuadro(t) {
   const i = Math.min(n - 1, Math.round((esc.tomaDesde + (esc.congelar ? 0 : tl)) * G.fps));
   const src = `tomas/${esc.toma}/${String(i).padStart(4, "0")}.jpg`;
   if (img.getAttribute("src") !== src) { img.setAttribute("src", src); try { await img.decode(); } catch (e) {} }
+  // El contraste: la toma del «después» se revela de abajo hacia arriba con un barrido ámbar
+  const img2 = document.getElementById("toma2"), barr = document.getElementById("barrido"), dp = esc.despues;
+  if (dp && tl >= dp.t) {
+    const n2 = MAN[dp.toma] || 1, i2 = Math.min(n2 - 1, Math.round((dp.tomaDesde + tl - dp.t) * G.fps));
+    const src2 = `tomas/${dp.toma}/${String(i2).padStart(4, "0")}.jpg`;
+    if (img2.getAttribute("src") !== src2) { img2.setAttribute("src", src2); try { await img2.decode(); } catch (e) {} }
+    const p = inercia((tl - dp.t) / 0.45);
+    img2.style.display = ""; img2.style.clipPath = `inset(${(1 - p) * 100}% 0 0 0)`;
+    barr.style.top = (1 - p) * 888 + "px"; barr.style.opacity = p < 1 ? 1 : 0;
+  } else { img2.style.display = "none"; barr.style.opacity = 0; }
   const en = esc.entrada;
   img.style.clipPath = en && en.tipo === "circulo" ? `circle(${inercia(tl / en.dur) * 1100}px at ${en.x * ESC}px ${en.y * ESC}px)` : "none";
   // el toque

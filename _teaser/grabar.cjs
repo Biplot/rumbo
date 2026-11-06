@@ -95,6 +95,33 @@ function estadoDespues() {
   saveState(); rerender();
 }
 
+/* Con amigos (día 120): las cuentas locales comparten la «base» de amigos (LocalBackend, como en tests/e2e/tablero.cjs).
+   Jose, Martín y Cami son amigos; Vale pide amistad. Una racha de a dos corriendo con Jose, el asado del sábado de
+   Martín, juntar entre todos para el viaje al sur y un ánimo de Cami. */
+async function amigosConGente() {
+  const B = localStorage.getItem("rumbo_session"), hoy = todayISO(), F = n => agSumar(hoy, n), como = id => localStorage.setItem("rumbo_session", id), D = { tipo: "diario" };
+  const cod = AMIGOS.codigo;
+  for (const [id, nombre] of [["u_jose", "Jose"], ["u_martin", "Martín"], ["u_cami", "Cami"], ["u_vale", "Vale"]]) {
+    como(id); await BACKEND.amigosPerfil({ nombre, estado: { fecha: hoy, abrio: true } }); await BACKEND.amigosPedir(cod);
+  }
+  como(B); for (const id of ["u_jose", "u_martin", "u_cami"]) await BACKEND.amigosResponder(id, true);
+  // la racha de a dos: 8 días corriendo juntos
+  como("u_jose"); const h = await BACKEND.conjuntoCrear("Correr 20 minutos", "🏃", D, [B], F(-8));
+  como(B); await BACKEND.conjuntoResponder(h.id, true, F(-8));
+  for (let k = -8; k <= 0; k++) { como("u_jose"); await BACKEND.conjuntoMarcar(h.id, F(k), true); if (k < 0) { como(B); await BACKEND.conjuntoMarcar(h.id, F(k), true); } }
+  // el asado del sábado
+  como("u_martin"); const asado = await BACKEND.planCrear({ titulo: "Asado del sábado", tipo: "comer", fecha: F(3), hora: "13:30", lugar: "Casa de Martín" }, [B], hoy);
+  como(B); await BACKEND.planResponder(asado.id, "voy");
+  // juntar entre todos para el viaje
+  como(B); const o = await BACKEND.objetivoCrear("Viaje al sur", "$", 600000, F(60), ["u_jose", "u_cami"], hoy);
+  for (const id of ["u_jose", "u_cami"]) { como(id); await BACKEND.objetivoResponder(o.id, true, hoy); }
+  como(B); await BACKEND.objetivoAportar(o.id, 150000, "", hoy);
+  como("u_jose"); await BACKEND.objetivoAportar(o.id, 120000, "", hoy);
+  como("u_cami"); await BACKEND.objetivoAportar(o.id, 90000, "", hoy);
+  await BACKEND.amigosAnimo(B, "¡Vamos, Camila!");
+  como(B); await amigosCargar(true);
+}
+
 /* Las tomas: dónde parte, cuánto dura y qué pasa en cada momento (segundos desde el inicio de la toma).
    «cada» corre en todos los cuadros entre desde y hasta, con p de 0 a 1 (para desplazar la pantalla). */
 const suave = p => 1 - Math.pow(1 - p, 3);
@@ -143,6 +170,8 @@ const TOMAS = {
   "biblioteca-despues": { estado: estadoDespues, ruta: "lecturas", dur: 2.6 },
   "casa-antes": { estado: estadoAntes, ruta: "cuarto", dur: 2.0, arrastre: { desde: 0.1, hasta: 1.9, x0: 150, x1: 230, y: 330 } },
   "casa-despues": { estado: estadoDespues, ruta: "cuarto", dur: 2.6, arrastre: { desde: 0.1, hasta: 2.5, x0: 230, x1: 330, y: 330 } },
+  "amigos-antes": { estado: estadoAntes, ruta: "amigos", dur: 2.0 },
+  "amigos-despues": { estado: estadoDespues, ruta: "amigos", gente: amigosConGente, dur: 2.6, momentos: [{ desde: 0.5, hasta: 2.4, cada: p => window.scrollTo(0, 230 * p) }] },
   "cielo-antes": { estado: estadoAntes, ruta: "cielo", dur: 2.0, arrastre: { desde: 0.1, hasta: 1.9, x0: 150, x1: 230, y: 300 } },
   "cielo-despues": { estado: estadoDespues, ruta: "cielo", dur: 2.6, arrastre: { desde: 0.1, hasta: 2.5, x0: 230, x1: 330, y: 300 } },
 };
@@ -175,6 +204,7 @@ async function grabar(b, id, T) {
   await p.evaluate(() => { STATE.settings.theme = "norte-noche"; saveState(); applyTheme("norte-noche"); });
   await p.addStyleTag({ content: ".toast{display:none!important}" });
   await p.goto(URL + "#" + T.ruta); await p.waitForTimeout(1500);
+  if (T.gente) { await p.evaluate(T.gente); await p.goto(URL + "#inicio"); await p.waitForTimeout(400); await p.goto(URL + "#" + T.ruta); await p.waitForTimeout(1500); await p.evaluate(() => { try { closeModal(); } catch (e) {} }); }
   await p.evaluate(() => document.fonts.ready);
   if (T.prep) await p.evaluate(T.prep);
   await p.waitForTimeout(400);

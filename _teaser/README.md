@@ -1,6 +1,6 @@
 # Teaser de Rumbo
 
-Teaser de 27 s para Reels, TikTok y Stories (9:16, 1080 × 1920) y versión 16:9 (1920 × 1080). Muestra la app de verdad,
+Teaser de 30 s para Reels, TikTok y Stories (9:16, 1080 × 1920) y versión 16:9 (1920 × 1080). Muestra la app de verdad,
 grabada con la cuenta de ejemplo «Camila» (miércoles 18 de noviembre de 2026, en Norte noche), dentro de un teléfono con
 cámara virtual, textos cortos y el cierre con el logo. No se publica en rumbo.biplot.cl (`.vercelignore`).
 

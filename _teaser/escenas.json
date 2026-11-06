@@ -1,7 +1,7 @@
 {
   "_leeme": "Guion del teaser. Cambia textos, orden y duración aquí, sin tocar el motor. Tiempos en segundos. Las coordenadas (x, y, fx, fy) son puntos de la pantalla del teléfono, en el tamaño de la app (390 × 844). En el texto, *así* va en ámbar. La cámara interpola entre sus puntos con inercia: s = zoom, fx/fy = punto que mira, rx/ry/rz = giros en grados, dx/dy = corrimiento del teléfono en píxeles del video (9:16).",
   "fps": 60,
-  "duracion": 27,
+  "duracion": 30,
   "bpm": 120,
   "primerBeat": 2.0,
   "escenas": [
@@ -364,17 +364,67 @@
           }
         ],
         [
+          3,
+          {
+            "s": 1.25,
+            "fx": 195,
+            "fy": 380
+          }
+        ]
+      ]
+    },
+    {
+      "id": "amigos",
+      "desde": 22,
+      "hasta": 25,
+      "toma": "amigos-antes",
+      "tomaDesde": 0.3,
+      "despues": {
+        "t": 1.4,
+        "toma": "amigos-despues",
+        "tomaDesde": 0.2
+      },
+      "etiquetas": [
+        "Solo",
+        "Con amigos"
+      ],
+      "texto": [
+        "Mejor",
+        "con *alguien*"
+      ],
+      "camara": [
+        [
+          0,
+          {
+            "s": 1.4,
+            "fx": 195,
+            "fy": 330,
+            "dx": -900,
+            "rz": -6
+          }
+        ],
+        [
+          0.8,
+          {
+            "s": 1.85,
+            "fx": 195,
+            "fy": 300,
+            "dx": 0,
+            "rz": 0
+          }
+        ],
+        [
           2.7,
           {
-            "s": 1.2,
+            "s": 1.95,
             "fx": 195,
-            "fy": 400
+            "fy": 330
           }
         ],
         [
           3,
           {
-            "s": 0.9,
+            "s": 1.6,
             "dy": -80,
             "op": 0
           }
@@ -383,8 +433,8 @@
     },
     {
       "id": "cierre",
-      "desde": 22,
-      "hasta": 27,
+      "desde": 25,
+      "hasta": 30,
       "cierre": true,
       "frase": "Un bocado a la vez.",
       "llamado": "Gratis hasta enero · rumbo.biplot.cl"

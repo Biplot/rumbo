@@ -34,6 +34,16 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => !document.getElementById("agua").classList.contains("abierta")), "Escape cierra la portilla");
   await p.reload(); await p.waitForTimeout(300);
   ok((await p.locator("[data-agua-cifra]").innerText()).startsWith("500 ml"), "lo que tomaste hoy se recuerda al volver");
+  // La hoja de bullet journal se toca: el primer bocado pasa a hecho y vuelve a su signo
+  const signo = () => p.evaluate(() => document.querySelectorAll("#hoja li")[1].querySelector(".s").textContent);
+  await p.click("#hoja li >> nth=1");
+  ok(await signo() === "✓" && await p.evaluate(() => document.querySelectorAll("#hoja li")[1].classList.contains("h-hecha")), "tocar el primer bocado lo marca hecho (✓)");
+  await p.click("#hoja li >> nth=1");
+  ok(await signo() === ">" && (await p.locator("#hoja li >> nth=1").innerText()).includes("→ mañana"), "otro toque lo pasa a mañana (>)");
+  // Las etapas del elefante se tocan
+  await p.click(".etapa >> nth=2");
+  ok((await p.locator("#etapaPista").innerText()).startsWith("Sabio") && await p.getAttribute(".etapa >> nth=2", "aria-pressed") === "true", "tocar Sabio cuenta cómo es y cuándo llega");
+  ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "con todo lo nuevo, sigue sin desplazamiento horizontal");
   await p.click("[data-cta] >> nth=1"); await p.waitForTimeout(400);
   ok(await p.evaluate(() => !document.getElementById("form-register").hidden && document.getElementById("form-login").hidden), "'Empieza gratis' abre la app en Crear cuenta");
   await p.goto(URL); await p.waitForTimeout(300);

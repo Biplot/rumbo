@@ -7,6 +7,7 @@ Hecha con la identidad de marca **BiPlot** (azul profundo · cian · coral).
 ## Producción
 - **Repositorio:** organización **Biplot** (`Biplot/rumbo`).
 - **App:** desplegada con GitHub Pages en `https://biplot.github.io/rumbo/` (dominio propio en configuración).
+- **Vercel publica solo lo que llega a `main`.** Las ramas de trabajo `claude/*` no se construyen (`git.deploymentEnabled` en `vercel.json`): sus vistas previas nadie las abría y eran dos de cada tres construcciones. Las pruebas de cada PR siguen corriendo en GitHub Actions.
 - **Notificaciones:** recordatorios de ritual (mañana/noche, semana, mes y trimestre) con Web Push, armados igual que en Fundos 360: Supabase (pg_cron cada 5 min + pg_net) le pide a la app que los mande y la función `api/push.js` (Vercel) los envía a cada dispositivo. Ver «Notificaciones» abajo.
 
 ## Tecnología

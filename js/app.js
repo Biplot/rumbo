@@ -172,7 +172,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 75;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 76;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -560,6 +560,9 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  76: [
+    ["🚦", "Tus hábitos por color", "En «Hábitos de hoy» el borde de cada hábito dice cómo va: verde si ya cumpliste lo de su período, amarillo si vas bien y rojo si está en riesgo (ayer no lo hiciste o ya no te quedan días de margen). Ya no se esconden los cumplidos: quedan a la vista, al final y con ✓."],
   ],
   75: [
     ["💧", "Corrige el agua de otros días", "¿Olvidaste anotar el agua? En «Tu agua», «Tus días» muestra la semana y ‹ › te lleva hasta 4 semanas atrás. Toca un día para sumar un vaso o tu botella, quitar uno o marcar «Cumplí la meta». Cuenta igual que hoy: +10 ⭐ y tu hábito «Agua» de ese día."],
@@ -2106,17 +2109,16 @@ function renderInicio() {
   const habBtn = h => {
     if (hmMeta(h) !== "hacer") return djChipHtml(h);   // dejar o reducir: días sin o cuántos van (dejar.js)
     const on = habitDone(h.id, mIdx, day);
-    const prog = progresoPeriodoActual(h);
-    return `<button class="hab-chip${on ? " is-on" : ""}" data-action="quick-habit" data-id="${h.id}" aria-pressed="${on}"
-      title="${escapeAttr(h.nombre + " · " + prog.texto)}"><span class="hab-chip__i">${icoHab(h.icon, 20)}</span><span class="hab-chip__n">${escapeHtml(h.nombre)}</span></button>`;
+    const prog = progresoPeriodoActual(h), st = hmEstadoHoy(h);   // el borde: verde, amarillo o rojo (habitos-motor.js)
+    return `<button class="hab-chip st-${st}${on ? " is-on" : ""}" data-action="quick-habit" data-id="${h.id}" aria-pressed="${on}"
+      title="${escapeAttr(h.nombre + " · " + prog.texto + " · " + HM_ESTADO_TXT[st])}" aria-label="${escapeAttr(h.nombre + ": " + prog.texto + ", " + HM_ESTADO_TXT[st])}">${st === "ok" ? `<span class="hab-chip__ok" aria-hidden="true">✓</span>` : ""}<span class="hab-chip__i">${icoHab(h.icon, 20)}</span><span class="hab-chip__n">${escapeHtml(h.nombre)}</span></button>`;
   };
   const { toca: habToca, cumplidos: habCumplidos, descansan: habDescansan, limites: habLimites } = habitosHoy();
   // Los hábitos en conjunto van aparte, con cómo va cada uno (conjunto.js)
   const propios = l => l.filter(h => !h.conjunto), propiosToca = propios(habToca), propiosCumplidos = propios(habCumplidos);
-  const habitsToday = (propiosToca.length ? `<div class="hab-chips">${propiosToca.map(habBtn).join("")}</div>` : "")
-    + (habLimites.length ? `<div class="hab-chips mt-8">${habLimites.map(habBtn).join("")}</div>` : "")
-    + (propiosCumplidos.length ? `<details class="hb-more"><summary>${icoHab("✅", 15)} Ya cumplidos este período (${propiosCumplidos.length})</summary>
-      <div class="hab-chips mt-8">${propiosCumplidos.map(habBtn).join("")}</div></details>` : "")
+  // Todos a la vista en una grilla, por color: rojo, amarillo y al final lo cumplido (sin desplegable)
+  const habGrilla = hmOrdenarPorEstado(propiosToca.concat(habLimites, propiosCumplidos));
+  const habitsToday = (habGrilla.length ? `<div class="hab-chips">${habGrilla.map(habBtn).join("")}</div>` : "")
     + cjInicioHtml(habToca.concat(habCumplidos).filter(h => h.conjunto))
     + (vacHoy() ? vacAvisoHtml() : dscHoyHtml(habDescansan));
   const doneToday = habToca.filter(h => habitDone(h.id, mIdx, day)).length;

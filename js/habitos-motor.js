@@ -272,6 +272,38 @@ function progresoPeriodoActual(h, S) {
   return { hecho: n, meta: prog ? 1 : 0, cumplido: prog ? n >= 1 : true, texto: prog ? (n ? "hecho hoy" : "toca hoy") : libre || "hoy no toca", descanso: !!libre };
 }
 
+/* El color de un hábito hoy (el borde de su botón en Inicio y en Hábitos, v144):
+   "ok" verde, cumplido en su período · "ve" amarillo, vas bien · "cr" rojo, crítico · "de" sin color, descansa o hoy no toca.
+   · Diario y días fijos: verde si ya lo hiciste hoy; rojo si la última vez que tocaba no lo hiciste (un pase cuenta como hecho).
+   · De cuota (semana o mes): verde al llegar; rojo si ya no hay margen (faltan tantas como días quedan, sin contar descansos).
+   · Dejar: rojo si caíste hoy, verde si lo confirmaste. Reducir: verde dentro del límite, amarillo justo en él, rojo si te pasaste. */
+const HM_ESTADO_ORDEN = { cr: 0, ve: 1, ok: 2, de: 3 };
+function hmEstadoHoy(h, S) {
+  const hoy = hmHoy(), meta = hmMeta(h), f = hmFreq(h);
+  if (meta === "reducir") { const p = progresoPeriodoActual(h, S); return p.hecho > p.meta ? "cr" : p.meta > 0 && p.hecho === p.meta ? "ve" : "ok"; }
+  if (meta === "dejar") { const p = progresoPeriodoActual(h, S); return p.caida ? "cr" : p.cumplido ? "ok" : "ve"; }
+  if (f.tipo === "semanal" || f.tipo === "mensual") {
+    const p = hmMetaPeriodo(h, hoy, S);
+    if (p.cumplido) return "ok";
+    if (!p.esperado || hmVacacion(h, hoy, S)) return "de";
+    if (hmDone(h, hoy, S)) return "ve";   // hoy ya sumaste: no se pone rojo por mañana
+    const fin = f.tipo === "mensual" ? hmMesFin(hoy) : hmAdd(hmLunes(hoy), 6);
+    let quedan = 0; for (let d = hoy; d <= fin; d = hmAdd(d, 1)) if (!hmDescanso(h, d, S)) quedan++;
+    return p.esperado - p.hecho >= quedan ? "cr" : "ve";
+  }
+  if (hmDone(h, hoy, S)) return "ok";
+  if (!hmProgramado(h, hoy, S)) return "de";
+  for (let i = 0, d = hmAdd(hoy, -1); i < 14 && d >= hmCreado(h); i++, d = hmAdd(d, -1)) {
+    if (hmProgramado(h, d, S)) return hmDone(h, d, S) ? "ve" : "cr";   // la última vez que tocaba
+  }
+  return "ve";
+}
+/* Rojo primero, después amarillo, verde y sin color (el resto queda en su orden de siempre) */
+function hmOrdenarPorEstado(lista, S) {
+  return lista.map((h, i) => ({ h, i, e: HM_ESTADO_ORDEN[hmEstadoHoy(h, S)] })).sort((a, b) => a.e - b.e || a.i - b.i).map(x => x.h);
+}
+const HM_ESTADO_TXT = { ok: "cumplido", ve: "vas bien", cr: "en riesgo", de: "sin pendiente" };
+
 /* ¿Toca hoy? diarios, días fijos si hoy corresponde, y cuotas aún no cumplidas */
 function tocaHoy(h, S) {
   if (!hmActivo(h) || hmCreado(h) > hmHoy()) return false;

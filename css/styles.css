@@ -4199,3 +4199,24 @@ body.en-foco { overflow: hidden; }
 .tuanio-card__mini b { font-family: var(--font-display); font-size: 28px; line-height: 1; }
 .tuanio-card__mini span { font-size: 11px; font-weight: 700; }
 .tuanio-cierre { display: grid; gap: 8px; }
+
+/* ============================================================
+   🚦 HÁBITOS POR COLOR (v144): el borde dice cómo va cada hábito hoy (hmEstadoHoy)
+   verde cumplido en su período · amarillo vas bien · rojo en riesgo · sin color: descansa o hoy no toca.
+   Un solo juego de colores (se lee en los temas claros y oscuros); la ficha queda con su fondo de siempre y lo cumplido lleva ✓.
+   ============================================================ */
+:root { --st-ok: #2F9E74; --st-ve: #D4950F; --st-cr: #DC4A5C; }
+html .hab-chip.st-ok, html .hab-chip.st-ve, html .hab-chip.st-cr { background: var(--surface); border-width: 2px; border-style: solid; position: relative; }
+html .hab-chip.st-ok { border-color: var(--st-ok); }
+html .hab-chip.st-ve { border-color: var(--st-ve); }
+html .hab-chip.st-cr { border-color: var(--st-cr); }
+html .hab-chip.is-on .hab-chip__i { color: var(--st-ok); }
+.hab-chip__ok { position: absolute; top: 4px; right: 6px; font-size: 11px; font-weight: 800; line-height: 1; color: var(--st-ok); }
+html .hb-today.st-ok, html .hb-today.st-ve, html .hb-today.st-cr { border-width: 2px; border-style: solid; }
+html .hb-today.st-ok { border-color: var(--st-ok); }
+html .hb-today.st-ve { border-color: var(--st-ve); }
+html .hb-today.st-cr { border-color: var(--st-cr); }
+html .hb-today.st-ok.is-on { background: var(--surface); }
+html .hb-today.st-ok.is-on .hb-today__ico { color: var(--st-ok); }
+html .hb-today.st-ok.is-on .hb-today__check { background: var(--st-ok); border-color: var(--st-ok); }
+

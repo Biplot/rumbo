@@ -95,10 +95,10 @@ function djCaer(h, iso) {
 
 /* -------- Hábitos › Hoy: la tarjeta -------- */
 function djCardHtml(h) {
-  const hoy = hmHoy(), r = rachaPeriodos(h).n;
+  const hoy = hmHoy(), r = rachaPeriodos(h).n, st = typeof hmEstadoHoy === "function" ? hmEstadoHoy(h) : "de";   // el borde por color
   if (hmMeta(h) === "reducir") {
     const l = hmLimite(h), p = progresoPeriodoActual(h), n = hmCuenta(h, hoy);
-    return `<div class="card hb-today hb-lim ${p.sePaso ? "is-pasado" : ""}" data-id="${h.id}">
+    return `<div class="card hb-today hb-lim st-${st} ${p.sePaso ? "is-pasado" : ""}" data-id="${h.id}">
       <div class="hb-today__ico">${icoHab(h.icon, 28)}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
       <div class="hb-lim__cont"><button type="button" class="hb-lim__b" data-action="rd-menos" data-id="${h.id}" aria-label="Uno menos" ${n ? "" : "disabled"}>−</button>
         <b>${p.hecho}</b><button type="button" class="hb-lim__b" data-action="rd-mas" data-id="${h.id}" aria-label="Uno más${h.unidad ? ": " + escapeAttr(h.unidad) : ""}">+</button></div>
@@ -106,7 +106,7 @@ function djCardHtml(h) {
       <button class="hb-today__edit icon-btn" data-action="habit-edit" data-id="${h.id}" title="Editar hábito" aria-label="Editar">✎</button></div>`;
   }
   const p = progresoPeriodoActual(h), ok = p.cumplido;
-  return `<div class="card hb-today hb-dejar ${ok ? "is-on" : ""} ${p.caida ? "is-caida" : ""}" data-action="${p.caida ? "dj-ver" : "habit-today"}" data-id="${h.id}" role="button" tabindex="0">
+  return `<div class="card hb-today hb-dejar st-${st} ${ok ? "is-on" : ""} ${p.caida ? "is-caida" : ""}" data-action="${p.caida ? "dj-ver" : "habit-today"}" data-id="${h.id}" role="button" tabindex="0">
       <div class="hb-today__ico">${icoHab(h.icon, 28)}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
       <div class="hb-dejar__n"><b>${r}</b> ${djSinTxt(h, r)}</div>
       <div class="hb-today__prog">${p.caida ? "Caíste hoy: mañana parte otra racha" : ok ? "Confirmado hoy · +5 ⭐" : "Tócalo para confirmar hoy"}</div>
@@ -119,13 +119,13 @@ function djCardHtml(h) {
 /* Inicio: el botón del hábito (nombre discreto si lo pusiste) */
 function djChipHtml(h) {
   if (hmMeta(h) === "reducir") {
-    const p = progresoPeriodoActual(h), l = hmLimite(h);
-    return `<button class="hab-chip hab-chip--lim${p.sePaso ? " is-pasado" : ""}" data-action="rd-mas" data-id="${h.id}" title="${escapeAttr(h.nombre + ": un toque suma uno")}">
+    const p = progresoPeriodoActual(h), l = hmLimite(h), st = typeof hmEstadoHoy === "function" ? hmEstadoHoy(h) : "de";
+    return `<button class="hab-chip hab-chip--lim st-${st}${p.sePaso ? " is-pasado" : ""}" data-action="rd-mas" data-id="${h.id}" title="${escapeAttr(h.nombre + ": un toque suma uno")}" aria-label="${escapeAttr(djNombre(h, true) + ": " + p.hecho + " de " + l.n + ", " + (HM_ESTADO_TXT[st] || "") + ". Un toque suma uno")}">
       <span class="hab-chip__i">${icoHab(h.icon, 20)}</span><span class="hab-chip__n">${escapeHtml(djNombre(h, true))} <small>${p.hecho}/${l.n}</small></span></button>`;
   }
-  const p = progresoPeriodoActual(h), r = rachaPeriodos(h).n;
-  return `<button class="hab-chip${p.cumplido ? " is-on" : ""}" data-action="quick-habit" data-id="${h.id}" aria-pressed="${p.cumplido}" title="${escapeAttr(djNombre(h, true) + " · " + r + " días")}">
-    <span class="hab-chip__i">${icoHab(h.icon, 20)}</span><span class="hab-chip__n">${escapeHtml(djNombre(h, true))} <small>${r} ${r === 1 ? "día" : "días"}</small></span></button>`;
+  const p = progresoPeriodoActual(h), r = rachaPeriodos(h).n, st = typeof hmEstadoHoy === "function" ? hmEstadoHoy(h) : "de";
+  return `<button class="hab-chip st-${st}${p.cumplido ? " is-on" : ""}" data-action="quick-habit" data-id="${h.id}" aria-pressed="${p.cumplido}" title="${escapeAttr(djNombre(h, true) + " · " + r + " días")}">
+    ${st === "ok" ? `<span class="hab-chip__ok" aria-hidden="true">✓</span>` : ""}<span class="hab-chip__i">${icoHab(h.icon, 20)}</span><span class="hab-chip__n">${escapeHtml(djNombre(h, true))} <small>${r} ${r === 1 ? "día" : "días"}</small></span></button>`;
 }
 
 /* -------- Semana y el calendario del mes: cada día -------- */

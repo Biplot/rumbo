@@ -295,8 +295,9 @@ function habitTodayCard(h) {
   const on = habitDoneDate(h.id, now);
   const prog = progresoPeriodoActual(h), hoy = todayISO();
   const pase = !on && hmPase(h, hoy);
-  const libre = hmLibre(hoy) && ["diario", "dias"].includes(hmFreq(h).tipo);
-  return `<div class="card hb-today ${on || pase ? "is-on" : ""} ${prog.descanso ? "is-desc" : ""}" data-action="habit-today" data-id="${h.id}" role="button" tabindex="0">
+  const libre = hmLibre(hoy) && ["diario", "dias"].includes(hmFreq(h).tipo), st = hmEstadoHoy(h);   // el borde: verde, amarillo o rojo
+  return `<div class="card hb-today st-${st} ${on || pase ? "is-on" : ""} ${prog.descanso ? "is-desc" : ""}" data-action="habit-today" data-id="${h.id}" role="button" tabindex="0"
+      aria-label="${escapeAttr(h.nombre + ": " + prog.texto + ", " + HM_ESTADO_TXT[st])}">
       <div class="hb-today__ico">${icoHab(h.icon, 28)}</div><div class="hb-today__name">${escapeHtml(h.nombre)}</div>
       <div class="hb-today__prog">${pase ? "🎟️ Pase usado hoy" : libre ? "🌴 Día libre" : prog.texto}${rachaTxt(h) ? " · " + rachaTxt(h) : ""}</div>
       ${h.conjunto ? cjResumenHtml(h) : ""}
@@ -341,18 +342,17 @@ function habitViewDiario() {
     return sub + `<p class="text-xs muted" style="margin-bottom:10px">${icoUI("moon")} Toca un día que viene para descansar: no corta tu racha ni suma (hasta ${HM_DESCANSOS_MES} por mes en cada hábito).</p>` + rows;
   }
 
-  // Hoy: solo los que tocan hoy; los que descansan y los demás en un colapsable
+  // Hoy: los que tocan y los ya cumplidos en una grilla, por color (rojo, amarillo y al final lo cumplido); los que descansan, en un colapsable
   const { toca, cumplidos, descansan, limites } = habitosHoy();
+  const grilla = hmOrdenarPorEstado(toca.concat(cumplidos));
   const done = toca.filter(h => habitDoneDate(h.id, now)).length;
   const pausados = defs.filter(h => h.pausado);
   return sub + `<div class="text-sm muted" style="margin-bottom:12px">Hoy llevas <b>${done}/${toca.length}</b> hábitos que tocan hoy</div>
-    <div class="hb-grid">${toca.map(habitTodayCard).join("") || '<div class="empty">Nada pendiente hoy 🎉</div>'}</div>
-    ${limites.length ? `<div class="section-title">Con límite</div><div class="hb-grid">${limites.map(habitTodayCard).join("")}</div>` : ""}
+    <div class="hb-grid">${grilla.map(habitTodayCard).join("") || '<div class="empty">Nada pendiente hoy 🎉</div>'}</div>
+    ${limites.length ? `<div class="section-title">Con límite</div><div class="hb-grid">${hmOrdenarPorEstado(limites).map(habitTodayCard).join("")}</div>` : ""}
     ${descansan.length ? `<details class="hb-more mt-16"><summary>${icoUI("moon")} Descansan hoy (${descansan.length})</summary>
       <p class="text-xs muted mt-8">No cortan tu racha. Si igual lo haces, tócalo: cuenta como siempre.</p>
       <div class="hb-grid mt-8">${descansan.map(habitTodayCard).join("")}</div></details>` : ""}
-    ${cumplidos.length ? `<details class="hb-more mt-16"><summary>${icoHab("✅", 15)} Ya cumplidos este período (${cumplidos.length})</summary>
-      <div class="hb-grid mt-16">${cumplidos.map(habitTodayCard).join("")}</div></details>` : ""}
     ${pausados.length ? `<details class="hb-more mt-16"><summary>⏸ Pausados (${pausados.length})</summary>
       <div class="mt-8">${pausados.map(h => `<div class="item-row"><span class="hab-ico">${icoHab(h.icon, 18)}</span><div class="item-row__main">${escapeHtml(h.nombre)}</div>
         <button class="btn-ghost" data-action="habit-edit" data-id="${h.id}">Editar</button></div>`).join("")}</div></details>` : ""}`;

@@ -202,6 +202,14 @@ El descanso se decide antes, no se compra y tiene tope: es parte del plan, no un
 - **Dónde se ve:** rayitas en Hábitos › Semana, el calendario del mes y Calendario (con «Descansa: …» y «De vacaciones» en el día); «Descansan hoy» en Hábitos › Hoy y en Inicio; el paso «Descansos» del ritual de la semana (Paso 4 de 5, opcional).
 - **Datos:** `STATE.habitos.descansos = [{ id: "d:<hid>:<iso>", hid, fecha, ts, quitado? }]` y `STATE.habitos.vacaciones = [{ id, desde, hasta, habitos: null (todos) | [ids], ts, quitado? }]`. Entre equipos se juntan por id y gana el cambio más nuevo (quitar deja la marca `quitado`). Pruebas: `tests/descansos.test.mjs` y `tests/e2e/descanso.cjs`.
 
+## Hábitos por color
+En Inicio («Hábitos de hoy») y en Hábitos › Hoy, el borde de cada hábito dice cómo va (`hmEstadoHoy` en `js/habitos-motor.js`): **verde** si ya cumpliste lo de su período, **amarillo** si vas bien y **rojo** si está en riesgo; sin color, si descansa o hoy no toca. La ficha mantiene su fondo y lo cumplido lleva ✓; el estado también va en palabras para los lectores de pantalla (`HM_ESTADO_TXT`).
+- **Diario y días fijos:** verde si lo hiciste hoy; rojo si la última vez que tocaba no lo hiciste (un pase o un descanso no cuentan como falla); si no, amarillo.
+- **De cuota (semana o mes):** verde al llegar; rojo si ya no hay margen (faltan tantas como días quedan del período, sin contar descansos); si hoy ya sumaste, a lo más amarillo.
+- **Dejar:** rojo si caíste hoy, verde si lo confirmaste. **Reducir:** verde dentro del límite, amarillo justo en él, rojo si te pasaste.
+- **Todo a la vista:** ya no está el desplegable «Ya cumplidos este período». Una sola grilla, ordenada por urgencia (`hmOrdenarPorEstado`): rojo, amarillo, verde y sin color; entre iguales, el orden de siempre.
+- Pruebas: `tests/habitos-color.test.mjs` y `tests/e2e/habitos-color.cjs`.
+
 ## La primera vez en Rumbo
 Lo que vive quien recién llega (`js/bienvenida.js`, con la ayuda de `js/tutorial.js`). La auditoría que lo motivó: pedía demasiado y explicaba antes de dejar usar.
 - **El día de la cuenta** (`settings.alta`): solo en cuentas nuevas, al empezar la bienvenida (`marcarAlta`). Con él, Rumbo no pide cerrar un mes que terminó antes de la cuenta (`mesAntesDeLaCuenta` en `ritualMesPendientes`). Quien ya usaba la app no tiene alta y todo sigue igual.

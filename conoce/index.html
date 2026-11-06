@@ -206,7 +206,6 @@ section{padding:104px 0}
 .ele{background:radial-gradient(800px 420px at 70% 30%,rgba(255,190,85,.08),transparent 70%),var(--navy-0)}
 .ele .wrap{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
 .etapas{display:flex;align-items:flex-end;justify-content:center;gap:6px}
-.etapas>div{flex:1;max-width:200px;min-width:0;text-align:center;color:var(--muted);font-size:14px;font-weight:700}
 .etapas svg{display:block;margin:0 auto 10px}
 .ele .sub{font-size:18px}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px}.chip{padding:9px 15px;border-radius:999px;background:var(--navy-3);font-size:15px;font-weight:600;color:var(--soft)}
@@ -261,6 +260,35 @@ html.cambia-tema *,html.cambia-tema *::before,html.cambia-tema *::after{transiti
 .agua-ola{animation:ola 2.6s linear infinite}.agua-ola--2{animation-duration:3.8s;animation-direction:reverse}
 @keyframes ola{to{transform:translateX(-50px)}}
 .agua-nivel{transition:transform .7s cubic-bezier(.3,1.2,.4,1)}
+
+/* Por qué Rumbo: tres pilares */
+.porque{padding-bottom:40px}
+.pilares{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
+.pilar{background:var(--navy-2);border-radius:var(--r);padding:26px;box-shadow:inset 0 0 0 1px var(--line)}
+.pilar h3{font-size:21px;margin:14px 0 8px}.pilar p{color:var(--soft)}
+.pilar-ic,.nv-ic{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--hueco);font-size:22px}
+
+/* La hoja de bullet journal se toca: cada toque cambia el signo de la tarea */
+.hoja li[role="button"]{cursor:pointer;border-radius:8px;transition:background-color .2s;-webkit-tap-highlight-color:transparent}
+.hoja li[role="button"]:hover{background:rgba(57,73,201,.06)}
+.hoja li[role="button"]:focus-visible{outline:2px solid #3949C9;outline-offset:2px}
+.hoja li .s{transition:transform .25s var(--ease)}.hoja li.salta .s{transform:scale(1.5)}
+.hoja-pista{margin-top:12px;font:600 13px/1.3 Figtree,system-ui,sans-serif;color:rgba(22,26,46,.6)}
+
+/* Lo nuevo */
+.nuevos{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px}
+.nv{background:var(--navy-2);border-radius:var(--r);padding:24px;box-shadow:inset 0 0 0 1px var(--line)}
+.nv h3{font-size:19px;margin:14px 0 6px}.nv p{color:var(--soft);font-size:16px}
+.invita{margin-top:26px;max-width:680px;padding:16px 20px;border-radius:16px;background:var(--hueco);color:var(--soft);box-shadow:inset 0 0 0 1px var(--line)}
+.invita b{color:var(--txt)}
+
+/* Las etapas del elefante se tocan */
+.etapa{flex:1;max-width:200px;min-width:0;border:0;background:none;padding:6px 4px 10px;border-radius:18px;text-align:center;color:var(--muted);font-size:14px;font-weight:700;transition:background-color .2s,color .2s;-webkit-tap-highlight-color:transparent}
+.etapa:hover{background:var(--velo)}
+.etapa[aria-pressed="true"]{background:var(--velo-2);color:var(--txt)}
+.etapa.salta svg{animation:etaSalto .5s var(--ease)}
+@keyframes etaSalto{40%{transform:translateY(-14px)}}
+.etapa-pista{margin-top:14px;text-align:center;color:var(--soft);font-size:15px;min-height:3em}
 
 /* Precio */
 .precio-sec{text-align:center}
@@ -345,6 +373,7 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
  .c-habitos{grid-column:span 2}.c-diario,.c-cal,.c-mas,.c-premio{grid-column:span 1}
 }
 @media (max-width:860px){
+ .pilares,.nuevos{grid-template-columns:1fr 1fr}
  body{font-size:16px}section{padding:76px 0}
  .top nav a.ocultar{display:none}
  .hero .wrap{grid-template-columns:1fr;padding-top:40px;padding-bottom:64px;text-align:center}
@@ -372,6 +401,7 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
  .bento{grid-template-columns:1fr}.c-habitos,.c-diario,.c-cal,.c-mas,.c-premio{grid-column:span 1}
  .cine{aspect-ratio:9/16;max-width:380px}
  .pestanas button{padding:10px 14px}
+ .pilares,.nuevos{grid-template-columns:1fr}
  .momento{padding:72px 18px 0;border-radius:24px}.astro{width:42px;height:42px;top:16px;right:18px}
  .corte{height:260px}
  .hoja{padding:34px 16px 24px 42px}.hoja::before{left:12px}.hoja li{font-size:15px;gap:8px;grid-template-columns:20px 1fr auto}.hoja-fecha{font-size:24px}
@@ -381,7 +411,7 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
  .top .wrap{gap:6px}.top nav{gap:0;min-width:0}.top nav a:not(.btn){padding:10px 7px}.tema-btn{width:34px}.top .btn{padding:0 12px}.marca{gap:8px}
 }
 /* En los celulares más angostos queda el ícono de la marca, sin su nombre */
-@media (max-width:380px){.marca-nom{display:none}}
+@media (max-width:380px){.marca-nom{display:none}.pestanas button{padding:9px 10px;font-size:14px}}
 @media (prefers-reduced-motion:reduce){
  .agua-ola{animation:none}
  *,*::before,*::after{animation:none!important;transition:none!important}
@@ -427,6 +457,17 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
   <li><span class="ok" aria-hidden="true"></span>En el celular y el computador</li>
 </ul></div>
 
+<section class="porque"><div class="wrap">
+  <div class="cabeza-c rv"><span class="kicker">Por qué Rumbo</span>
+    <h2>Ordenar tu vida no debería ser <span class="acento">otra obligación.</span></h2>
+    <p class="sub">Rumbo te acompaña a avanzar en lo que de verdad te importa, un bocado a la vez. Sin exigirte ser perfecto.</p></div>
+  <div class="pilares">
+    <div class="pilar rv"><span class="pilar-ic" aria-hidden="true">⏱</span><h3>Dos minutos, no una hora</h3><p>Un ritual corto en la mañana y otro en la noche. Lo demás, Rumbo lo ordena solo.</p></div>
+    <div class="pilar rv"><span class="pilar-ic" aria-hidden="true">🫶</span><h3>Sin culpa</h3><p>¿Un día no salió? Lo pendiente se mueve, los descansos no cortan tu racha y mañana retomas.</p></div>
+    <div class="pilar rv"><span class="pilar-ic" aria-hidden="true">👥</span><h3>Mejor con alguien</h3><p>Una racha de a dos, un plan con fecha votada o una meta entre amigos. Lo que cuesta solo, cuesta menos.</p></div>
+  </div>
+</div></section>
+
 
 <section class="ritual" id="como"><div class="wrap">
   <div class="cabeza rv"><span class="kicker">El ritual de Rumbo</span>
@@ -468,7 +509,7 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
     <h2>Todo lo bueno del bullet journal. <span class="acento">Sin reescribir páginas a mano.</span></h2>
     <p class="sub">Rumbo está pensada con el método del bullet journal: cada tarea vive en su fecha, lleva su signo y guarda su historia. Lo tedioso, como copiar pendientes al día siguiente o rearmar la semana, lo hace la app.</p></div>
   <div class="bujo-grid">
-    <figure class="hoja rv" aria-label="Ejemplo de un día en Rumbo, anotado como una página de bullet journal">
+    <figure class="hoja rv" id="hoja" aria-label="Ejemplo de un día en Rumbo, anotado como una página de bullet journal. Toca una tarea para cambiar su signo.">
       <figcaption class="hoja-fecha">Miércoles 23 <small>Registro diario</small></figcaption>
       <ul>
         <li class="h-hecha"><span class="s">✓</span><span class="t">Llamar al contador</span><span class="mig">↪ 3</span></li>
@@ -479,6 +520,7 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
         <li class="h-soltada"><span class="s">✕</span><span class="t">Ordenar la bodega</span></li>
       </ul>
       <p class="hoja-margen">Lo mejor del día: almuerzo con la Jose.</p>
+      <p class="hoja-pista" aria-hidden="true">👆 Toca una tarea: hecha, a mañana o soltada.</p>
     </figure>
     <div class="clave rv">
       <h3>La misma clave de tu cuaderno</h3>
@@ -555,9 +597,23 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
     <div class="celda c-cal rv"><h3>Tu calendario de Google</h3><p>Tus reuniones junto a tus tareas. Rumbo solo lo lee, nunca lo cambia.</p>
       <div class="recorte bajo"><img src="img/calendario.jpg" alt="Calendario con Google Calendar" loading="lazy" width="390" height="844"></div></div>
     <div class="celda c-mas rv"><h3>Y lo demás, sin otra app</h3><p>Objetivos que bajan al mes y a la semana, y el resto de tu vida en orden.</p>
-      <ul><li>Objetivos</li><li>Finanzas y alcancías</li><li>Deseos</li><li>Salud y entrenamiento</li><li>Agua</li><li>Lecturas</li><li>Notas</li><li>Listas</li><li>Álbum del mes</li><li>Rueda de la vida</li></ul></div>
+      <ul><li>Objetivos</li><li>Finanzas y alcancías</li><li>Deseos</li><li>Salud y entrenamiento</li><li>Agua</li><li>Tu biblioteca</li><li>El Foco</li><li>Notas</li><li>Listas</li><li>Álbum del mes</li><li>Rueda de la vida</li></ul></div>
     <div class="celda c-premio rv"><h3>Rangos y medallas</h3><p>Cada día que cumples suma. Subes de rango y tus medallas brillan en tu vitrina.</p>
       <div class="recorte bajo"><img src="img/recompensas.jpg" alt="Rangos e insignias en Rumbo" loading="lazy" width="390" height="844"></div></div>
+  </div>
+</div></section>
+
+<section class="nuevo" id="nuevo"><div class="wrap">
+  <div class="cabeza-c rv"><span class="kicker">Recién llegado</span>
+    <h2>Lo nuevo en <span class="acento">Rumbo.</span></h2>
+    <p class="sub">Rumbo crece cada semana. Esto es lo último que llegó.</p></div>
+  <div class="nuevos">
+    <div class="nv rv"><span class="nv-ic" aria-hidden="true">🐘</span><h3>El diario de tu elefante</h3><p>Al cerrar el día, tu elefante te deja una nota: a qué hora cerraste, tu agua, tus hábitos y lo que toca mañana.</p></div>
+    <div class="nv rv"><span class="nv-ic" aria-hidden="true">📚</span><h3>Tu biblioteca</h3><p>Cada libro que terminas queda de pie en tu repisa. Lo buscas por título y Rumbo trae el autor, las páginas y la portada.</p></div>
+    <div class="nv rv"><span class="nv-ic" aria-hidden="true">⏱️</span><h3>El Foco</h3><p>Un modo foco que sabe para qué es tu tiempo: tu primer bocado, un objetivo o el libro que lees. Solo o a la misma hora que un amigo.</p></div>
+    <div class="nv rv"><span class="nv-ic" aria-hidden="true">🚦</span><h3>Tus hábitos por color</h3><p>Verde si ya cumpliste, amarillo si vas bien y rojo si está en riesgo. Sabes de un vistazo cuál necesita cariño hoy.</p></div>
+    <div class="nv rv"><span class="nv-ic" aria-hidden="true">🧭</span><h3>La rueda de la vida</h3><p>Una rosa de los vientos con tus áreas: ves cuál subió, cuál pide cariño y un paso chico para el mes.</p></div>
+    <div class="nv rv"><span class="nv-ic" aria-hidden="true">🎆</span><h3>Tu año en Rumbo</h3><p>Desde el 1 de diciembre, tu año en una historia animada para compartir: tus rachas, tu agua, tus libros y tu elefante.</p></div>
   </div>
 </div></section>
 
@@ -565,26 +621,28 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
   <div class="cabeza-c rv"><span class="kicker">Con amigos</span>
     <h2>Lo que cuesta solo, <span class="acento">cuesta menos de a dos.</span></h2>
     <p class="sub">Invita a quien quieras con un enlace y hagan cosas juntos. Lo tuyo sigue siendo tuyo: tú eliges qué ven tus amigos.</p></div>
-  <div class="chips rv"><span class="chip">Planes con fecha votada</span><span class="chip">Hábitos con racha de a dos</span><span class="chip">Metas entre todos</span><span class="chip">Listas y lecturas compartidas</span><span class="chip">Dividir la cuenta</span><span class="chip">Cumpleaños</span></div>
+  <div class="chips rv"><span class="chip">Planes con fecha votada</span><span class="chip">Hábitos con racha de a dos</span><span class="chip">Metas entre todos</span><span class="chip">Listas y lecturas compartidas</span><span class="chip">Dividir la cuenta</span><span class="chip">Cumpleaños</span><span class="chip">El bidón de agua</span><span class="chip">Enfocarse juntos</span><span class="chip">Libros recomendados</span></div>
+  <p class="invita rv"><b>Invita y gana:</b> cuando tu amigo entra con tu enlace y cierra su primer día, ganan <b>+100 ⭐ cada uno</b>. Al tercero, tu elefante se lleva el pañuelo de la manada.</p>
 </div></section>
 
 <section class="ele"><div class="wrap">
-  <div class="etapas rv" aria-hidden="true"><div><svg width="100%" viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg">
+  <div class="etapas-caja rv"><div class="etapas" role="group" aria-label="Las etapas de tu elefante"><button type="button" class="etapa" data-pista="Desde tu primer día: pelusa por toda la cabeza." aria-pressed="false"><svg width="100%" viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg">
     <ellipse cx="128" cy="224" rx="54.56" ry="5.58" fill="#0E2A47" opacity="0.13"/>
     <g transform="translate(128 222) scale(0.62) translate(-128 -222)"><g class="ele-salto"><g class="ele-breathe">
       <g class="ele-cola"><path d="M54 142 C40 148 34 162 38 172" stroke="#9FB2C8" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="38" cy="174" r="4.5" fill="#7C91AB"/></g><rect x="80" y="166" width="26" height="50" rx="12" fill="#7C91AB"/><rect x="138" y="166" width="26" height="50" rx="12" fill="#7C91AB"/><path d="M50 150 C50 104 92 92 126 95 C166 98 186 120 183 156 C181 186 150 196 115 196 C74 196 50 186 50 150 Z" fill="#9FB2C8"/><path d="M70 118 C92 102 130 100 152 108" stroke="#C3D1E0" stroke-width="7" fill="none" stroke-linecap="round" opacity=".7"/><path d="M62 184 C88 194 140 196 172 180" stroke="#7C91AB" stroke-width="8" fill="none" stroke-linecap="round" opacity=".45"/><rect x="56" y="168" width="30" height="52" rx="14" fill="#9FB2C8"/><rect x="148" y="168" width="30" height="52" rx="14" fill="#9FB2C8"/>
       <g transform="translate(168 118) scale(1.22) translate(-168 -118)"><g class="ele-cab"><g class="ele-ear"><path d="M152 58 C116 56 104 96 114 126 C121 150 152 152 164 132 Z" fill="#7C91AB"/><path d="M148 70 C126 72 120 100 126 120 C131 136 148 138 156 126 Z" fill="#E8B4BF" opacity=".85"/></g><circle cx="185" cy="95" r="44" fill="#9FB2C8"/><path d="M156 70 C166 58 182 54 196 56" stroke="#C3D1E0" stroke-width="6" fill="none" stroke-linecap="round" opacity=".8"/><path d="M212 112 C229 132 233 160 223 179 C217 191 228 200 238 190" stroke="#9FB2C8" stroke-width="20" fill="none" stroke-linecap="round"/><ellipse cx="211" cy="105" rx="7.5" ry="4.5" fill="#FF8FA3" opacity="0.75"/><g class="ele-ojo"><path d="M191 90 Q199 81 207 90" stroke="#1B2436" stroke-width="3.6" fill="none" stroke-linecap="round"/></g><path d="M178 53 q-3 -10 2 -15 M185 51 q0 -11 5 -14 M191 53 q3 -9 8 -10" stroke="#7C91AB" stroke-width="2.6" fill="none" stroke-linecap="round"/></g></g>
-    </g></g></g></svg>Cría</div><div><svg width="100%" viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg">
+    </g></g></g></svg><span>Cría</span></button><button type="button" class="etapa" data-pista="A los 900 de experiencia, unos diez días abriendo y cerrando: pierde la pelusa y le salen pecas." aria-pressed="false"><svg width="100%" viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg">
     <ellipse cx="128" cy="224" rx="70.4" ry="7.2" fill="#0E2A47" opacity="0.13"/>
     <g transform="translate(128 222) scale(0.8) translate(-128 -222)"><g class="ele-salto"><g class="ele-breathe">
       <g class="ele-cola"><path d="M54 142 C40 148 34 162 38 172" stroke="#9FB2C8" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="38" cy="174" r="4.5" fill="#7C91AB"/></g><rect x="80" y="166" width="26" height="50" rx="12" fill="#7C91AB"/><rect x="138" y="166" width="26" height="50" rx="12" fill="#7C91AB"/><path d="M50 150 C50 104 92 92 126 95 C166 98 186 120 183 156 C181 186 150 196 115 196 C74 196 50 186 50 150 Z" fill="#9FB2C8"/><path d="M70 118 C92 102 130 100 152 108" stroke="#C3D1E0" stroke-width="7" fill="none" stroke-linecap="round" opacity=".7"/><path d="M62 184 C88 194 140 196 172 180" stroke="#7C91AB" stroke-width="8" fill="none" stroke-linecap="round" opacity=".45"/><rect x="56" y="168" width="30" height="52" rx="14" fill="#9FB2C8"/><rect x="148" y="168" width="30" height="52" rx="14" fill="#9FB2C8"/>
       <g transform="translate(168 118) scale(1.1) translate(-168 -118)"><g class="ele-cab"><g class="ele-ear"><path d="M152 58 C116 56 104 96 114 126 C121 150 152 152 164 132 Z" fill="#7C91AB"/><path d="M148 70 C126 72 120 100 126 120 C131 136 148 138 156 126 Z" fill="#E8B4BF" opacity=".85"/></g><circle cx="185" cy="95" r="44" fill="#9FB2C8"/><path d="M156 70 C166 58 182 54 196 56" stroke="#C3D1E0" stroke-width="6" fill="none" stroke-linecap="round" opacity=".8"/><path d="M212 112 C229 132 233 160 223 179 C217 191 228 200 238 190" stroke="#9FB2C8" stroke-width="20" fill="none" stroke-linecap="round"/><path d="M205 124 C208 129 213 131 217 129 C212 127 209 124 207 119 Z" fill="#FFF8EC" /><ellipse cx="211" cy="105" rx="7.5" ry="4.5" fill="#FF8FA3" opacity="0.75"/><g class="ele-ojo"><path d="M191 90 Q199 81 207 90" stroke="#1B2436" stroke-width="3.6" fill="none" stroke-linecap="round"/></g><path d="M185 51 q0 -9 5 -12" stroke="#7C91AB" stroke-width="2.4" fill="none" stroke-linecap="round"/></g></g>
-    </g></g></g></svg>Joven</div><div><svg width="100%" viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg">
+    </g></g></g></svg><span>Joven</span></button><button type="button" class="etapa" data-pista="A los 12.000 de experiencia: cejas blancas, colmillos y su corona." aria-pressed="false"><svg width="100%" viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg">
     <ellipse cx="128" cy="224" rx="91.52000000000001" ry="9.36" fill="#0E2A47" opacity="0.13"/>
     <g transform="translate(128 222) scale(1.04) translate(-128 -222)"><g class="ele-salto"><g class="ele-breathe">
       <g class="ele-cola"><path d="M54 142 C40 148 34 162 38 172" stroke="#9FB2C8" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="38" cy="174" r="4.5" fill="#7C91AB"/></g><rect x="80" y="166" width="26" height="50" rx="12" fill="#7C91AB"/><rect x="138" y="166" width="26" height="50" rx="12" fill="#7C91AB"/><path d="M50 150 C50 104 92 92 126 95 C166 98 186 120 183 156 C181 186 150 196 115 196 C74 196 50 186 50 150 Z" fill="#9FB2C8"/><path d="M70 118 C92 102 130 100 152 108" stroke="#C3D1E0" stroke-width="7" fill="none" stroke-linecap="round" opacity=".7"/><path d="M62 184 C88 194 140 196 172 180" stroke="#7C91AB" stroke-width="8" fill="none" stroke-linecap="round" opacity=".45"/><rect x="56" y="168" width="30" height="52" rx="14" fill="#9FB2C8"/><rect x="148" y="168" width="30" height="52" rx="14" fill="#9FB2C8"/>
       <g transform="translate(168 118) scale(1) translate(-168 -118)"><g class="ele-cab"><g class="ele-ear"><path d="M152 58 C116 56 104 96 114 126 C121 150 152 152 164 132 Z" fill="#7C91AB"/><path d="M148 70 C126 72 120 100 126 120 C131 136 148 138 156 126 Z" fill="#E8B4BF" opacity=".85"/></g><circle cx="185" cy="95" r="44" fill="#9FB2C8"/><path d="M156 70 C166 58 182 54 196 56" stroke="#C3D1E0" stroke-width="6" fill="none" stroke-linecap="round" opacity=".8"/><path d="M212 112 C229 132 233 160 223 179 C217 191 228 200 238 190" stroke="#9FB2C8" stroke-width="20" fill="none" stroke-linecap="round"/><path d="M219 140 l11 -3 M222 154 l11 -1 M221 167 l10 2" stroke="#7C91AB" stroke-width="2.2" stroke-linecap="round" opacity=".7"/><path d="M203 124 C208 140 224 146 236 140 C222 136 212 128 207 116 Z" fill="#FFF8EC" /><ellipse cx="211" cy="105" rx="7.5" ry="4.5" fill="#FF8FA3" opacity="0.75"/><g class="ele-ojo"><path d="M191 90 Q199 81 207 90" stroke="#1B2436" stroke-width="3.6" fill="none" stroke-linecap="round"/></g><path d="M189 76 Q199 70 209 76" stroke="#F4F4F2" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M170 66 q8 -4 16 0 M172 73 q7 -3 13 0" stroke="#7C91AB" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/></g></g>
-    </g></g></g></svg>Sabio</div></div>
+    </g></g></g></svg><span>Sabio</span></button></div>
+  <p class="etapa-pista" id="etapaPista" aria-live="polite">Toca una etapa para ver cómo crece.</p></div>
   <div class="rv"><h2>Un elefante que crece con tus días.</h2>
     <p class="sub">Cada día que abres y cierras suma experiencia. Tu elefante crece, cambia de ánimo y celebra tus rachas. Tu constancia te da nuevos tipos de elefante, y con las estrellas que ganas lo vistes y amueblas su casa.</p>
     <div class="chips"><span class="chip">Ropa y accesorios</span><span class="chip">Tipos de elefante</span><span class="chip">Su casa</span><span class="chip">Medallas</span><span class="chip">Temas</span></div>
@@ -642,7 +700,7 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
     <details><summary>¿Necesito saber usar un bullet journal?</summary><p>No. Rumbo toma sus mejores ideas (los signos, migrar, programar, soltar) y te guía paso a paso en cada ritual. Si ya usas uno en papel, te vas a sentir en casa; si nunca lo usaste, lo aprendes usándola.</p></details>
     <details><summary>¿Y si un día no tengo tiempo para el ritual?</summary><p>Usa el modo express: abres y cierras tu día en 3 toques, lo pendiente pasa solo a mañana y tu racha sigue.</p></details>
     <details><summary>¿Cuánto cuesta?</summary><p>Hoy, nada: durante el lanzamiento, hasta enero de 2027, Rumbo es completo y gratis. Después, la versión completa se pagará una sola vez, sin cobros mensuales ni renovaciones automáticas. Te avisaremos dentro de la app antes de que cambie.</p></details>
-    <details><summary>¿Puedo usarla con amigos?</summary><p>Sí. Invitas con un enlace o un código, y pueden armar planes y votar la fecha, llevar un hábito con racha de a dos o juntar entre todos para una meta. Tú eliges qué ven tus amigos.</p></details>
+    <details><summary>¿Puedo usarla con amigos?</summary><p>Sí. Invitas con un enlace o un código, y pueden armar planes y votar la fecha, llevar un hábito con racha de a dos o juntar entre todos para una meta. Tú eliges qué ven tus amigos. Y si entran con tu enlace y cierran su primer día, ganan +100 ⭐ cada uno.</p></details>
     <details><summary>¿Qué pasa con mis datos si cambio de celular?</summary><p>Tus datos se guardan en tu cuenta. Entras con tu correo o con Google en el equipo nuevo y está todo ahí. Y cuando quieras, descargas una copia de tus datos.</p></details>
     <details><summary>¿Quién ve mis datos?</summary><p>Solo tú, salvo lo que elijas mostrarles a tus amigos. No vendemos tus datos ni mostramos publicidad. Lee la <a href="../privacidad.html">política de privacidad</a>.</p></details>
     <details><summary>¿Necesito Google Calendar?</summary><p>No. Es opcional: si lo conectas, ves tus reuniones junto a tus tareas. Rumbo solo lee tu calendario, no lo modifica.</p></details>
@@ -805,6 +863,46 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
   pintar();
 })();
 
+/* La hoja de bullet journal: tocar una tarea cambia su signo (pendiente → hecha → a mañana → soltada) */
+(function () {
+  var hoja = document.getElementById("hoja"); if (!hoja) return;
+  var ESTADOS = [["pend", "•", ""], ["h-hecha", "✓", ""], ["h-movida", ">", "→ mañana"], ["h-soltada", "✕", ""]];
+  hoja.querySelectorAll("li").forEach(function (li) {
+    var s = li.querySelector(".s"), n = li.querySelector(".n"), mig = li.querySelector(".mig");
+    var nota0 = n ? n.textContent : "", bocado = li.classList.contains("h-bocado");
+    var i = li.classList.contains("h-hecha") ? 1 : li.classList.contains("h-movida") ? 2 : li.classList.contains("h-soltada") ? 3 : 0;
+    li.setAttribute("role", "button"); li.tabIndex = 0;
+    function nombre() { return ["pendiente", "hecha", "movida a mañana", "soltada"][i]; }
+    li.setAttribute("aria-label", li.querySelector(".t").textContent.replace("🐘", "").trim() + ": " + nombre());
+    function cambiar() {
+      i = (i + 1) % ESTADOS.length;
+      li.classList.remove("h-hecha", "h-movida", "h-soltada");
+      if (i) li.classList.add(ESTADOS[i][0]);
+      s.textContent = ESTADOS[i][1];
+      var nota = i === 2 ? (nota0.indexOf("→") === 0 ? nota0 : "→ mañana") : (i === 0 && bocado ? "primer bocado" : "");
+      if (!n && nota) { n = document.createElement("span"); n.className = "n"; li.appendChild(n); }
+      if (n) n.textContent = nota;
+      if (mig) mig.hidden = i !== 1;
+      li.setAttribute("aria-label", li.querySelector(".t").textContent.replace("🐘", "").trim() + ": " + nombre());
+      li.classList.remove("salta"); void li.offsetWidth; li.classList.add("salta");
+    }
+    li.addEventListener("click", cambiar);
+    li.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); cambiar(); } });
+  });
+})();
+
+/* Las etapas del elefante: tocar una muestra cómo es y cuándo llega */
+(function () {
+  var bs = [].slice.call(document.querySelectorAll(".etapa")), pista = document.getElementById("etapaPista"); if (!bs.length || !pista) return;
+  bs.forEach(function (b) {
+    b.addEventListener("click", function () {
+      bs.forEach(function (x) { x.setAttribute("aria-pressed", x === b); });
+      pista.textContent = b.querySelector("span").textContent + ": " + b.getAttribute("data-pista");
+      b.classList.remove("salta"); void b.offsetWidth; b.classList.add("salta");
+    });
+  });
+})();
+
 /* Botón fijo en el celular: aparece al pasar la portada y se esconde en el cierre */
 (function () {
   var fijo = document.getElementById("fijo"), hero = document.querySelector(".hero"), fin = document.querySelector(".final");
@@ -827,7 +925,9 @@ footer a{color:var(--soft);text-decoration:none;margin-left:18px}footer a:hover{
     ["#sola", ["Tú decides. Yo me acuerdo del resto.", "Lo pendiente lo paso a mañana. Tranqui."]],
     ["#historia", ["¿Viste mi película? 🎬", "Así subimos el cerro: un bocado a la vez."]],
     [".problema", ["Menos apps, más paseos."]],
+    [".porque", ["Sin culpa: mañana retomamos.", "Dos minutos y listo."]],
     [".todo", ["Todo en un solo lugar. Yo lo cuido."]],
+    ["#nuevo", ["¿Viste? Ahora te escribo una nota cada noche. ✍️"]],
     [".ele", ["Así voy a crecer contigo.", "Algún día voy a ser sabio. 🎓"]],
     ["#instalar", ["Llévame en tu pantalla de inicio."]],
     ["#precio", ["Gratis en el lanzamiento. Y me quedo contigo."]],

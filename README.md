@@ -210,11 +210,12 @@ En Inicio («Hábitos de hoy») y en Hábitos › Hoy, el borde de cada hábito 
 - **Todo a la vista:** ya no está el desplegable «Ya cumplidos este período». Una sola grilla, ordenada por urgencia (`hmOrdenarPorEstado`): rojo, amarillo, verde y sin color; entre iguales, el orden de siempre.
 - Pruebas: `tests/habitos-color.test.mjs` y `tests/e2e/habitos-color.cjs`.
 
-## Reabrir un día
-Corrige el cierre de uno de los 7 días anteriores a hoy (tu ánimo, tus notas, lo que decidiste con tus pendientes). Vive en `js/consumibles.js`.
-- **Dónde:** en Ritual → Día, la tarjeta «Reabrir un día» (solo si cerraste algún día de la última semana) muestra esos 7 días como una tira (`reabrirTiraHtml`); en tu Diario, al abrir un día, el botón «Reabrir este día»; y en la Tienda, «Elegir el día» abre la misma tira en una hoja (`abrirReabrirHoja`).
-- **Cada día de la tira** (`reabrirDias`): 🌙 cerrado (tócalo para reabrirlo), ✏️ ya reabierto (se edita gratis), 🌅 sin cerrar pero todavía a tiempo (se cierra gratis, como siempre) y · sin cierre.
-- **Se paga al usarlo:** ya no hace falta comprarlo antes. Al tocar un día cerrado se confirma una sola vez con la fecha, el precio (120 ⭐) y lo que te queda; si tenías uno guardado, se usa ese. El uso tiene id `reabrir:<fecha>`, así que el mismo día nunca se cobra dos veces, ni entre dispositivos.
+## Reabrir un día y abrir un día olvidado
+Corrige el cierre de uno de los 7 días anteriores a hoy (tu ánimo, tus notas, lo que decidiste con tus pendientes) o abre uno que se te olvidó abrir. Vive en `js/consumibles.js`; son dos útiles de la Tienda («Reabrir un día» y «Abrir un día olvidado», 120 ⭐ cada uno).
+- **Dónde:** en Ritual → Día, la tarjeta «Abrir o reabrir un día» muestra esos 7 días como una tira (`reabrirTiraHtml`) con su leyenda; en tu Diario, al abrir un día cerrado, el botón «Reabrir este día»; y en la Tienda, «Elegir el día» abre la misma tira en una hoja (`abrirReabrirHoja`).
+- **Cada día de la tira** (`reabrirDias`): 🌙 cerrado (tócalo para reabrirlo), ✏️ ya pagado (se edita gratis), 🌅 se te olvidó abrirlo (`abrible`), ⏳ sin cerrar (abierto, o sin abrir pero usado dentro de la holgura: se cierra gratis, como siempre) y · antes de tu cuenta (`settings.alta`).
+- **Se paga al usarlo:** ya no hace falta comprarlo antes. Al tocar el día se confirma una sola vez con la fecha, el precio y lo que te queda; si tenías uno guardado, se usa ese. Los usos tienen id `reabrir:<fecha>` y `abrir:<fecha>` (`diaPagado`): el mismo día nunca se cobra dos veces, ni entre dispositivos, y un día que abriste tarde se corrige después sin volver a pagar.
+- **Abrir un día olvidado** (`openAperturaTarde`): tu misión, tu primer bocado y tu energía de ese día (sin crear tareas, porque ya pasó), y enseguida su cierre. Queda `tarde: true`, no da las ⭐ de la apertura (al cerrarlo, sí las 40 del cierre) y cuenta para tus rachas como cualquier día abierto y cerrado.
 - **El cierre reabierto** se titula «Corregir el …», avisa que no vuelve a dar las ⭐ del cierre y al guardar dice «Cambios guardados ✓». El cierre de hoy se edita gratis («Editar el cierre»).
 - La antigua pantalla Bitácora (donde estaba el único botón) ya no existía: su historial vive en el Diario de vida.
 - Pruebas: `tests/consumibles.test.mjs` y `tests/e2e/reabrir.cjs`.

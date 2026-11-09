@@ -172,7 +172,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 77;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 78;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -560,6 +560,9 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  78: [
+    ["🌅", "Abre un día que se te olvidó", "En Ritual → Día, «Abrir o reabrir un día» ahora también muestra con 🌅 los días de la última semana que no abriste. Tócalo, anota tu misión, tu primer bocado y tu energía, y ciérralo enseguida. Se paga al usarlo (120 ⭐), no da las ⭐ de la apertura (al cerrarlo, sí las del cierre) y cuenta para tus rachas."],
   ],
   77: [
     ["✏️", "Reabrir un día, ahora a la mano", "En Ritual → Día, «Reabrir un día» muestra tu última semana: toca el día cerrado que quieres corregir y se abre su cierre. También desde ese día en tu Diario, o en la Tienda con «Elegir el día». Ya no hace falta comprarlo antes: se paga al usarlo (120 ⭐) y lo que ya reabriste se edita gratis."],
@@ -1301,6 +1304,8 @@ function onClick(e) {
     case "util-buy": comprarConsumibleUI(d.id); break;
     case "reabrir-dia": usarReabrir(d.iso); break;
     case "reabrir-hoja": abrirReabrirHoja(); break;
+    case "abrir-dia": usarAbrir(d.iso); break;
+    case "apertura-tarde-save": saveAperturaTarde(); break;
 
     /* Inicio: quick habit toggle hoy */
     case "quick-habit": toggleHabitToday(d.id); break;

@@ -19,9 +19,9 @@ export default async function ({ G, test, assert, clone }) {
     assert.deepEqual(clone(migrate(clone(m)).gamif.usos), []);
   });
 
-  test("la Tienda solo vende Reabrir un día", () => {
+  test("la Tienda vende Reabrir un día y Abrir un día olvidado", () => {
     const s = conSaldo(500);
-    assert.equal(G("CONSUMIBLES").map(c => c.id).join(), "reabrir");
+    assert.equal(G("CONSUMIBLES").map(c => c.id).join(), "reabrir,abrir");
     assert.equal(comprar(s, "protector").ok, false);
     assert.equal(comprar(s, "reabrir").ok, true);
     assert.equal(inventario(s, "reabrir"), 1);
@@ -43,8 +43,26 @@ export default async function ({ G, test, assert, clone }) {
     comprar(s, "reabrir"); usar(s, "reabrir", "reabrir:2026-09-25", { fecha: "2026-09-25" });
     const t = dias(s, "2026-09-28");
     assert.equal(t.map(x => x.iso).join(), "2026-09-21,2026-09-22,2026-09-23,2026-09-24,2026-09-25,2026-09-26,2026-09-27");   // sin hoy, del más antiguo al más reciente
-    assert.equal(t.map(x => x.estado).join(), "reabrir,nada,nada,nada,editar,nada,reabrir");
+    assert.equal(t.map(x => x.estado).join(), "reabrir,abrir,abrir,abrir,editar,cerrar,reabrir");   // el 26, abierto sin cerrar: se cierra gratis
     assert.equal(inventario(s, "reabrir"), 0);   // usar el guardado no cobra de nuevo al editar
+  });
+
+  test("abrir un día olvidado: solo de la última semana, sin abrir y desde que existe la cuenta", () => {
+    const s = conSaldo(500), abrible = G("abrible"), dias = G("reabrirDias");
+    s.ritual.dias["2026-09-26"] = { hecho: true };
+    assert.equal(abrible(s, "2026-09-22", "2026-09-28"), true);
+    assert.equal(abrible(s, "2026-09-20", "2026-09-28"), false);   // más de 7 días
+    assert.equal(abrible(s, "2026-09-28", "2026-09-28"), false);   // hoy se abre normal
+    assert.equal(abrible(s, "2026-09-26", "2026-09-28"), false);   // ya abierto
+    s.settings.alta = "2026-09-24";
+    assert.equal(abrible(s, "2026-09-23", "2026-09-28"), false);   // antes de la cuenta
+    assert.equal(dias(s, "2026-09-28").map(x => x.estado).join(), "nada,nada,nada,abrir,abrir,cerrar,abrir");
+    // abrirlo y cerrarlo: ya está pagado, así que corregir su cierre después no cobra de nuevo
+    comprar(s, "abrir"); usar(s, "abrir", "abrir:2026-09-25", { fecha: "2026-09-25" });
+    s.ritual.dias["2026-09-25"] = { hecho: true, tarde: true, cerrado: true };
+    assert.equal(G("diaPagado")(s, "2026-09-25"), true);
+    assert.equal(dias(s, "2026-09-28").find(x => x.iso === "2026-09-25").estado, "editar");
+    assert.equal(inventario(s, "abrir"), 0);
   });
 
   test("retiro: devuelve lo no usado, cancela días libres futuros y respeta lo usado", () => {

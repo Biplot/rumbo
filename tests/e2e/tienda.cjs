@@ -30,7 +30,7 @@ module.exports = async ({ b, ok, errs }) => {
   await p.goto(URL + "#habitos"); await p.waitForTimeout(300);
   ok(await p.locator('[data-action="pase-usar"]').count() === 0, "Hábitos ya no ofrece pases");
   await p.goto(URL + "#tienda"); await p.waitForTimeout(400);
-  ok(await p.locator("[data-util]").count() === 1 && await p.locator('[data-util="reabrir"]').count() === 1, "la Tienda solo ofrece Reabrir un día");
+  ok(await p.locator("[data-util]").count() === 2 && await p.locator('[data-util="reabrir"]').count() === 1 && await p.locator('[data-util="abrir"]').count() === 1, "la Tienda ofrece Reabrir un día y Abrir un día olvidado");
   await shot(p, "tienda-utiles");
   await ctx.close();
 

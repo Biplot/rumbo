@@ -1,6 +1,6 @@
 /* ============================================================
    RUMBO · Consumibles de la Tienda (se usan y se vuelven a comprar)
-   ✏️ Reabrir un día
+   ✏️ Reabrir un día · 🌅 Abrir un día olvidado
 
    Datos (nunca se pierde ni se duplica nada entre dispositivos):
    · Cada COMPRA es un movimiento del ledger "consumo:<tipo>:<uid>" (delta = −costo).
@@ -19,6 +19,10 @@ const CONSUMIBLES = [
     desc: "Corriges un día ya cerrado de la última semana: tu ánimo, tus notas o lo que decidiste con tus pendientes.",
     regla: "Hasta 7 días atrás. Toca el día en Ritual → Día («Reabrir un día») o en tu Diario; se paga al usarlo. No vuelve a dar las ⭐ del cierre.",
     usar: "reabrir-hoja", usarTxt: "✏️ Elegir el día" },
+  { id: "abrir", icon: "🌅", nombre: "Abrir un día olvidado", costo: 120,
+    desc: "¿Se te olvidó abrir un día de la última semana? Lo abres ahora: anotas tu misión, tu primer bocado y tu energía, y enseguida lo cierras.",
+    regla: "Hasta 7 días atrás, en Ritual → Día («Abrir o reabrir un día»); se paga al usarlo. No da las ⭐ de la apertura (al cerrarlo, sí las del cierre) y cuenta para tus rachas.",
+    usar: "reabrir-hoja", usarTxt: "🌅 Elegir el día" },
 ];
 function consumible(tipo) { return CONSUMIBLES.find(c => c.id === tipo); }
 
@@ -88,10 +92,12 @@ function asegurarConsumible(tipo, pregunta) {
   if (!confirm(`${pregunta || "¿Comprar " + c.nombre.toLowerCase() + " y usarlo ahora?"}\nCuesta ${c.costo} ⭐ · te quedarán ${STATE.gamif.puntos - c.costo}.`)) return false;
   return comprarConsumibleUI(tipo, true);
 }
+/* ¿Ya pagaste por ese día? (reabrirlo o abrirlo): entonces se edita gratis */
+function diaPagado(S, iso) { return usoVigente(S, "reabrir:" + iso) || usoVigente(S, "abrir:" + iso); }
 /* Reabrir un día cerrado de la última semana: un toque en el día, una confirmación y se abre su cierre */
 function usarReabrir(iso) {
   if (!reabrible(STATE, iso)) return toast("Solo se pueden reabrir días cerrados de la última semana", true);
-  if (!usoVigente(STATE, "reabrir:" + iso)) {
+  if (!diaPagado(STATE, iso)) {
     if (!asegurarConsumible("reabrir", `¿Reabrir el ${reabrirFechaTxt(iso)} para corregir su cierre?`)) return;
     usarConsumible(STATE, "reabrir", "reabrir:" + iso, { fecha: iso });
     saveState(); updateTopbar();
@@ -102,58 +108,114 @@ function reabrirFechaTxt(iso) {
   return new Date(iso + "T12:00:00").toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
 }
 
-/* -------- Dónde se usa: los 7 días anteriores a hoy --------
-   estado: "editar" (ya reabierto: se edita gratis) | "reabrir" (cerrado) | "cerrar" (sin cerrar, todavía a tiempo) | "nada" */
+/* -------- 🌅 Abrir un día olvidado --------
+   Un día de los 7 anteriores que no abriste (ni se puede cerrar gratis por la holgura). Nunca antes de que
+   existiera la cuenta (settings.alta, bienvenida.js). No da las ⭐ de la apertura; queda marcado tarde: true. */
+function abrible(S, iso, hoy) {
+  S = S || STATE; hoy = hoy || todayISO();
+  const r = S.ritual.dias[iso], alta = typeof cuentaAlta === "function" ? cuentaAlta(S) : null;
+  return !(r && r.hecho) && iso < hoy && iso >= agSumar(hoy, -7) && !(alta && iso < alta);
+}
+function usarAbrir(iso) {
+  if (!abrible(STATE, iso)) return toast("Solo se pueden abrir días de la última semana que no abriste", true);
+  if (!usoVigente(STATE, "abrir:" + iso)) {
+    if (!asegurarConsumible("abrir", `¿Abrir el ${reabrirFechaTxt(iso)}, que se te olvidó?`)) return;
+    usarConsumible(STATE, "abrir", "abrir:" + iso, { fecha: iso });
+    saveState(); updateTopbar();
+  }
+  openAperturaTarde(iso);
+}
+let APERTURA_TARDE = null;
+/* La apertura de un día que ya pasó: lo justo para recordarlo (sin tareas: ese día ya pasó) */
+function openAperturaTarde(iso) {
+  APERTURA_TARDE = iso;
+  const r = STATE.ritual.dias[iso] || {};
+  openModal("Abrir el " + reabrirFechaTxt(iso), `
+    <p class="reabrir-aviso">🌅 Se te olvidó abrirlo: anota lo que tenías en mente ese día y luego ciérralo. No da las ⭐ de la apertura.</p>
+    <div class="field"><label>🎯 Tu misión de ese día</label><input class="input" id="at-mision" value="${escapeAttr(r.mision || "")}" placeholder="Lo más importante que querías lograr"></div>
+    <div class="field"><label>${BOCADO.emoji} Tu primer bocado <span class="text-xs muted">(opcional)</span></label><input class="input" id="at-sapo" value="${escapeAttr(r.sapo || "")}" placeholder="La tarea que más movía la aguja"></div>
+    <div class="field"><label>⚡ Tu energía al empezar</label>
+      ${elEscala("at-energia", r.energia || 3, { ico: "rayo", etiquetas: ENERGIA_ETI, label: "Tu energía al empezar, de 1 a 5" })}</div>
+    <div class="modal__cta"><button class="btn btn--primary btn-block" data-action="apertura-tarde-save">Abrirlo y seguir al cierre</button></div>`);
+}
+function saveAperturaTarde() {
+  const iso = APERTURA_TARDE;
+  if (!iso || !(abrible(STATE, iso) || (STATE.ritual.dias[iso] || {}).tarde) || !usoVigente(STATE, "abrir:" + iso)) return toast("Ese día ya no se puede abrir", true);
+  const prev = STATE.ritual.dias[iso] || {};
+  STATE.ritual.dias[iso] = Object.assign({}, prev, {
+    hecho: true, tarde: true, mision: val("at-mision"), sapo: val("at-sapo"),
+    energia: parseNum(val("at-energia")) || prev.energia || 3, ts: Date.now(),
+  });
+  APERTURA_TARDE = null;
+  saveState(); updateTopbar(); rerender();
+  toast("🌅 Día abierto · ahora ciérralo");
+  openCierreModal(iso);
+}
+
+/* -------- Dónde se usan: los 7 días anteriores a hoy --------
+   estado: "editar" (cerrado y ya pagado: se edita gratis) | "reabrir" (cerrado) | "cerrar" (abierto sin cerrar, o
+   sin abrir pero usado dentro de la holgura: se cierra gratis) | "abrir" (se te olvidó abrirlo) | "nada" (antes de tu cuenta) */
 function reabrirDias(S, hoy) {
   S = S || STATE; hoy = hoy || todayISO();
   const out = [];
   for (let b = 7; b >= 1; b--) {
     const iso = agSumar(hoy, -b), r = S.ritual.dias[iso];
-    const estado = reabrible(S, iso, hoy) ? (usoVigente(S, "reabrir:" + iso) ? "editar" : "reabrir")
-      : !(r && r.cerrado) && typeof puedeCerrarDia === "function" && typeof STATE !== "undefined" && S === STATE && puedeCerrarDia(iso) ? "cerrar" : "nada";
+    const estado = reabrible(S, iso, hoy) ? (diaPagado(S, iso) ? "editar" : "reabrir")
+      : r && r.hecho ? "cerrar"
+      : typeof puedeCerrarDia === "function" && typeof STATE !== "undefined" && S === STATE && puedeCerrarDia(iso) ? "cerrar"
+      : abrible(S, iso, hoy) ? "abrir" : "nada";
     out.push({ iso, estado });
   }
   return out;
 }
-/* Texto del botón para un día (Diario y hoja) */
+/* Texto del botón para un día cerrado (Diario) */
 function reabrirBotonTxt(iso) {
-  if (usoVigente(STATE, "reabrir:" + iso)) return "✏️ Editar el cierre";
+  if (diaPagado(STATE, iso)) return "✏️ Editar el cierre";
   return inventario(STATE, "reabrir") > 0 ? "✏️ Reabrir este día" : `✏️ Reabrir este día · ${consumible("reabrir").costo} ⭐`;
 }
 const REABRIR_EST = {
-  editar: { ico: "✏️", txt: "ya reabierto: edítalo" },
   reabrir: { ico: "🌙", txt: "cerrado: tócalo para reabrirlo" },
-  cerrar: { ico: "🌅", txt: "sin cerrar: ciérralo gratis" },
-  nada: { ico: "·", txt: "sin cierre" },
+  editar: { ico: "✏️", txt: "ya pagado: edítalo gratis" },
+  abrir: { ico: "🌅", txt: "se te olvidó abrirlo: ábrelo" },
+  cerrar: { ico: "⏳", txt: "sin cerrar: ciérralo gratis" },
+  nada: { ico: "·", txt: "antes de tu cuenta" },
 };
 /* La tira de la semana: cada día es un botón */
-function reabrirTiraHtml() {
-  const dias = reabrirDias();
+function reabrirTiraHtml(dias) {
+  dias = dias || reabrirDias();
   return `<div class="reabrir-tira" role="group" aria-label="Tus últimos 7 días">${dias.map(({ iso, estado }) => {
     const d = new Date(iso + "T12:00:00"), e = REABRIR_EST[estado];
     const dow = DIAS_SEMANA[(d.getDay() + 6) % 7].slice(0, 3);
     const aria = `${reabrirFechaTxt(iso)}, ${e.txt}`;
     const dentro = `<small>${dow}</small><b>${d.getDate()}</b><span aria-hidden="true">${e.ico}</span>`;
     if (estado === "nada") return `<span class="reabrir-tira__d is-nada" title="${escapeAttr(aria)}" aria-label="${escapeAttr(aria)}">${dentro}</span>`;
-    const accion = estado === "cerrar" ? `data-action="day-close" data-date="${iso}"` : `data-action="reabrir-dia" data-iso="${iso}"`;
+    const accion = estado === "cerrar" ? `data-action="day-close" data-date="${iso}"` : estado === "abrir" ? `data-action="abrir-dia" data-iso="${iso}"` : `data-action="reabrir-dia" data-iso="${iso}"`;
     return `<button type="button" class="reabrir-tira__d is-${estado}" ${accion} title="${escapeAttr(aria)}" aria-label="${escapeAttr(aria)}">${dentro}</button>`;
   }).join("")}</div>`;
 }
+/* Qué significa cada día (solo los que aparecen en la tira) */
+function reabrirLeyendaHtml(dias) {
+  const hay = new Set(dias.map(x => x.estado));
+  const ks = ["reabrir", "editar", "abrir", "cerrar"].filter(k => hay.has(k));
+  return ks.length ? `<ul class="reabrir-leyenda">${ks.map(k => `<li><span aria-hidden="true">${REABRIR_EST[k].ico}</span> ${REABRIR_EST[k].txt}</li>`).join("")}</ul>` : "";
+}
 /* Cuánto cuesta, dicho en corto */
 function reabrirPrecioTxt() {
-  const n = inventario(STATE, "reabrir"), c = consumible("reabrir");
   recalcGamif(STATE);
-  if (n) return `Tienes ${n} guardado${n === 1 ? "" : "s"}: se usa al tocar un día cerrado.`;
-  return `${c.costo} ⭐ por día, se cobra al tocarlo · tienes ${STATE.gamif.puntos} ⭐. Lo que ya reabriste se edita gratis.`;
+  const guardados = [["reabrir", "reabrir"], ["abrir", "abrir"]].map(([t, v]) => [inventario(STATE, t), v]).filter(x => x[0]);
+  return `${consumible("reabrir").costo} ⭐ por día, se cobra al tocarlo · tienes ${STATE.gamif.puntos} ⭐.`
+    + (guardados.length ? ` Guardados: ${guardados.map(([n, v]) => n + " para " + v).join(" y ")}.` : "")
+    + " Lo que ya pagaste se edita gratis.";
 }
-/* Tarjeta en Ritual → Día (solo si hay un día cerrado en la última semana) */
+/* Tarjeta en Ritual → Día (si hay algún día cerrado o sin abrir en la última semana) */
 function reabrirCardHtml() {
   const dias = reabrirDias();
-  if (!dias.some(x => x.estado === "reabrir" || x.estado === "editar")) return "";
+  if (!dias.some(x => ["reabrir", "editar", "abrir"].includes(x.estado))) return "";
   return `<div class="card reabrir-card mt-16" data-tour="reabrir">
-    <div class="card__title" style="font-size:15px">✏️ Reabrir un día</div>
-    <p class="text-sm soft mt-8">¿Algo que corregir de un cierre? Toca el día: cambias tu ánimo, tus notas o lo que decidiste con tus pendientes.</p>
-    ${reabrirTiraHtml()}
+    <div class="card__title" style="font-size:15px">✏️ Abrir o reabrir un día</div>
+    <p class="text-sm soft mt-8">¿Se te olvidó abrir un día o quieres corregir un cierre? Toca el día.</p>
+    ${reabrirTiraHtml(dias)}
+    ${reabrirLeyendaHtml(dias)}
     <p class="text-xs muted mt-8">${reabrirPrecioTxt()}</p>
   </div>`;
 }
@@ -161,12 +223,12 @@ function reabrirCardHtml() {
 function abrirReabrirHoja() {
   const dias = reabrirDias();
   const hay = dias.some(x => x.estado !== "nada");
-  openModal("✏️ Reabrir un día", `
-    <p class="text-sm soft">Elige el día que quieres corregir. Se abre su cierre y cambias lo que quieras: tu ánimo, tus notas o lo que decidiste con tus pendientes.</p>
-    ${reabrirTiraHtml()}
-    <ul class="reabrir-leyenda">${["reabrir", "editar", "cerrar"].map(k => `<li><span aria-hidden="true">${REABRIR_EST[k].ico}</span> ${REABRIR_EST[k].txt}</li>`).join("")}</ul>
-    <p class="text-xs muted mt-8">${hay ? reabrirPrecioTxt() : "No cerraste ningún día de la última semana: solo se pueden reabrir los días que cerraste."}</p>
-    <p class="text-xs muted mt-8">No vuelve a dar las ⭐ del cierre. Para hoy no hace falta: «Editar el cierre» es gratis.</p>`);
+  openModal("✏️ Abrir o reabrir un día", `
+    <p class="text-sm soft">Elige el día. Si lo cerraste, se abre su cierre para corregirlo; si se te olvidó abrirlo, anotas tu misión y lo cierras.</p>
+    ${reabrirTiraHtml(dias)}
+    ${reabrirLeyendaHtml(dias)}
+    <p class="text-xs muted mt-8">${hay ? reabrirPrecioTxt() : "Tu cuenta es de hoy: todavía no hay días anteriores para abrir o reabrir."}</p>
+    <p class="text-xs muted mt-8">No repite las ⭐ de la apertura ni del cierre ya cobrado. Hoy no hace falta: tu día se abre y su cierre se edita gratis.</p>`);
 }
 
 /* -------- Tienda -------- */

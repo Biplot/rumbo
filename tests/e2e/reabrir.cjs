@@ -1,7 +1,8 @@
-/* Pruebas en navegador · ✏️ Reabrir un día, a la mano (consumibles.js): la tira de los 7 días anteriores en
-   Ritual → Día (cerrado, ya reabierto, sin cerrar a tiempo, sin cierre), un toque + una confirmación con la fecha
-   y el precio, se cobra una sola vez por día, «Corregir el …» y «Guardar cambios», el botón en el Diario,
-   «Elegir el día» en la Tienda y, sin ⭐ suficientes, no se abre ni se cobra. */
+/* Pruebas en navegador · ✏️ Reabrir un día y 🌅 Abrir un día olvidado (consumibles.js): la tira de los 7 días
+   anteriores en Ritual → Día (cerrado, ya pagado, sin abrir, sin cerrar a tiempo, antes de la cuenta), un toque +
+   una confirmación con la fecha y el precio, se cobra una sola vez por día, «Corregir el …» y «Guardar cambios»,
+   abrir un día olvidado y cerrarlo enseguida (sin las ⭐ de la apertura), el botón en el Diario, «Elegir el día» en
+   la Tienda y, sin ⭐ suficientes, no se abre ni se cobra. */
 const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 
 module.exports = async ({ b, ok, errs }) => {
@@ -26,10 +27,11 @@ module.exports = async ({ b, ok, errs }) => {
   // 1) Ritual → Día: la tarjeta con la tira de la semana
   await p.goto(URL + "#ritual"); await p.waitForTimeout(400);
   const tira = '#view .reabrir-card .reabrir-tira';
-  ok(await p.locator(tira + " .reabrir-tira__d").count() === 7, "Ritual → Día muestra «Reabrir un día» con los 7 días anteriores a hoy");
+  ok(await p.locator(tira + " .reabrir-tira__d").count() === 7, "Ritual → Día muestra la tira con los 7 días anteriores a hoy");
   const estados = await p.locator(tira + " .reabrir-tira__d").evaluateAll(xs => xs.map(x => (x.dataset.iso || x.dataset.date || "-") + ":" + x.className.replace(/.*is-/, "")));
-  ok(JSON.stringify(estados) === JSON.stringify(["2026-11-02:reabrir", "-:nada", "-:nada", "2026-11-05:reabrir", "-:nada", "2026-11-07:editar", "2026-11-08:cerrar"]),
-    "cada día dice lo que se puede hacer: reabrir, editar (ya pagado), cerrar a tiempo o nada: " + estados);
+  ok(JSON.stringify(estados) === JSON.stringify(["2026-11-02:reabrir", "2026-11-03:abrir", "2026-11-04:abrir", "2026-11-05:reabrir", "2026-11-06:abrir", "2026-11-07:editar", "2026-11-08:cerrar"]),
+    "cada día dice lo que se puede hacer: reabrir, abrir (se te olvidó), editar (ya pagado) o cerrar a tiempo: " + estados);
+  ok((await p.locator("#view .reabrir-card").innerText()).includes("Abrir o reabrir un día") && await p.locator("#view .reabrir-card .reabrir-leyenda li").count() === 4, "la tarjeta se llama «Abrir o reabrir un día» y explica cada día");
   ok(await p.evaluate(() => document.documentElement.scrollWidth <= 390), "la tira cabe en el celular sin correrse de lado");
   await shot(p, "reabrir-ritual", { fullPage: false });
 
@@ -58,6 +60,30 @@ module.exports = async ({ b, ok, errs }) => {
   ok((await p.locator("#modalTitle").innerText()).startsWith("Cerrar el") && dialogos.length === 1, "el día sin cerrar abre su cierre normal, sin cobrar");
   await p.evaluate(() => closeModal());
 
+  // 4b) Un día que se te olvidó abrir: confirmación, la apertura de ese día y enseguida su cierre
+  const antesAbrir = await puntos();
+  await p.click(tira + ' [data-iso="2026-11-03"]'); await p.waitForTimeout(350);
+  ok(dialogos.length === 2 && dialogos[1].includes("3 de noviembre") && dialogos[1].includes("se te olvidó") && dialogos[1].includes("120 ⭐"),
+    "abrir un día olvidado pregunta una vez, con la fecha y el precio: " + JSON.stringify(dialogos[1]));
+  ok((await p.locator("#modalTitle").innerText()).startsWith("Abrir el") && await p.locator("#modal #at-mision").count() === 1, "se abre «Abrir el …» con tu misión, tu bocado y tu energía");
+  await shot(p, "abrir-olvidado");
+  await p.fill("#at-mision", "Terminar el informe");
+  await p.click('#modal [data-action="apertura-tarde-save"]'); await p.waitForTimeout(350);
+  ok((await p.locator("#modalTitle").innerText()).startsWith("Cerrar el"), "al guardar, sigue directo al cierre de ese día");
+  await p.click('#modal [data-action="cierre-save"]'); await p.waitForTimeout(350);
+  const dA = await p.evaluate(() => { const r = STATE.ritual.dias["2026-11-03"]; return { hecho: r.hecho, tarde: r.tarde, cerrado: r.cerrado, mision: r.mision, apertura: STATE.gamif.ledger.some(m => m.id === "ritual-apertura:2026-11-03") }; });
+  ok(dA.hecho && dA.tarde && dA.cerrado && dA.mision === "Terminar el informe" && !dA.apertura, "queda abierto (tarde) y cerrado con su misión, sin las ⭐ de la apertura: " + JSON.stringify(dA));
+  ok(await puntos() === antesAbrir - 120 + 40, "cobra 120 ⭐ y el cierre da sus 40 ⭐ como siempre");
+  ok(await p.locator(tira + ' .is-editar[data-iso="2026-11-03"]').count() === 1, "ya pagado: corregir su cierre después no se vuelve a cobrar");
+
+  // 4c) Si lo pagas y cierras la ventana sin guardar, volver a tocarlo no cobra de nuevo
+  const antesB = await puntos();
+  await p.click(tira + ' [data-iso="2026-11-04"]'); await p.waitForTimeout(300);
+  await p.evaluate(() => closeModal());
+  await p.click(tira + ' [data-iso="2026-11-04"]'); await p.waitForTimeout(300);
+  ok(dialogos.length === 3 && (await p.locator("#modalTitle").innerText()).startsWith("Abrir el") && await puntos() === antesB - 120, "pagado y sin guardar: se vuelve a abrir gratis, sin preguntar");
+  await p.evaluate(() => closeModal());
+
   // 5) En el Diario: el botón está en el mismo día
   await p.goto(URL + "#diario"); await p.waitForTimeout(400);
   await p.click('#view [data-action="diario-dia"][data-iso="2026-11-02"].dfila'); await p.waitForTimeout(250);
@@ -72,17 +98,21 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('.ficha[data-util="reabrir"]'); await p.waitForTimeout(250);
   ok(await p.locator('#modal [data-action="reabrir-hoja"]').count() === 1, "la ficha de la Tienda ofrece «Elegir el día»");
   await p.click('#modal [data-action="reabrir-hoja"]'); await p.waitForTimeout(250);
-  ok(await p.locator("#modal .reabrir-tira .reabrir-tira__d").count() === 7 && await p.locator("#modal .reabrir-leyenda li").count() === 3, "y abre la tira de la semana con lo que significa cada día");
+  ok(await p.locator("#modal .reabrir-tira .reabrir-tira__d").count() === 7 && await p.locator("#modal .reabrir-leyenda li").count() === 4, "y abre la tira de la semana con lo que significa cada día");
+  await p.evaluate(() => closeModal());
+  await p.click('.ficha[data-util="abrir"]'); await p.waitForTimeout(250);
+  ok((await p.locator("#modal").innerText()).includes("Abrir un día olvidado") && await p.locator('#modal [data-action="reabrir-hoja"]').count() === 1, "«Abrir un día olvidado» también está en la Tienda, con «Elegir el día»");
   await shot(p, "reabrir-tienda");
   await ctx.close();
 
-  // 7) Sin días cerrados en la semana no hay tarjeta; sin ⭐ suficientes, tocar un día no abre ni cobra
+  // 7) Cuenta nueva (de hoy): no hay días anteriores, no hay tarjeta; sin ⭐ suficientes, tocar un día no abre ni cobra
   const c2 = await nuevoContexto(b, { fecha: "2026-11-09T15:00:00", w: 390, h: 844 });
   const q = await c2.newPage(); q.on("pageerror", e => errs.push(e.message));
   let preguntas = 0; q.on("dialog", d => { preguntas++; d.accept(); });
   await registrar(q, "reabrir-sin@test.cl");
+  await q.evaluate(() => { STATE.settings.alta = "2026-11-09"; saveState(); });
   await q.goto(URL + "#ritual"); await q.waitForTimeout(350);
-  ok(await q.locator("#view .reabrir-card").count() === 0, "sin días cerrados en la última semana, no aparece la tarjeta");
+  ok(await q.locator("#view .reabrir-card").count() === 0, "con la cuenta de hoy no hay días que abrir ni reabrir: no aparece la tarjeta");
   await q.evaluate(() => { STATE.ritual.dias["2026-11-06"] = { hecho: true, cerrado: true, cierre: {} }; saveState(); rerender(); });
   await q.waitForTimeout(250);
   const sin = await q.evaluate(() => { recalcGamif(STATE); return STATE.gamif.puntos; });

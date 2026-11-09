@@ -4231,6 +4231,7 @@ html .hb-today.st-ok.is-on .hb-today__check { background: var(--st-ok); border-c
 button.reabrir-tira__d:hover { border-color: var(--cian); }
 .reabrir-tira__d.is-editar { border-color: var(--cian); background: var(--cian-soft); }
 .reabrir-tira__d.is-cerrar { border-style: dashed; border-color: var(--coral); }
+.reabrir-tira__d.is-abrir { border-style: dashed; border-color: var(--text-muted); }
 .reabrir-tira__d.is-nada { border-color: transparent; background: var(--surface-2); opacity: .55; cursor: default; }
 .reabrir-leyenda { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; color: var(--text-soft); }
 .reabrir-leyenda span { display: inline-block; width: 20px; text-align: center; }

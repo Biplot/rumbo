@@ -156,7 +156,11 @@ function diarioDetalle(fecha) {
   out.push(cierre(es.find(e => e.fromRitualTri), "Cierre de trimestre", "logro"));
   es.filter(e => e.fromPlan).forEach(e => out.push(kv("Plan", `${escapeHtml(e.titulo || "Con amigos")} ${"★".repeat(e.estrellas || 0)}${e.con ? ` <span class='muted'>· con ${escapeHtml(e.con)}</span>` : ""}${e.texto ? "<br>«" + escapeHtml(e.texto) + "»" : ""}`)));
   const acciones = [];
-  if (r && r.cerrado && fecha >= agSumar(todayISO(), -7) && typeof reabrible === "function") acciones.push(`<a class="card__hint" href="#ritual">Editar desde el Ritual ›</a>`);
+  // Corregir el cierre desde el mismo día: hoy gratis, los 7 días anteriores con «Reabrir un día» (consumibles.js)
+  const hoy = todayISO();
+  if (r && r.cerrado && fecha === hoy) acciones.push(`<button class="btn btn--soft" data-action="day-close" data-date="${fecha}">✏️ Editar el cierre</button>`);
+  else if (r && r.cerrado && typeof reabrible === "function" && reabrible(STATE, fecha)) acciones.push(`<button class="btn btn--soft" data-action="reabrir-dia" data-iso="${fecha}">${reabrirBotonTxt(fecha)}</button>`);
+  else if (fecha < hoy && !(r && r.cerrado) && typeof puedeCerrarDia === "function" && puedeCerrarDia(fecha)) acciones.push(`<button class="btn btn--soft" data-action="day-close" data-date="${fecha}">🌙 Cerrar este día</button>`);
   if (!r && manual) acciones.push(`<button class="btn-ghost" data-action="diario-del" data-id="${manual.id}">🗑 Borrar</button>`);
   return out.join("") + (acciones.length ? `<div class="row mt-8" style="gap:10px">${acciones.join("")}</div>` : "");
 }

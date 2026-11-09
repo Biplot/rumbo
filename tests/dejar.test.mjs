@@ -64,7 +64,8 @@ export default async function ({ G, test, assert, clone }) {
       assert.equal(prog(h, S).texto, "1 de 1 esta semana");
     });
     conHoy("2026-11-10", () => assert.equal(racha(h, S).n, 1, "la del 2 de noviembre terminó con 1: cumple"));
-    assert.equal(dias(h, S).dias, 0, "sin semanas terminadas dentro del límite todavía (con HM_HOY nulo, hoy real)");
+    conHoy("2026-11-05", () => assert.equal(dias(h, S).dias, 0, "sin semanas terminadas dentro del límite todavía"));
+    conHoy("2026-11-10", () => assert.deepEqual([dias(h, S).dias, dias(h, S).ultimo], [7, "2026-11-08"], "al terminar la semana del 2 de noviembre, cuenta sus 7 días"));
   });
   test("los días cumplidos (jardín, Hábito de Hierro): dejar cuenta los días sin; reducir, los que terminaron dentro", () => {
     const S = S0(), h = dejar(S, { creado: "2026-08-01" }), c = reducir(S, "dia", 2);

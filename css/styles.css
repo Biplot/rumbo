@@ -4220,3 +4220,18 @@ html .hb-today.st-ok.is-on { background: var(--surface); }
 html .hb-today.st-ok.is-on .hb-today__ico { color: var(--st-ok); }
 html .hb-today.st-ok.is-on .hb-today__check { background: var(--st-ok); border-color: var(--st-ok); }
 
+
+/* ✏️ Reabrir un día: la tira de los 7 días anteriores (Ritual → Día y la hoja de la Tienda) */
+.reabrir-tira { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+.reabrir-tira__d { display: grid; justify-items: center; align-content: center; gap: 1px; min-height: 66px; padding: 6px 0; border-radius: 12px;
+  border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; }
+.reabrir-tira__d small { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: capitalize; }
+.reabrir-tira__d b { font-size: 16px; line-height: 1.1; }
+.reabrir-tira__d span { font-size: 13px; line-height: 1.2; }
+button.reabrir-tira__d:hover { border-color: var(--cian); }
+.reabrir-tira__d.is-editar { border-color: var(--cian); background: var(--cian-soft); }
+.reabrir-tira__d.is-cerrar { border-style: dashed; border-color: var(--coral); }
+.reabrir-tira__d.is-nada { border-color: transparent; background: var(--surface-2); opacity: .55; cursor: default; }
+.reabrir-leyenda { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; color: var(--text-soft); }
+.reabrir-leyenda span { display: inline-block; width: 20px; text-align: center; }
+.reabrir-aviso { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--cian-soft); color: var(--text); font-size: 13px; }

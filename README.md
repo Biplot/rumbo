@@ -210,6 +210,15 @@ En Inicio («Hábitos de hoy») y en Hábitos › Hoy, el borde de cada hábito 
 - **Todo a la vista:** ya no está el desplegable «Ya cumplidos este período». Una sola grilla, ordenada por urgencia (`hmOrdenarPorEstado`): rojo, amarillo, verde y sin color; entre iguales, el orden de siempre.
 - Pruebas: `tests/habitos-color.test.mjs` y `tests/e2e/habitos-color.cjs`.
 
+## Reabrir un día
+Corrige el cierre de uno de los 7 días anteriores a hoy (tu ánimo, tus notas, lo que decidiste con tus pendientes). Vive en `js/consumibles.js`.
+- **Dónde:** en Ritual → Día, la tarjeta «Reabrir un día» (solo si cerraste algún día de la última semana) muestra esos 7 días como una tira (`reabrirTiraHtml`); en tu Diario, al abrir un día, el botón «Reabrir este día»; y en la Tienda, «Elegir el día» abre la misma tira en una hoja (`abrirReabrirHoja`).
+- **Cada día de la tira** (`reabrirDias`): 🌙 cerrado (tócalo para reabrirlo), ✏️ ya reabierto (se edita gratis), 🌅 sin cerrar pero todavía a tiempo (se cierra gratis, como siempre) y · sin cierre.
+- **Se paga al usarlo:** ya no hace falta comprarlo antes. Al tocar un día cerrado se confirma una sola vez con la fecha, el precio (120 ⭐) y lo que te queda; si tenías uno guardado, se usa ese. El uso tiene id `reabrir:<fecha>`, así que el mismo día nunca se cobra dos veces, ni entre dispositivos.
+- **El cierre reabierto** se titula «Corregir el …», avisa que no vuelve a dar las ⭐ del cierre y al guardar dice «Cambios guardados ✓». El cierre de hoy se edita gratis («Editar el cierre»).
+- La antigua pantalla Bitácora (donde estaba el único botón) ya no existía: su historial vive en el Diario de vida.
+- Pruebas: `tests/consumibles.test.mjs` y `tests/e2e/reabrir.cjs`.
+
 ## La primera vez en Rumbo
 Lo que vive quien recién llega (`js/bienvenida.js`, con la ayuda de `js/tutorial.js`). La auditoría que lo motivó: pedía demasiado y explicaba antes de dejar usar.
 - **El día de la cuenta** (`settings.alta`): solo en cuentas nuevas, al empezar la bienvenida (`marcarAlta`). Con él, Rumbo no pide cerrar un mes que terminó antes de la cuenta (`mesAntesDeLaCuenta` en `ritualMesPendientes`). Quien ya usaba la app no tiene alta y todo sigue igual.

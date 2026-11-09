@@ -36,6 +36,17 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(reabrible(s, "2026-09-27", "2026-09-28"), false);   // no está cerrado
   });
 
+  test("reabrir: la tira de los 7 días anteriores (cerrado, ya reabierto, sin cierre)", () => {
+    const s = conSaldo(500), dias = G("reabrirDias");
+    cerrar(s, "2026-09-21"); cerrar(s, "2026-09-25"); cerrar(s, "2026-09-27"); cerrar(s, "2026-09-28");
+    s.ritual.dias["2026-09-26"] = { hecho: true };   // abierto, sin cerrar
+    comprar(s, "reabrir"); usar(s, "reabrir", "reabrir:2026-09-25", { fecha: "2026-09-25" });
+    const t = dias(s, "2026-09-28");
+    assert.equal(t.map(x => x.iso).join(), "2026-09-21,2026-09-22,2026-09-23,2026-09-24,2026-09-25,2026-09-26,2026-09-27");   // sin hoy, del más antiguo al más reciente
+    assert.equal(t.map(x => x.estado).join(), "reabrir,nada,nada,nada,editar,nada,reabrir");
+    assert.equal(inventario(s, "reabrir"), 0);   // usar el guardado no cobra de nuevo al editar
+  });
+
   test("retiro: devuelve lo no usado, cancela días libres futuros y respeta lo usado", () => {
     const s = conSaldo(1000);
     compraVieja(s, "protector", 150, "a"); compraVieja(s, "protector", 150, "b");

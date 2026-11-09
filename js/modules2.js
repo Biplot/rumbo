@@ -78,7 +78,7 @@ function renderRitualDia() {
     <div class="pill pill--streak">🌅 ${computeRitualStreak()} ${computeRitualStreak() === 1 ? "día abierto" : "días abiertos"} seguidos</div>
     <div class="pill pill--pts">🏆 ${logros} rituales completados</div>
   </div>
-  <div class="mt-16">${renderPendingYesterday()}<div data-tour="ritual-dia">${banner}</div></div>
+  <div class="mt-16">${renderPendingYesterday()}<div data-tour="ritual-dia">${banner}</div>${typeof reabrirCardHtml === "function" ? reabrirCardHtml() : ""}</div>
 
   ${!hecho ? `<div class="card mt-24"><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.06em">Al abrir tu día eliges</div>
     <div class="row-wrap mt-8" style="gap:8px">${["🎯 Tu misión", BOCADO.emoji + " Tu " + BOCADO.corto.toLowerCase(), "🏛️ Tu pilar", "⚡ Tu energía", "🙌 A quién sirves", "📋 Tus tareas"].map(t => `<span class="chip">${t}</span>`).join("")}</div></div>` : `<div class="grid grid-3 mt-24">
@@ -273,11 +273,14 @@ function openCierreModal(date) {
   const tr = tareasDia.length ? tareasResumen(tareasDia) : (c.tareas || null);
   const sapoDone = c.sapo !== undefined ? c.sapo : (sapoTask ? estadoTarea(sapoTask) === "hecha" : false);
   const sapoCur = sapoDone ? "1" : "0";
-  const titulo = esHoy ? "Cierra tu " + dObj.toLocaleDateString("es-CL", { weekday: "long" }) : "Cerrar el " + dObj.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+  const fechaLarga = dObj.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+  const corrige = !esHoy && !!r.cerrado;   // un día pasado ya cerrado (reabierto)
+  const titulo = esHoy ? "Cierra tu " + dObj.toLocaleDateString("es-CL", { weekday: "long" }) : (corrige ? "Corregir el " : "Cerrar el ") + fechaLarga;
   const mananaLabel = esHoy ? "Una cosa para mañana" : "Una cosa para el día siguiente";
   openModal(titulo, `
+    ${corrige ? `<p class="reabrir-aviso">✏️ Día reabierto: cambia lo que quieras y toca «Guardar cambios». Las ⭐ del cierre no se vuelven a dar.</p>` : ""}
     ${finRecorridoHtml(iso, r, sapoTask)}
-    <div class="field"><label>¿Cómo te sentiste hoy? <b class="mood-eti" id="c-mood-eti">${MOOD_ETI[moodCur - 1] || ""}</b></label>
+    <div class="field"><label>¿Cómo te sentiste ${esHoy ? "hoy" : "ese día"}? <b class="mood-eti" id="c-mood-eti">${MOOD_ETI[moodCur - 1] || ""}</b></label>
       <div class="row mt-8" id="c-moods" style="gap:8px">
         ${MOODS.map((m, i) => `<button type="button" class="mood-btn ${i + 1 === moodCur ? "is-on" : ""}" data-v="${i + 1}" aria-label="${MOOD_ETI[i]}" title="${MOOD_ETI[i]}" aria-pressed="${i + 1 === moodCur}" onclick="cierreMoodPick(this)">${m}</button>`).join("")}
       </div><input type="hidden" id="c-mood" value="${moodCur}"></div>
@@ -363,6 +366,7 @@ function saveCierre() {
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
   if (!yaCerrado) { sonar("cierre"); vibrar([15, 60, 25]); animarRacha(); if (!hubo && typeof celebrarCierreElefante === "function") celebrarCierreElefante(); }
   const resumenTr = decid ? textoTriage(decid) : "";
+  if (yaCerrado) return toast(resumenTr ? `Cambios guardados ✓ · ${resumenTr}` : "Cambios guardados ✓");
   toast(resumenTr ? `Día cerrado 🌙 · ${resumenTr}` : "Día cerrado 🌙 ¡Descansa!");
 }
 
@@ -371,77 +375,7 @@ function saveCierre() {
    ============================================================ */
 let BITA_OPEN = {};
 
-function bitaCard(iso, r) {
-  const d = new Date(iso + "T00:00:00");
-  const dow = DIAS_SEMANA[(d.getDay() + 6) % 7].slice(0, 3);
-  const fecha = `${dow} ${d.getDate()} · ${MESES_CORTO[d.getMonth()]}`;
-  const c = r.cierre || {};
-  const estadoChip = r.cerrado
-    ? `<span class="chip chip--done">🌙 Cerrado</span>`
-    : `<span class="chip chip--coral">🌅 Abierto</span>`;
-  const energia = r.cerrado ? `${r.energia || "—"} → ${c.energia || "—"}` : `${r.energia || "—"}`;
-  const hayExtras = c.mejor || c.nota || c.manana || r.servir || (r.proyectos && r.proyectos.length);
-  const open = !!BITA_OPEN[iso];
-  const dash = "<span class='muted'>—</span>";
-  return `<div class="card bita-day">
-    <div class="bita-day__head"><div class="bita-date">${fecha}</div>${estadoChip}</div>
-    <div class="bita-row"><span class="bita-k">🎯 Misión</span>
-      <span class="bita-v">${r.mision ? escapeHtml(r.mision) : dash} ${r.cerrado ? cumpliChip(c.mision) : ""}</span></div>
-    <div class="bita-row"><span class="bita-k">${BOCADO.emoji} ${BOCADO.corto}</span>
-      <span class="bita-v">${r.sapo ? escapeHtml(r.sapo) : dash} ${r.cerrado ? (c.sapo ? "<span class='chip chip--done'>hecho</span>" : "<span class='chip'>pendiente</span>") : ""}</span></div>
-    <div class="bita-row"><span class="bita-k">⚡ Energía</span>
-      <span class="bita-v">${energia} <span class="muted text-xs">/ 5</span> ${r.pilar ? `<span class="chip chip--cian">${escapeHtml(r.pilar)}</span>` : ""}</span></div>
-    ${open ? `
-      ${c.mejor ? `<div class="bita-row"><span class="bita-k">🙏 Gratitud</span><span class="bita-v">${escapeHtml(c.mejor)}</span></div>` : ""}
-      ${c.nota ? `<div class="bita-row"><span class="bita-k">📝 Nota</span><span class="bita-v">${escapeHtml(c.nota)}</span></div>` : ""}
-      ${c.manana ? `<div class="bita-row"><span class="bita-k">🌱 Para mañana</span><span class="bita-v">${escapeHtml(c.manana)}</span></div>` : ""}
-      ${r.servir ? `<div class="bita-row"><span class="bita-k">🙌 Serví a</span><span class="bita-v">${escapeHtml(r.servir)}</span></div>` : ""}
-      ${r.proyectos && r.proyectos.length ? `<div class="bita-row"><span class="bita-k">📂 Proyectos</span><span class="bita-v">${r.proyectos.map(p => `<span class="chip">${escapeHtml(p)}</span>`).join(" ")}</span></div>` : ""}
-    ` : ""}
-    ${hayExtras ? `<button class="bita-more" data-action="bita-toggle" data-iso="${iso}">${open ? "▲ Ver menos" : "▼ Ver más"}</button>` : ""}
-    ${reabrible(STATE, iso) ? `<button class="bita-more" data-action="reabrir-dia" data-iso="${iso}">${usoVigente(STATE, "reabrir:" + iso) ? "✏️ Editar cierre" : "✏️ Reabrir · 120 ⭐"}</button>` : ""}
-  </div>`;
-}
-
-function renderBitacora() {
-  const dias = STATE.ritual.dias || {};
-  const entries = Object.entries(dias)
-    .filter(([, r]) => r && r.hecho)
-    .sort((a, b) => (a[0] < b[0] ? 1 : -1)); // más reciente arriba
-
-  const total = entries.length;
-  const cerrados = entries.filter(([, r]) => r.cerrado).length;
-
-  const header = `
-  <div class="grid grid-3">
-    <div class="card stat"><div class="stat__label">📓 Días registrados</div><div class="stat__value">${total}</div></div>
-    <div class="card stat"><div class="stat__label">🌙 Días cerrados</div><div class="stat__value">${cerrados}</div></div>
-    <div class="card stat"><div class="stat__label">🔥 Racha actual</div><div class="stat__value">${computeClosedStreak()}</div></div>
-  </div>`;
-
-  if (!total) {
-    return header + `<div class="mt-24"><div class="card"><div class="empty">
-      Tu bitácora está vacía por ahora.<br>Abre y cierra tu día en el <b>Ritual</b> y cada jornada quedará guardada aquí 📓
-      <div class="mt-16"><button class="btn btn--primary" data-action="day-open">🌅 Abrir mi día</button></div>
-    </div></div></div>`;
-  }
-
-  // Agrupar por mes (respetando el orden descendente)
-  const groups = []; const idx = {};
-  entries.forEach(e => {
-    const d = new Date(e[0] + "T00:00:00");
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    if (idx[key] === undefined) { idx[key] = groups.length; groups.push({ y: d.getFullYear(), m: d.getMonth(), items: [] }); }
-    groups[idx[key]].items.push(e);
-  });
-
-  const body = groups.map(g =>
-    `<div class="section-title">${MESES[g.m]} ${g.y}</div>
-     <div class="bita-list">${g.items.map(([iso, r]) => bitaCard(iso, r)).join("")}</div>`
-  ).join("");
-
-  return header + `<div class="mt-24">${body}</div>`;
-}
+/* (La Bitácora vive en el Diario de vida: vida.js. Reabrir un día: consumibles.js) */
 
 /* ============================================================
    PLANIFICADOR SEMANAL

@@ -351,6 +351,20 @@ async function cerrarDia({ sb, uid, body, ahora }) {
 
 const ACCIONES = { hoy, sumar_agua: sumarAgua, marcar_habito: marcarHabito, anotar, abrir_dia: abrirDia, cerrar_dia: cerrarDia };
 
+/* Para la charla (notifier/norte-chat.mjs): quién habla y las mismas acciones, con la persona ya identificada.
+   Así lo que Norte hace conversando pasa por la misma bandeja, con los mismos límites y los mismos textos. */
+export { aparatoDe };
+export async function accionNorte({ sb, uid, accion, body = {}, ahora = new Date() }) {
+  if (!Object.prototype.hasOwnProperty.call(ACCIONES, accion)) return falloDe(400, "accion-invalida");
+  const b = body && typeof body === "object" && !Array.isArray(body) ? body : {};
+  try {
+    return await ACCIONES[accion]({ sb, uid, body: b, ahora });
+  } catch (e) {
+    if (sinTablas(e)) return falloDe(500, "sin-servidor");
+    throw e;
+  }
+}
+
 /**
  * Atiende un pedido de Norte. Devuelve { status, cuerpo } (api/norte.js lo responde tal cual).
  * `autorizacion`: el encabezado Authorization; `ip`: la de quien llama (solo para el límite al conectarse).

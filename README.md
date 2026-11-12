@@ -287,6 +287,12 @@ Norte es un robot de voz (ESP32) que vive en el escritorio: le hablas y anota en
   - Al terminar, un aviso: «🧭 Norte marcó Meditar, anotó una tarea y abrió tu día · +30 ⭐».
 - **Activar (una vez):** Supabase → SQL Editor: correr `supabase/norte.sql` (después de `agua.sql`; se puede repetir). La función usa la misma `SUPABASE_SERVICE_ROLE_KEY` de Vercel que `api/push.js`; la clave nunca sale del servidor. Mientras no se corra, la tarjeta dice que falta activarlo y Norte responde `sin-servidor`.
 - **Pruebas:** `tests/norte.test.mjs` prueba el servidor con un Supabase falso (sin red) y la bandeja en la app (que nada se aplique dos veces, ni en dos equipos).
+- **La charla** (`api/norte-chat.js`, la lógica en `notifier/norte-chat.mjs`): para **Norte-Desk**, Norte en el computador (repo `Biplot/norte-desk`). `POST /api/norte-chat/` (con la barra final) con el mismo token:
+  - `charla { texto, historial }` → `{ ok, texto, cara, hizo }`: responde **Claude Haiku 5.5** (`claude-haiku-5-5`, esfuerzo bajo) con la personalidad de Norte y tu día de hoy. Puede usar las mismas acciones de `api/norte.js` (`accionNorte`): van a la misma bandeja, con los mismos límites. `cara` es la que pone Norte en la isla (contento, feliz, pensativo, sorprendido, serio o triste) y `hizo`, lo que guardó.
+  - `oir { audio }` → `{ ok, texto }`: un WAV (PCM 16 bits, mono, hasta 30 segundos) al oído de Azure, en es-CL.
+  - `hablar { texto, voz }` → `{ ok, audio, tipo }`: la voz chilena de Azure (`lorenzo` por defecto, o `catalina`), en mp3 y base64.
+  - **Límites por persona y por día** (hora de Chile; `norte_uso` y `norte_uso_sumar` en `supabase/norte-chat.sql`): 150 charlas, 8.000 caracteres de voz y 8 minutos de oído. Cuidan el gasto de Claude y el plan gratis de Azure, que se comparte con Atlas. Al pasarlos: `limite-charlas`, `limite-caracteres` o `limite-segundos` (429), y Norte-Desk sigue por escrito.
+  - **Activar:** correr `supabase/norte-chat.sql` y poner en Vercel `ANTHROPIC_API_KEY`, `AZURE_SPEECH_KEY` y `AZURE_SPEECH_REGION` (las dos de Azure, las mismas de Atlas). Sin la de Claude responde `sin-cerebro`; sin las de Azure, `sin-voz`. Pruebas: `tests/norte-chat.test.mjs` (Supabase, Claude y Azure falsos).
 
 ## Configuración de Supabase
 Las claves públicas van en `js/store.js` (`SUPABASE_URL`, `SUPABASE_KEY`). La `publishable key` es pública por diseño; los datos están protegidos por RLS. Esquema:

@@ -74,7 +74,7 @@ async function boot() {
   window.addEventListener("online", () => { if (CURRENT_USER) scheduleCloudSave(); });
   // Al volver a la app (cambiar de pestaña/ventana o enfocar), traer lo último de la nube;
   // al ocultarla/cerrarla, subir de inmediato lo pendiente (no perder el cierre recién hecho).
-  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); retomarFoco(); if (typeof focoSalaRevisar === "function") focoSalaRevisar(); if (CURRENT_USER && typeof aguaJuntosAlVolver === "function") aguaJuntosAlVolver(); } });
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushCloudSave(); else { syncFromCloud(); gcalAlIniciar(); retomarFoco(); if (typeof focoSalaRevisar === "function") focoSalaRevisar(); if (CURRENT_USER && typeof aguaJuntosAlVolver === "function") aguaJuntosAlVolver(); if (CURRENT_USER && typeof norteAlVolver === "function") norteAlVolver(); } });
   window.addEventListener("focus", () => syncFromCloud());
   window.addEventListener("pagehide", () => flushCloudSave());
   window.addEventListener("hashchange", onRoute);
@@ -143,6 +143,7 @@ async function enterApp(user) {
   amigosAlEntrar();                      // 🤝 la invitación que traías (?amigo=) y lo nuevo de tus amigos
   setTimeout(albumSubirPendientes, 1500); // 📷 las fotos del álbum que quedaron sin subir
   if (typeof aguaJuntosAlEntrar === "function") aguaJuntosAlEntrar();   // 💧 los vasos del aviso, la fuente y el bidón (agua-juntos.js)
+  if (typeof norteAlEntrar === "function") norteAlEntrar();             // 🧭 lo que le pediste a Norte, tu brújula (norte.js)
 }
 /* La pantalla de carga (index.html) se va cuando ya se ve la app o el acceso */
 function quitarSplash() {
@@ -765,6 +766,7 @@ async function doLogout() {
   CURRENT_USER = null; STATE = null; location.hash = "";
   amigosOlvidar();   // lo de tus amigos en memoria no queda para quien entre después
   albumOlvidar();    // ni las direcciones de las fotos del álbum
+  if (typeof norteOlvidar === "function") norteOlvidar();   // ni el código de Norte a la vista
   authError(""); showAuth();
 }
 
@@ -1168,6 +1170,7 @@ function onClick(e) {
   if (a.startsWith("dj-") || a.startsWith("rd-")) { dejarAccion(a, d); return; }   // 🌵 dejar y reducir hábitos (dejar.js)
   if (a.startsWith("arma-")) { armaAccion(a, d); return; }   // 👋 «Arma tu Rumbo», la bienvenida (bienvenida.js)
   if (a.startsWith("bv-")) { bienvenidaAccion(a, d); return; }   // 👋 la primera semana (bienvenida.js)
+  if (a.startsWith("norte-") && typeof norteAccion === "function") { norteAccion(a, d); return; }   // 🧭 Norte, tu brújula (norte.js)
 
   switch (a) {
     case "close-modal": closeModal(); break;
@@ -2310,6 +2313,8 @@ function renderCuenta() {
   <div id="acc-google"></div>
 
   ${renderGcalCard()}
+
+  ${typeof renderNorteCuenta === "function" ? renderNorteCuenta() : ""}
 
   <div class="card mt-16">
     <div class="flex-between" style="flex-wrap:wrap;gap:10px"><div><div class="card__title" style="font-size:15px">📖 Introducción</div>

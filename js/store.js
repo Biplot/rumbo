@@ -572,6 +572,40 @@ const LocalBackend = {
     try { l = JSON.parse(localStorage.getItem(k) || "[]"); localStorage.removeItem(k); } catch {}
     return (Array.isArray(l) ? l : []).sort((a, b) => a.ts - b.ts);
   },
+  /* -------- 🧭 Norte sin servidor: las reglas de supabase/norte.sql --------
+     Los aparatos y códigos quedan en rumbo_norte_db; la bandeja, en rumbo_norte_pend_<cuenta> (en las pruebas se pone a mano).
+     Tomar no la borra: se borra al confirmar, como en el servidor */
+  _norteDb() { try { const d = JSON.parse(localStorage.getItem("rumbo_norte_db") || "{}"); return d && typeof d === "object" ? d : {}; } catch { return {}; } },
+  _norteGuardar(db) { try { localStorage.setItem("rumbo_norte_db", JSON.stringify(db)); } catch {} },
+  async norteCrearCodigo() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._norteDb(), codigo = String(Math.floor(Math.random() * 1e6)).padStart(6, "0"), expira = new Date(Date.now() + 10 * 60e3).toISOString();
+    db.codigos = (db.codigos || []).filter(c => c.user_id !== yo).concat([{ codigo, user_id: yo, expira }]);
+    this._norteGuardar(db);
+    return { codigo, expira };
+  },
+  async norteAparatos() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    return (this._norteDb().aparatos || []).filter(a => a.user_id === yo && !a.desconectado)
+      .map(a => ({ id: a.id, nombre: a.nombre, aparato: a.aparato, creado: a.creado, ultimo_uso: a.ultimo_uso || null }));
+  },
+  async norteDesconectar(id) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const db = this._norteDb(), a = (db.aparatos || []).find(x => x.id === id && x.user_id === yo && !x.desconectado);
+    if (a) { a.desconectado = new Date().toISOString(); this._norteGuardar(db); }
+    return { r: a ? "desconectado" : "nada" };
+  },
+  _nortePend(yo) { try { const l = JSON.parse(localStorage.getItem("rumbo_norte_pend_" + yo) || "[]"); return Array.isArray(l) ? l : []; } catch { return []; } },
+  async nortePendientesTomar() {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    return this._nortePend(yo).sort((a, b) => String(a.creado || "").localeCompare(String(b.creado || "")));
+  },
+  async nortePendientesConfirmar(ids) {
+    const yo = localStorage.getItem("rumbo_session"); if (!yo) return { error: "sesion" };
+    const fuera = new Set(ids || []), l = this._nortePend(yo), quedan = l.filter(x => !fuera.has(x && x.id));
+    try { if (quedan.length) localStorage.setItem("rumbo_norte_pend_" + yo, JSON.stringify(quedan)); else localStorage.removeItem("rumbo_norte_pend_" + yo); } catch {}
+    return { n: l.length - quedan.length };
+  },
   _fuenteHoy(db, fecha, yo) {
     const f = db.fuente.filter(x => x.fecha === fecha);
     return { fecha, ml: f.reduce((t, x) => t + x.ml, 0), personas: f.filter(x => x.ml > 0).length, yo: (f.find(x => x.user_id === yo) || {}).ml || 0 };
@@ -1109,6 +1143,17 @@ function albumMerge(l, s) {
   });
   return { meses };
 }
+/* 🧭 Norte en dos equipos: los pedidos de la bandeja ya aplicados se juntan por id (con la fecha más antigua),
+   así lo que aplicó un equipo no lo vuelve a aplicar el otro (js/norte.js). Se guardan los últimos 400 */
+function norteMerge(l, s) {
+  const m = new Map();
+  [...((s && s.hechos) || []), ...((l && l.hechos) || [])].forEach(x => {
+    if (!x || !x.id) return;
+    const o = m.get(x.id);
+    if (!o || (x.ts || 0) < (o.ts || 0)) m.set(x.id, { id: String(x.id), ts: +x.ts || 0 });
+  });
+  return Object.assign({}, JSON.parse(JSON.stringify(s || {})), JSON.parse(JSON.stringify(l || {})), { hechos: [...m.values()].sort((a, b) => a.ts - b.ts).slice(-400) });
+}
 /* El agua en dos equipos: los ajustes, del más nuevo; cada día junta sus vasos por id (lo borrado no vuelve).
    Un día resumido ({ ml }, pasados 14 días) se queda con el detalle si el otro lo tiene, o con el total mayor */
 function aguaMerge(l, s) {
@@ -1285,6 +1330,7 @@ function mergeStates(server, local) {
   // album (álbum del mes): por mes; las fotos por id (gana ts), las borradas no reviven; estilo y portada, el ts del mes
   if (local.album || server.album) out.album = albumMerge(local.album, server.album);
   if (local.agua || server.agua) out.agua = aguaMerge(local.agua, server.agua);
+  if (local.norte || server.norte) out.norte = norteMerge(local.norte, server.norte);   // 🧭 los pedidos de Norte ya aplicados
   if (local.alcancias || server.alcancias) out.alcancias = alcMerge(local.alcancias, server.alcancias);
   if (local.deseos || server.deseos) out.deseos = deseosMerge(local.deseos, server.deseos);
   if (local.jardin || server.jardin) out.jardin = jardinMerge(local.jardin, server.jardin);
@@ -1549,6 +1595,12 @@ const SupabaseBackend = {
   async objetivoBorrarAporte(aporte) { const r = await this._amRpc("objetivo_borrar_aporte", { p_aporte: aporte }); return r.error ? r : r.data; },
   /* -------- 💧 Agua con otros (supabase/agua.sql): los vasos del aviso, la fuente de Rumbo y el bidón -------- */
   async aguaPendientesTomar() { const r = await this._amRpc("agua_pendientes_tomar"); return r.error ? r : r.data || []; },
+  /* -------- 🧭 Norte, tu brújula (supabase/norte.sql): conectar el robot y la bandeja de lo que le pediste -------- */
+  async norteCrearCodigo() { const r = await this._amRpc("norte_crear_codigo"); return r.error ? r : r.data || {}; },
+  async norteAparatos() { const r = await this._amRpc("norte_aparatos_listar"); return r.error ? r : r.data || []; },
+  async norteDesconectar(id) { const r = await this._amRpc("norte_desconectar", { p_id: id }); return r.error ? r : { r: r.data }; },
+  async nortePendientesTomar() { const r = await this._amRpc("norte_pendientes_tomar"); return r.error ? r : r.data || []; },
+  async nortePendientesConfirmar(ids) { const r = await this._amRpc("norte_pendientes_confirmar", { p_ids: ids || [] }); return r.error ? r : { n: r.data }; },
   /* -------- 📚 Recomendar un libro (supabase/biblioteca.sql) -------- */
   async bibRecomendar(para, b) { const r = await this._amRpc("libro_recomendar", { p_para: para, p_titulo: b.titulo, p_autor: b.autor || "", p_paginas: Math.round(+b.paginas || 0), p_color: b.color || "" }); return r.error ? r : { id: r.data }; },
   async bibRecomendaciones() { const r = await this._amRpc("libro_recomendaciones"); return r.error ? r : r.data || []; },

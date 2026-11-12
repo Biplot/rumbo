@@ -14,10 +14,17 @@
     {
       "source": "/api/libros/",
       "destination": "/api/libros"
+    },
+    {
+      "source": "/api/norte/",
+      "destination": "/api/norte"
     }
   ],
   "functions": {
     "api/push.js": {
+      "includeFiles": "js/habitos-motor.js"
+    },
+    "api/norte.js": {
       "includeFiles": "js/habitos-motor.js"
     }
   }

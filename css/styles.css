@@ -4236,3 +4236,9 @@ button.reabrir-tira__d:hover { border-color: var(--cian); }
 .reabrir-leyenda { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; color: var(--text-soft); }
 .reabrir-leyenda span { display: inline-block; width: 20px; text-align: center; }
 .reabrir-aviso { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--cian-soft); color: var(--text); font-size: 13px; }
+
+/* 🧭 Norte, tu brújula (Cuenta, js/norte.js): el código para conectar el robot y sus aparatos */
+.norte-codigo { display: grid; justify-items: center; gap: 4px; padding: 14px 12px; border: 1px dashed var(--line); border-radius: 14px; background: var(--surface); text-align: center; }
+.norte-codigo__n { font: 800 34px/1.1 var(--font-display); letter-spacing: .12em; font-variant-numeric: tabular-nums; }
+.norte-aparatos { display: grid; gap: 10px; }
+.norte-aparato { gap: 10px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--line); }

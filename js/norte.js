@@ -24,8 +24,11 @@
      La tarea del bocado, las que pasan a mañana y la entrada del diario también llevan id fijo («nb…», «nc…»,
      «dia<fecha>»): si dos equipos aplican el mismo pedido a la vez, al juntarse queda una de cada una.
    ============================================================ */
-const NORTE = { corriendo: false, codigo: "", expira: 0, antes: [], reloj: 0, aparatos: null, cargando: false, creando: false, error: null };
+const NORTE = { corriendo: false, codigo: "", expira: 0, antes: [], reloj: 0, revisar: 0, alFoco: null, aparatos: null, cargando: false, creando: false, error: null };
 const NORTE_HECHOS_DIAS = 21, NORTE_HECHOS_MAX = 400, NORTE_TEXTO = 200;
+/* Lo que no se encuentra todavía (una tarea o un hábito que llega de otro equipo) se queda en la bandeja y se
+   reintenta hasta 2 días; con la app abierta, la bandeja se revisa cada 20 segundos y al volver a su ventana */
+const NORTE_ESPERA_MS = 2 * 864e5, NORTE_REVISAR_MS = 20e3, NORTE_ESPERAR = Object.freeze({ esperar: true });
 
 /* Solo la cuenta dueña ve a Norte (y solo ella revisa la bandeja) */
 function norteDisponible() { return typeof esCuentaDuena === "function" && esCuentaDuena(); }
@@ -56,20 +59,24 @@ function norteFecha(f, hoy) { f = String(f || "").slice(0, 10); return /^\d{4}-\
 
 /* -------- Lógica (sin pantalla, se puede testear) -------- */
 /* Aplica la bandeja al estado. Devuelve { hechos: ids para confirmar, nuevos: cuántos se anotaron recién en
-   STATE.norte.hechos, aplicados: lo que cambió algo, estrellas }. Lo ya aplicado (en este equipo u otro) no se repite. */
+   STATE.norte.hechos, aplicados: lo que cambió algo, esperan: ids que se quedan en la bandeja, estrellas }.
+   Lo ya aplicado (en este equipo u otro) no se repite. */
 function norteAplicar(lista, S, op) {
   S = S || STATE; op = op || {};
   const hoy = op.hoy || todayISO(), now = op.now || Date.now(), N = norteDatos(S), ya = new Set(N.hechos.map(x => x && x.id));
-  const res = { hechos: [], nuevos: 0, aplicados: [], estrellas: 0 };
+  const res = { hechos: [], nuevos: 0, aplicados: [], esperan: [], estrellas: 0 };
   (Array.isArray(lista) ? lista : []).filter(p => p && typeof p === "object")
     .slice().sort((a, b) => String(a.creado || "").localeCompare(String(b.creado || "")))
     .forEach(p => {
       const id = String(p.id || "");
-      if (!/^[a-z0-9]{8,40}$/.test(id)) return;
-      if (!res.hechos.includes(id)) res.hechos.push(id);   // resuelto (ahora, antes o descartado): se confirma
-      if (ya.has(id)) return;
-      ya.add(id);
+      if (!/^[a-z0-9]{8,40}$/.test(id) || res.hechos.includes(id) || res.esperan.includes(id)) return;
+      if (ya.has(id)) { res.hechos.push(id); return; }   // ya resuelto antes (aquí o en otro equipo): se confirma
       const ef = norteAplicarUno(p, S, hoy, now);
+      // Lo que este documento todavía no tiene (la tarea recién creada en otro equipo): no se confirma ni se anota,
+      // así sigue en la bandeja y se aplica en la próxima vuelta
+      if (ef === NORTE_ESPERAR) { res.esperan.push(id); return; }
+      res.hechos.push(id);                                // resuelto (ahora o descartado): se confirma
+      ya.add(id);
       N.hechos.push({ id, ts: now }); res.nuevos++;
       if (ef) { res.aplicados.push(ef); res.estrellas += ef.estrellas || 0; }
     });
@@ -78,16 +85,19 @@ function norteAplicar(lista, S, op) {
 }
 function norteAplicarUno(p, S, hoy, now) {
   const d = p.datos && typeof p.datos === "object" ? p.datos : {}, iso = norteFecha(d.fecha, hoy), creadoTs = Date.parse(p.creado) || now;
+  const reciente = now - creadoTs < NORTE_ESPERA_MS;   // si no se encuentra, ¿se espera o se descarta?
   if (p.tipo === "habito") {
     const h = ((S.habitos && S.habitos.defs) || []).find(x => x && x.id === d.hid);
-    if (!h || h.pausado || hmMeta(h) !== "hacer") return null;   // ya no está, está en pausa o es de dejar o reducir
+    if (!h) return reciente ? NORTE_ESPERAR : null;            // todavía no llega a este documento (o lo borraste)
+    if (h.pausado || hmMeta(h) !== "hacer") return null;        // está en pausa o es de dejar o reducir
     if (hmMarcado(h, iso, S)) return null;                       // ya lo marcaste (a mano o en otro equipo)
     const m = norteMarcarHabito(S, h, iso, now);
     return { tipo: "habito", hid: h.id, nombre: h.nombre || "tu hábito", iso, cuota: m.cuota, estrellas: m.estrellas };
   }
   if (p.tipo === "tarea_hecha") {   // Norte-Desk: completar una tarea de hoy, como tocarla en la app (+15 ⭐ «tarea:<id>»)
     const tid = String(d.tid || ""), t = tid && (buscarTarea(S, iso, tid) || buscarTarea(S, hoy, tid));
-    if (!t || t.borrada || estadoTarea(t) === "hecha") return null;
+    if (!t) return tid && reciente ? NORTE_ESPERAR : null;      // creada en otro equipo y todavía no llega aquí
+    if (t.borrada || estadoTarea(t) === "hecha") return null;
     marcarTarea(t, "hecha", { hechaTs: creadoTs });
     const pagado = ledgerRegistrar(S, "tarea:" + t.id, 15, 15, "Tarea con Norte", now);
     return { tipo: "tarea_hecha", txt: t.txt, iso, estrellas: pagado ? 15 : 0 };
@@ -185,16 +195,19 @@ function norteResumen(res) {
   return `🧭 Norte ${lista}${res.estrellas ? ` · +${res.estrellas} ⭐` : ""}`;
 }
 
-/* -------- La bandeja: al abrir y al volver a la app -------- */
+/* -------- La bandeja: al abrir, al volver a la app y cada 20 segundos mientras se ve -------- */
 async function nortePendientes() {
   if (typeof STATE === "undefined" || !STATE || !CURRENT_USER || NORTE.corriendo || !norteDisponible() || !BACKEND.nortePendientesTomar) return;
   NORTE.corriendo = true;
   try {
-    // lo tuyo sin subir se junta con la nube y llega lo de tus otros equipos, antes de aplicar
-    if (typeof flushCloudSave === "function") await flushCloudSave();
-    if (typeof syncFromCloud === "function") await syncFromCloud();
+    // Primero se mira si hay algo (es barato); solo entonces se trae tu día
     const lista = await BACKEND.nortePendientesTomar();
     if (!Array.isArray(lista) || !lista.length || !STATE) return;
+    // Lo tuyo sin subir se junta con la nube y llega lo de tus otros equipos, antes de aplicar. Si no se pudo traer
+    // (sin conexión, cambios sin subir o una ventana abierta), se aplica en otra vuelta: con un día viejo, una tarea
+    // creada en otro equipo no se encontraría (lo tomado vuelve a estar libre en 2 minutos)
+    if (typeof flushCloudSave === "function") await flushCloudSave();
+    if (typeof syncFromCloud === "function" && !(await syncFromCloud())) return;
     const res = norteAplicar(lista, STATE);
     if (res.nuevos) {
       saveState();
@@ -220,11 +233,20 @@ function norteEfectos(res) {
   const t = norteResumen(res);
   if (t) toast(t, !res.aplicados.some(x => x.tipo !== "cerrar-sin-abrir"));
 }
-function norteAlEntrar() { setTimeout(nortePendientes, 1500); }
+/* Con Rumbo abierto al lado de Norte-Desk la pestaña nunca se esconde: por eso, además de al entrar y al volver,
+   se revisa al volver a su ventana y cada 20 segundos mientras se ve */
+function norteAlEntrar() {
+  setTimeout(nortePendientes, 1500);
+  clearInterval(NORTE.revisar);
+  if (!norteDisponible()) return;
+  NORTE.revisar = setInterval(() => { if (!document.hidden) nortePendientes(); }, NORTE_REVISAR_MS);
+  if (!NORTE.alFoco) { NORTE.alFoco = () => { if (CURRENT_USER) norteAlVolver(); }; window.addEventListener("focus", NORTE.alFoco); }
+}
 function norteAlVolver() { setTimeout(nortePendientes, 1500); }   // después de que syncFromCloud trae lo último
 /* Al salir de la cuenta: ni el código ni la lista quedan para quien entre después */
 function norteOlvidar() {
   clearInterval(NORTE.reloj);
+  clearInterval(NORTE.revisar); NORTE.revisar = 0;
   Object.assign(NORTE, { corriendo: false, codigo: "", expira: 0, antes: [], reloj: 0, aparatos: null, cargando: false, creando: false, error: null });
 }
 

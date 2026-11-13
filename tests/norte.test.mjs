@@ -321,13 +321,24 @@ export default async function ({ G, test, assert, clone, cargar }) {
     assert.equal(m.vida.diario.filter(x => x.fecha === hoy && x.fromRitual).length, 1);
     assert.equal(m.norte.hechos.length, 5); assert.ok(m.norte.hechos.every(x => x.ts === 1000), "con la fecha más antigua");
   });
-  test("ya marcado a mano, de dejar, en pausa o borrado: no paga de nuevo ni cambia nada (pero se confirma)", () => {
+  test("ya marcado a mano, de dejar o en pausa: no paga de nuevo ni cambia nada (pero se confirma)", () => {
     const s = nuevoEstado();
     s.habitos.log[mk] = { hn1: { [dia]: true } }; ledgerRegistrar(s, "habito:hn1:" + hoy, 5, 5);
     const p0 = s.gamif.puntos;
-    const r = aplicar([ped(1, "habito", { hid: "hn1" }), ped(2, "habito", { hid: "hn2" }), ped(3, "habito", { hid: "hn3" }), ped(4, "habito", { hid: "nada" })], s);
-    assert.equal(r.aplicados.length, 0); assert.equal(r.hechos.length, 4); assert.equal(s.gamif.puntos, p0);
+    const r = aplicar([ped(1, "habito", { hid: "hn1" }), ped(2, "habito", { hid: "hn2" }), ped(3, "habito", { hid: "hn3" })], s);
+    assert.equal(r.aplicados.length, 0); assert.equal(r.hechos.length, 3); assert.equal(s.gamif.puntos, p0);
     assert.equal(s.gamif.ledger.filter(m => m.id === "habito:hn1:" + hoy).length, 1);
+  });
+  test("un hábito que este documento todavía no tiene: se queda en la bandeja (2 días); después se descarta", () => {
+    const s = nuevoEstado(), viejo = { id: "n0000000099", tipo: "habito", datos: { fecha: hoy, hid: "nada" }, creado: new Date(t0 - 3 * 864e5).toISOString() };
+    const r = aplicar([ped(4, "habito", { hid: "nada" }), viejo], s, { now: t0 + 3600e3 });
+    assert.deepEqual(clone(r.esperan), ["n0000000004"], "el reciente espera: ni se confirma ni se anota como hecho");
+    assert.deepEqual(clone(r.hechos), ["n0000000099"], "el de hace 3 días se descarta (se confirma para que salga)");
+    assert.ok(!s.norte.hechos.some(x => x.id === "n0000000004"));
+    // llega el hábito (de otro equipo): en la próxima vuelta se aplica
+    s.habitos.defs.push({ id: "nada", nombre: "Nadar", frecuencia: { tipo: "diario" }, creado: "2026-01-01" });
+    const r2 = aplicar([ped(4, "habito", { hid: "nada" })], s, { now: t0 + 3700e3 });
+    assert.deepEqual([clone(r2.hechos), r2.aplicados.length, s.habitos.log[mk].nada[dia]], [["n0000000004"], 1, true]);
   });
   test("una tarea de ayer va a hoy; cerrar un día sin abrir no se puede; un día cerrado no se reabre por voz", () => {
     const s = nuevoEstado();

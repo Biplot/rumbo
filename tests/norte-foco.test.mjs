@@ -149,4 +149,15 @@ export default async function ({ G, test, assert, clone }) {
     assert.deepEqual([rec.tipo, rec.real], ["libre", 5]); assert.ok(!ledgerVigente(Sc, "foco:nff0000000003"), "menos de 10 minutos: sin ⭐");
     assert.ok(!(Sc.habitos.log[mk] && Sc.habitos.log[mk].hl), "Leer no se marca: no era de Leer");
   });
+  // El caso de Chris (2026-11-13): la app tomó la bandeja con un día viejo, sin la tarea, y la dio por resuelta
+  test("la app: completar una tarea que este documento todavía no tiene la deja en la bandeja; al llegar, se completa", () => {
+    const s = migrate(defaultState());
+    const r = aplicar([ped(4, "tarea_hecha", { tid: "tnueva" })], s, { now: t0 + 3600e3 });
+    assert.deepEqual([clone(r.esperan), clone(r.hechos), r.nuevos], [["f0000000004"], [], 0], "ni se confirma ni se anota como hecha");
+    const t = nuevaTarea(s, hoy, { txt: "Norte", ambito: "pro" }); t.id = "tnueva";   // llega con la nube
+    const r2 = aplicar([ped(4, "tarea_hecha", { tid: "tnueva" })], s, { now: t0 + 3700e3 });
+    assert.deepEqual([clone(r2.hechos), r2.aplicados.length, buscarTarea(s, hoy, "tnueva").estado], [["f0000000004"], 1, "hecha"]);
+    const viejo = aplicar([ped(5, "tarea_hecha", { tid: "nunca" })], s, { now: t0 + 3 * 864e5 });
+    assert.deepEqual([clone(viejo.hechos), clone(viejo.esperan)], [["f0000000005"], []], "después de 2 días sin encontrarla, se descarta");
+  });
 }

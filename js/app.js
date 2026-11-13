@@ -681,13 +681,14 @@ async function flushCloudSave() {
 
 /* Trae el estado más reciente de la nube al volver a un dispositivo que estuvo
    abierto (evita pisar con datos viejos lo que editaste en otro equipo).
-   Solo actúa si no hay cambios locales pendientes ni un modal abierto. */
+   Solo actúa si no hay cambios locales pendientes ni un modal abierto. Devuelve true si trajo el estado
+   (la bandeja de Norte solo se aplica sobre un día recién traído). */
 let _syncing = false;
 async function syncFromCloud() {
-  if (!CURRENT_USER || _dirty || _syncing) return;
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  if (!CURRENT_USER || _dirty || _syncing) return false;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
   const modal = document.getElementById("modalOverlay");
-  if (modal && !modal.hidden) return;           // no interrumpir una edición en curso
+  if (modal && !modal.hidden) return false;     // no interrumpir una edición en curso
   _syncing = true;
   try {
     const data = await BACKEND.loadState(CURRENT_USER.id);   // también actualiza la versión conocida
@@ -697,8 +698,10 @@ async function syncFromCloud() {
       try { localStorage.setItem("rumbo_state_" + CURRENT_USER.id, JSON.stringify(STATE)); } catch (e) {}
       updateTopbar();
       rerender();
+      return true;
     }
-  } catch (e) { /* silencioso */ }
+    return false;
+  } catch (e) { return false; }
   finally { _syncing = false; }
 }
 /* Indicador de guardado en la topbar: guardando / guardado / sin conexión */

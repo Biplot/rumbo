@@ -169,6 +169,9 @@ export default async function ({ test, assert }) {
   const f2 = fetchFalso(), az2 = crearAzure({ clave: "clave", region: "brazilsouth", fetch: f2 }), sbH = nuevoSb();
   const h1 = await pedir(sbH, { accion: "hablar", texto: "Vas bien <de verdad> 💧" }, { azure: az2 });
   const h2 = await pedir(nuevoSb(), { accion: "hablar", texto: "Hola", voz: "catalina" }, { azure: az2 });
+  const h4 = await pedir(nuevoSb(), { accion: "hablar", texto: "Vas muy bien", voz: "andrew" }, { azure: az2 });
+  const h5 = await pedir(nuevoSb(), { accion: "hablar", texto: "Hola", voz: "ava" }, { azure: az2 });
+  const h6 = await pedir(nuevoSb(), { accion: "hablar", texto: "Hola", voz: "nadie" }, { azure: az2 });
   const sbL = nuevoSb(); sbL.uso[HOY] = { charlas: 0, caracteres: LIMITES.caracteres - 2, segundos: 0 };
   const h3 = await pedir(sbL, { accion: "hablar", texto: "Hola" }, { azure: az2 });
   test("hablar: la voz chilena de Azure (Lorenzo por defecto), sin emojis, con el texto escapado y con límite", () => {
@@ -179,5 +182,11 @@ export default async function ({ test, assert }) {
     assert.equal(sbH.log.rpc[0].args.p_caracteres, "Vas bien <de verdad>".length, "cuenta lo que se dice, sin el emoji");
     assert.match(f2.llamadas[1].o.body, /es-CL-CatalinaNeural/);
     assert.deepEqual([h3.status, h3.cuerpo.error], [429, "limite-caracteres"]);
+  });
+  test("hablar: Andrew y Ava (multilingües) hablan en español latino; una voz que no existe usa Lorenzo", () => {
+    assert.equal(h4.cuerpo.ok, true); assert.equal(h5.cuerpo.ok, true);
+    assert.match(f2.llamadas[2].o.body, /<voice name="en-US-AndrewMultilingualNeural"><lang xml:lang="es-MX">Vas muy bien<\/lang><\/voice>/);
+    assert.match(f2.llamadas[3].o.body, /<voice name="en-US-AvaMultilingualNeural"><lang xml:lang="es-MX">Hola<\/lang><\/voice>/);
+    assert.match(f2.llamadas[4].o.body, /<voice name="es-CL-LorenzoNeural">Hola<\/voice>/, "las chilenas, sin <lang>");
   });
 }

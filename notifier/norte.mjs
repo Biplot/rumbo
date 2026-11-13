@@ -11,7 +11,9 @@
    La app los aplica con sus propias funciones al abrirse o al volver (js/norte.js). Al responder,
    lo que espera en la bandeja ya cuenta (un hábito marcado por voz sale como hecho).
 
-   Acciones: conectar · hoy · sumar_agua · marcar_habito · anotar · abrir_dia · cerrar_dia.
+   Acciones: conectar · hoy · sumar_agua · marcar_habito · anotar · abrir_dia · cerrar_dia · completar_tarea · foco.
+   «hoy» trae también tus tareas de hoy (con su id) y tus hábitos con tiempo (sus minutos y los que llevas hoy),
+   para Norte-Desk; completar_tarea y foco van a la bandeja como tarea_hecha y foco (supabase/norte-foco.sql).
    «Hoy» es el día de la persona (settings.notif.tz, America/Santiago si no hay). Qué hábitos tocan
    hoy lo dice el mismo motor de la app (js/habitos-motor.js, vía notifier/habitos.mjs).
    Recibe el cliente de Supabase (`sb`), así se prueba sin red (tests/norte.test.mjs).
@@ -128,6 +130,13 @@ function marcarEnLog(S, hid, iso) {
   S.habitos.log[k][hid] = Object.assign({}, S.habitos.log[k][hid], { [d]: true });
 }
 const estadoTarea = t => (t && t.estado) || (t && t.done ? "hecha" : "pendiente");
+/* Un texto para mostrar (tareas): sin caracteres de control, hasta 200 */
+const visible = s => String(s == null ? "" : s).replace(/[\u0000-\u001F\u007F]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
+/* Minutos de foco de un hábito en un día (STATE.enfoque.sesiones, como focoMinHabito de js/foco.js) */
+function focoMin(S, hid, iso) {
+  return (((S && S.enfoque && S.enfoque.sesiones) || [])).filter(x => x && !x.borrada && x.fecha === iso && x.habId === hid)
+    .reduce((a, x) => a + (+x.real || 0), 0);
+}
 
 /* Tu estado con lo de la bandeja ya puesto (en una copia): lo que la app hará al abrirse */
 function simular(data, bandeja, hoy) {
@@ -141,14 +150,38 @@ function simular(data, bandeja, hoy) {
   const agua = ((bandeja && bandeja.agua) || []).filter(v => v && v.id && !vasoYaEsta(copia, v));
   const dia = Object.assign({}, ((copia.ritual && copia.ritual.dias) || {})[hoy]);
   let bocado = null, tareas = 0;
+  const nuevasTareas = [], tareasHechas = new Set();
+  if (!copia.enfoque || typeof copia.enfoque !== "object" || Array.isArray(copia.enfoque)) copia.enfoque = {};
+  if (!Array.isArray(copia.enfoque.sesiones)) copia.enfoque.sesiones = [];
   for (const p of pend) {
     const d = p.datos || {};
     if (p.tipo === "habito" && d.hid && /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || "")) marcarEnLog(copia, d.hid, d.fecha);
-    else if (p.tipo === "tarea") tareas++;   // van a tu día de hoy (o al día en que la app las aplique)
+    else if (p.tipo === "tarea") {   // van a tu día de hoy (o al día en que la app las aplique), con id fijo «nt<pedido>»
+      tareas++;
+      nuevasTareas.push({ id: "nt" + p.id, texto: visible(d.texto), ambito: d.ambito === "pro" ? "pro" : "per" });
+    }
+    else if (p.tipo === "tarea_hecha" && d.tid) tareasHechas.add(String(d.tid));
+    else if (p.tipo === "foco" && /^\d{4}-\d{2}-\d{2}$/.test(d.fecha || "")) {
+      copia.enfoque.sesiones.push({ id: "nf" + p.id, fecha: d.fecha, habId: d.hid || undefined, real: +d.min || 0 });
+      // como la app al aplicarlo: si con esto completa los minutos del hábito, queda marcado
+      const h = d.hid && copia.habitos.defs.find(x => x && x.id === d.hid);
+      if (h && +h.minutos > 0 && focoMin(copia, h.id, d.fecha) >= +h.minutos) marcarEnLog(copia, h.id, d.fecha);
+    }
     else if (p.tipo === "abrir" && d.fecha === hoy) { dia.hecho = true; if (d.primer_bocado) bocado = d.primer_bocado; if (d.energia) dia.energia = d.energia; }
     else if (p.tipo === "cerrar" && d.fecha === hoy) dia.cerrado = true;
   }
-  return { copia, pend, agua, dia, bocado, tareas, motor: motorHabitos(copia, hoy) };
+  return { copia, pend, agua, dia, bocado, tareas, nuevasTareas, tareasHechas, motor: motorHabitos(copia, hoy) };
+}
+
+/* Tus tareas de hoy para mostrar (Norte-Desk): primero el bocado y las prioridades, las hechas al final */
+function listaTareas(tareasDia, s) {
+  const xs = tareasDia.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t))).map(t => ({
+    id: String(t.id), texto: visible(t.txt), ambito: t.ambito === "pro" ? "pro" : "per",
+    hecha: estadoTarea(t) === "hecha" || s.tareasHechas.has(String(t.id)), bocado: !!t.esSapo, prioridad: !!t.prioridad,
+  }));
+  s.nuevasTareas.forEach(t => { if (!xs.some(x => x.id === t.id)) xs.push(Object.assign({}, t, { hecha: s.tareasHechas.has(t.id), bocado: false, prioridad: false })); });
+  const peso = x => (x.hecha ? 10 : 0) + (x.bocado ? 0 : x.prioridad ? 1 : 2);
+  return xs.filter(x => x.texto).sort((a, b) => peso(a) - peso(b)).slice(0, 30);
 }
 
 /* Lo que Norte cuenta de tu día (la acción «hoy») */
@@ -175,8 +208,12 @@ export function resumenDia(data, bandeja, hoy) {
     habitos_pendientes: pendientes,
     habitos_hechos: hechos,
     agua: { ml, meta_ml: metaAgua(copia, hoy) },
-    tareas_pendientes: tareasDia.filter(t => estadoTarea(t) === "pendiente").length + s.tareas + nuevoBocado,
+    tareas_pendientes: tareasDia.filter(t => estadoTarea(t) === "pendiente" && !s.tareasHechas.has(String(t.id))).length
+      + s.nuevasTareas.filter(t => !s.tareasHechas.has(t.id)).length + nuevoBocado,
     en_bandeja: s.pend.length + s.agua.length,
+    tareas: listaTareas(tareasDia, s),
+    habitos_tiempo: defs.filter(h => esHacer(h) && +h.minutos > 0)
+      .map(h => ({ nombre: paraVoz(h.nombre), minutos: +h.minutos, hoy: focoMin(copia, h.id, hoy), hecho: motor.hecho(h, hoy) })),
   };
 }
 export function textoHoy(d) {
@@ -349,7 +386,52 @@ async function cerrarDia({ sb, uid, body, ahora }) {
   return exito(texto, { fecha: dia, animo, gratitud, pasan_a_manana: n });
 }
 
-const ACCIONES = { hoy, sumar_agua: sumarAgua, marcar_habito: marcarHabito, anotar, abrir_dia: abrirDia, cerrar_dia: cerrarDia };
+/* Completar una tarea de hoy (por su id, el que trae «hoy»): va a la bandeja como tarea_hecha */
+async function completarTarea({ sb, uid, body, ahora }) {
+  const id = typeof body.id === "string" ? body.id.trim() : "";
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return fallo(400, "dato-invalido", "¿Qué tarea completo?");
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), d = resumenDia(data, await leerBandeja(sb, uid), dia);
+  const t = d.tareas.find(x => x.id === id);
+  if (!t) return fallo(404, "tarea-no-encontrada", "No encontré esa tarea en tu día de hoy.");
+  const eco = paraVoz(t.texto).slice(0, 80) || "tu tarea";
+  if (t.hecha) return exito(`${eco} ya estaba hecha.`, { id, ya: true });
+  const r = await aLaBandeja(sb, uid, "tarea_hecha", { tid: id, fecha: dia, texto: t.texto }, ahora);
+  if (r.limite) return falloDe(429, "demasiados-pedidos");
+  const quedan = d.tareas.filter(x => !x.hecha && x.id !== id).length;
+  return exito(`Listo, completé ${eco}.${quedan ? ` Te ${quedan === 1 ? "queda una tarea" : `quedan ${quedan} tareas`}.` : " Con eso terminas tus tareas de hoy."}`,
+    { id, fecha: dia, quedan });
+}
+
+/* Una sesión de foco hecha en Norte-Desk: va a la bandeja como foco y la app la suma a tu historial de foco.
+   Si es de un hábito con tiempo y completa sus minutos de hoy, la app lo marca (como al terminar un foco en Rumbo). */
+async function foco({ sb, uid, body, ahora }) {
+  const min = entero(body.minutos, 1, 600, null);
+  if (min == null) return fallo(400, "dato-invalido", "¿Cuántos minutos de foco?");
+  const completa = body.completa === true;
+  let ini = Date.parse(body.inicio);
+  if (!Number.isFinite(ini) || ini > ahora.getTime() || ini < ahora.getTime() - 12 * 3600e3) ini = ahora.getTime() - min * 60e3;
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), bandeja = await leerBandeja(sb, uid);
+  const s = simular(data, bandeja, dia), d = resumenDia(data, bandeja, dia);
+  const datos = { fecha: dia, min, completa, ini };
+  let destino = "", completaHabito = false;
+  if (body.habito) {
+    const xs = buscarHabito(s.copia.habitos.defs, textoLimpio(body.habito, 80) || "");
+    if (xs.length !== 1) return fallo(404, "habito-no-encontrado", "No encontré ese hábito en tu Rumbo.");
+    const h = xs[0];
+    datos.hid = h.id; datos.titulo = String(h.nombre).slice(0, 120); destino = paraVoz(h.nombre);
+    completaHabito = +h.minutos > 0 && esHacer(h) && !s.motor.hecho(h, dia) && focoMin(s.copia, h.id, dia) + min >= +h.minutos;
+  } else if (body.tarea) {
+    const t = d.tareas.find(x => x.id === String(body.tarea));
+    if (!t) return fallo(404, "tarea-no-encontrada", "No encontré esa tarea en tu día de hoy.");
+    datos.tid = t.id; datos.titulo = t.texto.slice(0, 120); destino = paraVoz(t.texto).slice(0, 80);
+  } else datos.titulo = "Tiempo de foco";
+  const r = await aLaBandeja(sb, uid, "foco", datos, ahora);
+  if (r.limite) return falloDe(429, "demasiados-pedidos");
+  const texto = `Guardé ${min === 1 ? "un minuto" : min + " minutos"} de foco${destino ? " en " + destino : ""}.${completaHabito ? ` Con eso completas ${destino} hoy, bien hecho.` : ""}`;
+  return exito(texto, { fecha: dia, minutos: min, completa, habito: datos.hid ? destino : undefined, completa_habito: completaHabito });
+}
+
+const ACCIONES = { hoy, sumar_agua: sumarAgua, marcar_habito: marcarHabito, anotar, abrir_dia: abrirDia, cerrar_dia: cerrarDia, completar_tarea: completarTarea, foco };
 
 /* Para la charla (notifier/norte-chat.mjs): quién habla y las mismas acciones, con la persona ya identificada.
    Así lo que Norte hace conversando pasa por la misma bandeja, con los mismos límites y los mismos textos. */

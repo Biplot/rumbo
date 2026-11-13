@@ -82,15 +82,37 @@ function norteAplicarUno(p, S, hoy, now) {
     const h = ((S.habitos && S.habitos.defs) || []).find(x => x && x.id === d.hid);
     if (!h || h.pausado || hmMeta(h) !== "hacer") return null;   // ya no está, está en pausa o es de dejar o reducir
     if (hmMarcado(h, iso, S)) return null;                       // ya lo marcaste (a mano o en otro equipo)
-    const dt = agDate(iso), key = monthKey(dt.getFullYear(), dt.getMonth());
-    S.habitos.log[key] = S.habitos.log[key] || {};
-    S.habitos.log[key][h.id] = S.habitos.log[key][h.id] || {};
-    S.habitos.log[key][h.id][dt.getDate()] = true;
-    let estrellas = ledgerRegistrar(S, "habito:" + h.id + ":" + iso, 5, 5, undefined, now) ? 5 : 0;
-    const meta = hmMetaPeriodo(h, iso, S);   // la cuota del período, como actualizarMetaHabito (app.js)
-    const cuota = meta.cumplido && ledgerRegistrar(S, "habito-meta:" + h.id + ":" + meta.key, 20, 20, "Cuota de " + h.nombre, now);
-    if (cuota) estrellas += 20;
-    return { tipo: "habito", hid: h.id, nombre: h.nombre || "tu hábito", iso, cuota: !!cuota, estrellas };
+    const m = norteMarcarHabito(S, h, iso, now);
+    return { tipo: "habito", hid: h.id, nombre: h.nombre || "tu hábito", iso, cuota: m.cuota, estrellas: m.estrellas };
+  }
+  if (p.tipo === "tarea_hecha") {   // Norte-Desk: completar una tarea de hoy, como tocarla en la app (+15 ⭐ «tarea:<id>»)
+    const tid = String(d.tid || ""), t = tid && (buscarTarea(S, iso, tid) || buscarTarea(S, hoy, tid));
+    if (!t || t.borrada || estadoTarea(t) === "hecha") return null;
+    marcarTarea(t, "hecha", { hechaTs: creadoTs });
+    const pagado = ledgerRegistrar(S, "tarea:" + t.id, 15, 15, "Tarea con Norte", now);
+    return { tipo: "tarea_hecha", txt: t.txt, iso, estrellas: pagado ? 15 : 0 };
+  }
+  if (p.tipo === "foco") {   // Norte-Desk: una sesión de foco, con id fijo «nf<pedido>» (dos equipos no la duplican)
+    const min = Math.round(+d.min);
+    if (!(min >= 1 && min <= 600)) return null;
+    const E = focoDatos(S), fid = "nf" + p.id;
+    if (E.sesiones.some(x => x && x.id === fid)) return null;
+    const h = d.hid && ((S.habitos && S.habitos.defs) || []).find(x => x && x.id === d.hid);
+    const t = d.tid && (buscarTarea(S, iso, d.tid) || buscarTarea(S, hoy, d.tid));
+    const ini = +d.ini || (creadoTs - min * 60e3);
+    const rec = { id: fid, fecha: iso, ts: now, ini, hora: new Date(ini).getHours(), min, real: min, completa: !!d.completa,
+      tipo: h ? "habito" : t ? "tarea" : "libre", ref: h ? h.id : t ? t.id : "", titulo: norteTexto(d.titulo) || (h ? h.nombre : t ? t.txt : "Tiempo de foco"),
+      ritmo: "una", con: "Norte-Desk" };
+    if (h) rec.habId = h.id;
+    if (t) rec.tareaId = t.id;
+    E.sesiones.push(rec);
+    let estrellas = focoDarEstrellas(S, rec) ? FOCO_ESTRELLAS : 0, habito = null;
+    // como focoAlTerminar (foco-pantalla.js): un hábito con tiempo queda marcado al completar sus minutos de hoy
+    if (h && +h.minutos > 0 && !h.pausado && hmMeta(h) === "hacer" && !hmMarcado(h, iso, S) && focoMinHabito(S, h.id, iso) >= +h.minutos) {
+      estrellas += norteMarcarHabito(S, h, iso, now).estrellas;
+      habito = h.nombre || "tu hábito";
+    }
+    return { tipo: "foco", min, iso, habito, estrellas };
   }
   if (p.tipo === "tarea") {
     const txt = norteTexto(d.texto), dia = iso < hoy ? hoy : iso, tid = "nt" + p.id;
@@ -135,11 +157,25 @@ function norteAplicarUno(p, S, hoy, now) {
   }
   return null;
 }
+/* Marca un hábito en una fecha con sus ⭐ (y la cuota del período), como al marcarlo a mano */
+function norteMarcarHabito(S, h, iso, now) {
+  const dt = agDate(iso), key = monthKey(dt.getFullYear(), dt.getMonth());
+  S.habitos.log[key] = S.habitos.log[key] || {};
+  S.habitos.log[key][h.id] = S.habitos.log[key][h.id] || {};
+  S.habitos.log[key][h.id][dt.getDate()] = true;
+  let estrellas = ledgerRegistrar(S, "habito:" + h.id + ":" + iso, 5, 5, undefined, now) ? 5 : 0;
+  const meta = hmMetaPeriodo(h, iso, S);   // la cuota del período, como actualizarMetaHabito (app.js)
+  const cuota = meta.cumplido && ledgerRegistrar(S, "habito-meta:" + h.id + ":" + meta.key, 20, 20, "Cuota de " + h.nombre, now);
+  if (cuota) estrellas += 20;
+  return { estrellas, cuota: !!cuota };
+}
 /* El aviso al aplicar: «🧭 Norte marcó Meditar, anotó 2 tareas y cerró tu día · +45 ⭐» */
 function norteResumen(res) {
   const ef = (res && res.aplicados) || [], de = t => ef.filter(x => x.tipo === t), partes = [];
-  const hs = de("habito"), ts = de("tarea"), ns = de("nota");
+  const fs = de("foco"), hs = de("habito").concat(fs.filter(x => x.habito).map(x => ({ nombre: x.habito }))), ts = de("tarea"), ns = de("nota"), th = de("tarea_hecha");
   if (hs.length) partes.push(hs.length === 1 ? `marcó ${hs[0].nombre}` : `marcó ${hs.length} hábitos`);
+  if (th.length) partes.push(`completó ${th.length === 1 ? "una tarea" : th.length + " tareas"}`);
+  if (fs.length) { const m = fs.reduce((a, x) => a + x.min, 0); partes.push(`guardó ${m} min de foco`); }
   if (ts.length) partes.push(`anotó ${ts.length === 1 ? "una tarea" : ts.length + " tareas"}`);
   if (ns.length) partes.push(`guardó ${ns.length === 1 ? "una nota" : ns.length + " notas"}`);
   if (de("abrir").length) partes.push("abrió tu día");

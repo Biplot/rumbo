@@ -5,14 +5,15 @@
      { accion: "charla", texto, historial: [{ rol: "yo" | "norte", texto }] }
          -> { ok, texto, cara, hizo: [{ accion, ok, texto }] }
      { accion: "oir", audio: "<WAV PCM 16 bits mono, en base64>" }      -> { ok, texto }   (hasta 30 segundos)
-     { accion: "hablar", texto, voz: "lorenzo" | "catalina" }            -> { ok, audio: "<mp3 en base64>", tipo }
+     { accion: "hablar", texto, voz: "lorenzo" | "catalina" | "andrew" | "ava" }  -> { ok, audio: "<mp3 en base64>", tipo }
      error: { ok: false, error, texto } con HTTP 400/401/429/500/503
 
    · El cerebro es Claude Haiku 5.5 (MODELO), con la personalidad de Norte (PERSONALIDAD.md del repo Biplot/norte)
      y tu día de hoy. Puede usar las mismas acciones que el robot (ver el día, agua, hábitos, anotar, abrir y
      cerrar el día): pasan por accionNorte de notifier/norte.mjs, así que van a la misma bandeja y con los
      mismos límites. Al final de cada respuesta elige una cara para la isla ([cara: feliz], que aquí se quita).
-   · El oído y la voz son los de Azure (la misma clave y región que Atlas): es-CL, Lorenzo o Catalina.
+   · El oído y la voz son los de Azure: Lorenzo o Catalina (chilenas), o Andrew o Ava (multilingües, más fluidas;
+     hablan en español latino con <lang xml:lang="es-MX">, porque no tienen acento chileno).
    · Límites por persona y por día (LIMITES), para cuidar el gasto y el plan gratis de Azure (lo comparte con
      Atlas): se suman con norte_uso_sumar (supabase/norte-chat.sql) antes de llamar a Claude o a Azure.
    Recibe el Supabase (`sb`), el cliente de Claude (`claude`) y el de Azure (`azure`): así se prueba sin red
@@ -23,7 +24,12 @@ import { localDate } from "./recordatorios.mjs";
 
 export const MODELO = "claude-haiku-5-5";
 export const LIMITES = { charlas: 150, caracteres: 8000, segundos: 480 };   // por persona y por día (hora de Chile)
-export const VOCES = { lorenzo: "es-CL-LorenzoNeural", catalina: "es-CL-CatalinaNeural" };
+export const VOCES = {
+  lorenzo: "es-CL-LorenzoNeural", catalina: "es-CL-CatalinaNeural",
+  andrew: "en-US-AndrewMultilingualNeural", ava: "en-US-AvaMultilingualNeural",
+};
+/* Las multilingües eligen el idioma solas: se les pide español latino (no hay acento chileno para ellas) */
+const IDIOMA_MULTILINGUE = "es-MX";
 export const VOZ_DEFECTO = "lorenzo";        // la personalidad pide una voz calmada, de tono medio o grave
 export const CARAS = ["contento", "feliz", "pensativo", "sorprendido", "serio", "triste"];
 export const TEXTO_MAX = 500, HISTORIAL_MAX = 12, HABLAR_MAX = 400, AUDIO_SEG_MAX = 30, VUELTAS_MAX = 4;
@@ -223,7 +229,8 @@ export function crearAzure({ clave, region, fetch: f = globalThis.fetch }) {
       return j && j.RecognitionStatus === "Success" ? String(j.DisplayText || "") : "";
     },
     async hablar(texto, voz) {
-      const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="es-CL"><voice name="${voz}">${xml(texto)}</voice></speak>`;
+      const cuerpo = /Multilingual/.test(voz) ? `<lang xml:lang="${IDIOMA_MULTILINGUE}">${xml(texto)}</lang>` : xml(texto);
+      const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="es-CL"><voice name="${voz}">${cuerpo}</voice></speak>`;
       const r = await revisar(await f(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
         method: "POST", body: ssml,
         headers: { "Ocp-Apim-Subscription-Key": clave, "Content-Type": "application/ssml+xml", "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3", "User-Agent": "rumbo-norte" },

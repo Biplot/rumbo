@@ -76,7 +76,7 @@ ALTER TABLE norte_aparatos ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS norte_pendientes (
   id           text PRIMARY KEY CHECK (id ~ '^[a-z0-9]{8,40}$'),
   user_id      uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
-  tipo         text NOT NULL CHECK (tipo IN ('habito', 'tarea', 'nota', 'abrir', 'cerrar')),
+  tipo         text NOT NULL CHECK (tipo IN ('habito', 'tarea', 'nota', 'abrir', 'cerrar', 'tarea_hecha', 'foco')),
   datos        jsonb NOT NULL DEFAULT '{}' CHECK (jsonb_typeof(datos) = 'object' AND pg_column_size(datos) < 4000),
   creado       timestamptz NOT NULL DEFAULT now(),
   tomado_hasta timestamptz                       -- reservado para el equipo que lo está aplicando

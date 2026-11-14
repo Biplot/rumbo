@@ -173,6 +173,39 @@ function simular(data, bandeja, hoy) {
   return { copia, pend, agua, dia, bocado, tareas, nuevasTareas, tareasHechas, motor: motorHabitos(copia, hoy) };
 }
 
+/* Tu estado con lo que espera en la bandeja ya puesto, en una copia (no se guarda nada), para los avisos del celular
+   (notifier/recordatorios.mjs): así no te recuerda abrir o cerrar el día, un hábito o el agua que ya le dijiste a
+   Norte (o que anotaste con «+ Un vaso» desde el aviso) mientras la app todavía no lo aplica. */
+export function conBandeja(data, bandeja, hoy) {
+  const s = simular(data, bandeja, hoy), c = s.copia;   // hábitos y foco ya marcados en la copia
+  if (!c.ritual || typeof c.ritual !== "object") c.ritual = {};
+  if (!c.ritual.dias || typeof c.ritual.dias !== "object") c.ritual.dias = {};
+  for (const p of s.pend) {
+    const d = p.datos || {};
+    if ((p.tipo !== "abrir" && p.tipo !== "cerrar") || !/^\d{4}-\d{2}-\d{2}$/.test(d.fecha || "")) continue;
+    const r = Object.assign({}, c.ritual.dias[d.fecha]);
+    if (p.tipo === "abrir") {
+      r.hecho = true;
+      if (d.primer_bocado && !r.sapo) r.sapo = visible(d.primer_bocado);
+      if (d.energia && !r.energia) r.energia = d.energia;
+    } else r.cerrado = true;
+    c.ritual.dias[d.fecha] = r;
+  }
+  if (s.agua.length) {
+    if (!c.agua || typeof c.agua !== "object") c.agua = {};
+    if (!c.agua.dias || typeof c.agua.dias !== "object") c.agua.dias = {};
+    for (const v of s.agua) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v.fecha || "")) continue;
+      const d = Object.assign({}, c.agua.dias[v.fecha]);
+      const r = Array.isArray(d.r) ? d.r.slice() : (+d.ml > 0 ? [{ id: "ml", ml: +d.ml }] : []);
+      r.push({ id: v.id, ml: +v.ml || 0 });
+      d.r = r;
+      c.agua.dias[v.fecha] = d;
+    }
+  }
+  return c;
+}
+
 /* Tus tareas de hoy para mostrar (Norte-Desk): primero el bocado y las prioridades, las hechas al final */
 function listaTareas(tareasDia, s) {
   const xs = tareasDia.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t))).map(t => ({

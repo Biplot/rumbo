@@ -2,7 +2,7 @@
    Rumbo · 🧭 Norte, tu brújula: la charla (función de Vercel). Norte-Desk le escribe o le habla a Norte aquí.
 
      POST /api/norte-chat/   JSON UTF-8, con el mismo token de /api/norte/ (Authorization: Bearer <token>)
-       { accion: "charla", texto, historial }   -> { ok, texto, cara, hizo }
+       { accion: "charla", texto, historial, puede? }   -> { ok, texto, cara, hizo }   (puede: ["foco"]: empezar un foco)
        { accion: "oir", audio }                 -> { ok, texto }
        { accion: "hablar", texto, voz }         -> { ok, audio, tipo }
      Error: { ok: false, error, texto } con HTTP 400/401/429/500/503.

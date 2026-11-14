@@ -268,4 +268,81 @@ export default async function ({ G, test, assert }) {
     assert.equal(avisoSemana("semana-apertura", "2026-09-28", 0, { "2026-09-28": { apertura: {} } }), null);
     assert.equal(avisoSemana("semana-cierre", "2026-09-28", 1, {}), "manana");       // ritual el lunes
   });
+
+  /* ---------- Lo que espera en la bandeja de Norte ya cuenta (no se repite el aviso) ---------- */
+  const { conBandeja } = await import("../notifier/norte.mjs");
+  const HOYB = "2026-10-15";
+  const meditar = { id: "h1", nombre: "Meditar", frecuencia: { tipo: "diario" }, creado: "2026-01-01" };
+  const conHabito = (notif) => ({ settings: { notif: Object.assign({ tz: "America/Santiago" }, notif) }, habitos: { defs: [meditar], log: {} }, ritual: { dias: {} }, agua: { meta: 2000, dias: {} } });
+  test("conBandeja: abre el día (con el bocado), marca el hábito y suma el agua en una copia; lo ya aplicado no se repite", () => {
+    const data = conHabito({});
+    data.norte = { hechos: [{ id: "viejo" }] };
+    data.agua.dias[HOYB] = { r: [{ id: "a1", ml: 250 }] };
+    const bandeja = {
+      norte: [
+        { id: "p1", tipo: "habito", datos: { hid: "h1", fecha: HOYB }, creado: "2026-10-15T10:00:00Z" },
+        { id: "p2", tipo: "abrir", datos: { fecha: HOYB, primer_bocado: "Escribir el informe", energia: 4 }, creado: "2026-10-15T10:01:00Z" },
+        { id: "viejo", tipo: "cerrar", datos: { fecha: HOYB }, creado: "2026-10-15T09:00:00Z" },
+      ],
+      agua: [{ id: "v1", fecha: HOYB, ml: 500 }, { id: "a1", fecha: HOYB, ml: 250 }],
+    };
+    const antes = JSON.stringify(data), c = conBandeja(data, bandeja, HOYB);
+    assert.equal(JSON.stringify(data), antes, "el estado original no cambia");
+    assert.deepEqual(c.ritual.dias[HOYB], { hecho: true, sapo: "Escribir el informe", energia: 4 }, "el pedido «viejo» ya estaba aplicado: no cierra");
+    assert.equal(c.habitos.log["2026-10"].h1[15], true);
+    assert.deepEqual(c.agua.dias[HOYB].r, [{ id: "a1", ml: 250 }, { id: "v1", ml: 500 }], "el vaso que ya estaba no se suma dos veces");
+    const legado = conHabito({}); legado.agua.dias[HOYB] = { ml: 300 };
+    assert.deepEqual(conBandeja(legado, { norte: [], agua: [{ id: "v2", fecha: HOYB, ml: 250 }] }, HOYB).agua.dias[HOYB].r, [{ id: "ml", ml: 300 }, { id: "v2", ml: 250 }]);
+  });
+
+  /* Un Supabase de mentira con la bandeja (norte_pendientes y agua_pendientes) */
+  function sbConBandeja({ subs, estados, norte = [], agua = [], sinTablas = false }) {
+    const sent = new Set();
+    return {
+      sent,
+      from(tabla) {
+        let filtro = () => true, cols = "";
+        const q = {
+          select(c) { cols = c.replace(/\s/g, ""); return q; },
+          in(col, vals) { filtro = r => vals.includes(r[col]); return q; },
+          async insert(f) { const k = [f.user_id, f.tipo, f.fecha].join("|"); if (sent.has(k)) return { error: { message: "duplicate key" } }; sent.add(k); return { error: null }; },
+          then(ok, ko) {
+            let r;
+            if (tabla === "suscripciones_push") r = { data: subs.filter(filtro), error: null };
+            else if (tabla === "norte_pendientes" || tabla === "agua_pendientes") r = sinTablas ? { data: null, error: { message: `relation "public.${tabla}" does not exist` } } : { data: (tabla === "norte_pendientes" ? norte : agua).filter(filtro), error: null };
+            else if (cols.includes("notif:data->settings->notif")) r = { data: estados.filter(filtro).map(e => ({ user_id: e.user_id, notif: ((e.data || {}).settings || {}).notif ?? null })), error: null };
+            else r = { data: estados.filter(filtro), error: null };
+            return Promise.resolve(JSON.parse(JSON.stringify(r))).then(ok, ko);
+          },
+        };
+        return q;
+      },
+    };
+  }
+  const enviosB = [];
+  const enviarB = async (ds, msg) => { enviosB.push(ds.map(d => d.id).join(",") + ":" + msg.tag); return { enviadas: ds.length, fallidas: 0, borradas: 0 }; };
+  const subsB = [dispositivo("x1", "ub1"), dispositivo("x2", "ub2")];
+  // 08:05 en Santiago: a ub1 le espera «abrir el día» en la bandeja; ub2 no le dijo nada a Norte
+  await enviarRecordatorios({ enviar: enviarB, ahora: new Date("2026-10-15T11:05:00Z"), sb: sbConBandeja({
+    subs: subsB, estados: [{ user_id: "ub1", data: conHabito({ manana: "08:00" }) }, { user_id: "ub2", data: conHabito({ manana: "08:00" }) }],
+    norte: [{ user_id: "ub1", id: "q1", tipo: "abrir", datos: { fecha: HOYB, energia: 3 }, creado: "2026-10-15T10:30:00Z" }],
+  }) });
+  const enviosManana = enviosB.splice(0);
+  // 20:05: el aviso de hábitos; ub1 ya marcó Meditar por Norte, ub2 no
+  const notifHab = { habitosHora: "20:00", avisos: { habitos: true, elefante: false, noche: false } };
+  await enviarRecordatorios({ enviar: enviarB, ahora: new Date("2026-10-15T23:05:00Z"), sb: sbConBandeja({
+    subs: subsB, estados: [{ user_id: "ub1", data: conHabito(notifHab) }, { user_id: "ub2", data: conHabito(notifHab) }],
+    norte: [{ user_id: "ub1", id: "q2", tipo: "habito", datos: { hid: "h1", fecha: HOYB }, creado: "2026-10-15T22:00:00Z" }],
+  }) });
+  const enviosHab = enviosB.splice(0);
+  // Sin las tablas de la bandeja (norte.sql sin correr), los avisos salen como antes
+  await enviarRecordatorios({ enviar: enviarB, ahora: new Date("2026-10-15T11:05:00Z"), sb: sbConBandeja({
+    subs: subsB, estados: [{ user_id: "ub1", data: conHabito({ manana: "08:00" }) }], sinTablas: true,
+  }) });
+  const enviosSinTablas = enviosB.splice(0);
+  test("recordatorios: lo que le dijiste a Norte ya cuenta; no te recuerda abrir el día ni un hábito que ya marcaste", () => {
+    assert.deepEqual(enviosManana, ["x2:rumbo-manana"], "a ub1 no le pide abrir el día: ya se lo dijo a Norte");
+    assert.deepEqual(enviosHab, ["x2:rumbo-habitos"], "a ub1 no le recuerda Meditar: lo marcó por Norte");
+    assert.deepEqual(enviosSinTablas, ["x1:rumbo-manana"], "sin la bandeja, como antes");
+  });
 }

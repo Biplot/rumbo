@@ -5,6 +5,9 @@
    Cada persona elige cuáles recibe (settings.notif.avisos, ver avisosActivos).
    Lo usa api/push.js cuando la base lo pide (pg_cron cada 5 min,
    supabase/notificaciones.sql). Idempotente vía la tabla notif_sent.
+   Lo que espera en la bandeja de Norte (norte_pendientes y agua_pendientes) ya cuenta: si le dijiste a
+   Norte que abriste el día, marcaste un hábito o tomaste agua, el aviso no te lo recuerda aunque la app
+   todavía no lo aplique (conBandeja de notifier/norte.mjs, en una copia: no se guarda nada).
    Recibe el cliente de Supabase (`sb`) y la forma de enviar (`enviar`),
    así se prueba sin red (tests/notifier.test.mjs).
    ============================================================ */
@@ -65,6 +68,26 @@ export function localDate(tz, ahora = new Date()) {
  * `enviar(dispositivos, mensaje)` devuelve { enviadas, fallidas, borradas }.
  * `firmar(usuario, día)`: la firma de «+ Un vaso» en el aviso del agua (notifier/vaso.mjs); sin ella, el aviso va sin botones.
  */
+/* La bandeja de Norte de esas personas: { norte: [...], agua: [...] } por persona. Sin las tablas
+   (supabase/norte.sql o agua.sql sin correr) o si no se pudo leer, sin bandeja: los avisos salen como antes */
+async function leerBandejas(sb, uids) {
+  const porUsuario = new Map();
+  const leer = async (tabla, cols, clave) => {
+    try {
+      const { data, error } = await sb.from(tabla).select(cols).in("user_id", uids);
+      if (error) return;
+      for (const f of data || []) {
+        if (!f || !f.user_id) continue;
+        const b = porUsuario.get(f.user_id) || { norte: [], agua: [] };
+        b[clave].push(f);
+        porUsuario.set(f.user_id, b);
+      }
+    } catch (e) { /* sin bandeja */ }
+  };
+  await Promise.all([leer("norte_pendientes", "user_id, id, tipo, datos, creado", "norte"), leer("agua_pendientes", "user_id, id, fecha, ml", "agua")]);
+  return porUsuario;
+}
+
 export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), ventana = VENTANA_MIN, firmar = null }) {
   /* 1) Quién tiene al menos un dispositivo activado */
   const { data: subs, error: e1 } = await sb.from("suscripciones_push").select("id, user_id, endpoint, p256dh, auth");
@@ -91,14 +114,19 @@ export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), vent
   /* 3) El estado completo solo de quien tiene alguna hora en la ventana ahora */
   const { data: usuarios, error: e3 } = await sb.from("estado_usuario").select("user_id, data").in("user_id", candidatos);
   if (e3) throw new Error("No se pudo leer estado_usuario: " + e3.message);
+  /* 3b) Lo que espera en su bandeja de Norte ya cuenta (con import dinámico: norte.mjs importa este archivo) */
+  const bandejas = await leerBandejas(sb, candidatos);
+  const { conBandeja } = await import("./norte.mjs");
 
   for (const row of usuarios || []) {
-    const data = row.data || {};
+    let data = row.data || {};
     const notif = (data.settings && data.settings.notif) || {};
     const activos = avisosActivos(notif);
     const tz = notif.tz || TZ_DEFECTO;
     let nowMin, hoy;
     try { nowMin = localMinutes(tz, ahora); hoy = localDate(tz, ahora); } catch (e) { continue; }
+    const bandeja = bandejas.get(row.user_id);
+    if (bandeja) { try { data = conBandeja(data, bandeja, hoy); } catch (e) { /* si algo viene raro, como antes */ } }
 
     const dia = +hoy.slice(8, 10), mes = hoy.slice(0, 7);
     const hoyRitual = ((data.ritual || {}).dias || {})[hoy] || {};

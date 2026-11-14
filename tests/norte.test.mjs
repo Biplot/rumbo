@@ -252,6 +252,25 @@ export default async function ({ G, test, assert, clone, cargar }) {
   test("resumenDia sin datos no falla (cuenta nueva)", () => {
     const d = resumenDia({}, { norte: [], agua: [] }, HOY);
     assert.deepEqual([d.abierto, d.habitos_pendientes.length, d.agua.ml, d.agua.meta_ml, d.tareas_pendientes], [false, 0, 0, 2000, 0]);
+     assert.deepEqual([d.habitos_racha, d.racha_en_riesgo], [[], null]);
+  });
+  test("resumenDia: las rachas de tus hábitos de hoy (como en la app) y la que está en riesgo; la bandeja ya cuenta", () => {
+    const dias = (iso, n) => Array.from({ length: n }, (_, i) => { const x = new Date(iso + "T12:00:00Z"); x.setUTCDate(x.getUTCDate() - 1 - i); return x.toISOString().slice(0, 10); });
+    const log = {};
+    const marcar = (hid, iso) => { const [y, m, d] = iso.split("-").map(Number), k = `${y}-${m}`; log[k] = log[k] || {}; log[k][hid] = Object.assign({}, log[k][hid], { [d]: true }); };
+    dias(HOY, 12).forEach(iso => marcar("hm", iso));         // Meditar: 12 días seguidos antes de hoy, hoy falta
+    dias(HOY, 2).forEach(iso => marcar("hl", iso)); marcar("hl", HOY);   // Leer: ayer, anteayer y hoy
+    const data = { habitos: { defs: [
+      { id: "hm", nombre: "Meditar", frecuencia: { tipo: "diario" }, creado: "2026-01-01" },
+      { id: "hl", nombre: "Leer", frecuencia: { tipo: "diario" }, creado: "2026-01-01" },
+      { id: "hc", nombre: "Correr", frecuencia: { tipo: "diario" }, creado: "2026-01-01" },
+    ], log } };
+    const d = resumenDia(data, { norte: [], agua: [] }, HOY);
+    assert.deepEqual(d.habitos_racha, [{ nombre: "Meditar", n: 12, unidad: "días" }, { nombre: "Leer", n: 3, unidad: "días" }], "Correr no tiene racha");
+    assert.deepEqual(d.racha_en_riesgo, { nombre: "Meditar", n: 12, unidad: "días" });
+    const conVoz = resumenDia(data, { norte: [{ id: "n9", tipo: "habito", datos: { hid: "hm", fecha: HOY }, creado: HOY + "T10:00:00Z" }], agua: [] }, HOY);
+    assert.deepEqual(conVoz.habitos_racha[0], { nombre: "Meditar", n: 13, unidad: "días" }, "marcado por Norte: la racha ya suma hoy");
+    assert.equal(conVoz.racha_en_riesgo, null, "y ya no está en riesgo");
   });
 
   /* ================= La app: aplicar la bandeja (js/norte.js) ================= */

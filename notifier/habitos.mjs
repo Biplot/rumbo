@@ -23,6 +23,8 @@ export function motorHabitos(data, hoy) {
     hecho: (h, iso) => !!ctx.hmDone(h, iso, S),
     /* Los que tocan hoy (activos, ya creados, del día o con la cuota sin cumplir) y aún no se marcan */
     pendientesHoy: () => S.habitos.defs.filter(h => h && ctx.hmPendienteHoy(h, S)),
+    /* La racha de un hábito, como en la app (rachaPeriodos): { n, unidad } con unidad "días", "sem" o "meses" */
+    racha: h => ctx.rachaPeriodos(h, S),
     /* Tu racha en riesgo: de los que hoy faltan, el de racha más larga (3 o más) — { nombre, n, unidad } o null */
     enRiesgo: (min = 3) => S.habitos.defs.filter(h => h && ctx.hmPendienteHoy(h, S))
       .map(h => Object.assign({ nombre: h.nombre || "tu hábito", id: h.id }, ctx.rachaPeriodos(h, S)))

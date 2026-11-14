@@ -12,8 +12,8 @@
    lo que espera en la bandeja ya cuenta (un hábito marcado por voz sale como hecho).
 
    Acciones: conectar · hoy · sumar_agua · marcar_habito · anotar · abrir_dia · cerrar_dia · completar_tarea · foco.
-   «hoy» trae también tus tareas de hoy (con su id) y tus hábitos con tiempo (sus minutos y los que llevas hoy),
-   para Norte-Desk; completar_tarea y foco van a la bandeja como tarea_hecha y foco (supabase/norte-foco.sql).
+   «hoy» trae también tus tareas de hoy (con su id), tus hábitos con tiempo (sus minutos y los que llevas hoy) y
+   las rachas de tus hábitos de hoy (y la que está en riesgo), para Norte-Desk; completar_tarea y foco van a la bandeja como tarea_hecha y foco (supabase/norte-foco.sql).
    «Hoy» es el día de la persona (settings.notif.tz, America/Santiago si no hay). Qué hábitos tocan
    hoy lo dice el mismo motor de la app (js/habitos-motor.js, vía notifier/habitos.mjs).
    Recibe el cliente de Supabase (`sb`), así se prueba sin red (tests/norte.test.mjs).
@@ -197,6 +197,11 @@ export function resumenDia(data, bandeja, hoy) {
   else if (sapo) primer = { texto: paraVoz(sapo.txt), hecho: estadoTarea(sapo) === "hecha" };
   else if (dia.sapo) primer = { texto: paraVoz(dia.sapo), hecho: !!(dia.cierre && dia.cierre.sapo) };
   const nuevoBocado = s.bocado && !tareasDia.some(t => t.txt === s.bocado) ? 1 : 0;   // abrir el día crea la tarea del bocado
+  // Las rachas de tus hábitos de hoy (los que faltan y los hechos), como en la app: { nombre, n, unidad }, de 1 o más
+  const deHoy = new Set([...motor.pendientesHoy().map(h => h.id), ...defs.filter(h => esHacer(h) && motor.hecho(h, hoy)).map(h => h.id)]);
+  const rachas = defs.filter(h => deHoy.has(h.id)).map(h => Object.assign({ nombre: paraVoz(h.nombre) }, motor.racha(h)))
+    .filter(r => r.nombre && r.n >= 1).map(r => ({ nombre: r.nombre, n: r.n, unidad: r.unidad }));
+  const riesgo = motor.enRiesgo();
   const ml = totalAgua(copia.agua && copia.agua.dias && copia.agua.dias[hoy]) + s.agua.filter(v => v.fecha === hoy).reduce((t, v) => t + (+v.ml || 0), 0);
   return {
     fecha: hoy,
@@ -214,6 +219,8 @@ export function resumenDia(data, bandeja, hoy) {
     tareas: listaTareas(tareasDia, s),
     habitos_tiempo: defs.filter(h => esHacer(h) && +h.minutos > 0)
       .map(h => ({ nombre: paraVoz(h.nombre), minutos: +h.minutos, hoy: focoMin(copia, h.id, hoy), hecho: motor.hecho(h, hoy) })),
+    habitos_racha: rachas,
+    racha_en_riesgo: riesgo ? { nombre: paraVoz(riesgo.nombre), n: riesgo.n, unidad: riesgo.unidad } : null,
   };
 }
 export function textoHoy(d) {

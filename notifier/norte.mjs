@@ -149,7 +149,7 @@ function simular(data, bandeja, hoy) {
     .sort((a, b) => String(a.creado || "").localeCompare(String(b.creado || "")));
   const agua = ((bandeja && bandeja.agua) || []).filter(v => v && v.id && !vasoYaEsta(copia, v));
   const dia = Object.assign({}, ((copia.ritual && copia.ritual.dias) || {})[hoy]);
-  let bocado = null, tareas = 0;
+  let bocado = null, bocadoPedido = null, tareas = 0;
   const nuevasTareas = [], tareasHechas = new Set();
   if (!copia.enfoque || typeof copia.enfoque !== "object" || Array.isArray(copia.enfoque)) copia.enfoque = {};
   if (!Array.isArray(copia.enfoque.sesiones)) copia.enfoque.sesiones = [];
@@ -167,10 +167,16 @@ function simular(data, bandeja, hoy) {
       const h = d.hid && copia.habitos.defs.find(x => x && x.id === d.hid);
       if (h && +h.minutos > 0 && focoMin(copia, h.id, d.fecha) >= +h.minutos) marcarEnLog(copia, h.id, d.fecha);
     }
-    else if (p.tipo === "abrir" && d.fecha === hoy) { dia.hecho = true; if (d.primer_bocado) bocado = d.primer_bocado; if (d.energia) dia.energia = d.energia; }
+    else if (p.tipo === "abrir" && d.fecha === hoy) {
+      dia.hecho = true;
+      // la app crea la tarea del bocado con id fijo «nb<pedido>0» (norteFijarIds numera las nuevas desde 0), o marca
+      // como bocado la que ya tenía ese texto
+      if (d.primer_bocado) { bocado = d.primer_bocado; bocadoPedido = { id: "nb" + p.id + "0", ambito: d.ambito === "per" ? "per" : "pro" }; }
+      if (d.energia) dia.energia = d.energia;
+    }
     else if (p.tipo === "cerrar" && d.fecha === hoy) dia.cerrado = true;
   }
-  return { copia, pend, agua, dia, bocado, tareas, nuevasTareas, tareasHechas, motor: motorHabitos(copia, hoy) };
+  return { copia, pend, agua, dia, bocado, bocadoPedido, tareas, nuevasTareas, tareasHechas, motor: motorHabitos(copia, hoy) };
 }
 
 /* Tu estado con lo que espera en la bandeja ya puesto, en una copia (no se guarda nada), para los avisos del celular
@@ -213,6 +219,15 @@ function listaTareas(tareasDia, s) {
     hecha: estadoTarea(t) === "hecha" || s.tareasHechas.has(String(t.id)), bocado: !!t.esSapo, prioridad: !!t.prioridad,
   }));
   s.nuevasTareas.forEach(t => { if (!xs.some(x => x.id === t.id)) xs.push(Object.assign({}, t, { hecha: s.tareasHechas.has(t.id), bocado: false, prioridad: false })); });
+  // El bocado que espera en la bandeja (abriste el día con Norte): como lo dejará la app (aplicarAperturaExpress), la
+  // tarea con ese texto pasa a ser el bocado, o se crea con id fijo «nb<pedido>0». Así se puede completar desde Norte-Desk
+  // (completar_tarea) antes de que la app lo aplique: el tarea_hecha queda en la bandeja después del abrir.
+  if (s.bocado && s.bocadoPedido) {
+    const txt = visible(s.bocado), igual = xs.find(x => x.texto === txt);
+    xs.forEach(x => { if (x.bocado && x !== igual) x.bocado = false; });
+    if (igual) igual.bocado = true;
+    else if (txt) xs.push({ id: s.bocadoPedido.id, texto: txt, ambito: s.bocadoPedido.ambito, hecha: s.tareasHechas.has(s.bocadoPedido.id), bocado: true, prioridad: false });
+  }
   const peso = x => (x.hecha ? 10 : 0) + (x.bocado ? 0 : x.prioridad ? 1 : 2);
   return xs.filter(x => x.texto).sort((a, b) => peso(a) - peso(b)).slice(0, 30);
 }
@@ -225,11 +240,14 @@ export function resumenDia(data, bandeja, hoy) {
   const hechos = defs.filter(h => esHacer(h) && motor.hecho(h, hoy)).map(h => paraVoz(h.nombre)).filter(Boolean);
   const tareasDia = (((copia.agenda && copia.agenda.dias) || {})[hoy] || []).filter(t => t && !t.borrada);
   const sapo = tareasDia.find(t => t.esSapo);
+  // El primer bocado está hecho si su tarea lo está (también si se completó por Norte y espera en la bandeja)
+  const tareas = listaTareas(tareasDia, s), tareaBocado = tareas.find(x => x.bocado);
   let primer = null;
-  if (s.bocado) primer = { texto: paraVoz(s.bocado), hecho: !!(sapo && sapo.txt === s.bocado && estadoTarea(sapo) === "hecha") };
-  else if (sapo) primer = { texto: paraVoz(sapo.txt), hecho: estadoTarea(sapo) === "hecha" };
+  if (s.bocado) primer = { texto: paraVoz(s.bocado), hecho: !!(tareaBocado && tareaBocado.hecha) };
+  else if (sapo) primer = { texto: paraVoz(sapo.txt), hecho: estadoTarea(sapo) === "hecha" || s.tareasHechas.has(String(sapo.id)) };
   else if (dia.sapo) primer = { texto: paraVoz(dia.sapo), hecho: !!(dia.cierre && dia.cierre.sapo) };
-  const nuevoBocado = s.bocado && !tareasDia.some(t => t.txt === s.bocado) ? 1 : 0;   // abrir el día crea la tarea del bocado
+  // abrir el día crea la tarea del bocado (si no estaba, y si no se completó ya por Norte)
+  const nuevoBocado = s.bocado && !tareasDia.some(t => t.txt === s.bocado) && !(s.bocadoPedido && s.tareasHechas.has(s.bocadoPedido.id)) ? 1 : 0;
   // Las rachas de tus hábitos de hoy (los que faltan y los hechos), como en la app: { nombre, n, unidad }, de 1 o más
   const deHoy = new Set([...motor.pendientesHoy().map(h => h.id), ...defs.filter(h => esHacer(h) && motor.hecho(h, hoy)).map(h => h.id)]);
   const rachas = defs.filter(h => deHoy.has(h.id)).map(h => Object.assign({ nombre: paraVoz(h.nombre) }, motor.racha(h)))
@@ -249,7 +267,7 @@ export function resumenDia(data, bandeja, hoy) {
     tareas_pendientes: tareasDia.filter(t => estadoTarea(t) === "pendiente" && !s.tareasHechas.has(String(t.id))).length
       + s.nuevasTareas.filter(t => !s.tareasHechas.has(t.id)).length + nuevoBocado,
     en_bandeja: s.pend.length + s.agua.length,
-    tareas: listaTareas(tareasDia, s),
+    tareas,
     habitos_tiempo: defs.filter(h => esHacer(h) && +h.minutos > 0)
       .map(h => ({ nombre: paraVoz(h.nombre), minutos: +h.minutos, hoy: focoMin(copia, h.id, hoy), hecho: motor.hecho(h, hoy) })),
     habitos_racha: rachas,

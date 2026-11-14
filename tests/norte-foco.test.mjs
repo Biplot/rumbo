@@ -89,6 +89,28 @@ export default async function ({ G, test, assert, clone }) {
     assert.deepEqual([c5.status, c5.cuerpo.error], [400, "dato-invalido"]);
   });
 
+  /* ---------- El primer bocado de un día abierto por Norte (todavía en la bandeja) ---------- */
+  const sbB = nuevoSb();
+  const a1 = await pedir(sbB, { accion: "abrir_dia", primer_bocado: "Preparar la reunión", energia: 4, ambito: "pro" });
+  const hB = await pedir(sbB, { accion: "hoy" }), idB = "nb" + sbB.tablas.norte_pendientes[0].id + "0";
+  const cB = await pedir(sbB, { accion: "completar_tarea", id: idB }), hB2 = await pedir(sbB, { accion: "hoy" });
+  const sbI = nuevoSb();
+  await pedir(sbI, { accion: "abrir_dia", primer_bocado: "Pagar la luz", energia: 3, ambito: "per" });
+  const hI = await pedir(sbI, { accion: "hoy" });
+  test("primer bocado abierto por Norte: aparece como tarea (id fijo «nb…») y se completa antes de que la app lo aplique", () => {
+    assert.equal(a1.status, 200);
+    const tb = hB.cuerpo.datos.tareas.find(t => t.bocado);
+    assert.deepEqual([tb.id, tb.texto, tb.ambito, tb.hecha], [idB, "Preparar la reunión", "pro", false]);
+    assert.equal(hB.cuerpo.datos.tareas.filter(t => t.bocado).length, 1, "el bocado anterior deja de serlo, como en la app");
+    assert.equal(hB.cuerpo.datos.primer_bocado.hecho, false);
+    assert.equal(cB.status, 200); assert.equal(sbB.tablas.norte_pendientes[1].tipo, "tarea_hecha"); assert.equal(sbB.tablas.norte_pendientes[1].datos.tid, idB);
+    assert.equal(hB2.cuerpo.datos.primer_bocado.hecho, true, "completado por Norte, ya cuenta");
+    assert.ok(hB2.cuerpo.datos.tareas.find(t => t.id === idB).hecha);
+    assert.equal(hB2.cuerpo.datos.tareas_pendientes, hB.cuerpo.datos.tareas_pendientes - 1);
+    const ti = hI.cuerpo.datos.tareas.find(t => t.bocado);
+    assert.equal(ti.id, "t1", "si ya había una tarea con ese texto, esa es el bocado (la app no crea otra)");
+  });
+
   /* ---------- Una sesión de foco ---------- */
   const sbF = nuevoSb(), f1 = await pedir(sbF, { accion: "foco", habito: "leer", minutos: 10, completa: true, inicio: "2026-11-11T14:45:00Z" });
   const f1b = await pedir(sbF, { accion: "hoy" });
@@ -128,6 +150,14 @@ export default async function ({ G, test, assert, clone }) {
   };
   const S = nuevoEstado(), p0 = S.gamif.puntos;
   const r1 = aplicar([ped(1, "tarea_hecha", { tid: "tluz" }), ped(2, "foco", { hid: "hl", min: 12, completa: true, ini: t0, titulo: "Leer" })], S);
+  const SB = nuevoEstado();
+  const rB = aplicar([ped(3, "abrir", { primer_bocado: "Preparar la reunión", energia: 4, ambito: "pro" }), ped(4, "tarea_hecha", { tid: "nbf00000000030" })], SB);
+  test("la app: abre el día por Norte y completa el primer bocado que se marcó en Norte-Desk (id fijo «nb…»)", () => {
+    assert.deepEqual(clone(rB.aplicados.map(x => x.tipo)), ["abrir", "tarea_hecha"]);
+    const t = buscarTarea(SB, hoy, "nbf00000000030");
+    assert.ok(t, "la tarea del bocado, con el id que Norte-Desk ya conocía");
+    assert.deepEqual([t.txt, !!t.esSapo, t.estado], ["Preparar la reunión", true, "hecha"]);
+  });
   test("la app: completa la tarea (+15 ⭐ como a mano) y suma el foco a tu historial; el hábito con tiempo queda marcado", () => {
     assert.deepEqual(clone(r1.aplicados.map(x => x.tipo)), ["tarea_hecha", "foco"]);
     const t = buscarTarea(S, hoy, "tluz");

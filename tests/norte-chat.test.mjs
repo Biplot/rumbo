@@ -216,6 +216,31 @@ export default async function ({ test, assert }) {
     assert.match(f2.llamadas[1].o.body, /es-CL-CatalinaNeural/);
     assert.deepEqual([h3.status, h3.cuerpo.error], [429, "limite-caracteres"]);
   });
+  /* ---------- Todo en una: charla_voz (Norte-Desk 0.14.1) ---------- */
+  const fV = fetchFalso({ RecognitionStatus: "Success", DisplayText: "¿Cómo voy?" }), azV = crearAzure({ clave: "c", region: "brazilsouth", fetch: fV }), sbV = nuevoSb();
+  const cV = claudeFalso([texto("Vas bien, te falta meditar.\n[cara: feliz]")]);
+  const v1 = await pedir(sbV, { accion: "charla_voz", audio: wav(2).toString("base64"), historial: [{ rol: "yo", texto: "Hola" }, { rol: "norte", texto: "Hola, ¿cómo vas?" }], voz: "catalina" }, { claude: cV, azure: azV });
+  const v2 = await pedir(nuevoSb(), { accion: "charla_voz", audio: wav(2).toString("base64") }, { claude: claudeFalso([texto("Hola.")]), azure: azV });
+  const cV3 = claudeFalso([texto("no debería llegar")]);
+  const v3 = await pedir(nuevoSb(), { accion: "charla_voz", audio: wav(1).toString("base64"), voz: "lorenzo" }, { claude: cV3, azure: crearAzure({ clave: "c", region: "r", fetch: fetchFalso({ RecognitionStatus: "NoMatch" }) }) });
+  const sbV4 = nuevoSb(); sbV4.uso[HOY] = { charlas: 0, caracteres: LIMITES.caracteres, segundos: 0 };
+  const v4 = await pedir(sbV4, { accion: "charla_voz", audio: wav(2).toString("base64"), voz: "lorenzo" }, { claude: claudeFalso([texto("Vas bien.")]), azure: azV });
+  const fMal = async (url) => (url.includes(".stt.") ? { ok: true, status: 200, json: async () => ({ RecognitionStatus: "Success", DisplayText: "Tomé agua" }) } : { ok: false, status: 500 });
+  const v5 = await pedir(nuevoSb(), { accion: "charla_voz", audio: wav(2).toString("base64"), voz: "lorenzo" }, { claude: claudeFalso([texto("Anotado.")]), azure: crearAzure({ clave: "c", region: "r", fetch: fMal }) });
+  test("charla_voz: oye, conversa con lo que entendió y devuelve también la voz, en una sola llamada", () => {
+    assert.deepEqual([v1.status, v1.cuerpo.ok, v1.cuerpo.oido, v1.cuerpo.texto, v1.cuerpo.cara, v1.cuerpo.audio, v1.cuerpo.tipo], [200, true, "¿Cómo voy?", "Vas bien, te falta meditar.", "feliz", "AQID", "audio/mpeg"]);
+    const mensajes = cV.pedidos[0].messages;
+    assert.equal(mensajes[mensajes.length - 1].content, "¿Cómo voy?", "Claude recibe lo que entendió el oído");
+    assert.equal(mensajes.length, 3, "con el historial");
+    assert.match(fV.llamadas[1].o.body, /es-CL-CatalinaNeural/);
+    const u = sbV.uso[HOY];
+    assert.deepEqual([u.segundos, u.charlas, u.caracteres], [2, 1, "Vas bien, te falta meditar.".length], "suma los límites de cada paso");
+    assert.deepEqual([v2.cuerpo.ok, v2.cuerpo.texto, v2.cuerpo.audio], [true, "Hola.", undefined], "sin voz, solo el texto");
+    assert.equal(fV.llamadas.length, 4, "oído y voz de v1, oído de v2 y oído de v4 (v4 no llega a la voz)");
+    assert.deepEqual([v3.status, v3.cuerpo.ok, v3.cuerpo.error], [200, false, "no-te-oi"]); assert.equal(cV3.pedidos.length, 0, "sin texto no se llama a Claude");
+    assert.deepEqual([v4.status, v4.cuerpo.ok, v4.cuerpo.texto, v4.cuerpo.audio, v4.cuerpo.voz.error], [200, true, "Vas bien.", undefined, "limite-caracteres"], "sin voz por hoy, igual responde");
+    assert.deepEqual([v5.status, v5.cuerpo.ok, v5.cuerpo.oido, v5.cuerpo.texto, v5.cuerpo.voz.error], [200, true, "Tomé agua", "Anotado.", "ocupado"], "Azure sin voz: igual vuelve el texto");
+  });
   test("hablar: Andrew y Ava (multilingües) hablan en español latino; una voz que no existe usa Lorenzo", () => {
     assert.equal(h4.cuerpo.ok, true); assert.equal(h5.cuerpo.ok, true);
     assert.match(f2.llamadas[2].o.body, /<voice name="en-US-AndrewMultilingualNeural"><lang xml:lang="es-MX">Vas muy bien<\/lang><\/voice>/);

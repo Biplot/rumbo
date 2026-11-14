@@ -8,6 +8,10 @@
           minutos, tarea?, habito?, titulo? } y el foco corre en la isla de Norte-Desk)
      { accion: "oir", audio: "<WAV PCM 16 bits mono, en base64>" }      -> { ok, texto }   (hasta 30 segundos)
      { accion: "hablar", texto, voz: "lorenzo" | "catalina" | "andrew" | "ava" }  -> { ok, audio: "<mp3 en base64>", tipo }
+     { accion: "charla_voz", audio, historial, puede?, voz? }   -> { ok, oido, texto, cara, hizo, audio?, tipo?, voz? }
+         todo en una (Norte-Desk 0.14.1): oir + charla + (con voz) hablar, un par de segundos antes que en tres
+         llamadas. «oido» es lo que entendió; si la voz no alcanzó (límite o Azure), vuelve el texto con
+         voz: { error, texto }
      error: { ok: false, error, texto } con HTTP 400/401/429/500/503
 
    · El cerebro es Claude Haiku 5.5 (MODELO), con la personalidad de Norte (PERSONALIDAD.md del repo Biplot/norte)
@@ -156,11 +160,10 @@ async function charla({ sb, uid, body, ahora, claude }) {
   const texto = limpio(body.texto, TEXTO_MAX);
   if (texto == null) return fallo(400, "dato-invalido", "Es muy largo. Dímelo más corto.");
   if (!texto) return fallo(400, "dato-invalido", "¿Qué me quieres decir?");
-  const uso = await sumarUso(sb, uid, ahora, { charlas: 1 });
+  // El día se lee mientras se suma el uso (antes iba uno después del otro)
+  const [uso, hoy] = await Promise.all([sumarUso(sb, uid, ahora, { charlas: 1 }), accionNorte({ sb, uid, accion: "hoy", ahora })]);
   if (uso.sinTabla) return fallo(500, "sin-servidor", TEXTOS["sin-servidor"]);
   if (uso.ok === false) return falloLimite(uso.limite);
-
-  const hoy = await accionNorte({ sb, uid, accion: "hoy", ahora });
   const dia = hoy.cuerpo.ok ? hoy.cuerpo.datos : null;
   const herramientas = Array.isArray(body.puede) && body.puede.includes("foco") ? [...HERRAMIENTAS, HERRAMIENTA_FOCO] : HERRAMIENTAS;
   const messages = armarHistorial(body.historial);
@@ -273,7 +276,26 @@ export function crearAzure({ clave, region, fetch: f = globalThis.fetch }) {
   };
 }
 
-const ACCIONES = { charla, oir, hablar };
+/* ---------- Todo en una: tu voz → texto → la charla → (si pide voz) la voz de Norte ----------
+   Norte-Desk 0.14.1 («Oye Norte» más rápido): una llamada en vez de tres (oir, charla y hablar). Cada paso suma
+   sus mismos límites. Si la voz no alcanza (el límite del día o Azure ocupado), igual vuelve el texto y lo que
+   hizo, con voz: { error, texto }, porque lo que Norte guardó ya quedó en la bandeja. */
+async function charlaVoz(ctx) {
+  const o = await oir(ctx);
+  if (!o.cuerpo.ok) return o;
+  const oido = o.cuerpo.texto;
+  const c = await charla(Object.assign({}, ctx, { body: Object.assign({}, ctx.body, { texto: oido }) }));
+  c.cuerpo = Object.assign({ oido }, c.cuerpo);
+  if (!c.cuerpo.ok || ctx.body.voz == null) return c;
+  let h;
+  try { h = await hablar(Object.assign({}, ctx, { body: { texto: c.cuerpo.texto, voz: ctx.body.voz } })); }
+  catch (e) { h = fallo(503, "ocupado", TEXTOS_CHARLA.ocupado); }
+  if (h.cuerpo.ok) Object.assign(c.cuerpo, { audio: h.cuerpo.audio, tipo: h.cuerpo.tipo });
+  else c.cuerpo.voz = { error: h.cuerpo.error, texto: h.cuerpo.texto };
+  return c;
+}
+
+const ACCIONES = { charla, oir, hablar, charla_voz: charlaVoz };
 
 /**
  * Atiende un pedido de Norte-Desk. Devuelve { status, cuerpo } (api/norte-chat.js lo responde tal cual).

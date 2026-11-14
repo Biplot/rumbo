@@ -20,12 +20,21 @@
        abrir   la apertura corta (aplicarAperturaExpress): +25 ⭐ «ritual-apertura:<fecha>» la primera vez
        cerrar  el cierre corto sin elegir nada (aplicarCierreExpress): las pendientes pasan a mañana, el ánimo y
                la gratitud van al diario, +20 ⭐ «ritual-cierre:<fecha>» la primera vez y la nota de tu elefante
+       Con «completo» (Norte-Desk) son los rituales enteros, como saveRitual y saveCierre (modules2.js), con sus ⭐:
+       abrir   misión, bocado, pilar (y su contador), energía, a quién sirves, proyectos y las tareas del día (las nuevas,
+               con id fijo «na<pedido><n>»; las que quitaste se borran, menos las que vienen de otros días): +50 ⭐
+       cerrar  qué pasa con cada pendiente (mañana, otro día, delegar, soltar o «la hice», +15 ⭐ «tarea:<id>»; las que
+               no se decidieron pasan a mañana), si cumpliste tu misión, el bocado, la energía, lo mejor del día, una
+               cosa para mañana (la misión que te propone al abrir) y la nota (al diario, con el ánimo): +40 ⭐
      Los ids del libro de ⭐ son los mismos que al hacerlo a mano: marcar por voz y en la app no paga dos veces.
      La tarea del bocado, las que pasan a mañana y la entrada del diario también llevan id fijo («nb…», «nc…»,
      «dia<fecha>»): si dos equipos aplican el mismo pedido a la vez, al juntarse queda una de cada una.
    ============================================================ */
 const NORTE = { corriendo: false, codigo: "", expira: 0, antes: [], reloj: 0, revisar: 0, alFoco: null, aparatos: null, cargando: false, creando: false, error: null };
-const NORTE_HECHOS_DIAS = 21, NORTE_HECHOS_MAX = 400, NORTE_TEXTO = 200;
+const NORTE_HECHOS_DIAS = 21, NORTE_HECHOS_MAX = 400, NORTE_TEXTO = 200, NORTE_NOTA = 600;
+/* El ritual completo da lo mismo que en la app (saveRitual y saveCierre en modules2.js); sus pilares son PILARES */
+const NORTE_RITUAL = { apertura: 50, cierre: 40 };
+const NORTE_PILARES = ["Psicología", "Fisiología", "Productividad", "Magnetismo", "Presencia", "Propósito"];
 /* Lo que no se encuentra todavía (una tarea o un hábito que llega de otro equipo) se queda en la bandeja y se
    reintenta hasta 2 días; con la app abierta, la bandeja se revisa cada 20 segundos y al volver a su ventana */
 const NORTE_ESPERA_MS = 2 * 864e5, NORTE_REVISAR_MS = 20e3, NORTE_ESPERAR = Object.freeze({ esperar: true });
@@ -44,7 +53,7 @@ function norteLimpiarHechos(S, now) {
   const N = norteDatos(S), corte = (now || Date.now()) - NORTE_HECHOS_DIAS * 864e5;
   N.hechos = N.hechos.filter(x => x && x.id && (x.ts || 0) >= corte).slice(-NORTE_HECHOS_MAX);
 }
-const norteTexto = v => String(v == null ? "" : v).replace(/[\u0000-\u001F\u007F]+/g, " ").replace(/\s+/g, " ").trim().slice(0, NORTE_TEXTO);
+const norteTexto = (v, max) => String(v == null ? "" : v).replace(/[\u0000-\u001F\u007F]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max || NORTE_TEXTO);
 /* Las tareas que crea un pedido (el bocado al abrir, las que pasan a mañana al cerrar) llevan id fijo:
    si dos equipos aplican el mismo pedido a la vez, al juntarse queda una de cada una */
 function norteTareasAntes(S, dias) { const s = new Set(); dias.forEach(d => (agendaDias(S)[d] || []).forEach(t => t && s.add(t.id))); return s; }
@@ -143,6 +152,7 @@ function norteAplicarUno(p, S, hoy, now) {
     const r0 = S.ritual.dias[iso], sapo = norteTexto(d.primer_bocado), e = Math.round(+d.energia);
     if (r0 && r0.cerrado) return null;            // ya lo cerraste: por voz no se reabre
     if (r0 && r0.hecho && !sapo) return null;      // ya estaba abierto y no trae un bocado nuevo
+    if (d.completo) return norteAbrirCompleto(p, S, iso, d, creadoTs, now);
     const antes = norteTareasAntes(S, [iso]);
     const nuevo = aplicarAperturaExpress(S, iso, { sapo, ambito: d.ambito === "per" ? "per" : "pro", energia: e >= 1 && e <= 5 ? e : 3 });
     norteFijarIds(S, [iso], antes, "nb" + p.id);   // la tarea del bocado, si se creó
@@ -157,6 +167,7 @@ function norteAplicarUno(p, S, hoy, now) {
     // la entrada del diario de ese día, con id fijo (si no estaba): dos equipos no la duplican
     S.vida.diario = S.vida.diario || [];
     if (!S.vida.diario.some(x => x && x.fecha === iso && x.fromRitual)) S.vida.diario.push({ id: "dia" + iso.replace(/-/g, ""), fecha: iso, fromRitual: true, ts: now });
+    if (d.completo) return norteCerrarCompleto(p, S, iso, d, hoy, creadoTs, now);
     const m = Math.round(+d.animo), destinos = [...new Set([hoy, agSumar(iso, 1)])], antes = norteTareasAntes(S, destinos);
     const { nuevo, n } = aplicarCierreExpress(S, iso, { mood: m >= 1 && m <= 5 ? m : 3, gratitud: norteTexto(d.gratitud), elecciones: {} });
     norteFijarIds(S, destinos, antes, "nc" + p.id);   // las pendientes que pasaron a mañana (o a hoy, si el día ya pasó)
@@ -166,6 +177,94 @@ function norteAplicarUno(p, S, hoy, now) {
     return { tipo: "cerrar", iso, nuevo, n, estrellas: pagado ? EXPRESS_MONEDAS.cierre : 0 };
   }
   return null;
+}
+/* El ritual de apertura completo (Norte-Desk), como saveRitual (modules2.js). Lo que no vino se queda como estaba. */
+function norteAbrirCompleto(p, S, iso, d, creadoTs, now) {
+  const prev = S.ritual.dias[iso] || {}, nuevo = !prev.hecho;
+  const sapo = norteTexto(d.primer_bocado), ambito = d.ambito === "per" ? "per" : "pro", e = Math.round(+d.energia);
+  const pilar = NORTE_PILARES.includes(d.pilar) ? d.pilar : "", mision = norteTexto(d.mision), servir = norteTexto(d.servir);
+  const proyectos = (Array.isArray(d.proyectos) ? d.proyectos : []).map(x => norteTexto(x, 60)).filter(Boolean).slice(0, 8);
+  const r = S.ritual.dias[iso] = Object.assign({}, prev, { sapo, sapoAmbito: ambito, energia: e >= 1 && e <= 5 ? e : prev.energia || 3, hecho: true, ts: now });
+  if (mision) r.mision = mision;
+  if (pilar) r.pilar = pilar;
+  if (servir) r.servir = servir;
+  if (proyectos.length) r.proyectos = proyectos;
+  if (nuevo) r.abiertoTs = creadoTs;   // la hora en que lo abriste en Norte-Desk
+  // Las tareas del día: se empareja por texto (conserva id, estado e historia), como en la app
+  const viva = t => t && !t.borrada && ["pendiente", "hecha"].includes(estadoTarea(t));
+  const vivas = () => tareasDelDia(iso, S).filter(viva);
+  vivas().forEach(t => { if (t.esSapo && t.txt !== sapo) { delete t.esSapo; t.ts = now; } });
+  const crear = (txt, amb, tid, esSapo) => {
+    if (buscarTarea(S, iso, tid)) return;
+    const t = nuevaTarea(S, iso, Object.assign({ txt, ambito: amb, origen: tid }, esSapo ? { esSapo: true } : {}));
+    t.id = tid; t.ts = now;
+  };
+  if (sapo) {
+    const ex = vivas().find(t => t.txt === sapo);
+    if (ex) { ex.esSapo = true; ex.ambito = ambito; delete ex.bocadoSugerido; ex.ts = now; }
+    else crear(sapo, ambito, "nb" + p.id + "0", true);   // el mismo id que espera «hoy» (notifier/norte.mjs)
+  }
+  const vistos = new Set([sapo]);
+  (Array.isArray(d.tareas_nuevas) ? d.tareas_nuevas : []).slice(0, 15).forEach((x, k) => {
+    const txt = norteTexto(x && x.texto), amb = x && x.ambito === "pro" ? "pro" : "per";
+    if (!txt || vistos.has(txt)) return;
+    vistos.add(txt);
+    const ex = vivas().find(t => t.txt === txt);
+    if (ex) { if (ambitoDe(ex) !== amb) { ex.ambito = amb; ex.ts = now; } }
+    else crear(txt, amb, "na" + p.id + k.toString(36), false);
+  });
+  // Las que quitaste se borran; las que vienen de otros días (y el bocado) se quedan, como en la app
+  (Array.isArray(d.tareas_quitar) ? d.tareas_quitar : []).slice(0, 30).forEach(id => {
+    const t = buscarTarea(S, iso, String(id));
+    if (viva(t) && !t.esSapo && !(t.migraciones > 0) && !t.bocadoSugerido) borrarTarea(t);
+  });
+  if (nuevo && pilar) { S.ritual.pilares = S.ritual.pilares || {}; S.ritual.pilares[pilar] = (S.ritual.pilares[pilar] || 0) + 1; }
+  const pagado = nuevo && ledgerRegistrar(S, "ritual-apertura:" + iso, NORTE_RITUAL.apertura, NORTE_RITUAL.apertura, "Ritual de apertura con Norte", now);
+  return { tipo: "abrir", iso, nuevo, sapo, completo: true, estrellas: pagado ? NORTE_RITUAL.apertura : 0 };
+}
+/* El ritual de cierre completo (Norte-Desk), como saveCierre (modules2.js) */
+function norteCerrarCompleto(p, S, iso, d, hoy, creadoTs, now) {
+  const r = S.ritual.dias[iso];
+  // Como triageCierreCfg (app.js): si el día ya pasó, las pendientes van a hoy (nunca a otro día pasado)
+  const cfg = iso < hoy ? { mover: "hoy", min: agSumar(hoy, -1) } : { mover: "manana", min: agSumar(iso, 1) };
+  const pedidas = new Map((Array.isArray(d.pendientes) ? d.pendientes : []).filter(x => x && x.id).map(x => [String(x.id), x]));
+  const decisiones = [], hechas = [];
+  tareasDelDia(iso, S).filter(tareaAbierta).forEach(t => {
+    const x = pedidas.get(t.id) || {}, v = ["manana", "otro", "delegar", "soltar", "hecha"].includes(x.v) ? x.v : "manana";
+    if (v === "hecha") { hechas.push(t); return; }
+    decisiones.push({ iso, id: t.id, v: v === "manana" ? cfg.mover : v, fecha: /^\d{4}-\d{2}-\d{2}$/.test(x.fecha || "") ? x.fecha : "",
+      quien: norteTexto(x.quien, 80), bocado: !!x.bocado && (v === "manana" || v === "otro"), paso: "" });
+  });
+  // Las que pasan a otro día llevan id fijo «nc<pedido><n>»: dos equipos no las duplican
+  const destinos = [...new Set([hoy, agSumar(iso, 1), agSumar(cfg.min, 1)].concat(decisiones.filter(x => x.v === "otro" && x.fecha > iso).map(x => x.fecha)))];
+  const antes = norteTareasAntes(S, destinos);
+  const n = aplicarTriage(S, decisiones, { base: iso, min: cfg.min });
+  norteFijarIds(S, destinos, antes, "nc" + p.id);
+  let estrellas = 0;
+  hechas.forEach(t => {   // «la hice»: como completarla a mano (+15 ⭐ «tarea:<id>»)
+    marcarTarea(t, "hecha", { hechaTs: creadoTs }); n.hechas++;
+    if (ledgerRegistrar(S, "tarea:" + t.id, 15, 15, "Tarea con Norte", now)) estrellas += 15;
+  });
+  const bocado = tareasDelDia(iso, S).find(t => t.esSapo && !t.borrada), m = Math.round(+d.animo), e = Math.round(+d.energia);
+  r.cierre = Object.assign({}, r.cierre, {
+    sapo: bocado ? estadoTarea(bocado) === "hecha" : d.bocado === true,
+    mejor: norteTexto(d.gratitud), manana: norteTexto(d.manana), nota: norteTexto(d.nota, NORTE_NOTA),
+  });
+  if (["si", "parcial", "no"].includes(d.mision)) r.cierre.mision = d.mision;
+  if (e >= 1 && e <= 5) r.cierre.energia = e;
+  if (tareasDelDia(iso, S).length) r.cierre.tareas = resumenCierre(S, iso);
+  r.cerrado = true;
+  r.cerradoTs = creadoTs;   // a qué hora cerraste (insignias Noche Serena y Búho)
+  r.ts = now;
+  // El diario de ese día: el ánimo, la nota y lo mejor del día
+  const entrada = S.vida.diario.find(x => x && x.fecha === iso && x.fromRitual);
+  entrada.mood = m >= 1 && m <= 5 ? m : entrada.mood || 3;
+  entrada.texto = r.cierre.nota || "";
+  entrada.gratitud = r.cierre.mejor || "";
+  entrada.ts = now;
+  if (ledgerRegistrar(S, "ritual-cierre:" + iso, NORTE_RITUAL.cierre, NORTE_RITUAL.cierre, "Ritual de cierre con Norte", now)) estrellas += NORTE_RITUAL.cierre;
+  if (typeof notaElefanteGuardar === "function") notaElefanteGuardar(iso, S);   // 🐘 la nota de tu elefante
+  return { tipo: "cerrar", iso, nuevo: true, n, completo: true, estrellas };
 }
 /* Marca un hábito en una fecha con sus ⭐ (y la cuota del período), como al marcarlo a mano */
 function norteMarcarHabito(S, h, iso, now) {

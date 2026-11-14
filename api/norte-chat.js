@@ -5,6 +5,7 @@
        { accion: "charla", texto, historial, puede? }   -> { ok, texto, cara, hizo }   (puede: ["foco"]: empezar un foco)
        { accion: "oir", audio }                 -> { ok, texto }
        { accion: "hablar", texto, voz }         -> { ok, audio, tipo }
+       { accion: "charla_voz", audio, historial, puede?, voz? }  -> { ok, oido, texto, cara, hizo, audio?, tipo? }   (todo en una)
      Error: { ok: false, error, texto } con HTTP 400/401/429/500/503.
 
    OJO con la barra final, igual que /api/norte/ (vercel.json tiene trailingSlash).

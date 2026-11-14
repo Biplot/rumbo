@@ -2,8 +2,10 @@
    Rumbo · 🧭 Norte, tu brújula: la charla (la lógica de api/norte-chat.js)
    Norte-Desk (Norte en el computador) le escribe o le habla a Norte. Va con el mismo token de /api/norte/
    (Authorization: Bearer <token>) y siempre responde JSON:
-     { accion: "charla", texto, historial: [{ rol: "yo" | "norte", texto }] }
+     { accion: "charla", texto, historial: [{ rol: "yo" | "norte", texto }], puede?: ["foco"] }
          -> { ok, texto, cara, hizo: [{ accion, ok, texto }] }
+         (con puede: ["foco"], Norte también puede empezar un foco: hizo trae { accion: "empezar_foco", ok, texto,
+          minutos, tarea?, habito?, titulo? } y el foco corre en la isla de Norte-Desk)
      { accion: "oir", audio: "<WAV PCM 16 bits mono, en base64>" }      -> { ok, texto }   (hasta 30 segundos)
      { accion: "hablar", texto, voz: "lorenzo" | "catalina" | "andrew" | "ava" }  -> { ok, audio: "<mp3 en base64>", tipo }
      error: { ok: false, error, texto } con HTTP 400/401/429/500/503
@@ -97,7 +99,33 @@ export const HERRAMIENTAS = [
   { name: "completar_tarea", accion: "completar_tarea", description: "Marca como hecha una tarea de hoy. Usa el id que aparece en «tareas» del día de hoy.", input_schema: { type: "object", properties: { id: { type: "string", description: "El id de la tarea" } }, required: ["id"], additionalProperties: false } },
   { name: "cerrar_dia", accion: "cerrar_dia", description: "Cierra el día en Rumbo con el ánimo y algo que agradecer; las tareas pendientes pasan a mañana. Úsala solo después de que la persona confirme.", input_schema: { type: "object", properties: { animo: { type: "integer", minimum: 1, maximum: 5, description: "De 1 (mal) a 5 (muy bien)" }, gratitud: { type: "string", description: "Algo que agradece de hoy (máximo 200 caracteres)" } }, required: ["animo"], additionalProperties: false } },
 ];
-const PARA_CLAUDE = HERRAMIENTAS.map(({ name, description, input_schema }) => ({ name, description, input_schema }));
+/* Solo para quien sabe llevar un foco: Norte-Desk lo avisa con puede: ["foco"] (el robot no). No guarda nada aquí:
+   el foco corre en la isla de Norte-Desk y, al terminar, se guarda con la acción foco de /api/norte/. */
+export const HERRAMIENTA_FOCO = { name: "empezar_foco", accion: "empezar_foco", description: "Empieza un bloque de foco (un pomodoro) que corre en la isla de Norte-Desk, con la cuenta atrás. Úsala cuando la persona pida concentrarse, hacer foco o un pomodoro. Si no dice los minutos, 25. Si es para una tarea de hoy, usa su id de «tareas»; si es para un hábito con tiempo, su nombre de «habitos_tiempo»; si no, di en qué se va a concentrar en «titulo».", input_schema: { type: "object", properties: { minutos: { type: "integer", minimum: 1, maximum: 180, description: "Cuántos minutos (25 si no lo dice)" }, tarea: { type: "string", description: "El id de la tarea de hoy, si el foco es para una tarea" }, habito: { type: "string", description: "El nombre del hábito con tiempo, si el foco es para un hábito" }, titulo: { type: "string", description: "En qué se va a concentrar, en pocas palabras, si no es una tarea ni un hábito (máximo 60 caracteres)" } }, required: ["minutos"], additionalProperties: false } };
+const paraClaude = (hs) => hs.map(({ name, description, input_schema }) => ({ name, description, input_schema }));
+const sinTildes = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/* Revisa el foco que pidió Claude contra tu día. Devuelve lo que va en hizo (y a Claude, como resultado) */
+export function empezarFoco(input, dia) {
+  const minutos = Number(input && input.minutos);
+  if (!Number.isInteger(minutos) || minutos < 1 || minutos > 180) return { ok: false, error: "dato-invalido", texto: "El foco va de 1 a 180 minutos." };
+  const r = { ok: true, minutos };
+  const tareas = (dia && Array.isArray(dia.tareas)) ? dia.tareas : [], conTiempo = (dia && Array.isArray(dia.habitos_tiempo)) ? dia.habitos_tiempo : [];
+  if (input.tarea) {
+    const t = tareas.find(x => x.id === String(input.tarea) && !x.hecha);
+    if (!t) return { ok: false, error: "no-encontrado", texto: "No encontré esa tarea entre las pendientes de hoy." };
+    r.tarea = t.id; r.titulo = t.texto;
+  } else if (input.habito) {
+    const h = conTiempo.find(x => sinTildes(x.nombre).includes(sinTildes(input.habito)));
+    if (!h) return { ok: false, error: "no-encontrado", texto: "No encontré ese hábito entre los que tienen tiempo hoy." };
+    r.habito = h.nombre; r.titulo = h.nombre;
+  } else {
+    const t = limpio(input.titulo, 60);
+    if (t) r.titulo = t;
+  }
+  r.texto = `Foco de ${minutos} minutos${r.titulo ? " en " + r.titulo : ""}. Corre en la isla de Norte-Desk.`;
+  return r;
+}
 
 /* La cara del final: «[cara: feliz]» → "feliz"; el texto queda sin la etiqueta */
 export function separarCara(texto) {
@@ -133,6 +161,8 @@ async function charla({ sb, uid, body, ahora, claude }) {
   if (uso.ok === false) return falloLimite(uso.limite);
 
   const hoy = await accionNorte({ sb, uid, accion: "hoy", ahora });
+  const dia = hoy.cuerpo.ok ? hoy.cuerpo.datos : null;
+  const herramientas = Array.isArray(body.puede) && body.puede.includes("foco") ? [...HERRAMIENTAS, HERRAMIENTA_FOCO] : HERRAMIENTAS;
   const messages = armarHistorial(body.historial);
   messages.push({ role: "user", content: texto });   // si el historial terminaba en «yo», la API junta los dos
   const hizo = [];
@@ -141,16 +171,19 @@ async function charla({ sb, uid, body, ahora, claude }) {
     for (let vuelta = 0; vuelta < VUELTAS_MAX; vuelta++) {
       r = await claude.messages.create({
         model: MODELO, max_tokens: 1024, output_config: { effort: "low" },
-        system: sistema(hoy.cuerpo.ok ? hoy.cuerpo.datos : null, ahora), tools: PARA_CLAUDE, messages,
+        system: sistema(dia, ahora), tools: paraClaude(herramientas), messages,
       });
       if (r.stop_reason !== "tool_use") break;
       messages.push({ role: "assistant", content: r.content });
       const resultados = [];
       for (const b of r.content.filter(x => x.type === "tool_use")) {
-        const h = HERRAMIENTAS.find(x => x.name === b.name);
+        const h = herramientas.find(x => x.name === b.name);
         let res;
         if (!h) res = { ok: false, error: "herramienta", texto: "No conozco esa herramienta." };
-        else {
+        else if (h.accion === "empezar_foco") {
+          res = empezarFoco(b.input || {}, dia);
+          hizo.push(Object.assign({ accion: h.accion }, res));
+        } else {
           res = (await accionNorte({ sb, uid, accion: h.accion, body: b.input || {}, ahora })).cuerpo;
           if (h.accion !== "hoy") hizo.push({ accion: h.accion, ok: !!res.ok, texto: res.texto });
         }

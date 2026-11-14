@@ -3,7 +3,7 @@
    robot), la cara del final, y el oído y la voz de Azure */
 export default async function ({ test, assert }) {
   console.log("\nNorte, tu brújula: la charla (Norte-Desk)");
-  const { atenderCharla, crearAzure, separarCara, leerWav, MODELO, LIMITES, HERRAMIENTAS } = await import("../notifier/norte-chat.mjs");
+  const { atenderCharla, crearAzure, separarCara, leerWav, MODELO, LIMITES, HERRAMIENTAS, HERRAMIENTA_FOCO, empezarFoco } = await import("../notifier/norte-chat.mjs");
   const { hashToken } = await import("../notifier/norte.mjs");
 
   /* ---------- Un Supabase falso (como en norte.test.mjs) con norte_uso_sumar en memoria ---------- */
@@ -107,6 +107,39 @@ export default async function ({ test, assert }) {
     assert.equal(seg[seg.length - 2].role, "assistant"); assert.equal(seg[seg.length - 2].content[0].type, "thinking", "el turno de Claude vuelve completo, con su bloque de pensamiento");
     const res = seg[seg.length - 1].content[0];
     assert.equal(res.type, "tool_result"); assert.equal(res.tool_use_id, "tu1"); assert.equal(JSON.parse(res.content).ok, true);
+  });
+
+  /* ---------- Empezar un foco conversando: solo si el que pregunta sabe llevarlo (Norte-Desk) ---------- */
+  const usaFoco = (input) => claudeFalso([
+    { stop_reason: "tool_use", content: [{ type: "tool_use", id: "tf1", name: "empezar_foco", input }] },
+    texto("Listo, 25 minutos de foco. Te aviso al terminar.\n[cara: contento]"),
+  ]);
+  const sbF = nuevoSb(), cF = usaFoco({ minutos: 25, titulo: "el informe" });
+  const rF = await pedir(sbF, { accion: "charla", texto: "Hagamos 25 minutos de foco en el informe", puede: ["foco"] }, { claude: cF });
+  const cR = usaFoco({ minutos: 25 }), rR = await pedir(nuevoSb(), { accion: "charla", texto: "Hagamos foco" }, { claude: cR });
+  const rT = await pedir(nuevoSb(), { accion: "charla", texto: "Foco en la tarea", puede: ["foco"] }, { claude: usaFoco({ minutos: 25, tarea: "no-existe" }) });
+  test("charla: con puede foco, Norte empieza un foco y vuelve en hizo, sin escribir nada en el servidor", () => {
+    assert.deepEqual(cF.pedidos[0].tools.map(t => t.name), [...HERRAMIENTAS.map(h => h.name), "empezar_foco"]);
+    assert.ok(cF.pedidos[0].tools.every(t => !("accion" in t)));
+    assert.equal(rF.cuerpo.ok, true);
+    assert.deepEqual(rF.cuerpo.hizo.map(h => [h.accion, h.ok, h.minutos, h.titulo]), [["empezar_foco", true, 25, "el informe"]]);
+    assert.equal(sbF.tablas.norte_pendientes.length, 0, "el foco corre en Norte-Desk; se guarda al terminar, con la acción foco");
+    assert.equal(JSON.parse(cF.pedidos[1].messages.at(-1).content[0].content).ok, true, "Claude recibe el resultado");
+  });
+  test("charla: sin puede foco (el robot), Claude no tiene empezar_foco; y una tarea que no está hoy no empieza nada", () => {
+    assert.deepEqual(cR.pedidos[0].tools.map(t => t.name), HERRAMIENTAS.map(h => h.name));
+    assert.deepEqual(rR.cuerpo.hizo, [], "si igual la pide, no la conoce");
+    assert.deepEqual(rT.cuerpo.hizo.map(h => [h.accion, h.ok, h.error]), [["empezar_foco", false, "no-encontrado"]]);
+  });
+  test("empezar_foco: revisa los minutos, la tarea pendiente de hoy y el hábito con tiempo", () => {
+    const dia = { tareas: [{ id: "t1", texto: "Escribir el informe", hecha: false }, { id: "t2", texto: "Correo", hecha: true }], habitos_tiempo: [{ nombre: "Leer 20 minutos", minutos: 20, hoy: 5 }] };
+    assert.deepEqual(empezarFoco({ minutos: 25, tarea: "t1" }, dia), { ok: true, minutos: 25, tarea: "t1", titulo: "Escribir el informe", texto: "Foco de 25 minutos en Escribir el informe. Corre en la isla de Norte-Desk." });
+    assert.equal(empezarFoco({ minutos: 25, tarea: "t2" }, dia).ok, false, "una tarea ya hecha no");
+    assert.deepEqual([empezarFoco({ minutos: 15, habito: "leer" }, dia).habito, empezarFoco({ minutos: 15, habito: "Leér" }, dia).ok], ["Leer 20 minutos", true]);
+    assert.equal(empezarFoco({ minutos: 15, habito: "correr" }, dia).ok, false);
+    for (const m of [0, 181, 2.5, "mucho", undefined]) assert.equal(empezarFoco({ minutos: m }, dia).ok, false, `minutos ${m}`);
+    assert.deepEqual(empezarFoco({ minutos: 50 }, null), { ok: true, minutos: 50, texto: "Foco de 50 minutos. Corre en la isla de Norte-Desk." });
+    assert.equal(HERRAMIENTA_FOCO.input_schema.required[0], "minutos");
   });
 
   /* ---------- Límites, sin cerebro, sin tabla, Claude ocupado y una negativa ---------- */

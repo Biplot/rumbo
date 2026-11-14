@@ -17,7 +17,8 @@
    abrir_dia y cerrar_dia con «completo: true» (Norte-Desk) traen el ritual entero, como en la app: al abrir, la misión, el
    pilar, a quién sirves, los proyectos y las tareas del día (nuevas y las que se quitan); al cerrar, si cumpliste tu misión,
    el bocado, qué pasa con cada pendiente, la energía, lo que agradeces, una cosa para mañana y una nota. Sin «completo»
-   siguen siendo los rituales cortos del robot. «hoy» trae lo que esos formularios necesitan (la misión sugerida, etc.).
+   siguen siendo los rituales cortos del robot. «hoy» trae lo que esos formularios necesitan (la misión sugerida, etc.)
+   y tu semana (el foco, las prioridades, el premio y los hábitos en foco del ritual semanal).
    «Hoy» es el día de la persona (settings.notif.tz, America/Santiago si no hay). Qué hábitos tocan
    hoy lo dice el mismo motor de la app (js/habitos-motor.js, vía notifier/habitos.mjs).
    Recibe el cliente de Supabase (`sb`), así se prueba sin red (tests/norte.test.mjs).
@@ -285,6 +286,31 @@ function proyectosRecientes(copia, hoy) {
   return out;
 }
 
+/* Tu semana: el plan del ritual semanal de la app (STATE.ritual.semanas[lunes], js/ritual-semana.js): el foco, las
+   prioridades (hecha si su tarea de la semana está hecha, como prioridadHecha; también si se completó por Norte y espera
+   en la bandeja), el premio y los hábitos en foco. La semana va de lunes a domingo. */
+function semanaDe(copia, hoy, s) {
+  const lunes = diaMas(hoy, -((new Date(hoy + "T12:00:00Z").getUTCDay() + 6) % 7));
+  const w = ((copia.ritual && copia.ritual.semanas) || {})[lunes] || {}, a = w.apertura && typeof w.apertura === "object" ? w.apertura : null;
+  const dias = (copia.agenda && copia.agenda.dias) || {};
+  const hecha = p => {
+    for (let i = 0; i < 7; i++) {
+      if ((dias[diaMas(lunes, i)] || []).some(t => t && !t.borrada && t.prioridad === p.id && (estadoTarea(t) === "hecha" || s.tareasHechas.has(String(t.id))))) return true;
+    }
+    return false;
+  };
+  const defs = copia.habitos.defs;
+  return {
+    desde: lunes, hasta: diaMas(lunes, 6), planificada: !!a,
+    foco: a && a.foco ? visible(a.foco) : null,
+    premio: w.plan && w.plan.premio ? visible(w.plan.premio) : null,
+    prioridades: ((a && Array.isArray(a.prioridades)) ? a.prioridades : []).filter(p => p && p.texto).slice(0, 5).map(p => ({
+      id: String(p.id || ""), texto: visible(p.texto), ambito: p.ambito === "pro" ? "pro" : "per", dia: FECHA.test(p.dia || "") ? p.dia : null, hecha: hecha(p),
+    })),
+    habitos_foco: ((a && Array.isArray(a.habitosFoco)) ? a.habitosFoco : []).map(id => defs.find(h => h && h.id === id)).filter(Boolean).map(h => paraVoz(h.nombre)).filter(Boolean),
+  };
+}
+
 /* Lo que Norte cuenta de tu día (la acción «hoy») */
 export function resumenDia(data, bandeja, hoy) {
   const s = simular(data, bandeja, hoy), { copia, dia, motor } = s;
@@ -329,6 +355,7 @@ export function resumenDia(data, bandeja, hoy) {
       .map(h => ({ nombre: paraVoz(h.nombre), minutos: +h.minutos, hoy: focoMin(copia, h.id, hoy), hecho: motor.hecho(h, hoy) })),
     habitos_racha: rachas,
     racha_en_riesgo: riesgo ? { nombre: paraVoz(riesgo.nombre), n: riesgo.n, unidad: riesgo.unidad } : null,
+    semana: semanaDe(copia, hoy, s),
   };
 }
 export function textoHoy(d) {

@@ -14,6 +14,10 @@
    Acciones: conectar · hoy · sumar_agua · marcar_habito · anotar · abrir_dia · cerrar_dia · completar_tarea · foco.
    «hoy» trae también tus tareas de hoy (con su id), tus hábitos con tiempo (sus minutos y los que llevas hoy) y
    las rachas de tus hábitos de hoy (y la que está en riesgo), para Norte-Desk; completar_tarea y foco van a la bandeja como tarea_hecha y foco (supabase/norte-foco.sql).
+   abrir_dia y cerrar_dia con «completo: true» (Norte-Desk) traen el ritual entero, como en la app: al abrir, la misión, el
+   pilar, a quién sirves, los proyectos y las tareas del día (nuevas y las que se quitan); al cerrar, si cumpliste tu misión,
+   el bocado, qué pasa con cada pendiente, la energía, lo que agradeces, una cosa para mañana y una nota. Sin «completo»
+   siguen siendo los rituales cortos del robot. «hoy» trae lo que esos formularios necesitan (la misión sugerida, etc.).
    «Hoy» es el día de la persona (settings.notif.tz, America/Santiago si no hay). Qué hábitos tocan
    hoy lo dice el mismo motor de la app (js/habitos-motor.js, vía notifier/habitos.mjs).
    Recibe el cliente de Supabase (`sb`), así se prueba sin red (tests/norte.test.mjs).
@@ -25,6 +29,16 @@ import { vasoDe } from "./elefante.mjs";
 import { VASOS_AL_DIA } from "./vaso.mjs";
 
 export const TEXTO_MAX = 200;          // tareas, notas, primer bocado y gratitud
+export const NOTA_MAX = 600;           // la nota libre del cierre
+// Cada pedido de la bandeja pesa menos de 4000 bytes (norte_pendientes.datos en supabase/norte.sql); en JSON se deja
+// margen, porque jsonb pesa algo más que el texto
+export const DATOS_MAX = 2800;
+const muyGrande = datos => Buffer.byteLength(JSON.stringify(datos), "utf8") > DATOS_MAX;
+const MUY_LARGO = "Es mucho para guardar de una vez. Acorta tu nota o tus tareas y prueba de nuevo.";
+// Los pilares del ritual de apertura (PILARES en js/modules2.js: si cambian allá, cambian aquí)
+export const PILARES = ["Psicología", "Fisiología", "Productividad", "Magnetismo", "Presencia", "Propósito"];
+const DECISIONES = ["manana", "otro", "delegar", "soltar", "hecha"];   // qué pasa con una pendiente al cerrar (TRIAGE_OPC)
+const ID_TAREA = /^[A-Za-z0-9_-]{1,64}$/, FECHA = /^\d{4}-\d{2}-\d{2}$/;
 export const PEDIDOS_HORA = 60;        // pedidos a la bandeja por hora (un token filtrado no la llena)
 export const VASOS_MAX = 6;            // vasos por pedido
 const TZ_DEFECTO = "America/Santiago";
@@ -83,6 +97,21 @@ function entero(v, min, max, defecto) {
   const n = Number(v);
   return Number.isInteger(n) && n >= min && n <= max ? n : null;
 }
+/* Una lista de textos cortos (un arreglo, o separados por comas): null si algo vino mal */
+function listaTextos(v, maxN, maxLargo) {
+  if (v == null || v === "") return [];
+  const xs = Array.isArray(v) ? v : typeof v === "string" ? v.split(",") : null;
+  if (!xs || xs.length > maxN * 2) return null;
+  const out = [];
+  for (const x of xs) {
+    const t = textoLimpio(x, maxLargo);
+    if (t == null) return null;
+    if (t && !out.includes(t)) out.push(t);
+  }
+  return out.length > maxN ? null : out;
+}
+/* La fecha de n días después (o antes) de un día */
+const diaMas = (iso, n) => { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const idNuevo = (letra, ahora, i = 0) => `${letra}${ahora.getTime().toString(36)}${i.toString(36)}${randomBytes(4).toString("hex")}`;
 
 /* ---------- Hábitos ---------- */
@@ -149,8 +178,8 @@ function simular(data, bandeja, hoy) {
     .sort((a, b) => String(a.creado || "").localeCompare(String(b.creado || "")));
   const agua = ((bandeja && bandeja.agua) || []).filter(v => v && v.id && !vasoYaEsta(copia, v));
   const dia = Object.assign({}, ((copia.ritual && copia.ritual.dias) || {})[hoy]);
-  let bocado = null, bocadoPedido = null, tareas = 0;
-  const nuevasTareas = [], tareasHechas = new Set();
+  let bocado = null, bocadoPedido = null, tareas = 0, mananaAyer = "";
+  const nuevasTareas = [], tareasHechas = new Set(), quitadas = new Set(), ayer = diaMas(hoy, -1);
   if (!copia.enfoque || typeof copia.enfoque !== "object" || Array.isArray(copia.enfoque)) copia.enfoque = {};
   if (!Array.isArray(copia.enfoque.sesiones)) copia.enfoque.sesiones = [];
   for (const p of pend) {
@@ -173,10 +202,18 @@ function simular(data, bandeja, hoy) {
       // como bocado la que ya tenía ese texto
       if (d.primer_bocado) { bocado = d.primer_bocado; bocadoPedido = { id: "nb" + p.id + "0", ambito: d.ambito === "per" ? "per" : "pro" }; }
       if (d.energia) dia.energia = d.energia;
+      // el ritual completo (Norte-Desk): lo demás de la apertura y las tareas del día, con id fijo «na<pedido><n>»
+      ["mision", "pilar", "servir"].forEach(k => { if (d[k]) dia[k] = d[k]; });
+      if (Array.isArray(d.proyectos) && d.proyectos.length) dia.proyectos = d.proyectos;
+      (Array.isArray(d.tareas_nuevas) ? d.tareas_nuevas : []).forEach((t, k) => {
+        if (t && t.texto) nuevasTareas.push({ id: "na" + p.id + k.toString(36), texto: visible(t.texto), ambito: t.ambito === "pro" ? "pro" : "per", porTexto: true });
+      });
+      (Array.isArray(d.tareas_quitar) ? d.tareas_quitar : []).forEach(id => quitadas.add(String(id)));
     }
     else if (p.tipo === "cerrar" && d.fecha === hoy) dia.cerrado = true;
+    else if (p.tipo === "cerrar" && d.fecha === ayer && d.manana) mananaAyer = d.manana;   // ayer dejaste algo para hoy
   }
-  return { copia, pend, agua, dia, bocado, bocadoPedido, tareas, nuevasTareas, tareasHechas, motor: motorHabitos(copia, hoy) };
+  return { copia, pend, agua, dia, bocado, bocadoPedido, tareas, nuevasTareas, tareasHechas, quitadas, mananaAyer, motor: motorHabitos(copia, hoy) };
 }
 
 /* Tu estado con lo que espera en la bandeja ya puesto, en una copia (no se guarda nada), para los avisos del celular
@@ -212,13 +249,20 @@ export function conBandeja(data, bandeja, hoy) {
   return c;
 }
 
-/* Tus tareas de hoy para mostrar (Norte-Desk): primero el bocado y las prioridades, las hechas al final */
+/* Tus tareas de hoy para mostrar (Norte-Desk): primero el bocado y las prioridades, las hechas al final. Todas (la
+   respuesta muestra 30). «antigua»: viene de otro día (no se quita al abrir el día); «postergada»: cuántas veces se movió. */
 function listaTareas(tareasDia, s) {
-  const xs = tareasDia.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t))).map(t => ({
+  const xs = tareasDia.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t)) && !s.quitadas.has(String(t.id))).map(t => ({
     id: String(t.id), texto: visible(t.txt), ambito: t.ambito === "pro" ? "pro" : "per",
     hecha: estadoTarea(t) === "hecha" || s.tareasHechas.has(String(t.id)), bocado: !!t.esSapo, prioridad: !!t.prioridad,
+    antigua: (+t.migraciones || 0) > 0 || !!t.bocadoSugerido, postergada: +t.migraciones || 0,
   }));
-  s.nuevasTareas.forEach(t => { if (!xs.some(x => x.id === t.id)) xs.push(Object.assign({}, t, { hecha: s.tareasHechas.has(t.id), bocado: false, prioridad: false })); });
+  // las nuevas del ritual completo son como en la app: si ya tienes una con ese texto (aunque la quites), no se crea otra
+  const textos = new Set(tareasDia.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t))).map(t => visible(t.txt)));
+  s.nuevasTareas.forEach(t => {
+    if (xs.some(x => x.id === t.id || (t.porTexto && x.texto === t.texto)) || (t.porTexto && textos.has(t.texto)) || s.quitadas.has(t.id)) return;
+    xs.push({ id: t.id, texto: t.texto, ambito: t.ambito, hecha: s.tareasHechas.has(t.id), bocado: false, prioridad: false, antigua: false, postergada: 0 });
+  });
   // El bocado que espera en la bandeja (abriste el día con Norte): como lo dejará la app (aplicarAperturaExpress), la
   // tarea con ese texto pasa a ser el bocado, o se crea con id fijo «nb<pedido>0». Así se puede completar desde Norte-Desk
   // (completar_tarea) antes de que la app lo aplique: el tarea_hecha queda en la bandeja después del abrir.
@@ -226,10 +270,19 @@ function listaTareas(tareasDia, s) {
     const txt = visible(s.bocado), igual = xs.find(x => x.texto === txt);
     xs.forEach(x => { if (x.bocado && x !== igual) x.bocado = false; });
     if (igual) igual.bocado = true;
-    else if (txt) xs.push({ id: s.bocadoPedido.id, texto: txt, ambito: s.bocadoPedido.ambito, hecha: s.tareasHechas.has(s.bocadoPedido.id), bocado: true, prioridad: false });
+    else if (txt) xs.push({ id: s.bocadoPedido.id, texto: txt, ambito: s.bocadoPedido.ambito, hecha: s.tareasHechas.has(s.bocadoPedido.id), bocado: true, prioridad: false, antigua: false, postergada: 0 });
   }
   const peso = x => (x.hecha ? 10 : 0) + (x.bocado ? 0 : x.prioridad ? 1 : 2);
-  return xs.filter(x => x.texto).sort((a, b) => peso(a) - peso(b)).slice(0, 30);
+  return xs.filter(x => x.texto).sort((a, b) => peso(a) - peso(b));
+}
+/* Los proyectos de tus últimos días (los más recientes primero), para elegirlos al abrir el día */
+function proyectosRecientes(copia, hoy) {
+  const dias = (copia.ritual && copia.ritual.dias) || {}, out = [];
+  for (let i = 1; i <= 30 && out.length < 8; i++) {
+    const r = dias[diaMas(hoy, -i)];
+    ((r && Array.isArray(r.proyectos)) ? r.proyectos : []).forEach(p => { const t = visible(p); if (t && !out.includes(t) && out.length < 8) out.push(t); });
+  }
+  return out;
 }
 
 /* Lo que Norte cuenta de tu día (la acción «hoy») */
@@ -246,28 +299,32 @@ export function resumenDia(data, bandeja, hoy) {
   if (s.bocado) primer = { texto: paraVoz(s.bocado), hecho: !!(tareaBocado && tareaBocado.hecha) };
   else if (sapo) primer = { texto: paraVoz(sapo.txt), hecho: estadoTarea(sapo) === "hecha" || s.tareasHechas.has(String(sapo.id)) };
   else if (dia.sapo) primer = { texto: paraVoz(dia.sapo), hecho: !!(dia.cierre && dia.cierre.sapo) };
-  // abrir el día crea la tarea del bocado (si no estaba, y si no se completó ya por Norte)
-  const nuevoBocado = s.bocado && !tareasDia.some(t => t.txt === s.bocado) && !(s.bocadoPedido && s.tareasHechas.has(s.bocadoPedido.id)) ? 1 : 0;
   // Las rachas de tus hábitos de hoy (los que faltan y los hechos), como en la app: { nombre, n, unidad }, de 1 o más
   const deHoy = new Set([...motor.pendientesHoy().map(h => h.id), ...defs.filter(h => esHacer(h) && motor.hecho(h, hoy)).map(h => h.id)]);
   const rachas = defs.filter(h => deHoy.has(h.id)).map(h => Object.assign({ nombre: paraVoz(h.nombre) }, motor.racha(h)))
     .filter(r => r.nombre && r.n >= 1).map(r => ({ nombre: r.nombre, n: r.n, unidad: r.unidad }));
   const riesgo = motor.enRiesgo();
   const ml = totalAgua(copia.agua && copia.agua.dias && copia.agua.dias[hoy]) + s.agua.filter(v => v.fecha === hoy).reduce((t, v) => t + (+v.ml || 0), 0);
+  // la misión de hoy que dejaste anoche («Una cosa para mañana»), como la propone la app al abrir el día
+  const rAyer = ((copia.ritual && copia.ritual.dias) || {})[diaMas(hoy, -1)], manana = s.mananaAyer || (rAyer && rAyer.cierre && rAyer.cierre.manana) || "";
   return {
     fecha: hoy,
     abierto: !!dia.hecho,
     mision: dia.mision ? paraVoz(dia.mision) : null,
+    mision_sugerida: !dia.mision && manana ? visible(manana) : null,
     primer_bocado: primer,
     energia: dia.energia ? +dia.energia : null,
+    pilar: PILARES.includes(dia.pilar) ? dia.pilar : null,
+    servir: dia.servir ? visible(dia.servir) : null,
+    proyectos: Array.isArray(dia.proyectos) ? dia.proyectos.map(visible).filter(Boolean) : [],
+    proyectos_recientes: proyectosRecientes(copia, hoy),
     cerrado: !!dia.cerrado,
     habitos_pendientes: pendientes,
     habitos_hechos: hechos,
     agua: { ml, meta_ml: metaAgua(copia, hoy) },
-    tareas_pendientes: tareasDia.filter(t => estadoTarea(t) === "pendiente" && !s.tareasHechas.has(String(t.id))).length
-      + s.nuevasTareas.filter(t => !s.tareasHechas.has(t.id)).length + nuevoBocado,
+    tareas_pendientes: tareas.filter(x => !x.hecha).length,
     en_bandeja: s.pend.length + s.agua.length,
-    tareas,
+    tareas: tareas.slice(0, 30),
     habitos_tiempo: defs.filter(h => esHacer(h) && +h.minutos > 0)
       .map(h => ({ nombre: paraVoz(h.nombre), minutos: +h.minutos, hoy: focoMin(copia, h.id, hoy), hecho: motor.hecho(h, hoy) })),
     habitos_racha: rachas,
@@ -417,15 +474,51 @@ async function abrirDia({ sb, uid, body, ahora }) {
   if (energia == null) return fallo(400, "dato-invalido", "Tu energía va de uno a cinco.");
   const ambito = body.ambito == null || body.ambito === "" ? "pro" : body.ambito;
   if (!["pro", "per"].includes(ambito)) return fallo(400, "dato-invalido", "¿Tu primer bocado es personal o profesional?");
+  // El ritual completo (Norte-Desk): lo mismo que el ritual de apertura de la app (openRitualModal en js/modules2.js)
+  const extra = {};
+  if (body.completo === true) {
+    const mision = textoLimpio(body.mision), servir = textoLimpio(body.servir);
+    if (mision == null) return fallo(400, "dato-invalido", "Tu misión es muy larga. Dímela en una frase.");
+    if (servir == null) return fallo(400, "dato-invalido", "Es muy largo. ¿A quién sirves hoy, en pocas palabras?");
+    const pilar = body.pilar == null ? "" : body.pilar;
+    if (pilar && !PILARES.includes(pilar)) return fallo(400, "dato-invalido", `Tu pilar es uno de estos: ${enLista(PILARES, "o")}.`);
+    const proyectos = listaTextos(body.proyectos, 8, 60);
+    if (proyectos == null) return fallo(400, "dato-invalido", "Son muchos proyectos, o alguno es muy largo.");
+    const nuevas = body.tareas_nuevas == null ? [] : body.tareas_nuevas, quitar = body.tareas_quitar == null ? [] : body.tareas_quitar;
+    if (!Array.isArray(nuevas) || nuevas.length > 15) return fallo(400, "dato-invalido", "Son muchas tareas de una vez.");
+    const tareas = [];
+    for (const t of nuevas) {
+      const texto = textoLimpio(t && t.texto), amb = t && t.ambito;
+      if (!texto || !["pro", "per"].includes(amb)) return fallo(400, "dato-invalido", "Una de tus tareas vino incompleta.");
+      tareas.push({ texto, ambito: amb });
+    }
+    if (!Array.isArray(quitar) || quitar.length > 30 || !quitar.every(id => typeof id === "string" && ID_TAREA.test(id))) return fallo(400, "dato-invalido", "¿Qué tareas quito?");
+    Object.assign(extra, { completo: true },
+      mision ? { mision } : {}, servir ? { servir } : {}, pilar ? { pilar } : {}, proyectos.length ? { proyectos } : {},
+      tareas.length ? { tareas_nuevas: tareas } : {}, quitar.length ? { tareas_quitar: [...new Set(quitar)] } : {});
+  }
   const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), d = resumenDia(data, await leerBandeja(sb, uid), dia);
   if (d.cerrado) return fallo(400, "dia-cerrado", "Tu día ya está cerrado. Mañana lo abrimos.");
   if (d.abierto && !bocado) return exito("Tu día ya estaba abierto.", { fecha: dia, ya: true });
-  const r = await aLaBandeja(sb, uid, "abrir", { primer_bocado: bocado, energia, ambito, fecha: dia }, ahora);
+  const datos = Object.assign({ primer_bocado: bocado, energia, ambito, fecha: dia }, extra);
+  if (muyGrande(datos)) return fallo(400, "dato-invalido", MUY_LARGO);
+  const r = await aLaBandeja(sb, uid, "abrir", datos, ahora);
   if (r.limite) return falloDe(429, "demasiados-pedidos");
-  const eco = paraVoz(bocado);
+  const eco = paraVoz(bocado), n = (extra.tareas_nuevas || []).length;
   const texto = d.abierto ? `Tu día ya estaba abierto. Anoté tu primer bocado: ${eco}.`
-    : `Listo, abrí tu día.${eco ? ` Tu primer bocado: ${eco}. Empieza por ahí.` : ""}`;
-  return exito(texto, { fecha: dia, primer_bocado: bocado || null, energia, ambito, ya: d.abierto });
+    : `Listo, abrí tu día.${eco ? ` Tu primer bocado: ${eco}. Empieza por ahí.` : ""}${n ? ` Anoté ${cuantos(n, "tarea", "tareas", "una")} más.` : ""}`;
+  return exito(texto, Object.assign({ fecha: dia, primer_bocado: bocado || null, energia, ambito, ya: d.abierto }, extra));
+}
+
+/* «2 pasan a mañana, 1 a otro día, soltaste 1 y 1 ya la hiciste» */
+function textoPendientes(c) {
+  const p = [];
+  if (c.manana) p.push(c.manana === 1 ? "una pasa a mañana" : `${c.manana} pasan a mañana`);
+  if (c.otro) p.push(c.otro === 1 ? "una va a otro día" : `${c.otro} van a otro día`);
+  if (c.delegar) p.push(c.delegar === 1 ? "delegaste una" : `delegaste ${c.delegar}`);
+  if (c.soltar) p.push(c.soltar === 1 ? "soltaste una" : `soltaste ${c.soltar}`);
+  if (c.hecha) p.push(c.hecha === 1 ? "una ya la hiciste" : `${c.hecha} ya las hiciste`);
+  return p.length ? `De tus pendientes, ${enLista(p)}.` : "";
 }
 
 async function cerrarDia({ sb, uid, body, ahora }) {
@@ -433,15 +526,56 @@ async function cerrarDia({ sb, uid, body, ahora }) {
   if (animo == null) return fallo(400, "dato-invalido", "Tu ánimo va de uno a cinco.");
   const gratitud = textoLimpio(body.gratitud);
   if (gratitud == null) return fallo(400, "dato-invalido", "Es muy largo. Dime lo que agradeces en una frase.");
+  // El ritual completo (Norte-Desk): lo mismo que el ritual de cierre de la app (openCierreModal en js/modules2.js)
+  const extra = {};
+  if (body.completo === true) {
+    const mision = body.mision == null ? "" : body.mision;
+    if (mision && !["si", "parcial", "no"].includes(mision)) return fallo(400, "dato-invalido", "¿Cumpliste tu misión? Sí, parcial o no.");
+    if (body.bocado != null && typeof body.bocado !== "boolean") return fallo(400, "dato-invalido", "¿Diste tu primer bocado? Sí o no.");
+    const energia = entero(body.energia, 1, 5, null);
+    if (energia == null && body.energia != null && body.energia !== "") return fallo(400, "dato-invalido", "Tu energía va de uno a cinco.");
+    const manana = textoLimpio(body.manana), nota = textoLimpio(body.nota, NOTA_MAX);
+    if (manana == null) return fallo(400, "dato-invalido", "Lo de mañana es muy largo. Dímelo en una frase.");
+    if (nota == null) return fallo(400, "dato-invalido", "Tu nota es muy larga.");
+    const lista = body.pendientes == null ? [] : body.pendientes;
+    if (!Array.isArray(lista) || lista.length > 40) return fallo(400, "dato-invalido", "¿Qué hago con tus pendientes?");
+    const pendientes = [];
+    for (const x of lista) {
+      const id = x && x.id, v = x && x.v;
+      if (typeof id !== "string" || !ID_TAREA.test(id) || !DECISIONES.includes(v)) return fallo(400, "dato-invalido", "¿Qué hago con tus pendientes?");
+      const q = { id, v };
+      if (v === "otro") {
+        if (!FECHA.test(x.fecha || "")) return fallo(400, "dato-invalido", "¿Para qué día la dejo?");
+        q.fecha = x.fecha;
+      }
+      if (v === "delegar") {
+        const quien = textoLimpio(x.quien, 80);
+        if (quien == null) return fallo(400, "dato-invalido", "¿A quién se la delegas, en pocas palabras?");
+        if (quien) q.quien = quien;
+      }
+      if (x.bocado === true && (v === "manana" || v === "otro")) q.bocado = true;   // la crónica pasa como primer bocado
+      if (!pendientes.some(y => y.id === id)) pendientes.push(q);
+    }
+    Object.assign(extra, { completo: true },
+      mision ? { mision } : {}, typeof body.bocado === "boolean" ? { bocado: body.bocado } : {}, energia ? { energia } : {},
+      manana ? { manana } : {}, nota ? { nota } : {}, pendientes.length ? { pendientes } : {});
+  }
   const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), d = resumenDia(data, await leerBandeja(sb, uid), dia);
   if (!d.abierto) return fallo(400, "dia-sin-abrir", "Primero hay que abrir tu día. Dime tu primer bocado y lo abrimos.");
   if (d.cerrado) return exito("Tu día ya estaba cerrado. Que descanses.", { fecha: dia, ya: true });
-  const r = await aLaBandeja(sb, uid, "cerrar", { animo, gratitud, fecha: dia }, ahora);
+  const datos = Object.assign({ animo, gratitud, fecha: dia }, extra);
+  if (muyGrande(datos)) return fallo(400, "dato-invalido", MUY_LARGO);
+  const r = await aLaBandeja(sb, uid, "cerrar", datos, ahora);
   if (r.limite) return falloDe(429, "demasiados-pedidos");
-  // el cierre corto, sin elegir nada: las pendientes pasan a mañana (js/ritual-express.js)
-  const n = d.tareas_pendientes;
-  const texto = `Listo, cerré tu día.${n ? ` ${n === 1 ? "Tu tarea pendiente pasa" : `Tus ${n} tareas pendientes pasan`} a mañana.` : ""}${gratitud ? " Gracias por lo que compartiste." : ""} Que descanses.`;
-  return exito(texto, { fecha: dia, animo, gratitud, pasan_a_manana: n });
+  // las pendientes que no se decidieron pasan a mañana (el cierre corto: js/ritual-express.js)
+  const n = d.tareas_pendientes, abiertas = new Set(d.tareas.filter(x => !x.hecha).map(x => x.id));
+  const cuenta = { manana: 0, otro: 0, delegar: 0, soltar: 0, hecha: 0 };
+  (extra.pendientes || []).forEach(x => { if (abiertas.has(x.id) && x.v !== "manana") cuenta[x.v]++; });
+  cuenta.manana = Math.max(0, n - cuenta.otro - cuenta.delegar - cuenta.soltar - cuenta.hecha);
+  const pasan = extra.completo ? textoPendientes(cuenta)
+    : n ? `${n === 1 ? "Tu tarea pendiente pasa" : `Tus ${n} tareas pendientes pasan`} a mañana.` : "";
+  const texto = `Listo, cerré tu día.${pasan ? " " + pasan : ""}${gratitud ? " Gracias por lo que compartiste." : ""} Que descanses.`;
+  return exito(texto, Object.assign({ fecha: dia, animo, gratitud, pasan_a_manana: cuenta.manana }, extra));
 }
 
 /* Completar una tarea de hoy (por su id, el que trae «hoy»): va a la bandeja como tarea_hecha */

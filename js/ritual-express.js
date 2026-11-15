@@ -87,7 +87,9 @@ function aplicarCierreExpress(S, iso, { mood, gratitud, elecciones }) {
 /* -------- Pantallas -------- */
 let EXPRESS_FECHA = null;
 
-function openExpressApertura() {
+function openExpressApertura(op) {
+  op = op || {};
+  if (!op.cadena && typeof cadenaInterceptar === "function" && cadenaInterceptar({ tipo: "express", op })) return;   // rituales-cadena.js
   const iso = todayISO();
   const r = STATE.ritual.dias[iso] || {};
   const cands = candidatasBocado(STATE, iso);
@@ -96,6 +98,7 @@ function openExpressApertura() {
   const amb = (actual && ambitoDe(actual)) || r.sapoAmbito || (cands[0] && cands[0].ambito) || "pro";
   const energia = r.energia || 3;
   openModal("⚡ Abre tu día · express", `
+    ${typeof cadenaBarraDia === "function" ? cadenaBarraDia(op) : ""}
     <div class="field"><label>${BOCADO.emoji} Tu primer bocado</label>
       ${cands.length ? `<div class="rapidas" style="margin-bottom:8px" role="group" aria-label="Usar una sugerida">${cands.map(c => `<button type="button" class="xp-cand" data-txt="${escapeAttr(c.txt)}" data-amb="${c.ambito}" onclick="expressElegir(this)">${AMBITOS[c.ambito].icon} ${escapeHtml(c.txt)}</button>`).join("")}</div>` : ""}
       <div class="row" style="gap:8px">${elAmbito("xp-amb", amb, { compacto: true, label: "Tu primer bocado: ¿profesional o personal?" })}<input class="input" id="xp-sapo" value="${escapeAttr(sapo)}" placeholder="La tarea que más mueve la aguja hoy" aria-label="Tu primer bocado" style="flex:1;min-width:0"></div></div>
@@ -145,6 +148,7 @@ function openExpressCierre(date) {
       <button type="button" class="btn-ghost mt-8" data-action="day-close" data-date="${iso}">Decidir una por una (cierre completo)</button></div>`
     : (cronicas.length ? "" : `<p class="text-sm muted" style="margin-bottom:12px">No te quedan pendientes. 🎉</p>`)}
     <div class="field"><label>Algo que agradeces (opcional)</label><input class="input" id="xc-gratitud" value="${escapeAttr((r.cierre && r.cierre.mejor) || "")}" placeholder="Una línea basta"></div>
+    ${typeof cadenaDomingoHtml === "function" ? cadenaDomingoHtml(iso) : ""}
     <div class="modal__cta"><button class="btn btn--primary btn-block btn--precio" data-action="express-cierre-save"><span>Cerrar mi día</span><span class="btn__precio">+${EXPRESS_MONEDAS.cierre} ${iconoLinea("estrella", 16)}</span></button></div>`);
 }
 function expressMood(btn) {
@@ -157,6 +161,7 @@ function saveExpressCierre() {
   if (!diaParaCerrar(iso)) return toast("Primero abre tu día 🌅", true);
   const elecciones = {};
   document.querySelectorAll(".xc-cron").forEach(el => { elecciones[el.dataset.id] = el.value; });
+  const semana = typeof cadenaDomingoLeer === "function" && cadenaDomingoLeer();   // el domingo: dejar lista la semana
   const { nuevo, n } = aplicarCierreExpress(STATE, iso, { mood: parseNum(val("xc-mood")), gratitud: val("xc-gratitud"), elecciones });
   const monedas = EXPRESS_MONEDAS.cierre;
   const pagado = nuevo && registrarMovimiento("ritual-cierre:" + iso, monedas, monedas, "Cierre express", true);
@@ -167,7 +172,8 @@ function saveExpressCierre() {
   const hubo = medallas && cierreMedallasTermina();
   if (pagado && typeof sonar === "function") sonar("cierre");
   if (nuevo) { vibrar([15, 60, 25]); animarRacha(); }
-  if (nuevo && !hubo && typeof celebrarCierreElefante === "function") celebrarCierreElefante();
+  if (nuevo && !hubo && !semana && typeof celebrarCierreElefante === "function") celebrarCierreElefante();
   const t = textoTriage(n);
   toast(`⚡ Día cerrado${pagado ? ` · +${monedas} ⭐` : ""}${t ? " · " + t : ""}`);
+  if (semana && typeof cadenaDomingoEmpezar === "function") cadenaDomingoEmpezar(iso);
 }

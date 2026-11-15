@@ -12,8 +12,8 @@ module.exports = async ({ b, ok, errs }) => {
     saveState(); rerender();
   });
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
-  ok(await p.locator(".hero-focus", { hasText: "Tu revisión trimestral" }).count() === 1, "fin de diciembre: Inicio ofrece la revisión trimestral");
-  await p.click('.hero-focus [data-action="tri-ritual"]'); await p.waitForTimeout(200);
+  ok(await p.locator(".hero-focus", { hasText: "revisión trimestral" }).count() === 0, "fin de diciembre: Inicio ya no muestra la tarjeta grande (el trimestre se ofrece al abrir el día)");
+  await p.evaluate(() => openTriRitual("2026-Q4", "2027-Q1")); await p.waitForTimeout(200);
   await p.locator('.seg', { has: p.locator('#tc-e-t1') }).locator('button[data-v="cumplido"]').click().catch(async () => {
     await p.locator('.mes-obj', { hasText: "Conseguir 10 clientes" }).locator('button[data-v="cumplido"]').click(); });
   await p.click('[data-action="triw-next"]'); await p.waitForTimeout(120);

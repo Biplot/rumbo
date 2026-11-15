@@ -32,7 +32,7 @@ module.exports = async ({ b, ok, errs }) => {
   await registrar(p, "cruce2@test.cl");
   await p.evaluate(j => { STATE = migrate(JSON.parse(j)); saveState(); rerender(); }, datos);
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
-  ok((await p.locator("#view").innerText()).includes("Abre Enero"), "el 2 de enero Inicio ofrece abrir enero");
+  ok(await p.evaluate(() => cadenaItems(new Date("2027-01-02T09:00:00")).some(i => i.id === "mes-apertura:2027-01")), "el 2 de enero, al abrir el día, se ofrece abrir enero (rituales-cadena.js)");
   await p.evaluate(() => openMesApertura("2027-01"));
   await p.click('[data-action="mes-next"]'); await p.waitForTimeout(100);
   await p.fill("#mw-foco", "Arranque"); await p.click('[data-action="mes-next"]'); await p.waitForTimeout(150);

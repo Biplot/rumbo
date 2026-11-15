@@ -204,6 +204,7 @@ function renderMesWiz() {
   const titulo = (w.tipo === "apertura" ? "Abrir " : "Cerrar ") + nombreMes(w.y, w.m);
   const premio = (ritualMes(w.key) || {})[w.tipo] ? "Guardar cambios" : (w.tipo === "apertura" ? "Abrir el mes (+150 ⭐)" : "Cerrar el mes (+150 ⭐)");
   openModal(titulo, `
+    ${typeof cadenaBarraHtml === "function" ? cadenaBarraHtml("mes-" + w.tipo, w.key) : ""}
     <div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">Paso ${w.paso + 1} de ${pasos.length} · ${pasos[w.paso]}</div>
     <div class="mes-wiz mt-16">${body}</div>
     <div class="onb-dots">${dots}</div>
@@ -376,8 +377,8 @@ function mesHabAdd() {
 function mesWizFinish() {
   mesWizLeer();
   const w = MES_WIZ; if (!w) return;
+  MES_WIZ = null;   // antes de guardar: la cadena del día puede abrir el ritual siguiente
   if (w.tipo === "apertura") guardarMesApertura(w); else guardarMesCierre(w);
-  MES_WIZ = null;
 }
 
 function guardarMesApertura(w) {
@@ -422,6 +423,7 @@ function guardarMesApertura(w) {
   registrarMovimiento("ritual-mes-apertura:" + w.key, 150, 150, "Apertura de " + MESES[w.m]);
   saveState(); closeModal(); updateTopbar(); rerender();
   toast(`🗓️ ${MESES[w.m]} abierto. ¡A por él!`);
+  if (typeof cadenaTermino === "function" && cadenaTermino("mes-apertura", w.key)) return;
 }
 
 function guardarMesCierre(w) {
@@ -457,6 +459,7 @@ function guardarMesCierre(w) {
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
   if (typeof celebrar === "function") celebrar("mes");   // 🎆 fuegos artificiales (Tienda)
   toast(`🗓️ ${MESES[w.m]} cerrado · nota ${d.nota}/10`);
+  if (typeof cadenaTermino === "function" && cadenaTermino("mes-cierre", w.key)) return;
 }
 
 /* ============================================================

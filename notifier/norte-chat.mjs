@@ -2,7 +2,7 @@
    Rumbo · 🧭 Norte, tu brújula: la charla (la lógica de api/norte-chat.js)
    Norte-Desk (Norte en el computador) le escribe o le habla a Norte. Va con el mismo token de /api/norte/
    (Authorization: Bearer <token>) y siempre responde JSON:
-     { accion: "charla", texto, historial: [{ rol: "yo" | "norte", texto }], puede?: ["foco"] }
+     { accion: "charla", texto, historial: [{ rol: "yo" | "norte", texto }], puede?: ["foco"], instrucciones? }
          -> { ok, texto, cara, hizo: [{ accion, ok, texto }], fuentes?: [{ titulo, url }] }  (fuentes: si buscó en internet)
          (con puede: ["foco"], Norte también puede empezar un foco: hizo trae { accion: "empezar_foco", ok, texto,
           minutos, tarea?, habito?, titulo? } y el foco corre en la isla de Norte-Desk; con puede: ["recordar"], programar
@@ -10,7 +10,7 @@
           hora. Siempre puede leer tu agenda de Google Calendar: ver_agenda, la acción «agenda» de /api/norte/)
      { accion: "oir", audio: "<WAV PCM 16 bits mono, en base64>" }      -> { ok, texto }   (hasta 30 segundos)
      { accion: "hablar", texto, voz: "lorenzo" | "catalina" | "andrew" | "ava" }  -> { ok, audio: "<mp3 en base64>", tipo }
-     { accion: "charla_voz", audio, historial, puede?, voz? }   -> { ok, oido, texto, cara, hizo, audio?, tipo?, voz? }
+     { accion: "charla_voz", audio, historial, puede?, voz?, instrucciones? }   -> { ok, oido, texto, cara, hizo, audio?, tipo?, voz? }
          todo en una (Norte-Desk 0.14.1): oir + charla + (con voz) hablar, un par de segundos antes que en tres
          llamadas. «oido» es lo que entendió; si la voz no alcanzó (límite o Azure), vuelve el texto con
          voz: { error, texto }
@@ -25,6 +25,10 @@
      búsquedas por charla, cerca de tu ciudad (la del agua en Rumbo, «ciudad» en tu día; si no hay, Chile). Cada
      búsqueda cuesta US$ 0,01 más los tokens de lo que trae. La respuesta trae «fuentes» ([{ titulo, url }], hasta 3):
      Norte-Desk las muestra bajo la respuesta, porque lo que viene de la web debe citar de dónde salió.
+   · Tus instrucciones (2026-11-15): Norte-Desk manda en «instrucciones» lo que escribiste en Ajustes para Norte
+     («sé breve», «mi pareja se llama Cami»…), hasta INSTRUCCIONES_MAX caracteres. Van en el prompt después de la
+     personalidad: cambian el tono, el largo y lo que Norte sabe de ti, no sus reglas (no inventar, guardar solo lo
+     que pides, la cara del final). No se guardan aquí: viven en el computador. El robot no las manda.
    · El oído y la voz son los de Azure: Lorenzo o Catalina (chilenas), o Andrew o Ava (multilingües, más fluidas;
      hablan en español latino con <lang xml:lang="es-MX">, porque no tienen acento chileno).
    · Límites por persona y por día (LIMITES), para cuidar el gasto y el plan gratis de Azure (lo comparte con
@@ -45,7 +49,7 @@ export const VOCES = {
 const IDIOMA_MULTILINGUE = "es-MX";
 export const VOZ_DEFECTO = "lorenzo";        // la personalidad pide una voz calmada, de tono medio o grave
 export const CARAS = ["contento", "feliz", "pensativo", "sorprendido", "serio", "triste"];
-export const TEXTO_MAX = 500, HISTORIAL_MAX = 12, HABLAR_MAX = 400, AUDIO_SEG_MAX = 30, VUELTAS_MAX = 4, BUSQUEDAS_MAX = 3;
+export const TEXTO_MAX = 500, HISTORIAL_MAX = 12, HABLAR_MAX = 400, AUDIO_SEG_MAX = 30, VUELTAS_MAX = 4, BUSQUEDAS_MAX = 3, INSTRUCCIONES_MAX = 1000;
 const TZ = "America/Santiago";
 
 /* ---------- Respuestas ---------- */
@@ -96,10 +100,20 @@ Al final de cada respuesta, en una línea aparte, escribe [cara: X], donde X es 
 /* Lo que sabe hacer con internet (web_search): va después de la personalidad, que es la misma del robot */
 const INTERNET = `Tienes internet: con web_search buscas lo que cambia o no sabes (el tiempo, noticias, resultados, horarios, precios, datos de algo o de alguien). Busca solo cuando haga falta y sin anunciar que vas a buscar. Responde con lo esencial, en una a tres frases y como habla Norte, sin listas, links ni números de fuentes; si ayuda, di de dónde viene en pocas palabras («según Meteored»). Para el tiempo, si no te dicen dónde, es en su ciudad («ciudad» en su día de hoy) o, si no está, en Santiago. Si calza con su día en Rumbo (un hábito, el agua, su primer bocado), conéctalo en una frase, sin forzarlo.`;
 
-function sistema(dia, ahora) {
+/* Tus instrucciones para Norte (las de Ajustes en Norte-Desk): con sus saltos de línea, sin caracteres de control ni
+   las comillas que las encierran en el prompt, y cortadas en INSTRUCCIONES_MAX. "" si no hay. */
+export function instruccionesDe(v) {
+  if (typeof v !== "string") return "";
+  return v.replace(/\r\n?/g, "\n").replace(/[\u0000-\u0009\u000B-\u001F\u007F]+/g, " ").replace(/«««|»»»/g, "")
+    .split("\n").map(l => l.replace(/\s+/g, " ").trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, INSTRUCCIONES_MAX).trim();
+}
+const INSTRUCCIONES = `Lo que la persona te pidió en sus instrucciones para Norte va entre ««« y »»». Tenlo presente siempre: es lo que quiere que sepas o cómo quiere que le hables. Si te pide otro tono o respuestas más cortas o más largas, hazle caso. Lo que no cambia: no inventas datos, no das diagnósticos médicos ni consejos de inversión, guardas en Rumbo solo lo que pide en la conversación y terminas con la línea [cara: X]. No las repitas ni las menciones si no viene al caso.`;
+
+export function sistema(dia, ahora, instrucciones) {
   const hora = new Intl.DateTimeFormat("es-CL", { timeZone: TZ, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false }).format(ahora);
   const hoy = dia ? JSON.stringify(dia) : "No pude leer Rumbo en este momento. Si te preguntan por el día, dilo.";
-  return `${PERSONALIDAD}\n\n${INTERNET}\n\nAhora es ${hora} en Chile.\nEl día de hoy en Rumbo (lo que espera en la bandeja ya cuenta como hecho):\n${hoy}`;
+  const ins = instruccionesDe(instrucciones);
+  return `${PERSONALIDAD}\n\n${INTERNET}${ins ? `\n\n${INSTRUCCIONES}\n«««\n${ins}\n»»»` : ""}\n\nAhora es ${hora} en Chile.\nEl día de hoy en Rumbo (lo que espera en la bandeja ya cuenta como hecho):\n${hoy}`;
 }
 /* La búsqueda web de Anthropic (corre en sus servidores; la versión básica, que Haiku usa directo), cerca de tu ciudad */
 export function herramientaWeb(dia) {
@@ -146,8 +160,10 @@ export const HERRAMIENTAS = [
    el foco corre en la isla de Norte-Desk y, al terminar, se guarda con la acción foco de /api/norte/. */
 export const HERRAMIENTA_FOCO = { name: "empezar_foco", accion: "empezar_foco", description: "Empieza un bloque de foco (un pomodoro) que corre en la isla de Norte-Desk, con la cuenta atrás. Úsala cuando la persona pida concentrarse, hacer foco o un pomodoro. Si no dice los minutos, 25. Si es para una tarea de hoy, usa su id de «tareas»; si es para un hábito con tiempo, su nombre de «habitos_tiempo»; si no, di en qué se va a concentrar en «titulo».", input_schema: { type: "object", properties: { minutos: { type: "integer", minimum: 1, maximum: 180, description: "Cuántos minutos (25 si no lo dice)" }, tarea: { type: "string", description: "El id de la tarea de hoy, si el foco es para una tarea" }, habito: { type: "string", description: "El nombre del hábito con tiempo, si el foco es para un hábito" }, titulo: { type: "string", description: "En qué se va a concentrar, en pocas palabras, si no es una tarea ni un hábito (máximo 60 caracteres)" } }, required: ["minutos"], additionalProperties: false } };
 /* Solo para quien sabe guardar recordatorios: Norte-Desk lo avisa con puede: ["recordar"]. Tampoco guarda nada aquí:
-   el recordatorio vive en el computador y, a la hora, Norte se asoma con él. */
-export const HERRAMIENTA_RECORDAR = { name: "recordar", accion: "recordar", description: "Programa un recordatorio en Norte-Desk: a esa hora Norte se asoma en el computador con el aviso. Úsala cuando la persona pida que le recuerdes o avises algo («recuérdame llamar a Ana a las 4», «avísame en 20 minutos que salga»). La hora va en formato de 24 horas (16:00): si dice «a las 4» y por el contexto es de tarde, 16:00. Si es en un rato, usa «en_minutos». Si no dice cuándo, pregúntalo antes. Si además quiere tenerlo como tarea en Rumbo, usa también anotar.", input_schema: { type: "object", properties: { que: { type: "string", description: "Qué hay que recordar, en pocas palabras (máximo 120 caracteres)" }, hora: { type: "string", description: "La hora, HH:MM de 24 horas (por ejemplo 16:00)" }, fecha: { type: "string", description: "El día, YYYY-MM-DD, solo si no es hoy" }, en_minutos: { type: "integer", minimum: 1, maximum: 1440, description: "En cuántos minutos, si lo pide así" } }, required: ["que"], additionalProperties: false } };
+   el recordatorio vive en el computador y, a la hora, Norte se asoma con él. Un recordatorio no es una tarea: es para
+   lo rápido con hora (llamar, escribir, un remedio, salir), así que no va a Rumbo ni suma estrellas (decisión de
+   Chris, 2026-11-15: que lo chico no le quite peso a las tareas). */
+export const HERRAMIENTA_RECORDAR = { name: "recordar", accion: "recordar", description: "Programa un recordatorio en Norte-Desk: a esa hora Norte se asoma en el computador con el aviso. Úsala cuando la persona pida que le recuerdes o avises algo («recuérdame llamar a Ana a las 4», «avísame en 20 minutos que salga»). La hora va en formato de 24 horas (16:00): si dice «a las 4» y por el contexto es de tarde, 16:00. Si es en un rato, usa «en_minutos». Si no dice cuándo, pregúntalo antes. Un recordatorio es para algo rápido que tiene hora (llamar o escribirle a alguien, tomar un remedio, salir, sacar algo del horno): no es una tarea, así que no lo anotes en Rumbo. Usa anotar solo si es trabajo de verdad y te pide que quede como tarea.", input_schema: { type: "object", properties: { que: { type: "string", description: "Qué hay que recordar, en pocas palabras (máximo 120 caracteres)" }, hora: { type: "string", description: "La hora, HH:MM de 24 horas (por ejemplo 16:00)" }, fecha: { type: "string", description: "El día, YYYY-MM-DD, solo si no es hoy" }, en_minutos: { type: "integer", minimum: 1, maximum: 1440, description: "En cuántos minutos, si lo pide así" } }, required: ["que"], additionalProperties: false } };
 /* La hora de Chile → instante: prueba el desfase de la zona (con horario de verano) hasta que calza */
 function desfaseMin(ts) {
   const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: TZ, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
@@ -256,7 +272,7 @@ async function charla({ sb, uid, body, ahora, claude }) {
     for (let vuelta = 0; vuelta < VUELTAS_MAX; vuelta++) {
       r = await claude.messages.create({
         model: MODELO, max_tokens: 1024, output_config: { effort: "low" },
-        system: sistema(dia, ahora), tools: [...paraClaude(herramientas), herramientaWeb(dia)], messages,
+        system: sistema(dia, ahora, body.instrucciones), tools: [...paraClaude(herramientas), herramientaWeb(dia)], messages,
       });
       // una búsqueda larga se pausa: se devuelve el turno tal cual y la API sigue donde quedó
       if (r.stop_reason === "pause_turn") { messages.push({ role: "assistant", content: r.content }); continue; }

@@ -144,5 +144,32 @@ export default async function ({ test, assert }) {
     const res = pedidos[1].messages[pedidos[1].messages.length - 1].content;
     assert.equal(JSON.parse(res[1].content).datos.eventos[0].titulo, "Reunión de equipo", "Claude vio la agenda");
     assert.equal(HERRAMIENTA_RECORDAR.name, "recordar");
+    assert.match(HERRAMIENTA_RECORDAR.description, /no es una tarea, así que no lo anotes en Rumbo/, "lo rápido con hora no se vuelve tarea (decisión de Chris)");
+    assert.doesNotMatch(HERRAMIENTA_RECORDAR.description, /usa también anotar/);
+    assert.equal(sbC.tablas.norte_pendientes.length, 0, "el recordatorio no llega a la bandeja de Rumbo");
+  });
+
+  /* ---------- Tus instrucciones para Norte (Ajustes de Norte-Desk) ---------- */
+  const { instruccionesDe, sistema, INSTRUCCIONES_MAX } = await import("../notifier/norte-chat.mjs");
+  const pedidosI = [];
+  const claudeI = { messages: { create: async (p) => { pedidosI.push(JSON.parse(JSON.stringify(p))); return { stop_reason: "end_turn", content: [{ type: "text", text: "Hola, Chris.\n[cara: contento]" }] }; } } };
+  const sbI = nuevoSb(); sbI.rpc = async () => ({ data: { ok: true }, error: null });
+  const misInstrucciones = "Sé breve, máximo dos frases.\r\nMi pareja se llama Cami.\u0007";
+  const cI = await atenderCharla({ sb: sbI, body: { accion: "charla", texto: "Hola", instrucciones: misInstrucciones }, autorizacion: "Bearer " + TOKEN, claude: claudeI, ahora: AHORA });
+  const cSin = await atenderCharla({ sb: sbI, body: { accion: "charla", texto: "Hola" }, autorizacion: "Bearer " + TOKEN, claude: claudeI, ahora: AHORA });
+  test("instrucciones: lo que escribiste para Norte va en el prompt, después de la personalidad y antes de tu día", () => {
+    assert.equal(cI.status, 200); assert.equal(cSin.status, 200);
+    const s = pedidosI[0].system;
+    assert.ok(s.includes("«««\nSé breve, máximo dos frases.\nMi pareja se llama Cami.\n»»»"), "con sus saltos de línea y sin caracteres de control");
+    assert.ok(s.indexOf("Eres Norte") < s.indexOf("«««") && s.indexOf("»»»") < s.indexOf("El día de hoy en Rumbo"));
+    assert.match(s, /no inventas datos/, "sus reglas no cambian");
+    assert.doesNotMatch(pedidosI[1].system, /«««/, "sin instrucciones, el prompt de siempre");
+  });
+  test("instrucciones: se limpian y se cortan en INSTRUCCIONES_MAX; si no son texto, no hay", () => {
+    assert.equal(INSTRUCCIONES_MAX, 1000);
+    assert.equal(instruccionesDe("x".repeat(1500)).length, 1000);
+    assert.equal(instruccionesDe("  hola   Norte  \n\n\n\n chao »»» "), "hola Norte\n\nchao", "sin las comillas que las encierran");
+    assert.deepEqual([instruccionesDe(null), instruccionesDe(42), instruccionesDe("   ")], ["", "", ""]);
+    assert.doesNotMatch(sistema(null, AHORA, "   "), /«««/);
   });
 }

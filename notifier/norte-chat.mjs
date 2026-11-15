@@ -5,7 +5,9 @@
      { accion: "charla", texto, historial: [{ rol: "yo" | "norte", texto }], puede?: ["foco"] }
          -> { ok, texto, cara, hizo: [{ accion, ok, texto }], fuentes?: [{ titulo, url }] }  (fuentes: si buscó en internet)
          (con puede: ["foco"], Norte también puede empezar un foco: hizo trae { accion: "empezar_foco", ok, texto,
-          minutos, tarea?, habito?, titulo? } y el foco corre en la isla de Norte-Desk)
+          minutos, tarea?, habito?, titulo? } y el foco corre en la isla de Norte-Desk; con puede: ["recordar"], programar
+          un recordatorio: hizo trae { accion: "recordar", ok, texto, que, cuando (ISO), hora } y Norte-Desk se asoma a esa
+          hora. Siempre puede leer tu agenda de Google Calendar: ver_agenda, la acción «agenda» de /api/norte/)
      { accion: "oir", audio: "<WAV PCM 16 bits mono, en base64>" }      -> { ok, texto }   (hasta 30 segundos)
      { accion: "hablar", texto, voz: "lorenzo" | "catalina" | "andrew" | "ava" }  -> { ok, audio: "<mp3 en base64>", tipo }
      { accion: "charla_voz", audio, historial, puede?, voz? }   -> { ok, oido, texto, cara, hizo, audio?, tipo?, voz? }
@@ -132,6 +134,7 @@ export function fuentesDe(content) {
 const ambito = { type: "string", enum: ["per", "pro"], description: "per si es personal, pro si es profesional o de trabajo" };
 export const HERRAMIENTAS = [
   { name: "ver_mi_dia", accion: "hoy", description: "Lee cómo va el día en Rumbo: si está abierto o cerrado, la misión, el primer bocado, los hábitos que faltan y los hechos, el agua y las tareas pendientes.", input_schema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "ver_agenda", accion: "agenda", description: "Lee las próximas reuniones y eventos de su Google Calendar (las próximas 36 horas), si lo conectó en Rumbo. Úsala cuando pregunte por sus reuniones, su agenda o a qué hora tiene algo.", input_schema: { type: "object", properties: {}, additionalProperties: false } },
   { name: "sumar_agua", accion: "sumar_agua", description: "Anota vasos de agua que la persona dice que tomó.", input_schema: { type: "object", properties: { vasos: { type: "integer", minimum: 1, maximum: 6, description: "Cuántos vasos" } }, required: ["vasos"], additionalProperties: false } },
   { name: "marcar_habito", accion: "marcar_habito", description: "Marca como hecho hoy un hábito de Rumbo, por su nombre (sirve una parte del nombre).", input_schema: { type: "object", properties: { habito: { type: "string", description: "El nombre del hábito, como lo dijo la persona" } }, required: ["habito"], additionalProperties: false } },
   { name: "anotar", accion: "anotar", description: "Anota una tarea para hoy o guarda una nota. Antes de anotar una tarea, mira «tareas» del día de hoy: si ya hay una igual o muy parecida (también las que vienen de días anteriores), pregunta si es la misma en vez de anotarla otra vez.", input_schema: { type: "object", properties: { texto: { type: "string", description: "Lo que hay que anotar, en pocas palabras (máximo 200 caracteres)" }, tipo: { type: "string", enum: ["tarea", "nota"] }, ambito }, required: ["texto", "tipo"], additionalProperties: false } },
@@ -142,6 +145,48 @@ export const HERRAMIENTAS = [
 /* Solo para quien sabe llevar un foco: Norte-Desk lo avisa con puede: ["foco"] (el robot no). No guarda nada aquí:
    el foco corre en la isla de Norte-Desk y, al terminar, se guarda con la acción foco de /api/norte/. */
 export const HERRAMIENTA_FOCO = { name: "empezar_foco", accion: "empezar_foco", description: "Empieza un bloque de foco (un pomodoro) que corre en la isla de Norte-Desk, con la cuenta atrás. Úsala cuando la persona pida concentrarse, hacer foco o un pomodoro. Si no dice los minutos, 25. Si es para una tarea de hoy, usa su id de «tareas»; si es para un hábito con tiempo, su nombre de «habitos_tiempo»; si no, di en qué se va a concentrar en «titulo».", input_schema: { type: "object", properties: { minutos: { type: "integer", minimum: 1, maximum: 180, description: "Cuántos minutos (25 si no lo dice)" }, tarea: { type: "string", description: "El id de la tarea de hoy, si el foco es para una tarea" }, habito: { type: "string", description: "El nombre del hábito con tiempo, si el foco es para un hábito" }, titulo: { type: "string", description: "En qué se va a concentrar, en pocas palabras, si no es una tarea ni un hábito (máximo 60 caracteres)" } }, required: ["minutos"], additionalProperties: false } };
+/* Solo para quien sabe guardar recordatorios: Norte-Desk lo avisa con puede: ["recordar"]. Tampoco guarda nada aquí:
+   el recordatorio vive en el computador y, a la hora, Norte se asoma con él. */
+export const HERRAMIENTA_RECORDAR = { name: "recordar", accion: "recordar", description: "Programa un recordatorio en Norte-Desk: a esa hora Norte se asoma en el computador con el aviso. Úsala cuando la persona pida que le recuerdes o avises algo («recuérdame llamar a Ana a las 4», «avísame en 20 minutos que salga»). La hora va en formato de 24 horas (16:00): si dice «a las 4» y por el contexto es de tarde, 16:00. Si es en un rato, usa «en_minutos». Si no dice cuándo, pregúntalo antes. Si además quiere tenerlo como tarea en Rumbo, usa también anotar.", input_schema: { type: "object", properties: { que: { type: "string", description: "Qué hay que recordar, en pocas palabras (máximo 120 caracteres)" }, hora: { type: "string", description: "La hora, HH:MM de 24 horas (por ejemplo 16:00)" }, fecha: { type: "string", description: "El día, YYYY-MM-DD, solo si no es hoy" }, en_minutos: { type: "integer", minimum: 1, maximum: 1440, description: "En cuántos minutos, si lo pide así" } }, required: ["que"], additionalProperties: false } };
+/* La hora de Chile → instante: prueba el desfase de la zona (con horario de verano) hasta que calza */
+function desfaseMin(ts) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: TZ, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+    .formatToParts(new Date(ts)).map(x => [x.type, x.value]));
+  return (Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - Math.floor(ts / 60000) * 60000) / 60000;
+}
+function instanteChile(fecha, hora) {
+  const [Y, M, D] = fecha.split("-").map(Number), [h, m] = hora.split(":").map(Number), base = Date.UTC(Y, M - 1, D, h, m);
+  let t = base;
+  for (let i = 0; i < 3; i++) t = base - desfaseMin(t) * 60000;
+  return t;
+}
+const horaChile = ts => new Intl.DateTimeFormat("es-CL", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(ts));
+/* Revisa el recordatorio que pidió Claude. Devuelve lo que va en hizo: { ok, que, cuando (ISO), hora, texto } */
+export function programarRecordatorio(input, ahora) {
+  const que = limpio(input && input.que, 120);
+  if (!que) return { ok: false, error: "dato-invalido", texto: "¿Qué te recuerdo?" };
+  const ya = ahora.getTime();
+  let cuando;
+  if (input.en_minutos != null) {
+    const n = Number(input.en_minutos);
+    if (!Number.isInteger(n) || n < 1 || n > 1440) return { ok: false, error: "dato-invalido", texto: "Puedo recordarte algo de 1 minuto a 24 horas desde ahora." };
+    cuando = ya + n * 60000;
+  } else {
+    const hora = String(input.hora || "").trim();
+    if (!/^([01]?\d|2[0-3]):[0-5]\d$/.test(hora)) return { ok: false, error: "dato-invalido", texto: "¿A qué hora te lo recuerdo?" };
+    const hoy = localDate(TZ, ahora), hh = hora.padStart(5, "0");
+    let fecha = /^\d{4}-\d{2}-\d{2}$/.test(input.fecha || "") ? input.fecha : hoy;
+    cuando = instanteChile(fecha, hh);
+    if (!input.fecha && cuando < ya - 60000) { const d = new Date(Date.parse(hoy + "T12:00:00Z") + 864e5); fecha = d.toISOString().slice(0, 10); cuando = instanteChile(fecha, hh); }   // ya pasó: mañana
+    if (cuando < ya - 60000) return { ok: false, error: "dato-invalido", texto: "Esa hora ya pasó." };
+    if (cuando > ya + 30 * 864e5) return { ok: false, error: "dato-invalido", texto: "Puedo recordarte cosas de los próximos 30 días." };
+  }
+  const dia = localDate(TZ, new Date(cuando)), hoy = localDate(TZ, ahora), hora = horaChile(cuando);
+  const manana = localDate(TZ, new Date(ahora.getTime() + 864e5));
+  const cuandoTxt = dia === hoy ? `a las ${hora}` : dia === manana ? `mañana a las ${hora}` : `el ${new Intl.DateTimeFormat("es-CL", { timeZone: TZ, weekday: "long", day: "numeric" }).format(new Date(cuando))} a las ${hora}`;
+  return { ok: true, que, cuando: new Date(cuando).toISOString(), hora, texto: `Listo, te recuerdo «${que}» ${cuandoTxt}.` };
+}
+const SOLO_LEER = ["hoy", "agenda"];
 const paraClaude = (hs) => hs.map(({ name, description, input_schema }) => ({ name, description, input_schema }));
 const sinTildes = (x) => String(x || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
@@ -201,7 +246,8 @@ async function charla({ sb, uid, body, ahora, claude }) {
   if (uso.sinTabla) return fallo(500, "sin-servidor", TEXTOS["sin-servidor"]);
   if (uso.ok === false) return falloLimite(uso.limite);
   const dia = hoy.cuerpo.ok ? hoy.cuerpo.datos : null;
-  const herramientas = Array.isArray(body.puede) && body.puede.includes("foco") ? [...HERRAMIENTAS, HERRAMIENTA_FOCO] : HERRAMIENTAS;
+  const puede = Array.isArray(body.puede) ? body.puede : [];
+  const herramientas = [...HERRAMIENTAS, ...(puede.includes("foco") ? [HERRAMIENTA_FOCO] : []), ...(puede.includes("recordar") ? [HERRAMIENTA_RECORDAR] : [])];
   const messages = armarHistorial(body.historial);
   messages.push({ role: "user", content: texto });   // si el historial terminaba en «yo», la API junta los dos
   const hizo = [];
@@ -224,9 +270,12 @@ async function charla({ sb, uid, body, ahora, claude }) {
         else if (h.accion === "empezar_foco") {
           res = empezarFoco(b.input || {}, dia);
           hizo.push(Object.assign({ accion: h.accion }, res));
+        } else if (h.accion === "recordar") {
+          res = programarRecordatorio(b.input || {}, ahora);
+          hizo.push(Object.assign({ accion: h.accion }, res));
         } else {
           res = (await accionNorte({ sb, uid, accion: h.accion, body: b.input || {}, ahora })).cuerpo;
-          if (h.accion !== "hoy") hizo.push({ accion: h.accion, ok: !!res.ok, texto: res.texto });
+          if (!SOLO_LEER.includes(h.accion)) hizo.push({ accion: h.accion, ok: !!res.ok, texto: res.texto });   // leer no es «hacer»
         }
         resultados.push({ type: "tool_result", tool_use_id: b.id, content: JSON.stringify(res).slice(0, 4000), is_error: !res.ok || undefined });
       }

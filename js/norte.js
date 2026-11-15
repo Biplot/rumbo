@@ -33,7 +33,7 @@
    ============================================================ */
 const NORTE = { corriendo: false, codigo: "", expira: 0, antes: [], reloj: 0, revisar: 0, alFoco: null, aparatos: null, cargando: false, creando: false, error: null,
   tomados: new Map(), reintento: 0, reintentos: 0 };
-const NORTE_HECHOS_DIAS = 21, NORTE_HECHOS_MAX = 400, NORTE_TEXTO = 200, NORTE_NOTA = 600;
+const NORTE_HECHOS_DIAS = 21, NORTE_HECHOS_MAX = 400, NORTE_TEXTO = 200, NORTE_NOTA = 600, NORTE_NOTA_LARGA = 1000;
 /* El ritual completo da lo mismo que en la app (saveRitual y saveCierre en modules2.js); sus pilares son PILARES */
 const NORTE_RITUAL = { apertura: 50, cierre: 40 };
 const NORTE_PILARES = ["Psicología", "Fisiología", "Productividad", "Magnetismo", "Presencia", "Propósito"];
@@ -63,6 +63,8 @@ function norteLimpiarHechos(S, now) {
 /* Para comparar tareas: sin tildes, mayúsculas, signos ni espacios de más (como normalizar en notifier/norte.mjs) */
 const norteNorm = v => String(v == null ? "" : v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const norteMisma = (a, b) => { const n = norteNorm(a); return !!n && n === norteNorm(b); };
+const norteLineas = (v, max) => String(v == null ? "" : v).replace(/\r\n?/g, "\n").replace(/[\u0000-\u0009\u000B-\u001F\u007F]+/g, " ").replace(/[ \t]+/g, " ")
+  .split("\n").map(l => l.trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, max || NORTE_TEXTO);
 const norteTexto = (v, max) => String(v == null ? "" : v).replace(/[\u0000-\u001F\u007F]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max || NORTE_TEXTO);
 /* Las tareas que crea un pedido (el bocado al abrir, las que pasan a mañana al cerrar) llevan id fijo:
    si dos equipos aplican el mismo pedido a la vez, al juntarse queda una de cada una */
@@ -153,7 +155,7 @@ function norteAplicarUno(p, S, hoy, now) {
     return { tipo: "tarea", txt, iso: dia, estrellas: 0 };
   }
   if (p.tipo === "nota") {
-    const txt = norteTexto(d.texto), nid = "nn" + p.id;
+    const txt = norteLineas(d.texto, NORTE_NOTA_LARGA), nid = "nn" + p.id;   // una nota puede ser larga y con líneas («anota esto»)
     S.postits = Array.isArray(S.postits) ? S.postits : [];
     if (!txt || S.postits.some(n => n && n.id === nid)) return null;
     S.postits.push({ id: nid, titulo: "", texto: txt, etiquetas: typeof etiquetasDe === "function" ? etiquetasDe(txt) : [], fijada: false, color: "", archivada: false, ts: now });

@@ -14,6 +14,9 @@
    Acciones: conectar · hoy · sumar_agua · marcar_habito · anotar · abrir_dia · cerrar_dia · completar_tarea · foco.
    «hoy» trae también tus tareas de hoy (con su id), tus hábitos con tiempo (sus minutos y los que llevas hoy) y
    las rachas de tus hábitos de hoy (y la que está en riesgo), para Norte-Desk; completar_tarea y foco van a la bandeja como tarea_hecha y foco (supabase/norte-foco.sql).
+   Para Norte-Desk también: reportar_falla («esto falló», a norte_fallas: supabase/norte-fallas.sql), buenos_dias (el
+   tiempo de tu ciudad con Open-Meteo y lo principal del día, en una frase) y agenda (tus próximas reuniones de Google
+   Calendar, por la función gcal de Rumbo, si lo conectaste). Las notas anotadas pueden ser largas (NOTA_LARGA).
    abrir_dia y cerrar_dia con «completo: true» (Norte-Desk) traen el ritual entero, como en la app: al abrir, la misión, el
    pilar, a quién sirves, los proyectos y las tareas del día (nuevas y las que se quitan); al cerrar, si cumpliste tu misión,
    el bocado, qué pasa con cada pendiente, la energía, lo que agradeces, una cosa para mañana y una nota. Sin «completo»
@@ -31,6 +34,9 @@ import { VASOS_AL_DIA } from "./vaso.mjs";
 
 export const TEXTO_MAX = 200;          // tareas, notas, primer bocado y gratitud
 export const NOTA_MAX = 600;           // la nota libre del cierre
+export const NOTA_LARGA = 1000;        // una nota anotada (Norte-Desk: «anota esto» con lo que copiaste)
+export const FALLAS_HORA = 20;         // reportes de «esto falló» por hora
+const DONDE_FALLA = ["charla", "voz", "ritual", "isla", "anotar", "ajustes", "otro"];
 // Cada pedido de la bandeja pesa menos de 4000 bytes (norte_pendientes.datos en supabase/norte.sql); en JSON se deja
 // margen, porque jsonb pesa algo más que el texto
 export const DATOS_MAX = 2800;
@@ -82,6 +88,14 @@ function textoLimpio(v, max = TEXTO_MAX) {
   if (v == null) return "";
   if (typeof v !== "string" && typeof v !== "number") return null;
   const t = String(v).replace(/[\u0000-\u001F\u007F]+/g, " ").replace(/\s+/g, " ").trim();
+  return t.length > max ? null : t;
+}
+/* Igual, pero conserva los saltos de línea (una nota copiada: un correo, una lista), hasta 2 seguidos */
+function textoConLineas(v, max) {
+  if (v == null) return "";
+  if (typeof v !== "string" && typeof v !== "number") return null;
+  const t = String(v).replace(/\r\n?/g, "\n").replace(/[\u0000-\u0009\u000B-\u001F\u007F]+/g, " ").replace(/[ \t]+/g, " ")
+    .split("\n").map(l => l.trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim();
   return t.length > max ? null : t;
 }
 /* «a», «a y b», «a, b y c», «a, b, c y 2 más» */
@@ -302,8 +316,21 @@ function semanaDe(copia, hoy, s) {
     return false;
   };
   const defs = copia.habitos.defs;
+  // Tus números de la semana hasta hoy (como los del ritual semanal de la app): días abiertos y cerrados, hábitos,
+  // tareas hechas y minutos de foco. Lo que espera en la bandeja ya cuenta.
+  const diasHasta = Array.from({ length: (Date.parse(hoy) - Date.parse(lunes)) / 864e5 + 1 }, (_, i) => diaMas(lunes, i));
+  const ritual = (copia.ritual && copia.ritual.dias) || {}, rDe = d => (d === hoy ? Object.assign({}, ritual[d], s.dia) : ritual[d]) || {};
+  let tareasHechas = 0;
+  diasHasta.forEach(d => (dias[d] || []).forEach(t => { if (t && !t.borrada && (estadoTarea(t) === "hecha" || s.tareasHechas.has(String(t.id)))) tareasHechas++; }));
+  tareasHechas += s.nuevasTareas.filter(t => s.tareasHechas.has(t.id)).length;
+  const foco = ((copia.enfoque && copia.enfoque.sesiones) || []).filter(x => x && !x.borrada && x.fecha >= lunes && x.fecha <= hoy).reduce((t, x) => t + (+x.real || 0), 0);
+  const cumple = s.motor.cumplimiento(lunes, hoy);
+  const numeros = {
+    dias: diasHasta.length, abiertos: diasHasta.filter(d => rDe(d).hecho).length, cerrados: diasHasta.filter(d => rDe(d).cerrado).length,
+    habitos_pct: cumple.pct, tareas_hechas: tareasHechas, foco_min: Math.round(foco),
+  };
   return {
-    desde: lunes, hasta: diaMas(lunes, 6), planificada: !!a,
+    desde: lunes, hasta: diaMas(lunes, 6), planificada: !!a, numeros,
     foco: a && a.foco ? visible(a.foco) : null,
     premio: w.plan && w.plan.premio ? visible(w.plan.premio) : null,
     prioridades: ((a && Array.isArray(a.prioridades)) ? a.prioridades : []).filter(p => p && p.texto).slice(0, 5).map(p => ({
@@ -483,7 +510,7 @@ async function marcarHabito({ sb, uid, body, ahora }) {
 }
 
 async function anotar({ sb, uid, body, ahora }) {
-  const texto = textoLimpio(body.texto);
+  const texto = body.tipo === "nota" ? textoConLineas(body.texto, NOTA_LARGA) : textoLimpio(body.texto);
   if (texto == null) return fallo(400, "dato-invalido", "Es muy largo para anotarlo. Dímelo más corto.");
   if (!texto) return fallo(400, "dato-invalido", "¿Qué anoto?");
   const tipo = body.tipo == null || body.tipo === "" ? "tarea" : body.tipo;
@@ -659,16 +686,113 @@ async function foco({ sb, uid, body, ahora }) {
   return exito(texto, { fecha: dia, minutos: min, completa, habito: datos.hid ? destino : undefined, completa_habito: completaHabito });
 }
 
-const ACCIONES = { hoy, sumar_agua: sumarAgua, marcar_habito: marcarHabito, anotar, abrir_dia: abrirDia, cerrar_dia: cerrarDia, completar_tarea: completarTarea, foco };
+/* ---------- «Esto falló» (Norte-Desk): lo que salió mal, con su contexto, para revisarlo y arreglarlo ---------- */
+/* Va a norte_fallas (supabase/norte-fallas.sql), no a tu documento: es para quien arregla a Norte, no para la app */
+async function reportarFalla({ sb, uid, body, ahora }) {
+  const texto = textoLimpio(body.texto, 500), pregunta = textoLimpio(body.pregunta, 1000), respuesta = textoLimpio(body.respuesta, 2000);
+  const version = textoLimpio(body.version, 30), donde = DONDE_FALLA.includes(body.donde) ? body.donde : "otro";
+  if (texto == null || pregunta == null || respuesta == null || version == null) return fallo(400, "dato-invalido", "Es muy largo. Cuéntamelo más corto.");
+  if (!texto && !pregunta && !respuesta) return fallo(400, "dato-invalido", "¿Qué falló?");
+  const lista = (v, n, max) => (Array.isArray(v) ? v : []).slice(-n).map(x => (typeof x === "string" ? textoLimpio(x, max) : null)).filter(Boolean);
+  const contexto = (Array.isArray(body.contexto) ? body.contexto : []).slice(-10)
+    .map(m => m && typeof m === "object" ? { rol: m.rol === "norte" ? "norte" : "yo", texto: textoLimpio(m.texto, 500) || "" } : null).filter(x => x && x.texto);
+  const desde = new Date(ahora.getTime() - 3600e3).toISOString();
+  const { count, error: ec } = await sb.from("norte_fallas").select("id", { count: "exact", head: true }).eq("user_id", uid).gte("creado", desde);
+  if (ec) throw new Error(ec.message);
+  if ((count || 0) >= FALLAS_HORA) return falloDe(429, "demasiados-pedidos");
+  const { error } = await sb.from("norte_fallas").insert({
+    id: idNuevo("f", ahora), user_id: uid, texto, pregunta, respuesta, donde, version,
+    contexto: { conversacion: contexto, errores: lista(body.errores, 10, 300) },
+  });
+  if (error) throw new Error(error.message);
+  return exito("Gracias. Lo anoté para revisarlo y arreglarlo.", { donde });
+}
+
+/* ---------- Buenos días (Norte-Desk): el tiempo de tu ciudad y lo principal de tu día, en una frase ---------- */
+const SANTIAGO = { ciudad: "Santiago", lat: -33.45, lon: -70.66 };
+/* Los códigos del tiempo de Open-Meteo (WMO) en palabras */
+export function cieloDe(codigo) {
+  const c = +codigo;
+  if (c === 0) return "despejado";
+  if (c === 1 || c === 2) return "parcialmente nublado";
+  if (c === 3) return "nublado";
+  if (c === 45 || c === 48) return "con neblina";
+  if (c >= 51 && c <= 57) return "con llovizna";
+  if ((c >= 61 && c <= 67) || (c >= 80 && c <= 82)) return "con lluvia";
+  if ((c >= 71 && c <= 77) || c === 85 || c === 86) return "con nieve";
+  if (c >= 95) return "con tormenta";
+  return "";
+}
+/* El tiempo de hoy en tu ciudad (la del agua en Rumbo; si no hay, Santiago), con Open-Meteo: gratis y sin cuenta.
+   Solo viajan las coordenadas de la ciudad. null si no se pudo (sin red o sin respuesta en 4 s) */
+export async function tiempoDe(clima, red) {
+  const c = clima && Number.isFinite(+clima.lat) && Number.isFinite(+clima.lon) ? clima : SANTIAGO;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${(+c.lat).toFixed(2)}&longitude=${(+c.lon).toFixed(2)}`
+    + "&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=1";
+  try {
+    const r = await red(url, { signal: AbortSignal.timeout(4000) });
+    if (!r || !r.ok) return null;
+    const j = await r.json(), d = j.daily || {}, ahora = j.current || {}, n = v => (Number.isFinite(+v) ? Math.round(+v) : null);
+    const ciudad = String(c.ciudad || "").split(",")[0].trim() || "tu ciudad";
+    return { ciudad, temp: n(ahora.temperature_2m), max: n((d.temperature_2m_max || [])[0]), min: n((d.temperature_2m_min || [])[0]),
+      lluvia: n((d.precipitation_probability_max || [])[0]), cielo: cieloDe(ahora.weather_code != null ? ahora.weather_code : (d.weather_code || [])[0]) };
+  } catch (e) { return null; }
+}
+export function textoBuenosDias(t, d) {
+  const p = [];
+  if (t) {
+    const ahora = t.temp != null ? `hay ${t.temp}°` : "";
+    const como = [ahora, t.cielo ? `está ${t.cielo}` : ""].filter(Boolean).join(" y ");
+    p.push(`Buenos días. En ${t.ciudad}${como ? " " + como : ""}${t.max != null ? `, con máxima de ${t.max}°` : ""}.`);
+    if (t.lluvia != null && t.lluvia >= 50) p.push(`Hay ${t.lluvia}% de probabilidad de lluvia: lleva paraguas.`);
+  } else p.push("Buenos días.");
+  if (d && !d.abierto) { if (d.mision_sugerida) p.push(`Anoche dejaste para hoy: ${paraVoz(d.mision_sugerida)}.`); }
+  else if (d && d.mision) p.push(`Tu misión: ${paraVoz(d.mision)}.`);
+  const faltan = d && d.semana ? d.semana.prioridades.filter(x => !x.hecha).length : 0, hab = d ? d.habitos_pendientes.length : 0;
+  const cosas = [hab ? cuantos(hab, "hábito", "hábitos") : "", faltan ? `${cuantos(faltan, "prioridad", "prioridades", "una")} de la semana` : ""].filter(Boolean);
+  if (cosas.length) p.push(`Hoy tienes ${enLista(cosas)}.`);
+  if (d && !d.abierto && !d.cerrado) p.push("¿Abrimos el día?");
+  return p.join(" ");
+}
+async function buenosDias({ sb, uid, ahora, red = globalThis.fetch }) {
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), d = resumenDia(data, await leerBandeja(sb, uid), dia);
+  const clima = data && data.agua && data.agua.clima ? data.agua.clima : null;
+  const tiempo = await tiempoDe(clima, red);
+  return exito(textoBuenosDias(tiempo, d), { fecha: dia, tiempo, abierto: d.abierto, cerrado: d.cerrado });
+}
+
+/* ---------- Tu agenda (Norte-Desk): las próximas reuniones de tu Google Calendar ---------- */
+/* Las lee la función «gcal» de Rumbo (supabase/functions/gcal, acción «proximos»), que guarda cifrado el permiso de
+   Google: aquí no llega ni el permiso ni la clave. Solo si conectaste Google Calendar en Rumbo (settings.gcal). */
+export const AGENDA_HORAS = 36;
+async function agenda({ sb, uid }) {
+  const data = await leerEstado(sb, uid), g = (data && data.settings && data.settings.gcal) || {};
+  if (!g.conectado) return exito("No tengo tu calendario: conéctalo en Rumbo, en Calendario.", { conectado: false, eventos: [] });
+  if (!sb.functions || typeof sb.functions.invoke !== "function") return exito("No pude leer tu calendario.", { conectado: true, eventos: [], error: "sin-funcion" });
+  const calendarios = Array.isArray(g.calendarios) && g.calendarios.length ? g.calendarios.filter(x => typeof x === "string").slice(0, 10) : null;
+  const { data: r, error } = await sb.functions.invoke("gcal", { body: { accion: "proximos", user_id: uid, calendarios, horas: AGENDA_HORAS } });
+  if (error || !r || r.error || !Array.isArray(r.eventos)) {
+    const reconectar = !!r && (r.error === "reconectar" || r.error === "sin-conectar");
+    return exito(reconectar ? "Tu calendario se desconectó: vuelve a conectarlo en Rumbo, en Calendario." : "No pude leer tu calendario.", { conectado: !reconectar, eventos: [], error: reconectar ? "reconectar" : "gcal" });
+  }
+  const eventos = r.eventos.filter(e => e && e.inicio).slice(0, 15).map(e => ({
+    titulo: visible(e.titulo) || "(sin título)", inicio: String(e.inicio), fin: e.fin ? String(e.fin) : null, todo_el_dia: !!e.todo_el_dia, lugar: e.lugar ? visible(e.lugar) : null,
+  }));
+  const prox = eventos.find(e => !e.todo_el_dia);
+  return exito(prox ? `Tu próxima reunión: ${paraVoz(prox.titulo)}.` : "No tienes reuniones en las próximas horas.", { conectado: true, eventos });
+}
+
+const ACCIONES = { hoy, sumar_agua: sumarAgua, marcar_habito: marcarHabito, anotar, abrir_dia: abrirDia, cerrar_dia: cerrarDia, completar_tarea: completarTarea, foco,
+  reportar_falla: reportarFalla, buenos_dias: buenosDias, agenda };
 
 /* Para la charla (notifier/norte-chat.mjs): quién habla y las mismas acciones, con la persona ya identificada.
    Así lo que Norte hace conversando pasa por la misma bandeja, con los mismos límites y los mismos textos. */
 export { aparatoDe };
-export async function accionNorte({ sb, uid, accion, body = {}, ahora = new Date() }) {
+export async function accionNorte({ sb, uid, accion, body = {}, ahora = new Date(), red }) {
   if (!Object.prototype.hasOwnProperty.call(ACCIONES, accion)) return falloDe(400, "accion-invalida");
   const b = body && typeof body === "object" && !Array.isArray(body) ? body : {};
   try {
-    return await ACCIONES[accion]({ sb, uid, body: b, ahora });
+    return await ACCIONES[accion]({ sb, uid, body: b, ahora, red: red || globalThis.fetch });
   } catch (e) {
     if (sinTablas(e)) return falloDe(500, "sin-servidor");
     throw e;
@@ -679,7 +803,7 @@ export async function accionNorte({ sb, uid, accion, body = {}, ahora = new Date
  * Atiende un pedido de Norte. Devuelve { status, cuerpo } (api/norte.js lo responde tal cual).
  * `autorizacion`: el encabezado Authorization; `ip`: la de quien llama (solo para el límite al conectarse).
  */
-export async function atenderNorte({ sb, body, autorizacion, ip = "", ahora = new Date() }) {
+export async function atenderNorte({ sb, body, autorizacion, ip = "", ahora = new Date(), red }) {
   const b = body && typeof body === "object" && !Array.isArray(body) ? body : {};
   const accion = typeof b.accion === "string" ? b.accion : "";
   try {
@@ -692,7 +816,7 @@ export async function atenderNorte({ sb, body, autorizacion, ip = "", ahora = ne
     }
     const quien = await aparatoDe(sb, autorizacion, ahora);
     if (quien.error) return falloDe(401, quien.error);
-    return await ACCIONES[accion]({ sb, uid: quien.uid, body: b, ahora });
+    return await ACCIONES[accion]({ sb, uid: quien.uid, body: b, ahora, red: red || globalThis.fetch });
   } catch (e) {
     if (sinTablas(e)) return falloDe(500, "sin-servidor");
     throw e;

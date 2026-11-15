@@ -25,6 +25,9 @@ export function motorHabitos(data, hoy) {
     pendientesHoy: () => S.habitos.defs.filter(h => h && ctx.hmPendienteHoy(h, S)),
     /* La racha de un hábito, como en la app (rachaPeriodos): { n, unidad } con unidad "días", "sem" o "meses" */
     racha: h => ctx.rachaPeriodos(h, S),
+    /* El cumplimiento de tus hábitos entre dos fechas, como los números de la semana en la app (cumplimientoGrupo):
+       { esperado, hecho, pct } (pct null si no tocaba ninguno) */
+    cumplimiento: (desde, hasta) => { const c = ctx.cumplimientoGrupo(S.habitos.defs, desde, hasta, S); return { esperado: c.esperado, hecho: c.hecho, pct: c.pct }; },
     /* Tu racha en riesgo: de los que hoy faltan, el de racha más larga (3 o más) — { nombre, n, unidad } o null */
     enRiesgo: (min = 3) => S.habitos.defs.filter(h => h && ctx.hmPendienteHoy(h, S))
       .map(h => Object.assign({ nombre: h.nombre || "tu hábito", id: h.id }, ctx.rachaPeriodos(h, S)))

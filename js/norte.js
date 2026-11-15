@@ -8,7 +8,8 @@
    · La bandeja: lo que le pides a Norte (api/norte.js → notifier/norte.mjs) no toca tu documento en el
      servidor. Hábitos, tareas, notas, abrir y cerrar el día esperan en norte_pendientes (supabase/norte.sql)
      y el agua en agua_pendientes (la suma agua-juntos.js, igual que «+ Un vaso» del aviso). Al abrir la app
-     y al volver a ella, nortePendientes los toma (quedan reservados 2 minutos para este equipo), los aplica
+     y al volver a ella, nortePendientes los toma (quedan reservados 2 minutos para este equipo; si no se pueden aplicar
+     al tiro, se reintenta a los 5 segundos con lo ya tomado), los aplica
      con las funciones de la app, sube tu documento y recién ahí los confirma (se borran). Si la app se
      cierra a mitad, vuelven en 2 minutos; cada pedido aplicado queda en STATE.norte.hechos (21 días,
      se fusiona entre equipos con norteMerge en store.js), así ninguno se aplica dos veces.
@@ -30,7 +31,8 @@
      La tarea del bocado, las que pasan a mañana y la entrada del diario también llevan id fijo («nb…», «nc…»,
      «dia<fecha>»): si dos equipos aplican el mismo pedido a la vez, al juntarse queda una de cada una.
    ============================================================ */
-const NORTE = { corriendo: false, codigo: "", expira: 0, antes: [], reloj: 0, revisar: 0, alFoco: null, aparatos: null, cargando: false, creando: false, error: null };
+const NORTE = { corriendo: false, codigo: "", expira: 0, antes: [], reloj: 0, revisar: 0, alFoco: null, aparatos: null, cargando: false, creando: false, error: null,
+  tomados: new Map(), reintento: 0, reintentos: 0 };
 const NORTE_HECHOS_DIAS = 21, NORTE_HECHOS_MAX = 400, NORTE_TEXTO = 200, NORTE_NOTA = 600;
 /* El ritual completo da lo mismo que en la app (saveRitual y saveCierre en modules2.js); sus pilares son PILARES */
 const NORTE_RITUAL = { apertura: 50, cierre: 40 };
@@ -38,6 +40,11 @@ const NORTE_PILARES = ["Psicología", "Fisiología", "Productividad", "Magnetism
 /* Lo que no se encuentra todavía (una tarea o un hábito que llega de otro equipo) se queda en la bandeja y se
    reintenta hasta 2 días; con la app abierta, la bandeja se revisa cada 20 segundos y al volver a su ventana */
 const NORTE_ESPERA_MS = 2 * 864e5, NORTE_REVISAR_MS = 20e3, NORTE_ESPERAR = Object.freeze({ esperar: true });
+/* Lo que se toma de la bandeja queda reservado 2 minutos para este equipo (norte_pendientes_tomar). Si en esa vuelta no se
+   pudo aplicar (otra sincronización en curso, cambios sin subir, una ventana abierta o sin conexión), se guarda en
+   NORTE.tomados y se reintenta a los 5 segundos con lo mismo, mientras la reserva siga siendo suya (con margen): antes
+   había que esperar a que se liberara, y abrir el día con Norte tardaba minutos en aparecer (Chris, 2026-11-15) */
+const NORTE_RESERVA_MS = 100e3, NORTE_REINTENTO_MS = 5e3, NORTE_REINTENTOS = 6;
 
 /* Solo la cuenta dueña ve a Norte (y solo ella revisa la bandeja) */
 function norteDisponible() { return typeof esCuentaDuena === "function" && esCuentaDuena(); }
@@ -53,6 +60,9 @@ function norteLimpiarHechos(S, now) {
   const N = norteDatos(S), corte = (now || Date.now()) - NORTE_HECHOS_DIAS * 864e5;
   N.hechos = N.hechos.filter(x => x && x.id && (x.ts || 0) >= corte).slice(-NORTE_HECHOS_MAX);
 }
+/* Para comparar tareas: sin tildes, mayúsculas, signos ni espacios de más (como normalizar en notifier/norte.mjs) */
+const norteNorm = v => String(v == null ? "" : v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const norteMisma = (a, b) => { const n = norteNorm(a); return !!n && n === norteNorm(b); };
 const norteTexto = (v, max) => String(v == null ? "" : v).replace(/[\u0000-\u001F\u007F]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max || NORTE_TEXTO);
 /* Las tareas que crea un pedido (el bocado al abrir, las que pasan a mañana al cerrar) llevan id fijo:
    si dos equipos aplican el mismo pedido a la vez, al juntarse queda una de cada una */
@@ -136,6 +146,8 @@ function norteAplicarUno(p, S, hoy, now) {
   if (p.tipo === "tarea") {
     const txt = norteTexto(d.texto), dia = iso < hoy ? hoy : iso, tid = "nt" + p.id;
     if (!txt || buscarTarea(S, dia, tid)) return null;
+    // si ya la tienes ese día (escrita igual, aunque cambien mayúsculas o tildes), no se duplica
+    if (tareasDelDia(dia, S).some(t => !t.borrada && tareaAbierta(t) && norteMisma(t.txt, txt))) return null;
     const t = nuevaTarea(S, dia, { txt, ambito: d.ambito === "pro" ? "pro" : "per", origen: tid });
     t.id = tid; t.ts = now;
     return { tipo: "tarea", txt, iso: dia, estrellas: 0 };
@@ -149,10 +161,13 @@ function norteAplicarUno(p, S, hoy, now) {
   }
   if (p.tipo === "abrir") {
     S.ritual.dias = S.ritual.dias || {};
-    const r0 = S.ritual.dias[iso], sapo = norteTexto(d.primer_bocado), e = Math.round(+d.energia);
+    const r0 = S.ritual.dias[iso], e = Math.round(+d.energia);
+    let sapo = norteTexto(d.primer_bocado);
     if (r0 && r0.cerrado) return null;            // ya lo cerraste: por voz no se reabre
     if (r0 && r0.hecho && !sapo) return null;      // ya estaba abierto y no trae un bocado nuevo
     if (d.completo) return norteAbrirCompleto(p, S, iso, d, creadoTs, now);
+    const yaEsta = sapo && tareasDelDia(iso, S).find(t => !t.borrada && ["pendiente", "hecha"].includes(estadoTarea(t)) && norteMisma(t.txt, sapo));
+    if (yaEsta) sapo = yaEsta.txt;                 // la tarea que ya tenías (aunque la dijeras con otras mayúsculas o tildes)
     const antes = norteTareasAntes(S, [iso]);
     const nuevo = aplicarAperturaExpress(S, iso, { sapo, ambito: d.ambito === "per" ? "per" : "pro", energia: e >= 1 && e <= 5 ? e : 3 });
     norteFijarIds(S, [iso], antes, "nb" + p.id);   // la tarea del bocado, si se creó
@@ -193,23 +208,23 @@ function norteAbrirCompleto(p, S, iso, d, creadoTs, now) {
   // Las tareas del día: se empareja por texto (conserva id, estado e historia), como en la app
   const viva = t => t && !t.borrada && ["pendiente", "hecha"].includes(estadoTarea(t));
   const vivas = () => tareasDelDia(iso, S).filter(viva);
-  vivas().forEach(t => { if (t.esSapo && t.txt !== sapo) { delete t.esSapo; t.ts = now; } });
+  vivas().forEach(t => { if (t.esSapo && !norteMisma(t.txt, sapo)) { delete t.esSapo; t.ts = now; } });
   const crear = (txt, amb, tid, esSapo) => {
     if (buscarTarea(S, iso, tid)) return;
     const t = nuevaTarea(S, iso, Object.assign({ txt, ambito: amb, origen: tid }, esSapo ? { esSapo: true } : {}));
     t.id = tid; t.ts = now;
   };
   if (sapo) {
-    const ex = vivas().find(t => t.txt === sapo);
+    const ex = vivas().find(t => norteMisma(t.txt, sapo));
     if (ex) { ex.esSapo = true; ex.ambito = ambito; delete ex.bocadoSugerido; ex.ts = now; }
     else crear(sapo, ambito, "nb" + p.id + "0", true);   // el mismo id que espera «hoy» (notifier/norte.mjs)
   }
-  const vistos = new Set([sapo]);
+  const vistos = new Set([norteNorm(sapo)]);
   (Array.isArray(d.tareas_nuevas) ? d.tareas_nuevas : []).slice(0, 15).forEach((x, k) => {
     const txt = norteTexto(x && x.texto), amb = x && x.ambito === "pro" ? "pro" : "per";
-    if (!txt || vistos.has(txt)) return;
-    vistos.add(txt);
-    const ex = vivas().find(t => t.txt === txt);
+    if (!txt || vistos.has(norteNorm(txt))) return;
+    vistos.add(norteNorm(txt));
+    const ex = vivas().find(t => norteMisma(t.txt, txt));
     if (ex) { if (ambitoDe(ex) !== amb) { ex.ambito = amb; ex.ts = now; } }
     else crear(txt, amb, "na" + p.id + k.toString(36), false);
   });
@@ -298,25 +313,43 @@ function norteResumen(res) {
 async function nortePendientes() {
   if (typeof STATE === "undefined" || !STATE || !CURRENT_USER || NORTE.corriendo || !norteDisponible() || !BACKEND.nortePendientesTomar) return;
   NORTE.corriendo = true;
+  let reintentar = false;
   try {
-    // Primero se mira si hay algo (es barato); solo entonces se trae tu día
-    const lista = await BACKEND.nortePendientesTomar();
-    if (!Array.isArray(lista) || !lista.length || !STATE) return;
+    // Primero se mira si hay algo (es barato); solo entonces se trae tu día. A lo recién tomado se suma lo que esta app
+    // tomó en una vuelta anterior y no alcanzó a aplicar, mientras su reserva siga vigente
+    const ahora = Date.now(), nuevos = await BACKEND.nortePendientesTomar();
+    NORTE.tomados.forEach((x, id) => { if (x.hasta <= ahora) NORTE.tomados.delete(id); });
+    if (Array.isArray(nuevos)) nuevos.forEach(p => { if (p && p.id) NORTE.tomados.set(String(p.id), { p, hasta: ahora + NORTE_RESERVA_MS }); });
+    const lista = [...NORTE.tomados.values()].map(x => x.p);
+    if (!lista.length || !STATE) return;
     // Lo tuyo sin subir se junta con la nube y llega lo de tus otros equipos, antes de aplicar. Si no se pudo traer
-    // (sin conexión, cambios sin subir o una ventana abierta), se aplica en otra vuelta: con un día viejo, una tarea
-    // creada en otro equipo no se encontraría (lo tomado vuelve a estar libre en 2 minutos)
+    // (sin conexión, cambios sin subir, otra sincronización en curso o una ventana abierta), se reintenta en unos segundos:
+    // con un día viejo, una tarea creada en otro equipo no se encontraría
     if (typeof flushCloudSave === "function") await flushCloudSave();
-    if (typeof syncFromCloud === "function" && !(await syncFromCloud())) return;
+    if (typeof syncFromCloud === "function" && !(await syncFromCloud())) { reintentar = true; return; }
     const res = norteAplicar(lista, STATE);
     if (res.nuevos) {
       saveState();
       norteEfectos(res);
       if (typeof flushCloudSave === "function") await flushCloudSave();
-      if (typeof _dirty !== "undefined" && _dirty) return;   // no alcanzó a subir: vuelven en 2 minutos y su id evita aplicarlos otra vez
+      // no alcanzó a subir: se reintenta (su id en STATE.norte.hechos evita aplicarlos otra vez) y se confirma al subir
+      if (typeof _dirty !== "undefined" && _dirty) { reintentar = true; return; }
     }
     if (res.hechos.length && BACKEND.nortePendientesConfirmar) await BACKEND.nortePendientesConfirmar(res.hechos);
-  } catch (e) { console.warn("norte", e); }
-  finally { NORTE.corriendo = false; }
+    res.hechos.concat(res.esperan).forEach(id => NORTE.tomados.delete(id));   // las que esperan vuelven solas a la bandeja
+    NORTE.reintentos = 0;
+  } catch (e) { console.warn("norte", e); reintentar = NORTE.tomados.size > 0; }
+  finally {
+    NORTE.corriendo = false;
+    if (reintentar) norteReintentar(); else NORTE.reintentos = 0;
+  }
+}
+/* Otra vuelta en unos segundos con lo que ya se tomó (hasta NORTE_REINTENTOS seguidas; después sigue la de cada 20 segundos) */
+function norteReintentar() {
+  if (typeof setTimeout !== "function" || NORTE.reintentos >= NORTE_REINTENTOS) return;
+  NORTE.reintentos++;
+  if (typeof clearTimeout === "function") clearTimeout(NORTE.reintento);
+  NORTE.reintento = setTimeout(nortePendientes, NORTE_REINTENTO_MS);
 }
 /* Lo que hace la app después de marcar a mano (riega tu jardín, avisa a tus amigos) y el aviso */
 function norteEfectos(res) {
@@ -346,7 +379,9 @@ function norteAlVolver() { setTimeout(nortePendientes, 1500); }   // después de
 function norteOlvidar() {
   clearInterval(NORTE.reloj);
   clearInterval(NORTE.revisar); NORTE.revisar = 0;
-  Object.assign(NORTE, { corriendo: false, codigo: "", expira: 0, antes: [], reloj: 0, aparatos: null, cargando: false, creando: false, error: null });
+  if (typeof clearTimeout === "function") clearTimeout(NORTE.reintento);
+  Object.assign(NORTE, { corriendo: false, codigo: "", expira: 0, antes: [], reloj: 0, aparatos: null, cargando: false, creando: false, error: null,
+    tomados: new Map(), reintento: 0, reintentos: 0 });
 }
 
 /* -------- Cuenta › «Norte, tu brújula» -------- */

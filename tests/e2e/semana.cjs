@@ -26,8 +26,8 @@ module.exports = async ({ b, ok, errs }) => {
     saveState(); rerender();
   });
   await p.goto(URL + "#inicio"); await p.waitForTimeout(400);
-  ok(await p.locator(".hero-focus", { hasText: "Tu ritual semanal" }).count() === 1, "domingo: Inicio muestra 'Tu ritual semanal'");
-  await p.click('[data-action="sem-ritual"]'); await p.waitForTimeout(200);
+  ok(await p.locator(".hero-focus", { hasText: "ritual semanal" }).count() === 0, "domingo: Inicio ya no muestra la tarjeta grande (la semana se ofrece al cerrar o abrir el día: cadena.cjs)");
+  await p.evaluate(() => openSemanaRitual("2026-09-21", "2026-09-28")); await p.waitForTimeout(200);
 
   // Paso 1: prioridades (la de la tarea hecha viene sugerida como cumplida)
   const ev1 = await p.inputValue("#sc-e-p1");
@@ -118,7 +118,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(s.gamif.ledger.some(m => m.id === "ritual-semana-apertura:2026-09-28"), "apertura da +75 ⭐");
   ok(s.gamif.badges.includes("semana-redonda"), "insignia 'Semana Redonda'");
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
-  ok(await p.locator(".hero-focus", { hasText: "ritual semanal" }).count() === 0, "tras el ritual, el aviso desaparece");
+  ok(await p.evaluate(() => cadenaItems(new Date("2026-09-28T09:00:00")).length) === 0, "tras el ritual, el lunes no queda nada antes de abrir el día");
 
   // Re-editar la apertura no duplica ni vuelve a pagar
   await p.evaluate(() => openSemApertura("2026-09-28"));
@@ -133,11 +133,9 @@ module.exports = async ({ b, ok, errs }) => {
   const vista = await p.locator("#view").innerText();
   ok(vista.includes("Lanzamiento") && vista.includes("Publicar la web") && vista.includes("Editar plan de la próxima"), "Ritual → Semana muestra foco, prioridades y acciones");
   await shot(p, "f4-vista-semana", { fullPage: true });
-  await p.locator("details.hb-more summary", { hasText: "día de ritual" }).click();
-  await p.click('[data-action="sem-dia"][data-v="1"]'); await p.waitForTimeout(200);
-  ok(await p.evaluate(() => STATE.settings.ritualSemanal.dia) === 1, "se puede cambiar el día del ritual a lunes");
-  await p.locator("details.hb-more summary", { hasText: "día de ritual" }).click().catch(() => {});
-  await p.click('[data-action="sem-dia"][data-v="0"]'); await p.waitForTimeout(200);
+  await p.locator("details.hb-more summary", { hasText: "Cuándo se abre tu semana" }).click();
+  ok(await p.locator('[data-action="sem-dia"]').count() === 0 && (await p.locator("details.hb-more", { hasText: "Cuándo se abre tu semana" }).innerText()).includes("El lunes, al abrir tu día"),
+    "ya no se elige domingo o lunes: explica que la semana se abre el lunes con tu día");
 
   await p.goto(URL + "#diario"); await p.waitForTimeout(300);
   ok((await p.locator("#view").innerText()).includes("Cierre de semana"), "el Diario muestra el cierre de semana");

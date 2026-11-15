@@ -172,7 +172,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 78;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 79;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -560,6 +560,11 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  79: [
+    ["📅", "Tu semana se abre con tu día", "Ya no hay avisos grandes arriba de Inicio. El lunes, al abrir tu día, primero abres tu semana: tu foco y tus 3 prioridades (y, si quieres, cierras la pasada). Es lo único obligatorio. Tu misión del día puede salir de la prioridad que le dejaste a hoy."],
+    ["🌙", "El domingo, déjala lista", "Si prefieres, el domingo al cerrar tu día marca «Después, dejar lista mi semana»: la cierras y planificas la que viene, y el lunes abres tu día directo."],
+    ["🗓️", "El mes y el trimestre, igual", "El día 1, al abrir tu día, cierras el mes que terminó y abres el nuevo; al empezar un trimestre, lo mismo. Si hoy no quieres, desmárcalo y te lo ofrezco mañana (el mes hasta el día 5, el trimestre hasta el 15)."],
   ],
   78: [
     ["🌅", "Abre un día que se te olvidó", "En Ritual → Día, «Abrir o reabrir un día» ahora también muestra con 🌅 los días de la última semana que no abriste. Tócalo, anota tu misión, tu primer bocado y tu energía, y ciérralo enseguida. Se paga al usarlo (120 ⭐), no da las ⭐ de la apertura (al cerrarlo, sí las del cierre) y cuenta para tus rachas."],
@@ -1170,7 +1175,11 @@ function onClick(e) {
   if (a.startsWith("bv-")) { bienvenidaAccion(a, d); return; }   // 👋 la primera semana (bienvenida.js)
 
   switch (a) {
-    case "close-modal": closeModal(); break;
+    case "close-modal": if (typeof cadenaCortar === "function") cadenaCortar(); closeModal(); break;
+    /* Tu semana, tu mes y tu trimestre, desde tu día (rituales-cadena.js) */
+    case "cadena-empezar": cadenaEmpezar(); break;
+    case "cadena-saltar": cadenaSoloDia(); break;
+    case "cadena-retomar": cadenaRetomar(); break;
     case "export": exportData(); break;
     case "open-menu": openMas(); break;
     case "mas-cerrar": cerrarMas(); break;
@@ -1404,7 +1413,6 @@ function onClick(e) {
     case "semw-finish": semWizFinish(); break;
     case "semw-add": semWizAdd(d.fecha, +d.i); break;
     case "semw-del": semWizDel(d.fecha, +d.i); break;
-    case "sem-dia": guardarDiaRitualSemanal(+d.v); break;
     case "menu-personalizar": openPersonalizarMenu(); break;
     case "rec-open": openRecurrentes(); break;
     case "informe-open": openInformeMes(d.key); break;
@@ -2178,7 +2186,7 @@ function renderInicio() {
   return `
   ${avisoReinstalarHtml()}
   ${renderPendingYesterday()}
-  ${primeraSemana ? inicioRitualesPrimeraSemana() : renderTrimestreBanner() + renderMesBanner() + renderSemanaBanner()}
+  ${primeraSemana ? inicioRitualesPrimeraSemana() : typeof cadenaRecordatorioHtml === "function" ? cadenaRecordatorioHtml() : ""}
   ${primeraSemana ? inicioGuiaHtml() : ""}
   ${typeof tuAnioInicioHtml === "function" ? tuAnioInicioHtml() : ""}
   <div data-tour="dia">${renderDayHero()}</div>
@@ -2381,7 +2389,7 @@ function openModal(title, bodyHtml, op) {
   document.getElementById("modalOverlay").hidden = false;
 }
 function closeModal() { ONB_ACTIVE = false; document.getElementById("modalOverlay").hidden = true; }
-document.addEventListener("click", e => { if (e.target.id === "modalOverlay") closeModal(); });
+document.addEventListener("click", e => { if (e.target.id === "modalOverlay") { if (typeof cadenaCortar === "function") cadenaCortar(); closeModal(); } });
 
 let toastTimer = null;
 /* Con una hoja, el menú Más o el recorrido abiertos, el aviso va arriba: abajo taparía su texto o sus botones */

@@ -7,8 +7,9 @@
      apertura: { foco, prioridades: [{ id, texto, ambito, objId, dia }], habitosFoco: [id], ts },
      cierre: { evaluacion: { idPrioridad: "cumplida" | "parcial" | "no" }, mejor, aprendizaje,
                ajustar, premioGanado, nota, numeros, ts } }
-   Día del ritual: STATE.settings.ritualSemanal.dia (0 = domingo, 1 = lunes). Ese día se
-   hace todo seguido: primero se cierra la semana y luego se planifica la siguiente.
+   Desde la v147 la semana se abre el lunes al abrir el día (obligatorio) y el domingo, al cerrar
+   el día, se puede dejar lista (rituales-cadena.js). STATE.settings.ritualSemanal.dia (0 = domingo,
+   1 = lunes) ya no se elige: queda solo para la primera semana de una cuenta nueva (bienvenida.js).
    ============================================================ */
 
 const SEM_CIERRE_VIERNES_HORA = 14;   // la semana se puede cerrar desde el viernes a las 14:00
@@ -183,7 +184,9 @@ function openSemCierre(lunes, siguiente) {
   (a.prioridades || []).forEach(p => { evaluacion[p.id] = (c.evaluacion || {})[p.id] || (prioridadHecha(p, lunes) ? "cumplida" : "no"); });
   // Si ya es el día del ritual, al cerrar se sigue con la planificación de la próxima
   const sig = agSumar(lunes, 7);
-  if (!siguiente && !semanaAbierta(sig) && todayISO() >= diaDelRitualSemana(lunes) && semanaPlanificable(sig)) siguiente = sig;
+  // (dentro de la cadena del día, el orden lo pone la cadena: rituales-cadena.js)
+  const enCadena = typeof cadenaActiva === "function" && cadenaActiva();
+  if (!siguiente && !enCadena && !semanaAbierta(sig) && todayISO() >= agSumar(lunes, 6) && semanaPlanificable(sig)) siguiente = sig;
   SEM_WIZ = {
     tipo: "cierre", lunes, paso: 0, siguiente: siguiente || null,
     draft: {
@@ -207,6 +210,7 @@ function renderSemWiz() {
     : w.tipo === "apertura" ? "Planificar la semana (+75 ⭐)"
     : w.siguiente ? "Cerrar y planificar la próxima (+75 ⭐)" : "Cerrar la semana (+75 ⭐)";
   openModal(`${w.tipo === "apertura" ? "Planificar" : "Cerrar"} la semana · ${rangoSemanaCorto(w.lunes)}`, `
+    ${typeof cadenaBarraHtml === "function" ? cadenaBarraHtml("sem-" + w.tipo, w.lunes) : ""}
     <div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">Paso ${w.paso + 1} de ${pasos.length} · ${pasos[w.paso]}</div>
     <div class="mes-wiz mt-16" id="sem-wiz">${body}</div>
     <div class="onb-dots">${dots}</div>
@@ -431,6 +435,7 @@ function guardarSemApertura(w) {
   const pagado = registrarMovimiento("ritual-semana-apertura:" + w.lunes, 75, 75, "Apertura de semana", true);
   saveState(); closeModal(); updateTopbar(); rerender();
   toast(`📅 Semana planificada${pagado ? " · +75 ⭐" : ""}. ¡A por ella!`);
+  if (typeof cadenaTermino === "function" && cadenaTermino("sem-apertura", w.lunes)) return;
 }
 
 function guardarSemCierre(w) {
@@ -457,6 +462,7 @@ function guardarSemCierre(w) {
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
   const extra = n ? textoTriage(n) : "";
   toast(`📅 Semana cerrada · ${d.nota}/10${pagado ? " · +75 ⭐" : ""}${extra ? " · " + extra : ""}`);
+  if (typeof cadenaTermino === "function" && cadenaTermino("sem-cierre", w.lunes)) return;
   if (w.siguiente && !semanaAbierta(w.siguiente)) openSemApertura(w.siguiente, { desdeCierre: true });
 }
 
@@ -472,11 +478,6 @@ function habSemana(h, lunes) {
   else for (let x = hmMax(lunes, hmCreado(h)); x <= dom; x = hmAdd(x, 1)) if (hmProgramado(h, x)) meta++;
   const hecho = hmContar(h, lunes, dom, undefined, f.tipo === "dias");
   return { hecho, meta, texto: `${hecho}/${meta} esta semana` };
-}
-function guardarDiaRitualSemanal(dia) {
-  STATE.settings.ritualSemanal = { dia: dia === 1 ? 1 : 0, ts: Date.now() };
-  saveState(); rerender();
-  toast(`Tu ritual semanal queda el ${dia === 1 ? "lunes" : "domingo"}`);
 }
 /* Prioridades de la semana en la apertura del día (cascada semana → día) */
 function prioridadesSemanaMini() {
@@ -602,8 +603,6 @@ function renderSemana() {
     </div>`;
   }).join("");
 
-  const dia = diaRitualSemanal();
-  const segDia = [[0, "Domingo"], [1, "Lunes"]].map(([v, l]) => `<button class="${dia === v ? "is-active" : ""}" data-action="sem-dia" data-v="${v}">${l}</button>`).join("");
   const hist = Object.keys(STATE.ritual.semanas || {}).filter(k => k < actual && (STATE.ritual.semanas[k].apertura || STATE.ritual.semanas[k].cierre))
     .sort().reverse().slice(0, 8).map(k => {
       const x = STATE.ritual.semanas[k];
@@ -648,10 +647,10 @@ function renderSemana() {
   <details class="hb-more mt-16" ${SEM_FUTURO_ABIERTO ? "open" : ""} ontoggle="SEM_FUTURO_ABIERTO = this.open"><summary>📆 Más adelante (después de esta semana)</summary>
     <div class="card mt-16">${registroFuturoHtml(agSumar(L, 7), 6)}</div>
   </details>
-  <details class="hb-more mt-16"><summary>⚙️ Tu día de ritual semanal${hist ? " y semanas anteriores" : ""}</summary>
-    <div class="card mt-16"><div class="seg" role="group" aria-label="Tu día de ritual semanal" style="max-width:320px">${segDia}</div>
-      <p class="text-xs muted mt-16">Ese día cierras la semana y planificas la siguiente, todo seguido. Puedes cerrar desde el viernes en la tarde.
-        ${STATE.settings.notif && STATE.settings.notif.enabled && avisosActivos(STATE.settings.notif).semana ? `Te avisaremos el ${dia ? "lunes en la mañana" : "domingo en la noche"}${dia ? " y el martes" : " y el lunes en la mañana"} si aún no planificas.` : "Activa las notificaciones para que te lo recordemos."}</p></div>
+  <details class="hb-more mt-16"><summary>📅 Cuándo se abre tu semana${hist ? " y semanas anteriores" : ""}</summary>
+    <div class="card mt-16"><p class="text-sm soft">El lunes, al abrir tu día, primero abres tu semana (y cierras la pasada, si quieres). Si prefieres, el domingo al cerrar tu día puedes dejarla lista.
+      También puedes cerrarla desde el viernes en la tarde con los botones de arriba.</p>
+      <p class="text-xs muted mt-8">${STATE.settings.notif && STATE.settings.notif.enabled && avisosActivos(STATE.settings.notif).semana ? "Te avisaremos el domingo en la noche y el lunes en la mañana si aún no la abres." : "Activa las notificaciones para que te lo recordemos."}</p></div>
     ${hist ? `<div class="card mt-16">${hist}</div>` : ""}
   </details>`;
 }

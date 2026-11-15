@@ -11,16 +11,16 @@ module.exports = async ({ b, ok, errs }) => {
   await p.evaluate(() => { STATE.settings.theme = "norte"; saveState(); applyTheme("norte"); });
   await p.goto(URL + "#inicio"); await p.waitForTimeout(400);
   ok(JSON.stringify(await coral(p)) === '["day-open"]', "Inicio: el único botón coral es «Abre tu día»");
-  ok((await borde(p)).includes("tri-ritual"), "Inicio: «Abrir el trimestre» pasa a botón con borde");
+  ok(!(await borde(p)).includes("tri-ritual"), "Inicio: ya no hay tarjeta del trimestre (se ofrece al abrir el día)");
 
   // 2) Ritual · Día por abrir: la tarjeta coral del día manda, ningún otro botón coral
   await p.goto(URL + "#ritual"); await p.waitForTimeout(300);
-  ok((await coral(p)).length === 0 && (await borde(p)).includes("tri-ritual"), "Ritual: con la tarjeta coral del día, los avisos quedan con borde");
+  ok((await coral(p)).length === 0, "Ritual: con la tarjeta coral del día, ningún otro botón coral");
 
   // 3) Día abierto en la mañana: el primer aviso (trimestre) lleva el coral
   await p.evaluate(() => { const hoy = todayISO(); STATE.ritual.dias[hoy] = { ...(STATE.ritual.dias[hoy] || {}), hecho: true }; saveState(); });
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
-  ok(JSON.stringify(await coral(p)) === '["tri-ritual"]', "día en curso: el aviso del trimestre es el único coral");
+  ok(!(await coral(p)).includes("tri-ritual") && (await coral(p)).length <= 1, "día en curso: a lo más un botón coral, y no es el del trimestre: " + JSON.stringify(await coral(p)));
 
   // 4) Barras: en Norte, la de arriba en tinta índigo (la hora del iPhone va en blanco) y la de abajo blanca; en Norte noche, índigo noche
   const fondos = () => p.evaluate(() => [".topbar", ".bottombar"].map(s => getComputedStyle(document.querySelector(s)).backgroundColor));

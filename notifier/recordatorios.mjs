@@ -22,12 +22,14 @@ export const MSGS = {
   manana: { title: "🌅 Buenos días", body: "Inicia tu ritual y define tu enfoque del día.", url: "./#ritual", tag: "rumbo-manana" },
   mediodia: { title: "☀️ Mediodía", body: "¿Cómo va tu primer bocado?", url: "./#inicio", tag: "rumbo-mediodia" },
   noche: { title: "🌙 Cierra tu día", body: "Tómate un momento para reflexionar y cerrar tu día.", url: "./#ritual", tag: "rumbo-noche" },
-  "mes-apertura": { title: "🗓️ Empieza un mes nuevo", body: "Abre tu mes: mira el anterior, define tu foco y tus objetivos.", url: "./#ritual", tag: "rumbo-mes-apertura" },
-  "mes-cierre": { title: "🗓️ Último día del mes", body: "Cierra tu mes: revisa tus objetivos y reflexiona.", url: "./#ritual", tag: "rumbo-mes-cierre" },
-  "semana-cierre": { title: "📅 Tu ritual semanal", body: "Cierra tu semana y planifica la que viene. Toma 10 minutos.", url: "./#ritual", tag: "rumbo-semana-cierre" },
-  "semana-apertura": { title: "📅 Planifica tu semana", body: "Elige tu foco, tus 3 prioridades y reparte tus tareas en los días.", url: "./#ritual", tag: "rumbo-semana-apertura" },
-  "tri-cierre": { title: "🧭 Termina el trimestre", body: "Cierra tu trimestre: revisa tus metas, tus números y lo que aprendiste (+200 ⭐).", url: "./#ritual", tag: "rumbo-tri-cierre" },
-  "tri-apertura": { title: "🧭 Empieza un trimestre nuevo", body: "Abre tu trimestre: define tu foco y de 3 a 5 metas (+200 ⭐).", url: "./#ritual", tag: "rumbo-tri-apertura" },
+  /* Desde la v147 la semana, el mes y el trimestre se abren al abrir el día (js/rituales-cadena.js):
+     los avisos llevan a abrir (o a cerrar) el día con el atajo del ícono */
+  "mes-apertura": { title: "🗓️ Empieza un mes nuevo", body: "Al abrir tu día, cierras el mes que terminó y abres este: tu foco y tus objetivos.", url: "./?atajo=abrir#inicio", tag: "rumbo-mes-apertura" },
+  "mes-cierre": { title: "🗓️ Último día del mes", body: "Mañana, al abrir tu día, cierras este mes y abres el que empieza.", url: "./#inicio", tag: "rumbo-mes-cierre" },
+  "semana-cierre": { title: "📅 Mañana empieza otra semana", body: "Al cerrar tu día puedes dejarla lista: cierras esta y planificas la que viene.", url: "./?atajo=cerrar#inicio", tag: "rumbo-semana-cierre" },
+  "semana-apertura": { title: "📅 Hoy abres tu semana", body: "Al abrir tu día, eliges tu foco y tus 3 prioridades.", url: "./?atajo=abrir#inicio", tag: "rumbo-semana-apertura" },
+  "tri-cierre": { title: "🧭 Termina el trimestre", body: "Pasado mañana, al abrir tu día, cierras este trimestre y abres el nuevo (+200 ⭐ cada parte).", url: "./#inicio", tag: "rumbo-tri-cierre" },
+  "tri-apertura": { title: "🧭 Empieza un trimestre nuevo", body: "Al abrir tu día, abres tu trimestre: tu foco y de 3 a 5 metas (+200 ⭐).", url: "./?atajo=abrir#inicio", tag: "rumbo-tri-apertura" },
   "noche-2": { title: "🌙 ¿Cerramos el día?", body: "Aún no cierras hoy. Te toma un minuto y tu racha sigue.", url: "./#ritual", tag: "rumbo-noche-2" },
   "elefante-racha": { title: "🔥 Tu racha te espera", body: "", url: "./#habitos", tag: "rumbo-elefante-racha" },
   "elefante-agua": { title: "💧 ¿Un vaso?", body: "", url: "./?atajo=agua#inicio", tag: "rumbo-elefante-agua" },   // en iPhone, tocarlo abre la portilla
@@ -37,7 +39,7 @@ export const MSGS = {
   cumpleanos: { title: "🎂 Cumpleaños", body: "", url: "./#relaciones", tag: "rumbo-cumpleanos" },
   contactos: { title: "💬 Tus relaciones", body: "", url: "./#relaciones", tag: "rumbo-contactos" },
 };
-const TRI_APERTURA_CON_CIERRE = "Cierra el trimestre que terminó y abre este: tu foco y de 3 a 5 metas (+200 ⭐ cada parte).";
+const TRI_APERTURA_CON_CIERRE = "Al abrir tu día, cierras el trimestre que terminó y abres este: tu foco y de 3 a 5 metas (+200 ⭐ cada parte).";
 /* Ritual de mes: apertura el día 1 (hora de "mañana"), cierre el último día (hora de "noche").
    Clave de mes "YYYY-MM" igual que STATE.ritual.meses en la app. Semana y trimestre: ver reglas.mjs */
 const MES_TIPOS = { "mes-apertura": { hora: "manana", parte: "apertura" }, "mes-cierre": { hora: "noche", parte: "cierre" } };
@@ -104,7 +106,7 @@ export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), vent
     const hoyRitual = ((data.ritual || {}).dias || {})[hoy] || {};
     const ritualMes = ((data.ritual || {}).meses || {})[mes] || {};
     const semanas = (data.ritual || {}).semanas || {};
-    const diaSem = (((data.settings || {}).ritualSemanal) || {}).dia === 1 ? 1 : 0;
+    const diaSem = 0;   // v147: domingo en la noche (dejarla lista, opcional) y lunes en la mañana (abrirla); ya no se elige el día
     const trimestres = (data.ritual || {}).trimestres || {};
     // El motor de hábitos y los días sin cerrar se calculan solo si algún aviso los pide
     let motor = null, sinCerrar = null;

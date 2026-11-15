@@ -177,9 +177,7 @@ const AVISOS_HORA = { manana: ["notif-manana", "manana"], noche: ["notif-noche",
 
 function renderAvisos(n) {
   const act = avisosActivos(n), nivel = nivelAvisos(n);
-  const semanaTxt = diaRitualSemanal() === 1
-    ? "El lunes a tu hora de la mañana, y el martes si aún no planificas tu semana. Cambia el día en Ritual → Semana."
-    : "El domingo a tu hora de la noche, y el lunes en la mañana si aún no planificas tu semana. Cambia el día en Ritual → Semana.";
+  const semanaTxt = "El domingo a tu hora de la noche, por si quieres dejar lista tu semana al cerrar el día, y el lunes en la mañana si aún no la abres.";
   const fila = k => {
     const [ic, titulo, desc] = AVISOS_INFO[k];
     const h = AVISOS_HORA[k], conHora = h && (k === "manana" || k === "noche" || act[k]);

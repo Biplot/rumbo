@@ -30,7 +30,7 @@ function openPilaresInfo() {
 let RITUAL_VIEW = "dia";   // dia | semana | mes
 function renderRitual() {
   const seg = elFiltros([["dia", "🌅 Día"], ["semana", "📅 Semana"], ["mes", "🗓️ Mes"], ["trimestre", "🧭 Trimestre"]], RITUAL_VIEW, { accion: "ritual-view", label: "Ritual" });
-  const avisos = renderTrimestreBanner() + renderMesBanner() + renderSemanaBanner();
+  const avisos = typeof cadenaRecordatorioHtml === "function" ? cadenaRecordatorioHtml() : "";   // rituales-cadena.js (antes: tarjetas grandes)
   if (RITUAL_VIEW === "trimestre") return seg + avisos + renderRitualTrimestre();
   if (RITUAL_VIEW === "mes") return seg + avisos + renderRitualMes();
   if (RITUAL_VIEW === "semana") return seg + avisos + renderRitualSemana();
@@ -107,13 +107,18 @@ function renderRitualDia() {
 /* op: { mision: misión elegida (una reciente), foco: id del campo donde parte el cursor } */
 function openRitualModal(op) {
   op = op || {};
+  // El lunes, el día 1 o al empezar un trimestre, primero la semana, el mes o el trimestre (rituales-cadena.js)
+  if (!op.cadena && typeof cadenaInterceptar === "function" && cadenaInterceptar({ tipo: "completo", op })) return;
   const r = STATE.ritual.dias[todayISO()] || {};
-  let misionDefault = op.mision || r.mision || "";
+  let misionDefault = op.mision || r.mision || "", misionDeSemana = false;
   if (!misionDefault) {
     const y = new Date(); y.setDate(y.getDate() - 1);
     const yc = STATE.ritual.dias[isoLocal(y)];
     if (yc && yc.cierre && yc.cierre.manana) misionDefault = yc.cierre.manana;
   }
+  // Si no, la prioridad de tu semana que dejaste para hoy
+  const pHoy = !misionDefault && typeof prioridadDeHoy === "function" ? prioridadDeHoy() : null;
+  if (pHoy) { misionDefault = pHoy.texto; misionDeSemana = true; }
   const lista = tareasDelDia(todayISO());
   const vivas = lista.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t)));
   // Las que vienen de días anteriores (postergadas) se muestran aparte: ya están en tu lista de hoy
@@ -128,8 +133,10 @@ function openRitualModal(op) {
   const sapoDefault = r.sapo || (bocadoPrev && bocadoPrev.txt) || (sugerido && sugerido.txt) || "";
   const bocadoAmb = r.sapoAmbito || (bocadoPrev ? ambitoDe(bocadoPrev) : sugerido ? ambitoDe(sugerido) : "pro");
   openModal("Ritual de apertura", `
+    ${typeof cadenaBarraDia === "function" ? cadenaBarraDia(op) : ""}
     ${gcalAperturaHtml()}${plAperturaHtml()}
-    <div class="field"><label>Misión de hoy</label><input class="input" id="r-mision" value="${escapeAttr(misionDefault)}" placeholder="¿Qué hará hoy un gran día?"></div>
+    <div class="field"><label>Misión de hoy</label><input class="input" id="r-mision" value="${escapeAttr(misionDefault)}" placeholder="¿Qué hará hoy un gran día?">
+      ${misionDeSemana ? `<div class="text-xs mt-8 hl-cian">↳ Viene de la prioridad que dejaste para hoy en tu semana</div>` : ""}</div>
 
     ${prioridadesSemanaMini()}
     <div class="field"><label>📋 Tareas del día</label>
@@ -303,6 +310,7 @@ function openCierreModal(date) {
     <div class="field"><label>${mananaLabel}</label><input class="input" id="c-manana" value="${escapeAttr(c.manana || "")}" placeholder="Se sembrará como tu misión del día siguiente"></div>
     <div class="field"><label>Nota de cierre (libre)</label><textarea class="input" id="c-nota" placeholder="¿Cómo estuvo el día?">${escapeHtml(c.nota || "")}</textarea></div>
     <p class="text-xs muted" style="margin:-4px 0 12px">📔 Tu ánimo, esta nota y tu gratitud se guardan en tu <b>Diario de vida</b>.</p>
+    ${typeof cadenaDomingoHtml === "function" ? cadenaDomingoHtml(iso) : ""}
     <div class="modal__cta">${r.cerrado ? `<button class="btn btn--primary btn-block" data-action="cierre-save">Guardar cambios</button>`
       : `<button class="btn btn--primary btn-block btn--precio" data-action="cierre-save"><span>Cerrar el día</span><span class="btn__precio">+40 ${iconoLinea("estrella", 16)}</span></button>`}</div>`);
 }
@@ -329,6 +337,7 @@ function saveCierre() {
   const r = diaParaCerrar(iso);
   if (!r) return toast("Primero abre tu día 🌅", true);
   const yaCerrado = r.cerrado;
+  const semana = typeof cadenaDomingoLeer === "function" && cadenaDomingoLeer();   // el domingo: dejar lista la semana
   if (typeof djCierreGuardar === "function") djCierreGuardar(iso);   // lo que estás dejando: confirmar o caí (dejar.js)
   // Decisiones sobre las pendientes (mañana, otro día, delegar, soltar, la hice)
   const trCont = document.getElementById("c-triage");
@@ -364,10 +373,11 @@ function saveCierre() {
   saveState(); closeModal(); updateTopbar(); rerender();
   const hubo = medallas && cierreMedallasTermina();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
-  if (!yaCerrado) { sonar("cierre"); vibrar([15, 60, 25]); animarRacha(); if (!hubo && typeof celebrarCierreElefante === "function") celebrarCierreElefante(); }
+  if (!yaCerrado) { sonar("cierre"); vibrar([15, 60, 25]); animarRacha(); if (!hubo && !semana && typeof celebrarCierreElefante === "function") celebrarCierreElefante(); }
   const resumenTr = decid ? textoTriage(decid) : "";
-  if (yaCerrado) return toast(resumenTr ? `Cambios guardados ✓ · ${resumenTr}` : "Cambios guardados ✓");
-  toast(resumenTr ? `Día cerrado 🌙 · ${resumenTr}` : "Día cerrado 🌙 ¡Descansa!");
+  if (yaCerrado) toast(resumenTr ? `Cambios guardados ✓ · ${resumenTr}` : "Cambios guardados ✓");
+  else toast(resumenTr ? `Día cerrado 🌙 · ${resumenTr}` : "Día cerrado 🌙 ¡Descansa!");
+  if (semana && typeof cadenaDomingoEmpezar === "function") cadenaDomingoEmpezar(iso);
 }
 
 /* ============================================================

@@ -118,6 +118,7 @@ function renderTriWiz() {
   const hecho = (ritualTri(w.key) || {})[w.tipo];
   const boton = hecho ? "Guardar cambios" : w.tipo === "apertura" ? `Abrir el trimestre (+${TRI_MONEDAS} ⭐)` : w.siguiente ? `Cerrar y abrir el siguiente (+${TRI_MONEDAS} ⭐)` : `Cerrar el trimestre (+${TRI_MONEDAS} ⭐)`;
   openModal(`${w.tipo === "apertura" ? "Abrir" : "Cerrar"} el ${triNombre(w.y, w.q)}`, `
+    ${typeof cadenaBarraHtml === "function" ? cadenaBarraHtml("tri-" + w.tipo, w.key) : ""}
     <div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">Paso ${w.paso + 1} de ${pasos.length} · ${pasos[w.paso]}</div>
     <div class="mes-wiz mt-16">${(w.tipo === "apertura" ? triAperturaPaso : triCierrePaso)(w)}</div>
     <div class="onb-dots">${pasos.map((p, i) => `<span class="onb-dot ${i === w.paso ? "is-on" : ""}" title="${p}"></span>`).join("")}</div>
@@ -215,6 +216,7 @@ function guardarTriCierre(w) {
   saveState(); closeModal(); updateTopbar(); rerender();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
   toast(`🧭 Trimestre cerrado · ${d.nota}/10${pagado ? ` · +${TRI_MONEDAS} ⭐` : ""}`);
+  if (typeof cadenaTermino === "function" && cadenaTermino("tri-cierre", w.key)) return;
   if (w.siguiente && !(ritualTri(w.siguiente) || {}).apertura) openTriApertura(w.siguiente, { desdeCierre: true });
 }
 function guardarTriApertura(w) {
@@ -240,6 +242,7 @@ function guardarTriApertura(w) {
   const pagado = registrarMovimiento("ritual-tri-apertura:" + w.key, TRI_MONEDAS, TRI_MONEDAS, "Apertura de trimestre", true);
   saveState(); closeModal(); updateTopbar(); rerender();
   toast(`🧭 ${triNombre(w.y, w.q)} abierto${pagado ? ` · +${TRI_MONEDAS} ⭐` : ""}. ¡A por él!`);
+  if (typeof cadenaTermino === "function" && cadenaTermino("tri-apertura", w.key)) return;
 }
 
 /* -------- Vista Ritual → Trimestre -------- */

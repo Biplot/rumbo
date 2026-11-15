@@ -16,6 +16,10 @@
      { accion: "conectar", code, redirect_uri } -> { access_token, expires_in }
      { accion: "token" }                        -> { access_token, expires_in } | { error: "reconectar" }
      { accion: "desconectar" }                  -> { ok: true }
+   Para el servidor de Norte (api/norte.js, acción «agenda»), con la clave de administración en Authorization:
+     { accion: "proximos", user_id, calendarios: [ids] | null, horas } -> { eventos: [{ titulo, inicio, fin, todo_el_dia, lugar }] }
+       | { error: "reconectar" | "sin-conectar" }
+     Lee los eventos de las próximas horas (hasta 48) aquí mismo: el permiso de Google no sale de esta función.
 
    Secretos (Supabase → Edge Functions → Secrets):
      GOOGLE_CLIENT_SECRET   la "clave secreta del cliente" de Google Cloud (obligatorio)
@@ -83,12 +87,68 @@ async function guardar(uid: string, meta: Record<string, unknown>, gcal: unknown
   await admin.auth.admin.updateUserById(uid, { app_metadata: { ...meta, gcal } });
 }
 
+/* ¿Llama el servidor de Rumbo (con una clave de administración)? Se compara con todas las que tiene esta función */
+function clavesAdmin(): string[] {
+  const ks: string[] = [];
+  try { Object.values(JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}")).forEach(v => { if (typeof v === "string" && v) ks.push(v); }); } catch { /* formato antiguo */ }
+  const vieja = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"); if (vieja) ks.push(vieja);
+  return ks;
+}
+function igual(a: string, b: string) {   // sin cortar antes en la primera diferencia
+  if (a.length !== b.length) return false;
+  let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return d === 0;
+}
+/* Un permiso de 1 hora a partir del de renovación guardado (cifrado). null + error si hay que reconectar */
+async function permiso(uid: string, meta: Record<string, unknown>): Promise<{ token?: string; error?: string }> {
+  const guardado = meta.gcal as { rt?: string } | undefined;
+  if (!guardado?.rt) return { error: "sin-conectar" };
+  let rt = "";
+  try { rt = await descifrar(guardado.rt); } catch { return { error: "reconectar" }; }
+  const { ok, datos } = await google({ grant_type: "refresh_token", refresh_token: rt });
+  if (!ok || !datos.access_token) {
+    if (datos.error === "invalid_grant") { await guardar(uid, meta, null); return { error: "reconectar" }; }
+    return { error: "google" };
+  }
+  return { token: datos.access_token as string };
+}
+type Evento = { titulo: string; inicio: string; fin: string | null; todo_el_dia: boolean; lugar: string | null };
+/* Los eventos de las próximas horas de los calendarios elegidos (o el principal), sin los cancelados, en orden */
+async function proximos(token: string, calendarios: string[], horas: number): Promise<Evento[]> {
+  const desde = new Date(), hasta = new Date(desde.getTime() + horas * 3600e3), out: Evento[] = [];
+  for (const id of calendarios.slice(0, 10)) {
+    const q = `?timeMin=${encodeURIComponent(desde.toISOString())}&timeMax=${encodeURIComponent(hasta.toISOString())}&singleEvents=true&orderBy=startTime&maxResults=20&fields=items(summary,location,status,start,end)`;
+    const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(id)}/events${q}`, { headers: { Authorization: "Bearer " + token } });
+    if (!r.ok) continue;
+    const j = await r.json().catch(() => ({}));
+    for (const e of (j.items || [])) {
+      if (!e || e.status === "cancelled" || !e.start) continue;
+      out.push({ titulo: String(e.summary || "").slice(0, 200), inicio: e.start.dateTime || e.start.date, fin: (e.end && (e.end.dateTime || e.end.date)) || null,
+        todo_el_dia: !e.start.dateTime, lugar: e.location ? String(e.location).slice(0, 200) : null });
+    }
+  }
+  return out.sort((a, b) => Date.parse(a.inicio) - Date.parse(b.inicio)).slice(0, 15);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) });
   if (req.method !== "POST") return json(req, { error: "método" }, 405);
 
-  // Quién llama: la sesión de Rumbo
+  // Quién llama: la sesión de Rumbo (o el servidor de Rumbo, con la clave de administración: solo «proximos»)
   const jwt = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (jwt && clavesAdmin().some(k => igual(jwt, k))) {
+    let b: Record<string, unknown> = {};
+    try { b = await req.json(); } catch { /* sin cuerpo */ }
+    if (b.accion !== "proximos" || typeof b.user_id !== "string") return json(req, { error: "accion" }, 400);
+    if (!CLIENT_SECRET) return json(req, { error: "sin-configurar" }, 503);
+    const { data: du, error: e1 } = await admin.auth.admin.getUserById(b.user_id);
+    if (e1 || !du?.user) return json(req, { error: "usuario" }, 404);
+    const p = await permiso(du.user.id, (du.user.app_metadata || {}) as Record<string, unknown>);
+    if (!p.token) return json(req, { error: p.error, eventos: [] }, p.error === "google" ? 502 : 200);   // reconectar o sin-conectar: 200, para que se lea
+    const cals = Array.isArray(b.calendarios) && b.calendarios.length ? (b.calendarios as unknown[]).filter(x => typeof x === "string") as string[] : ["primary"];
+    const horas = Math.max(1, Math.min(48, Number(b.horas) || 24));
+    return json(req, { eventos: await proximos(p.token, cals, horas) });
+  }
   const { data: u, error: eu } = await admin.auth.getUser(jwt);
   if (eu || !u?.user) return json(req, { error: "sesion" }, 401);
   const user = u.user, meta = (user.app_metadata || {}) as Record<string, unknown>;

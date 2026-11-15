@@ -52,4 +52,8 @@ export default async function ({ test, assert }) {
     const raro = estado(); raro.ritual.semanas[LUNES].apertura = { prioridades: "no", habitosFoco: null };
     assert.deepEqual(resumenDia(raro, sinBandeja, HOY).semana.prioridades, []);
   });
+  test("hoy trae tu ciudad (la del agua en Rumbo), para que Norte busque el tiempo ahí", () => {
+    assert.equal(resumenDia({ agua: { clima: { on: true, ciudad: "Viña del Mar, Valparaíso, Chile", lat: -33, lon: -71.5 } } }, sinBandeja, HOY).ciudad, "Viña del Mar, Valparaíso, Chile");
+    assert.equal(resumenDia(estado(), sinBandeja, HOY).ciudad, null);
+  });
 }

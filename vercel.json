@@ -14,11 +14,26 @@
     {
       "source": "/api/libros/",
       "destination": "/api/libros"
+    },
+    {
+      "source": "/api/norte/",
+      "destination": "/api/norte"
+    },
+    {
+      "source": "/api/norte-chat/",
+      "destination": "/api/norte-chat"
     }
   ],
   "functions": {
     "api/push.js": {
       "includeFiles": "js/habitos-motor.js"
+    },
+    "api/norte.js": {
+      "includeFiles": "js/habitos-motor.js"
+    },
+    "api/norte-chat.js": {
+      "includeFiles": "js/habitos-motor.js",
+      "maxDuration": 60
     }
   }
 }

@@ -1,11 +1,12 @@
 {
   "name": "rumbo",
   "private": true,
-  "description": "Rumbo · la app es estática; estas dependencias son solo de la función de notificaciones (api/push.js, en Vercel).",
+  "description": "Rumbo · la app es estática; estas dependencias son solo de las funciones de Vercel (api/push.js, api/norte.js y api/norte-chat.js).",
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.3.0",
     "@supabase/supabase-js": "^2.45.0",
     "web-push": "^3.6.7"
   }

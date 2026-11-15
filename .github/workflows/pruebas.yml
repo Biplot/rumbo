@@ -1,7 +1,11 @@
 name: Pruebas
 
+# Una vez por cambio: en el PR (y al unirlo a main), no también en cada push a una rama: cada corrida son unos
+# 25 minutos de GitHub Actions (Chris, 2026-11-15). Para probar una rama sin PR: Actions → Pruebas → Run workflow.
 on:
   push:
+    branches:
+      - main
   pull_request:
   workflow_dispatch: {}
 

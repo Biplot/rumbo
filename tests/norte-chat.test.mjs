@@ -86,7 +86,7 @@ export default async function ({ test, assert }) {
     const p = c1.pedidos[0];
     assert.equal(p.model, MODELO); assert.equal(MODELO, "claude-haiku-5-5"); assert.equal(p.output_config.effort, "low");
     assert.match(p.system, /Eres Norte/); assert.match(p.system, /"habitos_pendientes":\["Meditar"\]/, "el día de hoy va en el prompt");
-    assert.deepEqual(p.tools.map(t => t.name), HERRAMIENTAS.map(h => h.name)); assert.ok(p.tools.every(t => !("accion" in t)), "a Claude no le llega el campo interno");
+    assert.deepEqual(p.tools.map(t => t.name), [...HERRAMIENTAS.map(h => h.name), "web_search"], "y la búsqueda web, al final"); assert.ok(p.tools.every(t => !("accion" in t)), "a Claude no le llega el campo interno");
     assert.deepEqual(p.messages.map(m => m.role), ["user", "assistant", "user"], "el historial empieza con «yo» y alterna");
     assert.equal(p.messages[2].content, "¿Cómo voy?");
     assert.deepEqual(sb1.log.rpc.map(x => [x.fn, x.args.p_dia, x.args.p_charlas, x.args.p_max_charlas]), [["norte_uso_sumar", HOY, 1, LIMITES.charlas]]);
@@ -119,7 +119,7 @@ export default async function ({ test, assert }) {
   const cR = usaFoco({ minutos: 25 }), rR = await pedir(nuevoSb(), { accion: "charla", texto: "Hagamos foco" }, { claude: cR });
   const rT = await pedir(nuevoSb(), { accion: "charla", texto: "Foco en la tarea", puede: ["foco"] }, { claude: usaFoco({ minutos: 25, tarea: "no-existe" }) });
   test("charla: con puede foco, Norte empieza un foco y vuelve en hizo, sin escribir nada en el servidor", () => {
-    assert.deepEqual(cF.pedidos[0].tools.map(t => t.name), [...HERRAMIENTAS.map(h => h.name), "empezar_foco"]);
+    assert.deepEqual(cF.pedidos[0].tools.map(t => t.name), [...HERRAMIENTAS.map(h => h.name), "empezar_foco", "web_search"]);
     assert.ok(cF.pedidos[0].tools.every(t => !("accion" in t)));
     assert.equal(rF.cuerpo.ok, true);
     assert.deepEqual(rF.cuerpo.hizo.map(h => [h.accion, h.ok, h.minutos, h.titulo]), [["empezar_foco", true, 25, "el informe"]]);
@@ -127,7 +127,7 @@ export default async function ({ test, assert }) {
     assert.equal(JSON.parse(cF.pedidos[1].messages.at(-1).content[0].content).ok, true, "Claude recibe el resultado");
   });
   test("charla: sin puede foco (el robot), Claude no tiene empezar_foco; y una tarea que no está hoy no empieza nada", () => {
-    assert.deepEqual(cR.pedidos[0].tools.map(t => t.name), HERRAMIENTAS.map(h => h.name));
+    assert.deepEqual(cR.pedidos[0].tools.map(t => t.name), [...HERRAMIENTAS.map(h => h.name), "web_search"]);
     assert.deepEqual(rR.cuerpo.hizo, [], "si igual la pide, no la conoce");
     assert.deepEqual(rT.cuerpo.hizo.map(h => [h.accion, h.ok, h.error]), [["empezar_foco", false, "no-encontrado"]]);
   });
@@ -246,5 +246,37 @@ export default async function ({ test, assert }) {
     assert.match(f2.llamadas[2].o.body, /<voice name="en-US-AndrewMultilingualNeural"><lang xml:lang="es-MX">Vas muy bien<\/lang><\/voice>/);
     assert.match(f2.llamadas[3].o.body, /<voice name="en-US-AvaMultilingualNeural"><lang xml:lang="es-MX">Hola<\/lang><\/voice>/);
     assert.match(f2.llamadas[4].o.body, /<voice name="es-CL-LorenzoNeural">Hola<\/voice>/, "las chilenas, sin <lang>");
+  });
+
+  /* ---------- Internet: la búsqueda web de Anthropic (2026-11-15, «¿cómo va a estar el tiempo?») ---------- */
+  const { herramientaWeb, textoFinal, fuentesDe, BUSQUEDAS_MAX } = await import("../notifier/norte-chat.mjs");
+  const cita = (texto, url, titulo) => ({ type: "text", text: texto, citations: [{ type: "web_search_result_location", url, title: titulo, encrypted_index: "x", cited_text: "..." }] });
+  const busqueda = [
+    { type: "text", text: "Voy a buscar el tiempo en Santiago." },
+    { type: "server_tool_use", id: "srv1", name: "web_search", input: { query: "tiempo Santiago mañana" } },
+    { type: "web_search_tool_result", tool_use_id: "srv1", content: [{ type: "web_search_result", url: "https://www.meteored.cl/santiago", title: "El tiempo en Santiago", encrypted_content: "enc" }] },
+    { type: "text", text: "Mañana en Santiago " }, cita("llegan a 29 grados y no llueve", "https://www.meteored.cl/santiago", "El tiempo en Santiago"),
+    { type: "text", text: ", según Meteored. Buen día para tu caminata y para el agua: lleva tu botella.\n[cara: contento]" },
+  ];
+  const sbW = nuevoSb(), cW = claudeFalso([{ stop_reason: "pause_turn", content: busqueda.slice(0, 2) }, { stop_reason: "end_turn", content: busqueda }]);
+  const rW = await pedir(sbW, { accion: "charla", texto: "¿Cómo va a estar el tiempo mañana?" }, { claude: cW });
+  test("internet: Norte busca en la web cerca de tu ciudad, sigue una búsqueda pausada y responde sin el «voy a buscar», con sus fuentes", () => {
+    const web = cW.pedidos[0].tools.find(t => t.name === "web_search");
+    assert.deepEqual(web, { type: "web_search_20250305", name: "web_search", max_uses: BUSQUEDAS_MAX, user_location: { type: "approximate", country: "CL", timezone: "America/Santiago" } });
+    assert.match(cW.pedidos[0].system, /Tienes internet: con web_search/);
+    assert.equal(cW.pedidos.length, 2, "la pausa se continúa con otra llamada");
+    const seg = cW.pedidos[1].messages;
+    assert.equal(seg[seg.length - 1].role, "assistant", "el turno pausado vuelve tal cual, sin un «sigue» de más");
+    assert.equal(rW.cuerpo.texto, "Mañana en Santiago llegan a 29 grados y no llueve, según Meteored. Buen día para tu caminata y para el agua: lleva tu botella.");
+    assert.equal(rW.cuerpo.cara, "contento");
+    assert.deepEqual(rW.cuerpo.fuentes, [{ titulo: "El tiempo en Santiago", url: "https://www.meteored.cl/santiago" }]);
+    assert.equal(sbW.tablas.norte_pendientes.length, 0, "buscar no guarda nada en Rumbo");
+  });
+  test("internet: la ciudad del agua en Rumbo localiza la búsqueda; sin búsqueda no hay fuentes", () => {
+    assert.deepEqual(herramientaWeb({ ciudad: "Viña del Mar, Valparaíso, Chile" }).user_location, { type: "approximate", country: "CL", timezone: "America/Santiago", city: "Viña del Mar", region: "Valparaíso" });
+    assert.deepEqual(herramientaWeb({ ciudad: "Madrid, Comunidad de Madrid, España" }).user_location, { type: "approximate", city: "Madrid", region: "Comunidad de Madrid" });
+    assert.equal(textoFinal([{ type: "text", text: "Hola." }, { type: "text", text: "¿Cómo va tu día?" }]), "Hola.\n¿Cómo va tu día?", "sin búsqueda, como siempre");
+    assert.deepEqual(fuentesDe([{ type: "text", text: "Hola" }]), []);
+    assert.equal(r1.cuerpo.fuentes, undefined);
   });
 }

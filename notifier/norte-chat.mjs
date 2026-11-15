@@ -3,7 +3,7 @@
    Norte-Desk (Norte en el computador) le escribe o le habla a Norte. Va con el mismo token de /api/norte/
    (Authorization: Bearer <token>) y siempre responde JSON:
      { accion: "charla", texto, historial: [{ rol: "yo" | "norte", texto }], puede?: ["foco"] }
-         -> { ok, texto, cara, hizo: [{ accion, ok, texto }] }
+         -> { ok, texto, cara, hizo: [{ accion, ok, texto }], fuentes?: [{ titulo, url }] }  (fuentes: si buscó en internet)
          (con puede: ["foco"], Norte también puede empezar un foco: hizo trae { accion: "empezar_foco", ok, texto,
           minutos, tarea?, habito?, titulo? } y el foco corre en la isla de Norte-Desk)
      { accion: "oir", audio: "<WAV PCM 16 bits mono, en base64>" }      -> { ok, texto }   (hasta 30 segundos)
@@ -18,6 +18,11 @@
      y tu día de hoy. Puede usar las mismas acciones que el robot (ver el día, agua, hábitos, anotar, abrir y
      cerrar el día): pasan por accionNorte de notifier/norte.mjs, así que van a la misma bandeja y con los
      mismos límites. Al final de cada respuesta elige una cara para la isla ([cara: feliz], que aquí se quita).
+   · Internet (2026-11-15): Norte puede buscar en la web con la búsqueda de Anthropic (web_search, corre en sus
+     servidores) lo que cambia o no sabe: el tiempo, noticias, resultados, horarios, datos. Hasta BUSQUEDAS_MAX
+     búsquedas por charla, cerca de tu ciudad (la del agua en Rumbo, «ciudad» en tu día; si no hay, Chile). Cada
+     búsqueda cuesta US$ 0,01 más los tokens de lo que trae. La respuesta trae «fuentes» ([{ titulo, url }], hasta 3):
+     Norte-Desk las muestra bajo la respuesta, porque lo que viene de la web debe citar de dónde salió.
    · El oído y la voz son los de Azure: Lorenzo o Catalina (chilenas), o Andrew o Ava (multilingües, más fluidas;
      hablan en español latino con <lang xml:lang="es-MX">, porque no tienen acento chileno).
    · Límites por persona y por día (LIMITES), para cuidar el gasto y el plan gratis de Azure (lo comparte con
@@ -38,7 +43,7 @@ export const VOCES = {
 const IDIOMA_MULTILINGUE = "es-MX";
 export const VOZ_DEFECTO = "lorenzo";        // la personalidad pide una voz calmada, de tono medio o grave
 export const CARAS = ["contento", "feliz", "pensativo", "sorprendido", "serio", "triste"];
-export const TEXTO_MAX = 500, HISTORIAL_MAX = 12, HABLAR_MAX = 400, AUDIO_SEG_MAX = 30, VUELTAS_MAX = 4;
+export const TEXTO_MAX = 500, HISTORIAL_MAX = 12, HABLAR_MAX = 400, AUDIO_SEG_MAX = 30, VUELTAS_MAX = 4, BUSQUEDAS_MAX = 3;
 const TZ = "America/Santiago";
 
 /* ---------- Respuestas ---------- */
@@ -86,10 +91,41 @@ Para hablar del día, los hábitos, el agua o las tareas, usas lo que te muestra
 Nunca sermoneas, ni inventas datos, ni das diagnósticos médicos o consejos de inversión. Después de las 22:00 hablas más corto.
 Al final de cada respuesta, en una línea aparte, escribe [cara: X], donde X es una de estas: ${CARAS.join(", ")}. Es la cara que pone Norte mientras habla.`;
 
+/* Lo que sabe hacer con internet (web_search): va después de la personalidad, que es la misma del robot */
+const INTERNET = `Tienes internet: con web_search buscas lo que cambia o no sabes (el tiempo, noticias, resultados, horarios, precios, datos de algo o de alguien). Busca solo cuando haga falta y sin anunciar que vas a buscar. Responde con lo esencial, en una a tres frases y como habla Norte, sin listas, links ni números de fuentes; si ayuda, di de dónde viene en pocas palabras («según Meteored»). Para el tiempo, si no te dicen dónde, es en su ciudad («ciudad» en su día de hoy) o, si no está, en Santiago. Si calza con su día en Rumbo (un hábito, el agua, su primer bocado), conéctalo en una frase, sin forzarlo.`;
+
 function sistema(dia, ahora) {
   const hora = new Intl.DateTimeFormat("es-CL", { timeZone: TZ, weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false }).format(ahora);
   const hoy = dia ? JSON.stringify(dia) : "No pude leer Rumbo en este momento. Si te preguntan por el día, dilo.";
-  return `${PERSONALIDAD}\n\nAhora es ${hora} en Chile.\nEl día de hoy en Rumbo (lo que espera en la bandeja ya cuenta como hecho):\n${hoy}`;
+  return `${PERSONALIDAD}\n\n${INTERNET}\n\nAhora es ${hora} en Chile.\nEl día de hoy en Rumbo (lo que espera en la bandeja ya cuenta como hecho):\n${hoy}`;
+}
+/* La búsqueda web de Anthropic (corre en sus servidores; la versión básica, que Haiku usa directo), cerca de tu ciudad */
+export function herramientaWeb(dia) {
+  const ubicacion = { type: "approximate", country: "CL", timezone: TZ };
+  const partes = String((dia && dia.ciudad) || "").split(",").map(x => x.trim()).filter(Boolean);
+  if (partes.length) {
+    ubicacion.city = partes[0].slice(0, 80);
+    if (partes.length > 2) ubicacion.region = partes[1].slice(0, 80);
+    if (partes.length > 1 && sinTildes(partes[partes.length - 1]) !== "chile") { delete ubicacion.country; delete ubicacion.timezone; }   // otra ciudad del mundo
+  }
+  return { type: "web_search_20250305", name: "web_search", max_uses: BUSQUEDAS_MAX, user_location: ubicacion };
+}
+/* El texto de la respuesta: si buscó, lo que viene después del último resultado (sin el «voy a buscar…»), y las partes
+   con cita van pegadas, porque la API corta el texto donde empieza y termina cada cita */
+export function textoFinal(content) {
+  const bloques = Array.isArray(content) ? content : [];
+  let desde = 0;
+  bloques.forEach((b, i) => { if (b && b.type === "web_search_tool_result") desde = i + 1; });
+  return bloques.slice(desde).filter(b => b && b.type === "text").map(b => b.text).join(desde ? "" : "\n");
+}
+/* De dónde salió lo que dice (las citas de la búsqueda): hasta 3, sin repetir */
+export function fuentesDe(content) {
+  const out = [];
+  (Array.isArray(content) ? content : []).forEach(b => (b && b.type === "text" && Array.isArray(b.citations) ? b.citations : []).forEach(c => {
+    if (!c || c.type !== "web_search_result_location" || !/^https?:\/\//.test(c.url || "") || out.some(x => x.url === c.url) || out.length >= 3) return;
+    out.push({ titulo: String(c.title || "").slice(0, 120), url: String(c.url).slice(0, 500) });
+  }));
+  return out;
 }
 
 /* Las herramientas: cada una es una acción de /api/norte/ (notifier/norte.mjs) */
@@ -174,8 +210,10 @@ async function charla({ sb, uid, body, ahora, claude }) {
     for (let vuelta = 0; vuelta < VUELTAS_MAX; vuelta++) {
       r = await claude.messages.create({
         model: MODELO, max_tokens: 1024, output_config: { effort: "low" },
-        system: sistema(dia, ahora), tools: paraClaude(herramientas), messages,
+        system: sistema(dia, ahora), tools: [...paraClaude(herramientas), herramientaWeb(dia)], messages,
       });
+      // una búsqueda larga se pausa: se devuelve el turno tal cual y la API sigue donde quedó
+      if (r.stop_reason === "pause_turn") { messages.push({ role: "assistant", content: r.content }); continue; }
       if (r.stop_reason !== "tool_use") break;
       messages.push({ role: "assistant", content: r.content });
       const resultados = [];
@@ -199,9 +237,9 @@ async function charla({ sb, uid, body, ahora, claude }) {
     throw e;
   }
   if (r && r.stop_reason === "refusal") return exito({ texto: "Mejor hablemos de otra cosa. ¿Cómo va tu día?", cara: "serio", hizo });
-  const crudo = (r ? r.content : []).filter(b => b.type === "text").map(b => b.text).join("\n");
-  const { texto: respuesta, cara } = separarCara(crudo);
-  return exito({ texto: respuesta || (hizo.length ? hizo[hizo.length - 1].texto : "Aquí estoy."), cara, hizo });
+  const { texto: respuesta, cara } = separarCara(textoFinal(r ? r.content : []));
+  const fuentes = fuentesDe(r ? r.content : []);
+  return exito(Object.assign({ texto: respuesta || (hizo.length ? hizo[hizo.length - 1].texto : "Aquí estoy."), cara, hizo }, fuentes.length ? { fuentes } : {}));
 }
 
 /* ---------- Oído y voz (Azure) ---------- */

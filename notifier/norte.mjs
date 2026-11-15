@@ -358,6 +358,8 @@ export function resumenDia(data, bandeja, hoy) {
     habitos_racha: rachas,
     racha_en_riesgo: riesgo ? { nombre: paraVoz(riesgo.nombre), n: riesgo.n, unidad: riesgo.unidad } : null,
     semana: semanaDe(copia, hoy, s),
+    // la ciudad que elegiste para el agua (Open-Meteo): Norte busca el tiempo y lo cercano ahí
+    ciudad: copia.agua && copia.agua.clima && copia.agua.clima.ciudad ? visible(copia.agua.clima.ciudad) : null,
   };
 }
 export function textoHoy(d) {

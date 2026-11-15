@@ -213,4 +213,23 @@ export default async function ({ G, test, assert, clone, cargar }) {
     assert.ok(tareasDelDia(hoy, s).some(x => x.txt === "Quedó de ayer"), "a tu lista de hoy");
     assert.ok(!s.ritual.dias[ayer].cierre.mision, "sin respuesta, la misión queda sin marcar");
   });
+
+  /* ---------- La misma tarea, escrita distinto (Chris, 2026-11-15: «definir estructuras de cargo en Newhome» quedó dos veces) ---------- */
+  const sbD = nuevoSb(), dup = await pedir(sbD, { accion: "anotar", texto: "pagar   LA luz!", tipo: "tarea", ambito: "per" });
+  const otra = await pedir(sbD, { accion: "anotar", texto: "Pagar la luz del mes pasado", tipo: "tarea", ambito: "per" });
+  test("anotar una tarea que ya tienes hoy (con otras mayúsculas, signos o espacios) no la duplica", () => {
+    assert.equal(dup.status, 200); assert.equal(dup.cuerpo.texto, "Ya la tenías en tus tareas de hoy: Pagar la luz.");
+    assert.deepEqual([dup.cuerpo.datos.ya, dup.cuerpo.datos.id], [true, "t1"]);
+    assert.equal(sbD.tablas.norte_pendientes.length, 1, "solo la otra, que es distinta, va a la bandeja");
+    assert.equal(otra.cuerpo.datos.ya, undefined);
+  });
+  const Sdup = nuevoEstado();
+  aplicar([ped(5, "abrir", { completo: true, primer_bocado: "llamar a ana", ambito: "pro", tareas_nuevas: [{ texto: "Pagar la LUZ", ambito: "per" }, { texto: "Ordenar el Escritorio.", ambito: "per" }] }),
+    ped(6, "tarea", { texto: "llamar a Ána", ambito: "pro" })], Sdup);
+  test("la app empareja la tarea aunque cambien mayúsculas, tildes o signos: el bocado, las nuevas y lo anotado", () => {
+    const vivas = tareasDelDia(hoy, Sdup).filter(t => !t.borrada);
+    assert.equal(vivas.filter(t => /ana/i.test(t.txt)).length, 1, "«llamar a ana» es «Llamar a Ana»: una sola, y es el bocado");
+    assert.ok(buscarTarea(Sdup, hoy, "tana").esSapo);
+    assert.equal(vivas.filter(t => /luz/i.test(t.txt)).length, 1); assert.equal(vivas.filter(t => /escritorio/i.test(t.txt)).length, 1);
+  });
 }

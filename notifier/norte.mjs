@@ -75,6 +75,8 @@ export function normalizar(s) {
 export function paraVoz(s) {
   return String(s == null ? "" : s).replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}️‍⃣]/gu, "").replace(/\s+/g, " ").trim();
 }
+/* Para comparar tareas: sin tildes, mayúsculas, signos ni espacios de más («Definir estructuras, NewHome» = «definir estructuras newhome») */
+export const mismaTarea = (a, b) => { const n = normalizar(a); return !!n && n === normalizar(b); };
 /* Lo que se va a guardar: sin caracteres de control. null si es demasiado largo */
 function textoLimpio(v, max = TEXTO_MAX) {
   if (v == null) return "";
@@ -259,16 +261,16 @@ function listaTareas(tareasDia, s) {
     antigua: (+t.migraciones || 0) > 0 || !!t.bocadoSugerido, postergada: +t.migraciones || 0,
   }));
   // las nuevas del ritual completo son como en la app: si ya tienes una con ese texto (aunque la quites), no se crea otra
-  const textos = new Set(tareasDia.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t))).map(t => visible(t.txt)));
+  const textos = new Set(tareasDia.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t))).map(t => normalizar(t.txt)));
   s.nuevasTareas.forEach(t => {
-    if (xs.some(x => x.id === t.id || (t.porTexto && x.texto === t.texto)) || (t.porTexto && textos.has(t.texto)) || s.quitadas.has(t.id)) return;
+    if (xs.some(x => x.id === t.id || (t.porTexto && mismaTarea(x.texto, t.texto))) || (t.porTexto && textos.has(normalizar(t.texto))) || s.quitadas.has(t.id)) return;
     xs.push({ id: t.id, texto: t.texto, ambito: t.ambito, hecha: s.tareasHechas.has(t.id), bocado: false, prioridad: false, antigua: false, postergada: 0 });
   });
   // El bocado que espera en la bandeja (abriste el día con Norte): como lo dejará la app (aplicarAperturaExpress), la
   // tarea con ese texto pasa a ser el bocado, o se crea con id fijo «nb<pedido>0». Así se puede completar desde Norte-Desk
   // (completar_tarea) antes de que la app lo aplique: el tarea_hecha queda en la bandeja después del abrir.
   if (s.bocado && s.bocadoPedido) {
-    const txt = visible(s.bocado), igual = xs.find(x => x.texto === txt);
+    const txt = visible(s.bocado), igual = xs.find(x => mismaTarea(x.texto, txt));
     xs.forEach(x => { if (x.bocado && x !== igual) x.bocado = false; });
     if (igual) igual.bocado = true;
     else if (txt) xs.push({ id: s.bocadoPedido.id, texto: txt, ambito: s.bocadoPedido.ambito, hecha: s.tareasHechas.has(s.bocadoPedido.id), bocado: true, prioridad: false, antigua: false, postergada: 0 });
@@ -487,6 +489,11 @@ async function anotar({ sb, uid, body, ahora }) {
   if (!["tarea", "nota"].includes(tipo)) return fallo(400, "dato-invalido", "Puedo anotar una tarea o una nota.");
   if (!["pro", "per"].includes(ambito)) return fallo(400, "dato-invalido", "¿Es algo personal o profesional?");
   const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora);
+  // Una tarea que ya tienes hoy (escrita igual, aunque cambien mayúsculas o tildes) no se anota otra vez
+  if (tipo === "tarea") {
+    const ya = resumenDia(data, await leerBandeja(sb, uid), dia).tareas.find(t => !t.hecha && mismaTarea(t.texto, texto));
+    if (ya) return exito(`Ya la tenías en tus tareas de hoy: ${paraVoz(ya.texto)}.`, { tipo, fecha: dia, texto: ya.texto, ambito: ya.ambito, ya: true, id: ya.id });
+  }
   const r = await aLaBandeja(sb, uid, tipo, tipo === "tarea" ? { texto, ambito, fecha: dia } : { texto, fecha: dia }, ahora);
   if (r.limite) return falloDe(429, "demasiados-pedidos");
   const eco = paraVoz(texto);

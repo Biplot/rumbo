@@ -22,6 +22,9 @@
    el bocado, qué pasa con cada pendiente, la energía, lo que agradeces, una cosa para mañana y una nota. Sin «completo»
    siguen siendo los rituales cortos del robot. «hoy» trae lo que esos formularios necesitan (la misión sugerida, etc.)
    y tu semana (el foco, las prioridades, el premio y los hábitos en foco del ritual semanal).
+   Para las pantallas del robot, «hoy» trae además cómo fue cada día de la semana (semana.dias), los últimos siete días de
+   tus hábitos de hoy (habitos_semana) y tu agua como la ves en Rumbo: tu vaso, tu botella, el estilo y el sabor que tienes
+   puestos (solo si los compraste), la temperatura del día y la hora del último vaso. sumar_agua con «botella: true» suma tu botella.
    «Hoy» es el día de la persona (settings.notif.tz, America/Santiago si no hay). Qué hábitos tocan
    hoy lo dice el mismo motor de la app (js/habitos-motor.js, vía notifier/habitos.mjs).
    Recibe el cliente de Supabase (`sb`), así se prueba sin red (tests/norte.test.mjs).
@@ -29,7 +32,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { localDate } from "./recordatorios.mjs";
 import { motorHabitos } from "./habitos.mjs";
-import { vasoDe } from "./elefante.mjs";
+import { vasoDe, botellaDe } from "./elefante.mjs";
 import { VASOS_AL_DIA } from "./vaso.mjs";
 
 export const TEXTO_MAX = 200;          // tareas, notas, primer bocado y gratitud
@@ -329,14 +332,36 @@ function semanaDe(copia, hoy, s) {
     dias: diasHasta.length, abiertos: diasHasta.filter(d => rDe(d).hecho).length, cerrados: diasHasta.filter(d => rDe(d).cerrado).length,
     habitos_pct: cumple.pct, tareas_hechas: tareasHechas, foco_min: Math.round(foco),
   };
+  // Cómo fue cada día, de lunes a domingo (la fila de días de la pantalla de Norte): "cerrado", "abierto", "nada"
+  // (pasó sin abrirlo; hoy, todavía sin abrir) o null (todavía no llega)
+  const estados = Array.from({ length: 7 }, (_, i) => { const d = diaMas(lunes, i); if (d > hoy) return null; const r = rDe(d); return r.cerrado ? "cerrado" : r.hecho ? "abierto" : "nada"; });
   return {
-    desde: lunes, hasta: diaMas(lunes, 6), planificada: !!a, numeros,
+    desde: lunes, hasta: diaMas(lunes, 6), planificada: !!a, numeros, dias: estados,
     foco: a && a.foco ? visible(a.foco) : null,
     premio: w.plan && w.plan.premio ? visible(w.plan.premio) : null,
     prioridades: ((a && Array.isArray(a.prioridades)) ? a.prioridades : []).filter(p => p && p.texto).slice(0, 5).map(p => ({
       id: String(p.id || ""), texto: visible(p.texto), ambito: p.ambito === "pro" ? "pro" : "per", dia: FECHA.test(p.dia || "") ? p.dia : null, hecha: hecha(p),
     })),
     habitos_foco: ((a && Array.isArray(a.habitosFoco)) ? a.habitosFoco : []).map(id => defs.find(h => h && h.id === id)).filter(Boolean).map(h => paraVoz(h.nombre)).filter(Boolean),
+  };
+}
+
+/* Tu agua como la ves en Rumbo (js/agua.js), para la pantalla del agua de Norte: tu vaso y tu botella, el estilo y el
+   sabor que tienes puestos (solo si los compraste en la Tienda; si no, la botella y el natural, como aguaEstilo y
+   aguaSabor), la temperatura del día si usas el clima (aguaTempDe) y la hora del último vaso (ms; lo que espera en la
+   bandeja cuenta). */
+const AGUA_ESTILOS = { botella: null, burbuja: "agua-burbuja", cantimplora: "agua-cantimplora", bombilla: "agua-bombilla", reloj: "agua-reloj", calor: "agua-calor", esclusa: "agua-esclusa", elefante: "agua-elefante" };
+const AGUA_SABORES = { natural: null, pepino: "sabor-pepino", frutilla: "sabor-frutilla", te: "sabor-te", arandano: "sabor-arandano" };
+function aguaComoSeVe(copia, hoy, s) {
+  const g = (copia && copia.gamif) || {}, puesto = g.equipped || {}, tuyos = Array.isArray(g.owned) ? g.owned : [];
+  const elegido = (lista, id, defecto) => (Object.prototype.hasOwnProperty.call(lista, id) && (!lista[id] || tuyos.includes(lista[id])) ? id : defecto);
+  const a = (copia && copia.agua) || {}, d = a.dias && a.dias[hoy];
+  const temp = a.clima && a.clima.on && d && typeof d.c === "number" ? d.c : null;
+  const marcas = [...(d && Array.isArray(d.r) ? d.r.filter(x => x && !(d.b || []).includes(x.id)).map(x => +x.ts || 0) : []), ...s.agua.filter(v => v.fecha === hoy).map(v => +v.ts || 0)];
+  return {
+    vaso: vasoDe(copia), botella: botellaDe(copia),
+    estilo: elegido(AGUA_ESTILOS, puesto.agua, "botella"), sabor: elegido(AGUA_SABORES, puesto.sabor, "natural"),
+    temp, ultimo: marcas.length ? Math.max(...marcas) || null : null,
   };
 }
 
@@ -360,6 +385,17 @@ export function resumenDia(data, bandeja, hoy) {
     .filter(r => r.nombre && r.n >= 1).map(r => ({ nombre: r.nombre, n: r.n, unidad: r.unidad }));
   const riesgo = motor.enRiesgo();
   const ml = totalAgua(copia.agua && copia.agua.dias && copia.agua.dias[hoy]) + s.agua.filter(v => v.fecha === hoy).reduce((t, v) => t + (+v.ml || 0), 0);
+  // Los últimos siete días de tus hábitos de hoy (el tablero de la semana en Norte), del más antiguo a hoy:
+  // h hecho · x tocaba y no se hizo · - no tocaba (o no existía) · p hoy, todavía sin hacer
+  const habitosSemana = defs.filter(h => deHoy.has(h.id)).slice(0, 6).map(h => ({
+    nombre: paraVoz(h.nombre),
+    dias: Array.from({ length: 7 }, (_, i) => {
+      const d = diaMas(hoy, i - 6);
+      if (motor.hecho(h, d)) return "h";
+      if (d === hoy) return "p";
+      return d >= (h.creado || "0000-01-01") && motor.programado(h, d) ? "x" : "-";
+    }).join(""),
+  })).filter(x => x.nombre);
   // la misión de hoy que dejaste anoche («Una cosa para mañana»), como la propone la app al abrir el día
   const rAyer = ((copia.ritual && copia.ritual.dias) || {})[diaMas(hoy, -1)], manana = s.mananaAyer || (rAyer && rAyer.cierre && rAyer.cierre.manana) || "";
   return {
@@ -376,13 +412,14 @@ export function resumenDia(data, bandeja, hoy) {
     cerrado: !!dia.cerrado,
     habitos_pendientes: pendientes,
     habitos_hechos: hechos,
-    agua: { ml, meta_ml: metaAgua(copia, hoy) },
+    agua: Object.assign({ ml, meta_ml: metaAgua(copia, hoy) }, aguaComoSeVe(copia, hoy, s)),
     tareas_pendientes: tareas.filter(x => !x.hecha).length,
     en_bandeja: s.pend.length + s.agua.length,
     tareas: tareas.slice(0, 30),
     habitos_tiempo: defs.filter(h => esHacer(h) && +h.minutos > 0)
       .map(h => ({ nombre: paraVoz(h.nombre), minutos: +h.minutos, hoy: focoMin(copia, h.id, hoy), hecho: motor.hecho(h, hoy) })),
     habitos_racha: rachas,
+    habitos_semana: habitosSemana,
     racha_en_riesgo: riesgo ? { nombre: paraVoz(riesgo.nombre), n: riesgo.n, unidad: riesgo.unidad } : null,
     semana: semanaDe(copia, hoy, s),
     // la ciudad que elegiste para el agua (Open-Meteo): Norte busca el tiempo y lo cercano ahí
@@ -410,7 +447,7 @@ async function leerEstado(sb, uid) {
 async function leerBandeja(sb, uid) {
   const [n, a] = await Promise.all([
     sb.from("norte_pendientes").select("id, tipo, datos, creado").eq("user_id", uid),
-    sb.from("agua_pendientes").select("id, fecha, ml").eq("user_id", uid),
+    sb.from("agua_pendientes").select("id, fecha, ml, ts").eq("user_id", uid),
   ]);
   if (n.error) throw new Error(n.error.message);
   if (a.error && !sinTablas(a.error)) throw new Error(a.error.message);   // sin supabase/agua.sql: sin agua pendiente
@@ -468,9 +505,11 @@ async function hoy({ sb, uid, ahora }) {
 }
 
 async function sumarAgua({ sb, uid, body, ahora }) {
-  const vasos = entero(body.vasos, 1, VASOS_MAX, 1);
+  // «botella: true»: tu botella entera de una vez (la de «+ Tu botella» del aviso del agua), en vez de vasos
+  const botella = body.botella === true;
+  const vasos = botella ? 1 : entero(body.vasos, 1, VASOS_MAX, 1);
   if (vasos == null) return fallo(400, "dato-invalido", "Puedo anotar de uno a seis vasos a la vez.");
-  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), ml = vasoDe(data);
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), ml = botella ? botellaDe(data) : vasoDe(data);
   const desde = new Date(ahora.getTime() - 864e5).toISOString();
   const { count, error: e1 } = await sb.from("agua_pendientes").select("id", { count: "exact", head: true }).eq("user_id", uid).gte("creado", desde);
   if (e1) { if (sinTablas(e1)) return falloDe(500, "sin-servidor"); throw new Error(e1.message); }
@@ -481,7 +520,7 @@ async function sumarAgua({ sb, uid, body, ahora }) {
   if (error) { if (sinTablas(error)) return falloDe(500, "sin-servidor"); throw new Error(error.message); }
   const agua = { ml: antes.ml + vasos * ml, meta_ml: antes.meta_ml };
   const llegaste = antes.ml < agua.meta_ml && agua.ml >= agua.meta_ml;
-  const texto = `${vasos === 1 ? "Anotado, un vaso." : `Anotados ${NUMEROS[vasos]} vasos.`} ${llegaste
+  const texto = `${botella ? "Anotada tu botella." : vasos === 1 ? "Anotado, un vaso." : `Anotados ${NUMEROS[vasos]} vasos.`} ${llegaste
     ? `Llegaste a tus ${litrosTxt(agua.meta_ml)} litros de hoy, bien hecho.` : `Llevas ${litrosTxt(agua.ml)} de ${litrosTxt(agua.meta_ml)} litros.`}`;
   return exito(texto, { fecha: dia, vasos, ml_vaso: ml, agua });
 }

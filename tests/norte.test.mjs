@@ -137,7 +137,7 @@ export default async function ({ G, test, assert, clone, cargar }) {
     assert.deepEqual([d.fecha, d.abierto, d.cerrado, d.mision, d.primer_bocado, d.energia], [HOY, false, false, null, null, null]);
     assert.deepEqual(d.habitos_pendientes, ["Meditar", "Leer inglés"], "sin los de dejar, sin los en pausa y sin emojis");
     assert.deepEqual(d.habitos_hechos, ["Leer"]);
-    assert.deepEqual(d.agua, { ml: 500, meta_ml: 2000 });
+    assert.deepEqual(d.agua, { ml: 500, meta_ml: 2000, vaso: 300, botella: 500, estilo: "botella", sabor: "natural", temp: null, ultimo: 1 });
     assert.equal(d.tareas_pendientes, 1, "ni las hechas ni las borradas"); assert.equal(d.en_bandeja, 0);
     assert.match(h1.cuerpo.texto, /Todavía no abres tu día\./); assert.match(h1.cuerpo.texto, /Te faltan 2 hábitos: Meditar y Leer inglés\./);
     assert.match(h1.cuerpo.texto, /Llevas 0,5 de 2 litros de agua\./); assert.match(h1.cuerpo.texto, /Tienes una tarea pendiente\./);
@@ -183,6 +183,16 @@ export default async function ({ G, test, assert, clone, cargar }) {
     assert.equal(insertados(sbW4, "agua_pendientes")[0].ml, 250, "un vaso raro: 250 ml");
     assert.equal(w4.cuerpo.texto, "Anotado, un vaso. Llegaste a tus 2 litros de hoy, bien hecho.");
     assert.deepEqual([w5.status, w5.cuerpo.error], [429, "demasiados-pedidos"]);
+  });
+  const sbW6 = sbBase({ data: d => { d.agua.botella = 750; } }), w6 = await pedir(sbW6, { accion: "sumar_agua", botella: true, vasos: 4 });
+  const sbW7 = sbBase(), w7 = await pedir(sbW7, { accion: "sumar_agua", botella: true });
+  test("sumar_agua con «botella: true»: tu botella entera, en una fila (para la pantalla del agua de Norte)", () => {
+    const filas = insertados(sbW6, "agua_pendientes");
+    assert.deepEqual(filas.map(f => f.ml), [750], "una sola fila con tu botella, aunque pidas vasos");
+    assert.equal(w6.cuerpo.texto, "Anotada tu botella. Llevas 1,3 de 2 litros.");
+    assert.deepEqual([w6.cuerpo.datos.vasos, w6.cuerpo.datos.ml_vaso], [1, 750]);
+    assert.equal(insertados(sbW7, "agua_pendientes")[0].ml, 500, "sin botella elegida: 500 ml, como «+ Tu botella»");
+    assert.equal(w7.status, 200);
   });
 
   /* ---------- marcar_habito ---------- */

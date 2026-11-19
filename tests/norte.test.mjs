@@ -138,6 +138,7 @@ export default async function ({ G, test, assert, clone, cargar }) {
     assert.deepEqual(d.habitos_pendientes, ["Meditar", "Leer inglés"], "sin los de dejar, sin los en pausa y sin emojis");
     assert.deepEqual(d.habitos_hechos, ["Leer"]);
     assert.deepEqual(d.agua, { ml: 500, meta_ml: 2000, vaso: 300, botella: 500, estilo: "botella", sabor: "natural", temp: null, ultimo: 1 });
+    assert.equal(d.hora, "12:00", "la hora en tu zona (15:00 UTC en Santiago, con horario de verano), para los avisos del robot");
     assert.equal(d.tareas_pendientes, 1, "ni las hechas ni las borradas"); assert.equal(d.en_bandeja, 0);
     assert.match(h1.cuerpo.texto, /Todavía no abres tu día\./); assert.match(h1.cuerpo.texto, /Te faltan 2 hábitos: Meditar y Leer inglés\./);
     assert.match(h1.cuerpo.texto, /Llevas 0,5 de 2 litros de agua\./); assert.match(h1.cuerpo.texto, /Tienes una tarea pendiente\./);

@@ -24,7 +24,8 @@
    y tu semana (el foco, las prioridades, el premio y los hábitos en foco del ritual semanal).
    Para las pantallas del robot, «hoy» trae además cómo fue cada día de la semana (semana.dias), los últimos siete días de
    tus hábitos de hoy (habitos_semana) y tu agua como la ves en Rumbo: tu vaso, tu botella, el estilo y el sabor que tienes
-   puestos (solo si los compraste), la temperatura del día y la hora del último vaso. sumar_agua con «botella: true» suma tu botella.
+   puestos (solo si los compraste), la temperatura del día y la hora del último vaso; y la hora de la persona (hora, "HH:MM")
+   para los avisos del robot. sumar_agua con «botella: true» suma tu botella.
    «Hoy» es el día de la persona (settings.notif.tz, America/Santiago si no hay). Qué hábitos tocan
    hoy lo dice el mismo motor de la app (js/habitos-motor.js, vía notifier/habitos.mjs).
    Recibe el cliente de Supabase (`sb`), así se prueba sin red (tests/norte.test.mjs).
@@ -501,7 +502,15 @@ async function aparatoDe(sb, autorizacion, ahora) {
 async function hoy({ sb, uid, ahora }) {
   const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora);
   const d = resumenDia(data, await leerBandeja(sb, uid), dia);
+  d.hora = horaDe(data, ahora);
   return exito(textoHoy(d), d);
+}
+/* La hora de la persona ("HH:MM" en su zona): el robot la usa para sus avisos (8:00, 16:00, 20:00 y 21:00),
+   porque su reloj viene del servidor de conversación y no sabe en qué zona está */
+function horaDe(data, ahora) {
+  const tz = (data && data.settings && data.settings.notif && data.settings.notif.tz) || TZ_DEFECTO;
+  const f = z => new Intl.DateTimeFormat("en-GB", { timeZone: z, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(ahora);
+  try { return f(tz); } catch { return f(TZ_DEFECTO); }
 }
 
 async function sumarAgua({ sb, uid, body, ahora }) {

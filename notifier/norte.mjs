@@ -502,7 +502,7 @@ async function aparatoDe(sb, autorizacion, ahora) {
 async function hoy({ sb, uid, ahora }) {
   const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora);
   const d = resumenDia(data, await leerBandeja(sb, uid), dia);
-  d.hora = horaDe(data, ahora);
+  d.hora = horaDe(data, ahora); d.ahora = ahora.getTime();   // el robot calcula con esto su reloj del agua (agua.ultimo)
   return exito(textoHoy(d), d);
 }
 /* La hora de la persona ("HH:MM" en su zona): el robot la usa para sus avisos (8:00, 16:00, 20:00 y 21:00),

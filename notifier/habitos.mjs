@@ -21,6 +21,8 @@ export function motorHabitos(data, hoy) {
   vm.runInContext(`HM_HOY = ${JSON.stringify(hoy)};`, ctx);
   return {
     hecho: (h, iso) => !!ctx.hmDone(h, iso, S),
+    /* ¿Tocaba ese día? (diarios y días fijos, sin días libres ni descansos; los de veces por semana no tienen día fijo) */
+    programado: (h, iso) => !!ctx.hmProgramado(h, iso, S),
     /* Los que tocan hoy (activos, ya creados, del día o con la cuota sin cumplir) y aún no se marcan */
     pendientesHoy: () => S.habitos.defs.filter(h => h && ctx.hmPendienteHoy(h, S)),
     /* La racha de un hábito, como en la app (rachaPeriodos): { n, unidad } con unidad "días", "sem" o "meses" */

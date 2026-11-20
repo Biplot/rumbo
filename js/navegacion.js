@@ -29,6 +29,7 @@ const ICONOS_LINEA = {
   notas: '<path d="M5 4h14v11l-5 5H5z"/><path d="M14 20v-5h5"/>',
   recompensas: '<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/>',
   cuenta: '<circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/>',
+  norte: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
   notif: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
   tutoriales: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14"/><circle cx="12" cy="17" r=".6"/>',
   personalizar: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
@@ -110,6 +111,7 @@ const PIE_MAS = [
   { ruta: "recompensas", label: "Recompensas" },
   { ruta: "cuenta", label: "Cuenta" },
   { ruta: "notif", label: "Notificaciones" },
+  { ruta: "norte", label: "Norte, tu brújula", solo: () => typeof norteDisponible === "function" && norteDisponible() },   // solo la cuenta dueña
   { ruta: "tutoriales", label: "Ayuda" },
 ];
 function openMas() {
@@ -122,7 +124,7 @@ function openMas() {
   // En el celular la ayuda «?» de cada pantalla vive aquí (arriba van las puertas a Tu casa y Tu vitrina)
   const ayuda = typeof tourDePantalla === "function" && tourDePantalla(CURRENT)
     ? `<button class="mas-fila" data-action="tour-pantalla">${iconoLinea("tutoriales", 22)}<span>Ayuda de esta pantalla</span></button>` : "";
-  const pie = ayuda + PIE_MAS.map(p => `<button class="mas-fila" data-route="${p.ruta}">${iconoLinea(p.ruta, 22)}<span>${p.label}</span>${p.ruta === "recompensas" ? `<b class="mas-pts">${STATE.gamif.puntos} ⭐</b>` : ""}</button>`).join("");
+  const pie = ayuda + PIE_MAS.filter(p => !p.solo || p.solo()).map(p => `<button class="mas-fila" data-route="${p.ruta}">${iconoLinea(p.ruta, 22)}<span>${p.label}</span>${p.ruta === "recompensas" ? `<b class="mas-pts">${STATE.gamif.puntos} ⭐</b>` : ""}</button>`).join("");
   ov.querySelector(".sheet").innerHTML = iconizar(`
     <div class="sheet__asa" aria-hidden="true"></div>
     <div class="sheet__head"><h2>Más</h2><button class="sheet__x" data-action="mas-cerrar" aria-label="Cerrar">${iconoLinea("cerrar", 22)}</button></div>
@@ -162,6 +164,8 @@ function toggleMenuCuenta() {
   if (!m) return;
   const abrir = m.hidden;
   m.hidden = !abrir;
+  const n = document.getElementById("cuentaMenuNorte");   // 🧭 «Norte, tu brújula», solo para la cuenta dueña (norte.js)
+  if (n) n.hidden = !(typeof norteDisponible === "function" && norteDisponible());
   const b = document.getElementById("cuentaBtn");
   if (b) b.setAttribute("aria-expanded", abrir ? "true" : "false");
 }

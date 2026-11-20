@@ -466,7 +466,8 @@ function openHabitModal(id, op) {
         ${elFichas(HM_DIAS.map((d, i) => [i, DIAS_L[i][0], { aria: DIAS_L[i] }]), dias, { id: "h-dias", dias: true, label: "Días fijos" })}</div>
       <div class="text-xs muted mt-8">Se mide contra este objetivo, no contra 7 días. La semana va de lunes a domingo.</div>
       <div class="mt-16" id="h-min-box" ${h && h.conjunto ? "hidden" : ""}><label class="text-xs muted">¿Tiene duración? <span>(opcional: con el ▶ te enfocas y queda marcado solo al completar los minutos)</span></label>
-        ${elContador("h-minutos", (h && +h.minutos) || +pre.minutos || 0, { min: 0, max: 180, paso: 5, label: "Duración", fmt: v => (typeof focoFmtMin === "function" ? focoFmtMin(v) : v + " min"), fmtFn: "focoFmtMin" })}</div></div>
+        ${elContador("h-minutos", (h && +h.minutos) || +pre.minutos || 0, { min: 0, max: 180, paso: 5, label: "Duración", fmt: v => (typeof focoFmtMin === "function" ? focoFmtMin(v) : v + " min"), fmtFn: "focoFmtMin" })}</div>
+      ${typeof norteHoraHabitoHtml === "function" ? norteHoraHabitoHtml(h) : ""}</div>
     <div id="h-cj-box" ${h && hmMeta(h) !== "hacer" ? "hidden" : ""}>${cjSeccionModal(h, op && op.amigos)}</div>
     ${h && hmMeta(h) === "hacer" ? dscHojaHtml(h) : ""}
     ${h && !h.conjunto ? `<label class="row" style="gap:8px;margin-bottom:14px"><input type="checkbox" id="h-pausado" ${h.pausado ? "checked" : ""}> ⏸ Pausar este hábito (no se mide mientras esté pausado)</label>` : ""}
@@ -507,21 +508,26 @@ async function saveHabit() {
     const datos = { nombre, icon: val("h-icon") || "✅", frecuencia };
     const ok = await (h ? conjuntoGuardar(h, datos, amigos) : conjuntoCrearHabito(datos, amigos)).finally(() => { CONJ.guardando = false; });
     if (!ok) return;
+    // 🧭 la hora para que Norte te recuerde (norte.js): es tuya, no del grupo
+    const hh = typeof norteHoraHabitoLeer === "function" ? norteHoraHabitoLeer() : null;
+    if (h && hh != null && (h.hora || "") !== hh) { if (hh) h.hora = hh; else delete h.hora; h.ts = Date.now(); }
     HABIT_EDIT = null;
     saveState(); closeModal(); rerender(); if (h) toast("Hábito actualizado");
     return;
   }
   const arEl = document.getElementById("h-area"), area = arEl && arEl.value !== "" ? +arEl.value : null;   // 🧭 el área de tu rueda
   const minEl = document.getElementById("h-minutos"), minutos = !dj && minEl ? Math.max(0, Math.min(180, Math.round(+minEl.value || 0))) : 0;   // ⏱️ la duración (foco.js)
+  const hora = typeof norteHoraHabitoLeer === "function" ? norteHoraHabitoLeer() : null;   // 🧭 «Recordar a las…» (norte.js): null si no está en el formulario
   if (h) {
     h.nombre = nombre; h.icon = val("h-icon") || h.icon; h.frecuencia = frecuencia;
     if (arEl) { if (area == null) delete h.area; else h.area = area; }
     if (minutos) h.minutos = minutos; else delete h.minutos;
+    if (hora != null) { if (hora && !dj) h.hora = hora; else delete h.hora; }
     if (dj) Object.assign(h, dj);
     const p = document.getElementById("h-pausado"); h.pausado = !!(p && p.checked);
     h.ts = Date.now();   // en la fusión gana la edición más reciente
   } else {
-    STATE.habitos.defs.push(Object.assign({ id: uid(), nombre, icon: val("h-icon") || "✅", frecuencia, creado: todayISO(), ts: Date.now() }, area != null ? { area } : {}, minutos ? { minutos } : {}, dj || {}));
+    STATE.habitos.defs.push(Object.assign({ id: uid(), nombre, icon: val("h-icon") || "✅", frecuencia, creado: todayISO(), ts: Date.now() }, area != null ? { area } : {}, minutos ? { minutos } : {}, hora && !dj ? { hora } : {}, dj || {}));
   }
   HABIT_EDIT = null;
   saveState(); closeModal(); rerender(); toast(h ? "Hábito actualizado" : "Hábito creado");

@@ -17,7 +17,8 @@
 --      lo recibe Norte una sola vez, al conectarse). «Desconectar» lo deja marcado (desconectado) y
 --      su token deja de servir; a los 30 días se borra.
 --   4. norte_pendientes: la bandeja. Lo que pediste por voz (marcar un hábito, anotar una tarea o una
---      nota, abrir o cerrar el día) espera aquí hasta que la app lo aplica. La app lo toma (queda
+--      nota, abrir o cerrar el día, completar una tarea, un foco y, desde la fase 2, tus alarmas, un recordatorio,
+--      mover una tarea, una alcancía, el diario y la lectura) espera aquí hasta que la app lo aplica. La app lo toma (queda
 --      reservado 2 minutos para ese equipo, así otro equipo no lo aplica al mismo tiempo), lo aplica,
 --      sube tu documento y recién ahí lo confirma (y se borra): si la app se cierra a mitad, el pedido
 --      vuelve en 2 minutos y la app reconoce por su id lo que ya aplicó. Los de más de 14 días se borran.
@@ -76,11 +77,16 @@ ALTER TABLE norte_aparatos ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS norte_pendientes (
   id           text PRIMARY KEY CHECK (id ~ '^[a-z0-9]{8,40}$'),
   user_id      uuid NOT NULL REFERENCES auth.users ON DELETE CASCADE,
-  tipo         text NOT NULL CHECK (tipo IN ('habito', 'tarea', 'nota', 'abrir', 'cerrar', 'tarea_hecha', 'foco')),
+  tipo         text NOT NULL,
   datos        jsonb NOT NULL DEFAULT '{}' CHECK (jsonb_typeof(datos) = 'object' AND pg_column_size(datos) < 4000),
   creado       timestamptz NOT NULL DEFAULT now(),
   tomado_hasta timestamptz                       -- reservado para el equipo que lo está aplicando
 );
+-- Los tipos de pedido (con los de Norte-Desk y los de la fase 2: supabase/norte-foco.sql y norte-fase2.sql)
+ALTER TABLE norte_pendientes DROP CONSTRAINT IF EXISTS norte_pendientes_tipo_check;
+ALTER TABLE norte_pendientes ADD CONSTRAINT norte_pendientes_tipo_check
+  CHECK (tipo IN ('habito', 'tarea', 'nota', 'abrir', 'cerrar', 'tarea_hecha', 'foco',
+                  'alarmas', 'recordatorio', 'tarea_mover', 'alcancia', 'diario', 'lectura'));
 CREATE INDEX IF NOT EXISTS norte_pendientes_user ON norte_pendientes (user_id, creado);
 ALTER TABLE norte_pendientes ENABLE ROW LEVEL SECURITY;
 

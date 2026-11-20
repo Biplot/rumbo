@@ -10,6 +10,12 @@
        { accion: "anotar", texto, tipo: "tarea" | "nota", ambito: "pro" | "per" }
        { accion: "abrir_dia", primer_bocado, energia: 1-5, ambito }
        { accion: "cerrar_dia", animo: 1-5, gratitud }
+     Fase 2 (2026-11-20, ver notifier/norte.mjs y README › Norte):
+       lectura   alarmas · ajustes · recordatorios · social { desde } · tu_anio { anio }
+       bandeja   guardar_alarmas { ts, lista, dormir, amanecer, sonido } · recordar { que, cuando } · recordatorio_listo { id }
+                 borrar_recordatorio { id } · mover_tarea { tarea | tid, destino, a } · alcancia { alcancia | id, monto }
+                 diario { texto } · lectura { libro | id, pagina, minutos }
+       directo   animo { a } (a la tabla animos, con las reglas de amigos.sql)
      Error: { ok: false, error, texto } con HTTP 400/401/404/429/500.
 
    OJO con la barra final: vercel.json tiene trailingSlash, así que /api/norte (sin barra) responde

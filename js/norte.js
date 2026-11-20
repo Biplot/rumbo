@@ -1,7 +1,10 @@
 /* ============================================================
    RUMBO · 🧭 Norte, tu brújula: el robot de voz del escritorio
    (En la interfaz se llama «Norte, tu brújula» porque «Norte» ya es un tema visual.)
-   · Conectar: Cuenta › «Norte, tu brújula» (solo la cuenta dueña, esCuentaDuena en app.js) pide un código
+   · Su pantalla, «Norte, tu brújula» (#norte, renderNorte; se llega desde Cuenta, el menú de tu cuenta y «Más»): los aparatos,
+     tus alarmas (settings.norte.alarmas), los avisos de Norte, el modo noche, Norte aburrido y la pregunta «¿A qué hora te
+     despierto?» al cerrar el día (settings.norte.ajustes). Editar hábito trae «Recordar a las…» (h.hora).
+   · Conectar: en esa pantalla (solo la cuenta dueña, esCuentaDuena en app.js) se pide un código
      de 6 dígitos (norte_crear_codigo, dura 10 minutos y sirve una vez) que se ingresa en Norte. Mientras el
      código está a la vista, la lista de aparatos se revisa cada 5 segundos para avisar cuando Norte se conectó.
      Cada aparato se puede desconectar (su token deja de servir).
@@ -27,6 +30,11 @@
        cerrar  qué pasa con cada pendiente (mañana, otro día, delegar, soltar o «la hice», +15 ⭐ «tarea:<id>»; las que
                no se decidieron pasan a mañana), si cumpliste tu misión, el bocado, la energía, lo mejor del día, una
                cosa para mañana (la misión que te propone al abrir) y la nota (al diario, con el ánimo): +40 ⭐
+       Fase 2 (norteAplicarFase2): alarmas (si su ts es más nuevo que settings.norte.alarmas.ts, las reemplaza) ·
+       recordatorio (crear con id «nr<pedido>», avisado, borrar: quedan marcados en settings.norte.recordatorios) ·
+       tarea_mover (a mañana con moverTarea y copia «nm<pedido>0», delegar o soltar) · alcancia (alcAportar, aporte
+       «nk<pedido>»; los premios con alcRevisar) · diario (entrada «nd<pedido>», +10 ⭐ «diario:<id>») · lectura (la
+       página y un foco de lectura «nl<pedido>» con libroId, +5 ⭐ como un foco)
      Los ids del libro de ⭐ son los mismos que al hacerlo a mano: marcar por voz y en la app no paga dos veces.
      La tarea del bocado, las que pasan a mañana y la entrada del diario también llevan id fijo («nb…», «nc…»,
      «dia<fecha>»): si dos equipos aplican el mismo pedido a la vez, al juntarse queda una de cada una.
@@ -193,7 +201,135 @@ function norteAplicarUno(p, S, hoy, now) {
     if (nuevo && typeof notaElefanteGuardar === "function") notaElefanteGuardar(iso, S);   // 🐘 la nota de tu elefante
     return { tipo: "cerrar", iso, nuevo, n, estrellas: pagado ? EXPRESS_MONEDAS.cierre : 0 };
   }
+  return norteAplicarFase2(p, S, d, iso, hoy, now, creadoTs, reciente);
+}
+/* Fase 2 (2026-11-20): alarmas, recordatorios, mover una tarea, alcancía, diario y lectura */
+function norteAplicarFase2(p, S, d, iso, hoy, now, creadoTs, reciente) {
+  if (p.tipo === "alarmas") {   // las que cambiaste en el robot: si son más nuevas que las de Rumbo, las reemplazan
+    const N = norteAjustes(S), ts = Math.round(+d.ts);
+    if (!(ts > 0) || ts <= (+(N.alarmas && N.alarmas.ts) || 0)) return null;
+    N.alarmas = norteAlarmasDe(Object.assign({}, d, { ts }));
+    return { tipo: "alarmas", estrellas: 0 };
+  }
+  if (p.tipo === "recordatorio") {   // iguales en Norte-Desk y el robot: crear (id fijo «nr<pedido>»), ya avisado o borrar
+    const N = norteAjustes(S), id = String(d.id || "");
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;
+    const r = N.recordatorios.find(x => x && x.id === id);
+    if (d.op === "crear") {
+      const que = norteTexto(d.que), cuando = Math.round(+d.cuando);
+      if (r || !que || !(cuando > 0)) return null;
+      N.recordatorios.push({ id, que, cuando, avisado: false, ts: now });
+      norteLimpiarRecordatorios(S, now);
+      return { tipo: "recordatorio", op: "crear", que, estrellas: 0 };
+    }
+    if (!r || !["avisado", "borrar"].includes(d.op)) return null;   // uno que solo vivía en Norte-Desk: nada que hacer aquí
+    if (d.op === "avisado") { if (r.avisado) return null; r.avisado = true; }
+    else { if (r.borrado) return null; r.borrado = true; }   // queda marcado (así otro equipo no lo trae de vuelta)
+    r.ts = now;
+    return { tipo: "recordatorio", op: d.op, estrellas: 0 };
+  }
+  if (p.tipo === "tarea_mover") {   // posponer, delegar o soltar, como en la app (agenda.js)
+    const tid = String(d.tid || ""), destino = d.destino;
+    if (!["manana", "delegar", "soltar"].includes(destino)) return null;
+    let dia = iso, t = tid && buscarTarea(S, iso, tid);
+    if (!t && tid && hoy !== iso) { t = buscarTarea(S, hoy, tid); dia = hoy; }
+    if (!t) return tid && reciente ? NORTE_ESPERAR : null;   // creada en otro equipo y todavía no llega aquí
+    if (t.borrada || !tareaAbierta(t)) return null;           // ya la hiciste, la moviste o la soltaste
+    if (destino === "manana") {
+      // a mañana; si ese día ya pasó, a hoy (como triageCierreCfg). La copia lleva id fijo «nm<pedido>0»
+      const hacia = dia < hoy ? hoy : agSumar(dia, 1), antes = norteTareasAntes(S, [hacia]);
+      moverTarea(S, t, dia, hacia, "migrada", { hoy });
+      norteFijarIds(S, [hacia], antes, "nm" + p.id);
+    } else if (destino === "delegar") marcarTarea(t, "delegada", { delegadaA: norteTexto(d.a, 80) });
+    else marcarTarea(t, "soltada");
+    return { tipo: "tarea_mover", destino, txt: t.txt, iso: dia, estrellas: 0 };
+  }
+  if (p.tipo === "alcancia") {   // como «+» en la alcancía (alcAportar), con id fijo del aporte «nk<pedido>»
+    if (typeof alcPorId !== "function" || typeof alcAportar !== "function") return null;
+    const a = alcPorId(String(d.aid || ""), S), monto = Math.round(+d.monto), kid = "nk" + p.id;
+    if (!a) return reciente ? NORTE_ESPERAR : null;
+    a.aportes = Array.isArray(a.aportes) ? a.aportes : [];
+    if (a.cerrada || (alcDatos(S).borradas || []).includes(a.id) || !(monto > 0) || a.aportes.some(x => x && x.id === kid)) return null;
+    const x = alcAportar(a.id, monto, null, S, iso);
+    if (!x) return null;
+    x.id = kid; x.ts = creadoTs;
+    return { tipo: "alcancia", aid: a.id, nombre: a.nombre || "tu alcancía", monto, estrellas: 0 };
+  }
+  if (p.tipo === "diario") {   // una entrada del Diario, tal cual la dictaste (como «Guardar» en el Diario: +10 ⭐ «diario:<id>»)
+    const txt = norteLineas(d.texto, NORTE_NOTA_LARGA), did = "nd" + p.id;
+    S.vida = S.vida || {};
+    S.vida.diario = Array.isArray(S.vida.diario) ? S.vida.diario : [];
+    if (!txt || S.vida.diario.some(x => x && x.id === did)) return null;
+    S.vida.diario.push({ id: did, fecha: iso, texto: txt, gratitud: "", ts: now, con: "Norte" });
+    const pagado = ledgerRegistrar(S, "diario:" + did, 10, 10, "Diario con Norte", now);
+    return { tipo: "diario", iso, estrellas: pagado ? 10 : 0 };
+  }
+  if (p.tipo === "lectura") {   // la página del libro y, con minutos, un foco de lectura (libroId), id fijo «nl<pedido>»
+    const l = (Array.isArray(S.lecturas) ? S.lecturas : []).find(x => x && x.id === String(d.lid || ""));
+    if (!l) return reciente ? NORTE_ESPERAR : null;
+    let pagina = null, min = Math.round(+d.min), estrellas = 0;
+    if (d.pagina != null && Number.isFinite(+d.pagina)) {
+      const pg = Math.max(0, Math.round(+d.pagina));
+      pagina = +l.paginas > 0 ? Math.min(pg, +l.paginas) : Math.min(pg, 3000);
+      if (pagina !== (+l.pagina || 0)) { l.pagina = pagina; l.ts = now; }
+    }
+    const E = focoDatos(S), fid = "nl" + p.id;
+    if (min >= 1 && min <= 600 && !E.sesiones.some(x => x && x.id === fid)) {
+      const ini = +d.ini || (creadoTs - min * 60e3);
+      const rec = { id: fid, fecha: iso, ts: now, ini, hora: new Date(ini).getHours(), min, real: min, completa: d.completa !== false,
+        tipo: "libro", ref: l.id, libroId: l.id, titulo: norteTexto(l.titulo, 120) || "Leer", ritmo: "una", con: "Norte" };
+      E.sesiones.push(rec);
+      if (focoDarEstrellas(S, rec)) estrellas += FOCO_ESTRELLAS;   // +5 ⭐ si es completa y de 10 minutos o más, como un foco
+    } else min = 0;
+    if (pagina == null && !min) return null;
+    return { tipo: "lectura", lid: l.id, titulo: l.titulo || "tu libro", pagina, min, juntos: !!l.juntos, estrellas };
+  }
   return null;
+}
+/* STATE.settings.norte = { alarmas: { ts, lista, dormir, amanecer, sonido }, recordatorios: [{ id, que, cuando, avisado, borrado?, ts }] }
+   Entre equipos se fusionan con norteAjustesMerge (store.js): las alarmas, las más nuevas; los recordatorios, por id */
+function norteAjustes(S) {
+  S = S || STATE;
+  S.settings = S.settings || {};
+  if (!S.settings.norte || typeof S.settings.norte !== "object") S.settings.norte = {};
+  if (!Array.isArray(S.settings.norte.recordatorios)) S.settings.norte.recordatorios = [];
+  return S.settings.norte;
+}
+/* Los recordatorios avisados o borrados se olvidan 30 días después de su hora (antes no: así otro equipo no los revive) */
+function norteLimpiarRecordatorios(S, now) {
+  const N = norteAjustes(S), corte = (now || Date.now()) - 30 * 864e5;
+  N.recordatorios = N.recordatorios.filter(r => r && r.id && !((r.avisado || r.borrado) && +r.cuando < corte)).slice(-200);
+}
+const NORTE_SONIDOS = [["campanas", "Campanas"], ["marimba", "Marimba"], ["pajaros", "Pájaros"], ["brujula", "La brújula"], ["ola", "La ola"]];
+const NORTE_ALARMAS_MAX = 10, NORTE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+/* Una alarma como la entienden el robot y el servidor (alarmaLimpia en notifier/norte.mjs); null si viene mal */
+function norteAlarmaLimpia(a) {
+  if (!a || typeof a !== "object" || !/^[A-Za-z0-9_-]{1,40}$/.test(String(a.id || "")) || !NORTE_HORA.test(String(a.hora || ""))) return null;
+  const dias = [...new Set((Array.isArray(a.dias) ? a.dias : []).map(Number))].filter(x => Number.isInteger(x) && x >= 0 && x <= 6).sort((x, y) => x - y);
+  const fecha = !dias.length && /^\d{4}-\d{2}-\d{2}$/.test(String(a.fecha || "")) ? a.fecha : null;
+  return { id: String(a.id), hora: a.hora, dias, fecha, nombre: norteTexto(a.nombre, 40), sonido: NORTE_SONIDOS.some(x => x[0] === a.sonido) ? a.sonido : null, activa: a.activa !== false };
+}
+function norteAlarmasDe(x) {
+  const a = x && typeof x === "object" ? x : {}, am = a.amanecer == null ? null : Number(a.amanecer);
+  return {
+    ts: +a.ts > 0 ? Math.round(+a.ts) : 0,
+    lista: (Array.isArray(a.lista) ? a.lista : []).map(norteAlarmaLimpia).filter(Boolean).slice(0, NORTE_ALARMAS_MAX),
+    dormir: NORTE_HORA.test(String(a.dormir || "")) ? a.dormir : null,
+    amanecer: Number.isInteger(am) && am >= 0 && am <= 30 ? am : 10,
+    sonido: NORTE_SONIDOS.some(s => s[0] === a.sonido) ? a.sonido : "campanas",
+  };
+}
+/* Tus alarmas (una copia: para cambiarlas, norteAlarmasCambiar) */
+function norteAlarmas(S) { return norteAlarmasDe(norteAjustes(S).alarmas); }
+/* Cambia tus alarmas con fn(A) y las guarda con la hora del cambio (ts): así el robot sabe que las de Rumbo son más nuevas */
+function norteAlarmasCambiar(fn, S, now) {
+  S = S || STATE;
+  const A = norteAlarmas(S);
+  if (fn(A) === false) return null;
+  A.lista = A.lista.map(norteAlarmaLimpia).filter(Boolean).slice(0, NORTE_ALARMAS_MAX);
+  A.ts = Math.max(now || Date.now(), A.ts + 1);
+  norteAjustes(S).alarmas = A;
+  return A;
 }
 /* El ritual de apertura completo (Norte-Desk), como saveRitual (modules2.js). Lo que no vino se queda como estaba. */
 function norteAbrirCompleto(p, S, iso, d, creadoTs, now) {
@@ -306,6 +442,14 @@ function norteResumen(res) {
   if (ns.length) partes.push(`guardó ${ns.length === 1 ? "una nota" : ns.length + " notas"}`);
   if (de("abrir").length) partes.push("abrió tu día");
   if (de("cerrar").length) partes.push("cerró tu día");
+  // fase 2 (los recordatorios avisados o borrados no se cuentan: ya los viste en Norte)
+  const al = de("alarmas"), rc = de("recordatorio").filter(x => x.op === "crear"), mv = de("tarea_mover"), ak = de("alcancia"), di = de("diario"), le = de("lectura");
+  if (al.length) partes.push("actualizó tus alarmas");
+  if (rc.length) partes.push(`anotó ${rc.length === 1 ? "un recordatorio" : rc.length + " recordatorios"}`);
+  if (mv.length) partes.push(mv.length === 1 ? (mv[0].destino === "manana" ? "pasó una tarea a mañana" : mv[0].destino === "delegar" ? "delegó una tarea" : "soltó una tarea") : `movió ${mv.length} tareas`);
+  if (ak.length) { const t = ak.reduce((x, y) => x + y.monto, 0); partes.push(`guardó $${Math.round(t).toLocaleString("es-CL")} en ${ak.length === 1 ? ak[0].nombre : "tus alcancías"}`); }
+  if (di.length) partes.push(di.length === 1 ? "escribió en tu diario" : `escribió ${di.length} entradas en tu diario`);
+  if (le.length) partes.push(le.length === 1 && le[0].pagina != null ? `anotó la página ${le[0].pagina} de ${le[0].titulo}` : "anotó tu lectura");
   if (!partes.length) return de("cerrar-sin-abrir").length ? "🧭 Norte no pudo cerrar tu día: no estaba abierto" : "";
   const lista = partes.length === 1 ? partes[0] : partes.slice(0, -1).join(", ") + " y " + partes[partes.length - 1];
   return `🧭 Norte ${lista}${res.estrellas ? ` · +${res.estrellas} ⭐` : ""}`;
@@ -356,6 +500,12 @@ function norteReintentar() {
 /* Lo que hace la app después de marcar a mano (riega tu jardín, avisa a tus amigos) y el aviso */
 function norteEfectos(res) {
   res.aplicados.forEach(ef => {
+    if (ef.tipo === "alcancia") {   // los premios de la alcancía (llenarla, las paradas del viaje y la racha de ahorro), como al tocar «+»
+      if (typeof alcRevisar === "function") alcRevisar(ef.aid);
+      if (typeof alcRevisarRacha === "function") alcRevisarRacha();
+      return;
+    }
+    if (ef.tipo === "lectura" && ef.juntos && ef.pagina != null && typeof ljAvance === "function") { ljAvance(ef.lid, ef.pagina, true); return; }   // lo lees con amigos
     if (ef.tipo !== "habito") return;
     if (typeof jardinAlMarcar === "function") jardinAlMarcar(ef.hid, true);
     if (typeof conjuntoAlMarcar === "function") conjuntoAlMarcar(ef.hid, ef.iso);
@@ -373,12 +523,17 @@ function norteAlEntrar() {
   setTimeout(nortePendientes, 1500);
   clearInterval(NORTE.revisar);
   if (!norteDisponible()) return;
+  setTimeout(() => { if (!Array.isArray(NORTE.aparatos)) norteCargarAparatos(); }, 4000);   // ¿hay un Norte? (la pregunta del despertador)
+  const m = typeof document !== "undefined" && document.getElementById("cuentaMenuNorte");   // el menú de tu cuenta lleva a #norte
+  if (m) m.hidden = false;
   NORTE.revisar = setInterval(() => { if (!document.hidden) nortePendientes(); }, NORTE_REVISAR_MS);
   if (!NORTE.alFoco) { NORTE.alFoco = () => { if (CURRENT_USER) norteAlVolver(); }; window.addEventListener("focus", NORTE.alFoco); }
 }
 function norteAlVolver() { setTimeout(nortePendientes, 1500); }   // después de que syncFromCloud trae lo último
 /* Al salir de la cuenta: ni el código ni la lista quedan para quien entre después */
 function norteOlvidar() {
+  const m = typeof document !== "undefined" && document.getElementById("cuentaMenuNorte");
+  if (m) m.hidden = true;
   clearInterval(NORTE.reloj);
   clearInterval(NORTE.revisar); NORTE.revisar = 0;
   if (typeof clearTimeout === "function") clearTimeout(NORTE.reintento);
@@ -387,10 +542,25 @@ function norteOlvidar() {
 }
 
 /* -------- Cuenta › «Norte, tu brújula» -------- */
+/* Cuenta › «Norte, tu brújula»: lleva a su pantalla */
 function renderNorteCuenta() {
   if (!norteDisponible()) return "";
+  return `<button type="button" class="card mt-16 cuenta-apariencia" data-route="norte">
+    <span class="cuenta-apariencia__ico">${typeof iconoLinea === "function" ? iconoLinea("norte", 22) : "🧭"}</span>
+    <span class="cuenta-apariencia__tx"><b>Norte, tu brújula</b><small>Tu robot del escritorio: conectarlo, tus alarmas, sus avisos y el modo noche</small></span>${typeof iconoLinea === "function" ? iconoLinea("chevron", 18) : ""}</button>`;
+}
+/* -------- La pantalla «Norte, tu brújula» (#norte): todo lo de Norte en un lugar --------
+   1 Aparatos (conectar con código, la lista, desconectar) · 2 Tus alarmas · 3 Avisos de Norte · 4 Modo noche ·
+   5 Norte aburrido · 6 La pregunta del despertador al cerrar el día. Solo la cuenta dueña (norteDisponible). */
+function renderNorte() {
+  if (!norteDisponible()) return `<div class="card"><div class="empty">Norte, tu brújula todavía no está disponible para tu cuenta.</div></div>`;
   setTimeout(() => { norteCargarAparatos(); if (NORTE.codigo && NORTE.expira > Date.now()) norteReloj(); }, 0);
-  return `<div class="card mt-16" id="acc-norte">${norteCuentaHtml()}</div>`;
+  return `<div class="card" id="acc-norte">${norteCuentaHtml()}</div>
+    <div id="norte-config">${norteConfigHtml()}</div>`;
+}
+function norteConfigHtml() {
+  return `<div class="card mt-16">${norteAlarmasHtml()}</div>
+    <div class="card mt-16" id="norte-avisos">${norteAvisosHtml()}</div>`;
 }
 function norteVenceTxt() {
   const s = Math.max(0, Math.round((NORTE.expira - Date.now()) / 1000));
@@ -423,8 +593,10 @@ function norteListaHtml() {
       <button class="btn-ghost" data-action="norte-desconectar" data-id="${escapeAttr(a.id)}">Desconectar</button></div>`).join("")}</div>`;
 }
 function norteRepintar() {
-  const el = document.getElementById("acc-norte");
-  if (el) el.innerHTML = typeof iconizar === "function" ? iconizar(norteCuentaHtml()) : norteCuentaHtml();
+  const ic = h => (typeof iconizar === "function" ? iconizar(h) : h);
+  const el = document.getElementById("acc-norte"), cfg = document.getElementById("norte-config");
+  if (el) el.innerHTML = ic(norteCuentaHtml());
+  if (cfg) cfg.innerHTML = ic(norteConfigHtml());
 }
 function norteError(e) {
   return { limite: "Pediste muchos códigos. Espera un rato y vuelve a intentarlo.", "sin-servidor": "Falta activar Norte en el servidor (supabase/norte.sql).",
@@ -437,7 +609,7 @@ async function norteCargarAparatos() {
   NORTE.cargando = false;
   if (!CURRENT_USER) return null;
   if (r && r.error) NORTE.error = r.error;
-  else { NORTE.error = null; NORTE.aparatos = (Array.isArray(r) ? r : []).filter(a => a && a.id); }
+  else { NORTE.error = null; NORTE.aparatos = (Array.isArray(r) ? r : []).filter(a => a && a.id); norteRecordarHay(); }
   norteRepintar();
   return NORTE.aparatos;
 }
@@ -474,10 +646,229 @@ async function norteDesconectar(id) {
   const r = await BACKEND.norteDesconectar(id);
   if (r && r.error) return toast(norteError(r.error), true);
   NORTE.aparatos = (NORTE.aparatos || []).filter(a => a.id !== id);
-  norteRepintar(); toast("🧭 Norte desconectado");
+  norteRecordarHay(); norteRepintar(); toast("🧭 Norte desconectado");
 }
+/* -------- Fase 2: ¿hay un Norte conectado? (para la pregunta del despertador al cerrar el día) -------- */
+/* La lista de aparatos se trae al abrir Cuenta y al entrar a la app; entre visitas queda recordada en este equipo */
+function norteClaveHay() { return "rumbo-norte-hay:" + ((typeof CURRENT_USER !== "undefined" && CURRENT_USER && CURRENT_USER.id) || "local"); }
+function norteHayAparato() {
+  if (!norteDisponible()) return false;
+  if (Array.isArray(NORTE.aparatos)) return NORTE.aparatos.length > 0;
+  try { return localStorage.getItem(norteClaveHay()) === "1"; } catch (e) { return false; }
+}
+function norteRecordarHay() {
+  if (!Array.isArray(NORTE.aparatos)) return;
+  try { if (NORTE.aparatos.length) localStorage.setItem(norteClaveHay(), "1"); else localStorage.removeItem(norteClaveHay()); } catch (e) {}
+}
+
+/* -------- Cuenta › «Norte, tu brújula» › Tus alarmas (F07) --------
+   Viven en Rumbo (STATE.settings.norte.alarmas) y el robot las trae cada 15 minutos; cada cambio lleva la hora (ts) */
+const NORTE_DIAS = [[1, "L", "Lunes"], [2, "M", "Martes"], [3, "M", "Miércoles"], [4, "J", "Jueves"], [5, "V", "Viernes"], [6, "S", "Sábado"], [0, "D", "Domingo"]];
+const norteSonidoTxt = v => (NORTE_SONIDOS.find(x => x[0] === v) || [, "El de siempre"])[1];
+/* «Lun a vie», «Todos los días», «Sáb y dom», «Una vez · vie 21 nov» */
+function norteDiasTxt(a) {
+  const d = a.dias;
+  if (!d.length) return a.fecha ? `Una vez · ${typeof diaCorto === "function" ? diaCorto(a.fecha) : a.fecha}` : "Una vez";
+  if (d.length === 7) return "Todos los días";
+  if (d.join() === "1,2,3,4,5") return "De lunes a viernes";
+  if (d.join() === "0,6") return "Sábado y domingo";
+  const n = NORTE_DIAS.filter(x => d.includes(x[0])).map(x => x[2].slice(0, 3).toLowerCase());
+  return n.length === 1 ? n[0] : n.slice(0, -1).join(", ") + " y " + n[n.length - 1];
+}
+function norteAlarmasHtml() {
+  const A = norteAlarmas(), orden = A.lista.slice().sort((x, y) => x.hora.localeCompare(y.hora));
+  const fila = a => `<div class="aviso norte-alarma${a.activa ? "" : " is-off"}">
+      <div class="aviso__txt"><span class="aviso__t">${escapeHtml(a.hora)}${a.nombre ? ` · ${escapeHtml(a.nombre)}` : ""}</span>
+        <span class="text-xs muted">${escapeHtml(norteDiasTxt(a))}${a.sonido ? " · " + escapeHtml(norteSonidoTxt(a.sonido)) : ""}</span></div>
+      <button type="button" class="btn-link norte-alarma__cambiar" data-action="norte-alarma-editar" data-id="${escapeAttr(a.id)}">Cambiar</button>
+      <label class="sw"><input type="checkbox" role="switch" data-action="norte-alarma-activa" data-id="${escapeAttr(a.id)}" ${a.activa ? "checked" : ""} aria-label="Alarma de las ${escapeAttr(a.hora)}"><span></span></label>
+    </div>`;
+  return `<div class="norte-alarmas" id="norte-alarmas">
+    <div class="card__title" style="font-size:15px">⏰ Tus alarmas</div>
+    <p class="text-xs muted" style="margin:4px 0 0">Suenan en tu Norte, con el amanecer en su pantalla antes de la hora. Si las cambias en Norte, aquí se ven igual.</p>
+    ${orden.length ? orden.map(fila).join("") : `<p class="text-sm muted mt-8">Todavía no tienes alarmas.</p>`}
+    ${A.lista.length < NORTE_ALARMAS_MAX ? `<button type="button" class="btn btn--soft mt-8" data-action="norte-alarma-nueva">+ Agregar alarma</button>` : `<p class="text-xs muted mt-8">Tienes las ${NORTE_ALARMAS_MAX} alarmas que caben en Norte.</p>`}
+    <div class="aviso-grupo">🌙 Dormir y despertar</div>
+    <div class="aviso">
+      <div class="aviso__txt"><span class="aviso__t">Hora de dormir</span><span class="text-xs muted">Norte te propone cerrar el día y se queda en silencio hasta tu alarma.</span></div>
+      <input class="input aviso__hora" type="time" id="norte-dormir" value="${escapeAttr(A.dormir || "")}" aria-label="Hora de dormir" onchange="norteDormir(this.value)">
+    </div>
+    <div class="aviso">
+      <div class="aviso__txt"><span class="aviso__t">Amanecer</span><span class="text-xs muted">Los minutos antes de la alarma en que su pantalla se va iluminando. 0 es sin amanecer.</span></div>
+      ${elContador("norte-amanecer", A.amanecer, { min: 0, max: 30, paso: 5, label: "Minutos de amanecer", unidad: "min", fn: "norteAmanecer" })}
+    </div>
+    <div class="field mt-8"><label>Sonido de tus alarmas</label>
+      ${elLista("norte-sonido", NORTE_SONIDOS, A.sonido, { label: "Sonido de tus alarmas", hoja: true, fn: "norteSonido" })}</div>
+  </div>`;
+}
+function norteGuardarAlarmas(fn, aviso) {
+  const A = norteAlarmasCambiar(fn);
+  if (!A) return null;
+  saveState(); norteRepintar();
+  if (aviso) toast(aviso);
+  return A;
+}
+function norteDormir(v) { norteGuardarAlarmas(A => { const n = NORTE_HORA.test(v || "") ? v : null; if (A.dormir === n) return false; A.dormir = n; }); }
+function norteAmanecer(v) { norteGuardarAlarmas(A => { const n = Math.max(0, Math.min(30, Math.round(+v || 0))); if (A.amanecer === n) return false; A.amanecer = n; }); }
+function norteSonido(v) { norteGuardarAlarmas(A => { if (!NORTE_SONIDOS.some(x => x[0] === v) || A.sonido === v) return false; A.sonido = v; }); }
+/* La próxima fecha de una alarma de una vez: hoy si su hora todavía no pasa, si no mañana */
+function norteFechaUnaVez(hora) {
+  const hoy = todayISO(), d = new Date(), ahora = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return hora > ahora ? hoy : agSumar(hoy, 1);
+}
+/* La hoja para agregar o cambiar una alarma */
+let NORTE_ALARMA = null;
+function openNorteAlarma(id) {
+  const a = id ? norteAlarmas().lista.find(x => x.id === id) : null;
+  if (id && !a) return;
+  NORTE_ALARMA = a ? a.id : null;
+  openModal(a ? "Cambiar alarma" : "Nueva alarma", `
+    <div class="field"><label for="na-hora">Hora</label><input class="input" type="time" id="na-hora" value="${escapeAttr(a ? a.hora : "07:00")}" style="max-width:180px"></div>
+    <div class="field"><label for="na-nombre">Nombre <span class="text-xs muted">(opcional)</span></label>
+      <input class="input" id="na-nombre" maxlength="40" value="${escapeAttr(a ? a.nombre : "")}" placeholder="Ej: Despertar, Remedio, Salir al trabajo"></div>
+    <div class="field"><label>Días</label>
+      ${elFichas(NORTE_DIAS.map(([v, l, n]) => [v, l, { aria: n }]), a ? a.dias : [1, 2, 3, 4, 5], { id: "na-dias", dias: true, label: "Días de la alarma" })}
+      <div class="text-xs muted mt-8">Sin ningún día, suena una sola vez.</div></div>
+    <div class="field"><label>Sonido</label>
+      ${elLista("na-sonido", [["", "El de siempre"]].concat(NORTE_SONIDOS), a && a.sonido ? a.sonido : "", { label: "Sonido de esta alarma", hoja: true })}</div>
+    <button class="btn btn--primary btn-block mt-8" data-action="norte-alarma-guardar">${a ? "Guardar cambios" : "Agregar alarma"}</button>
+    ${a ? `<button class="btn-ghost btn-block mt-8" data-action="norte-alarma-borrar" data-id="${escapeAttr(a.id)}" style="color:var(--coral);border-color:var(--coral)">Borrar alarma</button>` : ""}`);
+}
+function norteAlarmaGuardar() {
+  const hora = val("na-hora");
+  if (!NORTE_HORA.test(hora || "")) return toast("Elige la hora de la alarma", true);
+  const dias = [...document.querySelectorAll("#na-dias input:checked")].map(x => +x.value);
+  const datos = { hora, dias, fecha: dias.length ? null : norteFechaUnaVez(hora), nombre: val("na-nombre"), sonido: val("na-sonido") || null };
+  const id = NORTE_ALARMA;
+  const A = norteGuardarAlarmas(A => {
+    const a = id && A.lista.find(x => x.id === id);
+    if (a) Object.assign(a, datos, { activa: true });
+    else { if (A.lista.length >= NORTE_ALARMAS_MAX) return false; A.lista.push(Object.assign({ id: "al" + Date.now().toString(36), activa: true }, datos)); }
+  });
+  if (!A) return toast(`Caben ${NORTE_ALARMAS_MAX} alarmas en Norte`, true);
+  NORTE_ALARMA = null; closeModal(); norteRepintar();
+  toast(`⏰ Alarma de las ${hora} ${id ? "guardada" : "lista"}. Norte la tendrá en unos minutos.`);
+}
+function norteAlarmaBorrar(id) {
+  if (!confirm("¿Borrar esta alarma? También se borra en tu Norte.")) return;
+  norteGuardarAlarmas(A => { const n = A.lista.length; A.lista = A.lista.filter(x => x.id !== id); if (A.lista.length === n) return false; });
+  NORTE_ALARMA = null; closeModal(); norteRepintar(); toast("Alarma borrada");
+}
+function norteAlarmaActiva(id, on) {
+  norteGuardarAlarmas(A => {
+    const a = A.lista.find(x => x.id === id); if (!a || a.activa === !!on) return false;
+    a.activa = !!on;
+    if (on && !a.dias.length && (!a.fecha || a.fecha < todayISO())) a.fecha = norteFechaUnaVez(a.hora);   // una de una vez que ya sonó: la próxima
+  });
+}
+
+/* -------- Al cerrar el día: «¿A qué hora te despierto?» (F07, solo con un Norte conectado; es opcional) --------
+   Es la alarma «despertar» (de una vez, para el día siguiente), con la hora de la última vez puesta */
+function norteDespertarHtml(iso) {
+  if (!norteHayAparato() || !norteAjustesVer().pregunta_cierre) return "";
+  const manana = agSumar(iso, 1);
+  if (manana < todayISO()) return "";
+  const d = norteAlarmas().lista.find(a => a.id === "despertar"), on = !!(d && d.activa), hora = (d && d.hora) || "07:00";
+  return `<div class="field norte-despertar"><label for="c-despertar">⏰ ¿A qué hora te despierto? <span class="text-xs muted">(opcional)</span></label>
+    <div class="row" style="gap:12px;align-items:center;flex-wrap:wrap">
+      <input class="input" type="time" id="c-despertar" value="${escapeAttr(hora)}" style="width:140px" aria-label="Hora para despertar" oninput="document.getElementById('c-despertar-on').checked=true">
+      <label class="row" style="gap:8px;align-items:center"><span class="sw" style="order:0"><input type="checkbox" role="switch" id="c-despertar-on" ${on ? "checked" : ""} aria-label="Que Norte me despierte"><span></span></span>
+        <span class="text-sm">Que Norte me despierte</span></label></div></div>`;
+}
+function norteDespertarGuardar(iso) {
+  const h = document.getElementById("c-despertar"), sw = document.getElementById("c-despertar-on");
+  if (!h || !sw) return;
+  const on = sw.checked, hora = h.value, fecha = agSumar(iso, 1);
+  if (on && !NORTE_HORA.test(hora || "")) return;
+  norteAlarmasCambiar(A => {
+    const d = A.lista.find(a => a.id === "despertar");
+    if (!on) { if (!d || !d.activa) return false; d.activa = false; return; }
+    if (d && d.activa && d.hora === hora && d.fecha === fecha && !d.dias.length) return false;   // sin cambios
+    if (d) Object.assign(d, { hora, dias: [], fecha, activa: true });
+    else { if (A.lista.length >= NORTE_ALARMAS_MAX) return false; A.lista.push({ id: "despertar", hora, dias: [], fecha, nombre: "Despertar", sonido: null, activa: true }); }
+  });
+}
+
+/* -------- Avisos de Norte, modo noche y lo demás (settings.norte.ajustes, con su ts) --------
+   Lo que nunca se tocó viene encendido, con la noche automática (según tu hora de dormir y tu primera alarma). El robot los
+   lee con la acción «ajustes» (o dentro de «alarmas»); pregunta_cierre es solo de la app. */
+const NORTE_AJUSTES_DEF = { agua: true, agenda: true, habitos: true, amigos: true, planes: true, avisos_dia: true, aburrido: true, pregunta_cierre: true };
+const NORTE_AVISOS = [
+  ["agua", "💧 Tu agua", "Te recuerda tomar agua cada 90 minutos."],
+  ["agenda", "📅 Tu agenda", "Te avisa 10 minutos antes de cada reunión."],
+  ["habitos", "✅ Hábitos a su hora", "A la hora que pusiste en el hábito, si todavía no lo haces."],
+  ["amigos", "🤝 Tus amigos", "Cuando te mandan ánimo o cumplen un hábito que hacen juntos."],
+  ["planes", "🎉 Tus planes", "Unas 3 horas antes de cada plan con amigos."],
+  ["avisos_dia", "🧭 Los avisos del día", "8:00 abrir tu día, 16:00 el agua, 20:00 tu racha y 21:00 cerrar el día."],
+];
+function norteAjustesVer(S) {
+  const a = norteAjustes(S).ajustes || {}, n = a.noche && typeof a.noche === "object" ? a.noche : {}, out = { ts: +a.ts > 0 ? Math.round(+a.ts) : 0 };
+  Object.keys(NORTE_AJUSTES_DEF).forEach(k => { out[k] = a[k] !== false; });
+  out.noche = { auto: n.auto !== false, desde: NORTE_HORA.test(n.desde || "") ? n.desde : "23:00", hasta: NORTE_HORA.test(n.hasta || "") ? n.hasta : "07:00" };
+  return out;
+}
+/* Cambia tus ajustes con fn(A) y los guarda con la hora del cambio */
+function norteAjustesCambiar(fn, S, now) {
+  S = S || STATE;
+  const A = norteAjustesVer(S);
+  if (fn(A) === false) return null;
+  A.ts = Math.max(now || Date.now(), A.ts + 1);
+  norteAjustes(S).ajustes = A;
+  return A;
+}
+function norteAvisosHtml() {
+  const A = norteAjustesVer(), sw = (k, on, titulo) => `<label class="sw"><input type="checkbox" role="switch" data-action="norte-ajuste" data-k="${k}" ${on ? "checked" : ""} aria-label="${escapeAttr(titulo)}"><span></span></label>`;
+  const fila = (k, titulo, desc, on) => `<div class="aviso"><div class="aviso__txt"><span class="aviso__t">${titulo}</span><span class="text-xs muted">${desc}</span></div>${sw(k, on, titulo.replace(/^\S+\s/, ""))}</div>`;
+  const hayNorte = norteHayAparato();
+  return `<div class="card__title" style="font-size:15px">🔔 Avisos de Norte</div>
+    <p class="text-xs muted" style="margin:4px 0 0">Lo que tu Norte te dice solo, sin que le preguntes.${hayNorte ? "" : " Conecta tu Norte arriba para que los use."}</p>
+    ${NORTE_AVISOS.map(([k, t, d]) => fila(k, t, d, A[k])).join("")}
+    <div class="aviso-grupo">🌙 Modo noche</div>
+    <p class="text-xs muted" style="margin:4px 0 0">De noche, Norte baja la luz y no da avisos (las alarmas sí suenan).</p>
+    ${fila("noche-auto", "Automático", `Desde tu hora de dormir hasta tu primera alarma (sin hora de dormir, desde las 23:00; sin alarma, hasta las 7:00).`, A.noche.auto)}
+    ${A.noche.auto ? "" : `<div class="aviso"><div class="aviso__txt"><span class="aviso__t">Desde</span></div>
+        <input class="input aviso__hora" type="time" id="norte-noche-desde" value="${escapeAttr(A.noche.desde)}" aria-label="Modo noche desde" onchange="norteNoche('desde', this.value)"></div>
+      <div class="aviso"><div class="aviso__txt"><span class="aviso__t">Hasta</span></div>
+        <input class="input aviso__hora" type="time" id="norte-noche-hasta" value="${escapeAttr(A.noche.hasta)}" aria-label="Modo noche hasta" onchange="norteNoche('hasta', this.value)"></div>`}
+    <div class="aviso-grupo">✨ Más</div>
+    ${fila("aburrido", "😴 Norte aburrido", "Cuando nadie le habla un rato, hace sus animaciones de espera.", A.aburrido)}
+    ${fila("pregunta_cierre", "⏰ «¿A qué hora te despierto?»", "La pregunta al cerrar el día en Rumbo, para la alarma de mañana.", A.pregunta_cierre)}`;
+}
+function norteAjuste(k, on) {
+  if (!norteAjustesCambiar(A => {
+    if (k === "noche-auto") { if (A.noche.auto === on) return false; A.noche.auto = on; return; }
+    if (!(k in NORTE_AJUSTES_DEF) || A[k] === on) return false;
+    A[k] = on;
+  })) return;
+  saveState(); norteRepintar();
+}
+function norteNoche(cual, v) {
+  if (!NORTE_HORA.test(v || "") || !["desde", "hasta"].includes(cual)) return;
+  if (norteAjustesCambiar(A => { if (A.noche[cual] === v) return false; A.noche[cual] = v; })) { saveState(); norteRepintar(); }
+}
+
+/* -------- Editar hábito › «Recordar a las…» (F13): Norte te avisa a esa hora si todavía no lo haces (h.hora) -------- */
+function norteHoraHabitoHtml(h) {
+  if (!norteDisponible()) return "";
+  return `<div class="mt-16" id="h-hora-box"><label class="text-xs muted" for="h-hora">Recordar a las… <span>(opcional: tu Norte te avisa a esa hora si todavía no lo haces)</span></label>
+    <div class="row mt-8" style="gap:10px;align-items:center"><input class="input" type="time" id="h-hora" value="${escapeAttr((h && NORTE_HORA.test(h.hora || "") && h.hora) || "")}" style="width:140px">
+      <button type="button" class="btn-link" onclick="document.getElementById('h-hora').value=''">Sin hora</button></div></div>`;
+}
+/* La hora del formulario: "HH:MM", "" (sin hora) o null (el formulario no la trae) */
+function norteHoraHabitoLeer() {
+  const el = typeof document !== "undefined" && document.getElementById("h-hora");
+  if (!el) return null;
+  return NORTE_HORA.test(el.value || "") ? el.value : "";
+}
+
 /* data-action="norte-…" (desde onClick en app.js) */
-function norteAccion(a, d) {
+function norteAccion(a, d, el) {
   if (a === "norte-conectar") return norteConectar();
   if (a === "norte-desconectar") return norteDesconectar(d.id);
+  if (a === "norte-alarma-nueva") return openNorteAlarma(null);
+  if (a === "norte-alarma-editar") return openNorteAlarma(d.id);
+  if (a === "norte-alarma-guardar") return norteAlarmaGuardar();
+  if (a === "norte-alarma-borrar") return norteAlarmaBorrar(d.id);
+  if (a === "norte-alarma-activa") return norteAlarmaActiva(d.id, !!(el && el.checked));
+  if (a === "norte-ajuste") return norteAjuste(d.k, !!(el && el.checked));
 }

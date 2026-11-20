@@ -310,6 +310,7 @@ function openCierreModal(date) {
     <div class="field"><label>${mananaLabel}</label><input class="input" id="c-manana" value="${escapeAttr(c.manana || "")}" placeholder="Se sembrará como tu misión del día siguiente"></div>
     <div class="field"><label>Nota de cierre (libre)</label><textarea class="input" id="c-nota" placeholder="¿Cómo estuvo el día?">${escapeHtml(c.nota || "")}</textarea></div>
     <p class="text-xs muted" style="margin:-4px 0 12px">📔 Tu ánimo, esta nota y tu gratitud se guardan en tu <b>Diario de vida</b>.</p>
+    ${typeof norteDespertarHtml === "function" ? norteDespertarHtml(iso) : ""}
     ${typeof cadenaDomingoHtml === "function" ? cadenaDomingoHtml(iso) : ""}
     <div class="modal__cta">${r.cerrado ? `<button class="btn btn--primary btn-block" data-action="cierre-save">Guardar cambios</button>`
       : `<button class="btn btn--primary btn-block btn--precio" data-action="cierre-save"><span>Cerrar el día</span><span class="btn__precio">+40 ${iconoLinea("estrella", 16)}</span></button>`}</div>`);
@@ -370,6 +371,7 @@ function saveCierre() {
   const medallas = !yaCerrado && typeof cierreMedallasEmpieza === "function";   // las que gane se muestran al final
   if (medallas) cierreMedallasEmpieza();
   if (typeof notaElefanteGuardar === "function") notaElefanteGuardar(iso);   // 🐘 la nota de tu elefante sobre tu día (nota-elefante.js)
+  if (typeof norteDespertarGuardar === "function") norteDespertarGuardar(iso);   // ⏰ a qué hora te despierta Norte (norte.js)
   saveState(); closeModal(); updateTopbar(); rerender();
   const hubo = medallas && cierreMedallasTermina();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();

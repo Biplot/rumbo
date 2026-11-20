@@ -1274,6 +1274,7 @@ html[data-check="sello"] .tarea-row.is-just .strike::after { animation: chkSello
 .cuenta-menu button { min-height: 44px; text-align: left; padding: 0 12px; border: none; background: none; border-radius: 8px;
   color: var(--text); font: 500 14.5px var(--font-body); }
 .cuenta-menu button:hover { background: var(--surface-2); }
+.cuenta-menu button[hidden] { display: none; }
 .cuenta-menu .cuenta-menu__salir { color: var(--coral); }
 button.pill { font-family: inherit; cursor: pointer; }
 .topbar__meta button.pill { min-height: 40px; display: inline-flex; align-items: center; gap: 4px; }
@@ -4266,3 +4267,8 @@ button.reabrir-tira__d:hover { border-color: var(--cian); }
 .norte-codigo__n { font: 800 34px/1.1 var(--font-display); letter-spacing: .12em; font-variant-numeric: tabular-nums; }
 .norte-aparatos { display: grid; gap: 10px; }
 .norte-aparato { gap: 10px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--line); }
+/* Norte · fase 2: tus alarmas (Cuenta) y el despertador al cerrar el día */
+.norte-alarmas .aviso-grupo:first-child { margin-top: 4px; }
+.norte-alarma.is-off .aviso__txt { opacity: .55; }
+.norte-alarma__cambiar { flex: 0 0 auto; min-height: 44px; padding: 0 6px; }
+.norte-alarmas .contador-caja { flex: 0 0 auto; }

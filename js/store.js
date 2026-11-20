@@ -1154,6 +1154,28 @@ function norteMerge(l, s) {
   });
   return Object.assign({}, JSON.parse(JSON.stringify(s || {})), JSON.parse(JSON.stringify(l || {})), { hechos: [...m.values()].sort((a, b) => a.ts - b.ts).slice(-400) });
 }
+/* 🧭 Los ajustes de Norte en dos equipos (settings.norte, js/norte.js): las alarmas y los ajustes, los del cambio más nuevo (ts); los
+   recordatorios se juntan por id (el texto y la hora, del cambio más nuevo; «avisado» y «borrado» no se deshacen) */
+function norteAjustesMerge(l, s) {
+  l = l || {}; s = s || {};
+  const cl = o => JSON.parse(JSON.stringify(o));
+  const out = Object.assign({}, cl(s), cl(l));
+  ["alarmas", "ajustes"].forEach(k => {   // las alarmas y los ajustes (avisos, modo noche…): los del cambio más nuevo
+    if (l[k] || s[k]) out[k] = cl(s[k] && (!l[k] || (+s[k].ts || 0) > (+l[k].ts || 0)) ? s[k] : l[k]);
+  });
+  const m = new Map();
+  [...(Array.isArray(s.recordatorios) ? s.recordatorios : []), ...(Array.isArray(l.recordatorios) ? l.recordatorios : [])].forEach(x => {
+    if (!x || !x.id) return;
+    const o = m.get(x.id);
+    if (!o) { m.set(x.id, cl(x)); return; }
+    const n = (+x.ts || 0) > (+o.ts || 0) ? cl(x) : o;
+    n.avisado = !!(o.avisado || x.avisado);
+    if (o.borrado || x.borrado) n.borrado = true;
+    m.set(x.id, n);
+  });
+  if (l.recordatorios || s.recordatorios) out.recordatorios = [...m.values()];
+  return out;
+}
 /* El agua en dos equipos: los ajustes, del más nuevo; cada día junta sus vasos por id (lo borrado no vuelve).
    Un día resumido ({ ml }, pasados 14 días) se queda con el detalle si el otro lo tiene, o con el total mayor */
 function aguaMerge(l, s) {
@@ -1436,6 +1458,8 @@ function mergeStates(server, local) {
       if (sr && (!lr || (sr.ts || 0) > (lr.ts || 0))) out.settings[k] = JSON.parse(JSON.stringify(sr));
     });
   }
+  // 🧭 Norte: las alarmas, las más nuevas; los recordatorios, por id
+  if (local.settings && server.settings && out.settings && (local.settings.norte || server.settings.norte)) out.settings.norte = norteAjustesMerge(local.settings.norte, server.settings.norte);
   // Tutorial: los recorridos vistos se suman (salvo los anteriores a un "volver a mostrar la ayuda");
   // misión y ayuda automática: gana el cambio más reciente
   if (local.settings && server.settings && out.settings && (local.settings.tutorial || server.settings.tutorial)) {

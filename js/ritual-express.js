@@ -148,6 +148,7 @@ function openExpressCierre(date) {
       <button type="button" class="btn-ghost mt-8" data-action="day-close" data-date="${iso}">Decidir una por una (cierre completo)</button></div>`
     : (cronicas.length ? "" : `<p class="text-sm muted" style="margin-bottom:12px">No te quedan pendientes. 🎉</p>`)}
     <div class="field"><label>Algo que agradeces (opcional)</label><input class="input" id="xc-gratitud" value="${escapeAttr((r.cierre && r.cierre.mejor) || "")}" placeholder="Una línea basta"></div>
+    ${typeof norteDespertarHtml === "function" ? norteDespertarHtml(iso) : ""}
     ${typeof cadenaDomingoHtml === "function" ? cadenaDomingoHtml(iso) : ""}
     <div class="modal__cta"><button class="btn btn--primary btn-block btn--precio" data-action="express-cierre-save"><span>Cerrar mi día</span><span class="btn__precio">+${EXPRESS_MONEDAS.cierre} ${iconoLinea("estrella", 16)}</span></button></div>`);
 }
@@ -168,6 +169,7 @@ function saveExpressCierre() {
   const medallas = nuevo && typeof cierreMedallasEmpieza === "function";
   if (medallas) cierreMedallasEmpieza();
   if (typeof notaElefanteGuardar === "function") notaElefanteGuardar(iso);   // 🐘 la nota de tu elefante (nota-elefante.js)
+  if (typeof norteDespertarGuardar === "function") norteDespertarGuardar(iso);   // ⏰ a qué hora te despierta Norte (norte.js)
   saveState(); closeModal(); updateTopbar(); rerender();
   const hubo = medallas && cierreMedallasTermina();
   if (pagado && typeof sonar === "function") sonar("cierre");

@@ -26,6 +26,15 @@
    tus hábitos de hoy (habitos_semana) y tu agua como la ves en Rumbo: tu vaso, tu botella, el estilo y el sabor que tienes
    puestos (solo si los compraste), la temperatura del día y la hora del último vaso; y la hora de la persona (hora, "HH:MM")
    para los avisos del robot. sumar_agua con «botella: true» suma tu botella.
+   Fase 2 (2026-11-20; tipos nuevos de la bandeja en supabase/norte-fase2.sql): «hoy» trae también jardin (las macetas,
+   como jardinEscena), habitos_hora (los hábitos de hoy con «Recordar a las…», h.hora), alcancias (las abiertas) y leyendo
+   (los libros de «Leyendo ahora»). Lectura: alarmas (settings.norte.alarmas, o las del robot en la bandeja si son más
+   nuevas; trae también `ajustes`), ajustes (los avisos de Norte, el modo noche y si se aburre: settings.norte.ajustes),
+   recordatorios (settings.norte.recordatorios con la bandeja), social (ánimos y marcas de amigos en conjunto desde
+   `desde`, los planes y cumpleaños de hoy) y tu_anio (las láminas, desde el 1 de diciembre). Escritura, a la bandeja:
+   guardar_alarmas (alarmas), recordar · recordatorio_listo · borrar_recordatorio (recordatorio), mover_tarea (tarea_mover),
+   alcancia, diario y lectura. animo es la única que escribe fuera de la bandeja: directo a la tabla animos, con las reglas de
+   amigos_animo (amistad aceptada, 3 al día a la misma persona). buenos_dias suma los planes y cumpleaños de hoy.
    «Hoy» es el día de la persona (settings.notif.tz, America/Santiago si no hay). Qué hábitos tocan
    hoy lo dice el mismo motor de la app (js/habitos-motor.js, vía notifier/habitos.mjs).
    Recibe el cliente de Supabase (`sb`), así se prueba sin red (tests/norte.test.mjs).
@@ -35,6 +44,8 @@ import { localDate } from "./recordatorios.mjs";
 import { motorHabitos } from "./habitos.mjs";
 import { vasoDe, botellaDe } from "./elefante.mjs";
 import { VASOS_AL_DIA } from "./vaso.mjs";
+import { rachaConjunto } from "./habitos.mjs";
+import { instantePlan } from "./planes.mjs";
 
 export const TEXTO_MAX = 200;          // tareas, notas, primer bocado y gratitud
 export const NOTA_MAX = 600;           // la nota libre del cierre
@@ -49,7 +60,7 @@ const MUY_LARGO = "Es mucho para guardar de una vez. Acorta tu nota o tus tareas
 // Los pilares del ritual de apertura (PILARES en js/modules2.js: si cambian allá, cambian aquí)
 export const PILARES = ["Psicología", "Fisiología", "Productividad", "Magnetismo", "Presencia", "Propósito"];
 const DECISIONES = ["manana", "otro", "delegar", "soltar", "hecha"];   // qué pasa con una pendiente al cerrar (TRIAGE_OPC)
-const ID_TAREA = /^[A-Za-z0-9_-]{1,64}$/, FECHA = /^\d{4}-\d{2}-\d{2}$/;
+const ID_TAREA = /^[A-Za-z0-9_-]{1,64}$/, FECHA = /^\d{4}-\d{2}-\d{2}$/, HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 export const PEDIDOS_HORA = 60;        // pedidos a la bandeja por hora (un token filtrado no la llena)
 export const VASOS_MAX = 6;            // vasos por pedido
 const TZ_DEFECTO = "America/Santiago";
@@ -201,6 +212,8 @@ function simular(data, bandeja, hoy) {
   const dia = Object.assign({}, ((copia.ritual && copia.ritual.dias) || {})[hoy]);
   let bocado = null, bocadoPedido = null, tareas = 0, mananaAyer = "";
   const nuevasTareas = [], tareasHechas = new Set(), quitadas = new Set(), ayer = diaMas(hoy, -1);
+  let alarmas = null;
+  const recOps = [], movidas = new Set(), aportes = [], paginas = new Map();
   if (!copia.enfoque || typeof copia.enfoque !== "object" || Array.isArray(copia.enfoque)) copia.enfoque = {};
   if (!Array.isArray(copia.enfoque.sesiones)) copia.enfoque.sesiones = [];
   for (const p of pend) {
@@ -233,8 +246,19 @@ function simular(data, bandeja, hoy) {
     }
     else if (p.tipo === "cerrar" && d.fecha === hoy) dia.cerrado = true;
     else if (p.tipo === "cerrar" && d.fecha === ayer && d.manana) mananaAyer = d.manana;   // ayer dejaste algo para hoy
+    // Fase 2: lo que el robot dejó y la app todavía no aplica
+    else if (p.tipo === "alarmas" && +d.ts > (alarmas ? +alarmas.ts : -1)) alarmas = d;   // las del robot, si son más nuevas
+    else if (p.tipo === "recordatorio" && d.id) recOps.push(d);
+    else if (p.tipo === "tarea_mover" && d.tid) movidas.add(String(d.tid));   // ya no está pendiente hoy
+    else if (p.tipo === "alcancia" && d.aid && +d.monto > 0) aportes.push({ aid: String(d.aid), monto: Math.round(+d.monto) });
+    else if (p.tipo === "lectura" && d.lid) {
+      if (d.pagina != null) paginas.set(String(d.lid), +d.pagina);
+      // con minutos, una sesión de foco de lectura (como la que creará la app, id fijo «nl<pedido>»)
+      if (+d.min > 0 && FECHA.test(d.fecha || "")) copia.enfoque.sesiones.push({ id: "nl" + p.id, fecha: d.fecha, libroId: String(d.lid), real: +d.min });
+    }
   }
-  return { copia, pend, agua, dia, bocado, bocadoPedido, tareas, nuevasTareas, tareasHechas, quitadas, mananaAyer, motor: motorHabitos(copia, hoy) };
+  return { copia, pend, agua, dia, bocado, bocadoPedido, tareas, nuevasTareas, tareasHechas, quitadas, mananaAyer, motor: motorHabitos(copia, hoy),
+    alarmas, recOps, movidas, aportes, paginas };
 }
 
 /* Tu estado con lo que espera en la bandeja ya puesto, en una copia (no se guarda nada), para los avisos del celular
@@ -273,7 +297,8 @@ export function conBandeja(data, bandeja, hoy) {
 /* Tus tareas de hoy para mostrar (Norte-Desk): primero el bocado y las prioridades, las hechas al final. Todas (la
    respuesta muestra 30). «antigua»: viene de otro día (no se quita al abrir el día); «postergada»: cuántas veces se movió. */
 function listaTareas(tareasDia, s) {
-  const xs = tareasDia.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t)) && !s.quitadas.has(String(t.id))).map(t => ({
+  const xs = tareasDia.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t)) && !s.quitadas.has(String(t.id))
+    && !(s.movidas.has(String(t.id)) && estadoTarea(t) === "pendiente" && !s.tareasHechas.has(String(t.id)))).map(t => ({
     id: String(t.id), texto: visible(t.txt), ambito: t.ambito === "pro" ? "pro" : "per",
     hecha: estadoTarea(t) === "hecha" || s.tareasHechas.has(String(t.id)), bocado: !!t.esSapo, prioridad: !!t.prioridad,
     antigua: (+t.migraciones || 0) > 0 || !!t.bocadoSugerido, postergada: +t.migraciones || 0,
@@ -281,7 +306,7 @@ function listaTareas(tareasDia, s) {
   // las nuevas del ritual completo son como en la app: si ya tienes una con ese texto (aunque la quites), no se crea otra
   const textos = new Set(tareasDia.filter(t => ["pendiente", "hecha"].includes(estadoTarea(t))).map(t => normalizar(t.txt)));
   s.nuevasTareas.forEach(t => {
-    if (xs.some(x => x.id === t.id || (t.porTexto && mismaTarea(x.texto, t.texto))) || (t.porTexto && textos.has(normalizar(t.texto))) || s.quitadas.has(t.id)) return;
+    if (xs.some(x => x.id === t.id || (t.porTexto && mismaTarea(x.texto, t.texto))) || (t.porTexto && textos.has(normalizar(t.texto))) || s.quitadas.has(t.id) || s.movidas.has(t.id)) return;
     xs.push({ id: t.id, texto: t.texto, ambito: t.ambito, hecha: s.tareasHechas.has(t.id), bocado: false, prioridad: false, antigua: false, postergada: 0 });
   });
   // El bocado que espera en la bandeja (abriste el día con Norte): como lo dejará la app (aplicarAperturaExpress), la
@@ -425,7 +450,42 @@ export function resumenDia(data, bandeja, hoy) {
     semana: semanaDe(copia, hoy, s),
     // la ciudad que elegiste para el agua (Open-Meteo): Norte busca el tiempo y lo cercano ahí
     ciudad: copia.agua && copia.agua.clima && copia.agua.clima.ciudad ? visible(copia.agua.clima.ciudad) : null,
+    // Fase 2 (las pantallas y avisos del robot)
+    jardin: jardinDe(motor, copia.habitos.defs, hoy),
+    habitos_hora: defs.filter(h => deHoy.has(h.id) && esHacer(h) && HORA.test(h.hora || ""))
+      .map(h => ({ nombre: paraVoz(h.nombre), hora: h.hora, hecho: motor.hecho(h, hoy) })).filter(x => x.nombre)
+      .sort((a, b) => a.hora.localeCompare(b.hora)),
+    alcancias: alcanciasDe(copia, s).map(a => ({ id: a.id, nombre: a.nombre, meta: a.meta, total: a.total })),
+    leyendo: leyendoDe(copia, s),
   };
+}
+/* Las macetas del jardín (hasta 3): { nombre, dias (cumplidos, hacia 66), hecho_hoy }. Lo marcado en la bandeja ya cuenta */
+function jardinDe(motor, defs, hoy) {
+  let macetas = [];
+  try { macetas = motor.jardin() || []; } catch (e) { macetas = []; }
+  return macetas.slice(0, 3).map(m => {
+    const h = defs.find(x => x && x.id === m.id);
+    return { nombre: paraVoz(m.nombre), dias: Math.max(0, +m.dias || 0), hecho_hoy: !!h && motor.hecho(h, hoy) };
+  }).filter(m => m.nombre);
+}
+/* Tus alcancías abiertas (STATE.alcancias: sin las borradas ni las cerradas, como alcActivas), con lo guardado (los aportes
+   deshechos no cuentan) y lo que espera en la bandeja */
+function alcanciasDe(copia, s) {
+  const A = copia.alcancias && typeof copia.alcancias === "object" ? copia.alcancias : {}, fuera = new Set(Array.isArray(A.borradas) ? A.borradas : []);
+  return (Array.isArray(A.lista) ? A.lista : []).filter(a => a && a.id && !fuera.has(a.id) && !a.cerrada).map(a => {
+    const b = new Set(Array.isArray(a.b) ? a.b : []);
+    const total = (Array.isArray(a.aportes) ? a.aportes : []).filter(x => x && !b.has(x.id)).reduce((t, x) => t + (+x.monto || 0), 0)
+      + (s ? s.aportes.filter(x => x.aid === String(a.id)).reduce((t, x) => t + x.monto, 0) : 0);
+    return { id: String(a.id), nombre: paraVoz(a.nombre) || "Tu alcancía", meta: Math.max(0, Math.round(+a.meta || 0)), total: Math.round(total) };
+  });
+}
+/* Los libros de «Leyendo ahora» (STATE.lecturas con estado "leyendo"), con la página que dijiste a Norte si espera en la bandeja */
+function leyendoDe(copia, s) {
+  return (Array.isArray(copia.lecturas) ? copia.lecturas : []).filter(l => l && l.id && l.estado === "leyendo").slice(0, 10).map(l => ({
+    id: String(l.id), titulo: visible(l.titulo) || "Tu libro", autor: l.autor ? visible(l.autor) : null,
+    pagina: s && s.paginas.has(String(l.id)) ? s.paginas.get(String(l.id)) : Math.max(0, Math.round(+l.pagina || 0)),
+    paginas: Math.max(0, Math.round(+l.paginas || 0)),
+  }));
 }
 export function textoHoy(d) {
   const partes = [];
@@ -456,12 +516,12 @@ async function leerBandeja(sb, uid) {
 }
 const hoyDe = (data, ahora) => localDate((data && data.settings && data.settings.notif && data.settings.notif.tz) || TZ_DEFECTO, ahora);
 /* Un pedido más a la bandeja, si no van demasiados en la última hora */
-async function aLaBandeja(sb, uid, tipo, datos, ahora) {
+/* `id`: el del pedido, si quien llama lo necesita antes (el recordatorio lleva el id fijo «nr<pedido>») */
+async function aLaBandeja(sb, uid, tipo, datos, ahora, id = idNuevo("n", ahora)) {
   const desde = new Date(ahora.getTime() - 3600e3).toISOString();
   const { count, error: e1 } = await sb.from("norte_pendientes").select("id", { count: "exact", head: true }).eq("user_id", uid).gte("creado", desde);
   if (e1) throw new Error(e1.message);
   if ((count || 0) >= PEDIDOS_HORA) return { limite: true };
-  const id = idNuevo("n", ahora);
   const { error } = await sb.from("norte_pendientes").insert({ id, user_id: uid, tipo, datos });
   if (error) throw new Error(error.message);
   return { id };
@@ -799,14 +859,21 @@ export function textoBuenosDias(t, d) {
   const faltan = d && d.semana ? d.semana.prioridades.filter(x => !x.hecha).length : 0, hab = d ? d.habitos_pendientes.length : 0;
   const cosas = [hab ? cuantos(hab, "hábito", "hábitos") : "", faltan ? `${cuantos(faltan, "prioridad", "prioridades", "una")} de la semana` : ""].filter(Boolean);
   if (cosas.length) p.push(`Hoy tienes ${enLista(cosas)}.`);
+  // F22: los planes de hoy con tus amigos y sus cumpleaños
+  const planes = (d && d.planes_hoy) || [], cumples = (d && d.cumples_hoy) || [];
+  if (planes.length) p.push(`Hoy tienes ${enLista(planes.map(planTxt))}.`);
+  if (cumples.length) p.push(`Y está de cumpleaños ${enLista(cumples)}: mándale un saludo.`);
   if (d && !d.abierto && !d.cerrado) p.push("¿Abrimos el día?");
   return p.join(" ");
 }
 async function buenosDias({ sb, uid, ahora, red = globalThis.fetch }) {
   const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), d = resumenDia(data, await leerBandeja(sb, uid), dia);
   const clima = data && data.agua && data.agua.clima ? data.agua.clima : null;
-  const tiempo = await tiempoDe(clima, red);
-  return exito(textoBuenosDias(tiempo, d), { fecha: dia, tiempo, abierto: d.abierto, cerrado: d.cerrado });
+  // Los planes y cumpleaños de hoy (sin las tablas de amigos, o si fallan, el saludo sale igual)
+  let soc = { planes_hoy: [], cumples_hoy: [] };
+  const [tiempo] = await Promise.all([tiempoDe(clima, red), socialDe(sb, uid, data, dia, ahora.getTime(), true).then(x => { soc = x; }, () => {})]);
+  d.planes_hoy = soc.planes_hoy; d.cumples_hoy = soc.cumples_hoy;
+  return exito(textoBuenosDias(tiempo, d), { fecha: dia, tiempo, abierto: d.abierto, cerrado: d.cerrado, planes_hoy: soc.planes_hoy, cumples_hoy: soc.cumples_hoy });
 }
 
 /* ---------- Tu agenda (Norte-Desk): las próximas reuniones de tu Google Calendar ---------- */
@@ -830,8 +897,488 @@ async function agenda({ sb, uid }) {
   return exito(prox ? `Tu próxima reunión: ${paraVoz(prox.titulo)}.` : "No tienes reuniones en las próximas horas.", { conectado: true, eventos });
 }
 
+/* ============================================================
+   Fase 2 (2026-11-20): alarmas, recordatorios, mover tareas, alcancías, diario, lectura, amigos y tu año
+   ============================================================ */
+export const SONIDOS = ["campanas", "marimba", "pajaros", "brujula", "ola"];   // los tonos del robot (alarmas.cc)
+export const ALARMAS_MAX = 10;          // como kMaxAlarmas en el robot
+export const RECORDATORIOS_MAX = 50;    // recordatorios por avisar a la vez
+export const MONTO_MAX = 100000000;     // un aporte a una alcancía, en pesos
+export const DIARIO_MAX = 1000;         // lo que dictas al diario
+export const ANIMOS_DIA = 3;            // ánimos de una persona a otra al día (como amigos_animo en amigos.sql)
+export const ANIMOS_DIA_TOTAL = 30;     // y a todos sus amigos (un token filtrado no llena de ánimos a nadie)
+export const ALARMAS_DEFECTO = Object.freeze({ ts: 0, lista: [], dormir: null, amanecer: 10, sonido: "campanas" });
+const ID_CORTO = /^[A-Za-z0-9_-]{1,40}$/;
+const MESES_TXT = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const tzDe = data => (data && data.settings && data.settings.notif && data.settings.notif.tz) || TZ_DEFECTO;
+const pesosTxt = n => `${Math.round(+n || 0).toLocaleString("es-CL")} pesos`;
+const inicialDe = s => (paraVoz(s).charAt(0) || "?").toUpperCase();
+
+/* Busca por nombre, sin tildes ni mayúsculas: igual, por la primera palabra («Ana» encuentra «Ana Pérez»), por parte del
+   nombre y por palabras («pagar luz» encuentra «Pagar la luz»). Devuelve los candidatos (0, 1 o varios). */
+export function buscarPorNombre(xs, consulta, nombreDe = x => x.nombre) {
+  const q = normalizar(consulta), lista = (Array.isArray(xs) ? xs : []).filter(x => x && normalizar(nombreDe(x)));
+  if (!q) return [];
+  const n = x => normalizar(nombreDe(x));
+  const igual = lista.filter(x => n(x) === q);
+  if (igual.length) return igual;
+  const primera = lista.filter(x => n(x).split(" ")[0] === q);
+  if (primera.length) return primera;
+  const parte = lista.filter(x => n(x).includes(q) || (n(x).length >= 3 && q.includes(n(x))));
+  if (parte.length) return parte;
+  const palabras = q.split(" ").filter(w => w.length >= 3);
+  if (!palabras.length) return [];
+  return lista.filter(x => { const ws = n(x).split(" "); return palabras.every(p => ws.some(w => w.startsWith(p) || (w.length >= 3 && p.startsWith(w)))); });
+}
+/* "HH:MM" de un instante en la zona de la persona */
+function horaEn(ms, tz) {
+  const f = z => new Intl.DateTimeFormat("en-GB", { timeZone: z, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(ms));
+  try { return f(tz); } catch { return f(TZ_DEFECTO); }
+}
+/* «a las 16:30», «mañana a las 8:00», «el 3 de diciembre a las 9:15» */
+function cuandoTxt(ms, tz, hoy) {
+  let dia; try { dia = localDate(tz, new Date(ms)); } catch { dia = localDate(TZ_DEFECTO, new Date(ms)); }
+  const h = horaEn(ms, tz).replace(/^0(\d)/, "$1");
+  if (dia === hoy) return `a las ${h}`;
+  if (dia === diaMas(hoy, 1)) return `mañana a las ${h}`;
+  return `el ${+dia.slice(8, 10)} de ${MESES_TXT[+dia.slice(5, 7) - 1]} a las ${h}`;
+}
+
+/* ---------- Alarmas (F07): viven en Rumbo (settings.norte.alarmas, con su ts) y el robot las sigue ---------- */
+/* Una alarma como la entienden la app y el robot: { id, hora "HH:MM", dias [0..6] (0 = domingo; [] = una vez), fecha
+   (solo las de una vez, o null), nombre, sonido (o null = el de siempre), activa }. null si viene mal. */
+export function alarmaLimpia(a) {
+  if (!a || typeof a !== "object" || Array.isArray(a)) return null;
+  const id = typeof a.id === "string" && ID_CORTO.test(a.id) ? a.id : null, hora = typeof a.hora === "string" && HORA.test(a.hora) ? a.hora : null;
+  if (!id || !hora || (a.dias != null && !Array.isArray(a.dias))) return null;
+  const dias = [...new Set((a.dias || []).map(Number))];
+  if (dias.length > 7 || !dias.every(d => Number.isInteger(d) && d >= 0 && d <= 6)) return null;
+  if (a.fecha != null && a.fecha !== "" && !FECHA.test(a.fecha)) return null;
+  const nombre = textoLimpio(a.nombre, 40);
+  if (nombre == null) return null;
+  if (a.sonido != null && a.sonido !== "" && !SONIDOS.includes(a.sonido)) return null;
+  if (a.activa != null && typeof a.activa !== "boolean") return null;
+  return { id, hora, dias: dias.sort((x, y) => x - y), fecha: dias.length || !a.fecha ? null : a.fecha, nombre, sonido: a.sonido || null, activa: a.activa !== false };
+}
+/* Tus alarmas, con lo que falte puesto (las que vengan mal se dejan fuera) */
+export function alarmasDe(x) {
+  const a = x && typeof x === "object" ? x : {}, am = a.amanecer == null ? null : Number(a.amanecer);
+  return {
+    ts: Number.isFinite(+a.ts) && +a.ts > 0 ? Math.round(+a.ts) : 0,
+    lista: (Array.isArray(a.lista) ? a.lista : []).map(alarmaLimpia).filter(Boolean).slice(0, ALARMAS_MAX),
+    dormir: typeof a.dormir === "string" && HORA.test(a.dormir) ? a.dormir : null,
+    amanecer: Number.isInteger(am) && am >= 0 && am <= 30 ? am : ALARMAS_DEFECTO.amanecer,
+    sonido: SONIDOS.includes(a.sonido) ? a.sonido : ALARMAS_DEFECTO.sonido,
+  };
+}
+/* Las de Rumbo, o las que el robot dejó en la bandeja si son más nuevas (la app todavía no las aplica) */
+function alarmasActuales(data, s) {
+  const enRumbo = alarmasDe(data && data.settings && data.settings.norte && data.settings.norte.alarmas);
+  const delRobot = s.alarmas ? alarmasDe(s.alarmas) : null;
+  return delRobot && delRobot.ts > enRumbo.ts ? delRobot : enRumbo;
+}
+const DIAS_TXT = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+function textoAlarmas(A) {
+  const act = A.lista.filter(a => a.activa);
+  if (!act.length) return A.lista.length ? "Tus alarmas están apagadas." : "No tienes alarmas.";
+  const una = act.length === 1 ? act[0] : null;
+  if (una) {
+    const d = una.dias, lista = d.map(x => DIAS_TXT[x]);
+    const cuando = d.length === 7 ? "todos los días" : d.join() === "1,2,3,4,5" ? "de lunes a viernes" : d.join() === "0,6" ? "el fin de semana"
+      : d.length ? `los ${lista.length > 1 ? lista.slice(0, -1).join(", ") + " y " + lista[lista.length - 1] : lista[0]}` : "una vez";
+    return `Tienes una alarma a las ${una.hora.replace(/^0(\d)/, "$1")}, ${cuando}.`;
+  }
+  return `Tienes ${act.length} alarmas activas.`;
+}
+/* «alarmas» trae también tus ajustes de Norte (`ajustes`): así el robot los revisa en el mismo pedido de cada 15 minutos */
+async function alarmas({ sb, uid, ahora }) {
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), s = simular(data, await leerBandeja(sb, uid), dia);
+  const A = alarmasActuales(data, s);
+  return exito(textoAlarmas(A), Object.assign({}, A, { ajustes: ajustesDe(data) }));
+}
+
+/* ---------- Tus ajustes de Norte (Rumbo › «Norte, tu brújula»): qué avisos da, el modo noche y si se aburre ----------
+   settings.norte.ajustes = { ts, agua, agenda, habitos, amigos, planes, avisos_dia, noche: { auto, desde, hasta }, aburrido,
+   pregunta_cierre }. Lo que nunca se tocó viene encendido, con la noche automática (según tu hora de dormir y tu primera
+   alarma). pregunta_cierre es solo de la app («¿A qué hora te despierto?» al cerrar el día): al robot no le llega. */
+export const AJUSTES_DEFECTO = Object.freeze({ ts: 0, agua: true, agenda: true, habitos: true, amigos: true, planes: true, avisos_dia: true,
+  noche: Object.freeze({ auto: true, desde: "23:00", hasta: "07:00" }), aburrido: true });
+export function ajustesDe(data) {
+  const a = (data && data.settings && data.settings.norte && data.settings.norte.ajustes) || {}, n = a.noche && typeof a.noche === "object" ? a.noche : {};
+  const si = k => a[k] !== false, D = AJUSTES_DEFECTO.noche;
+  return {
+    ts: Number.isFinite(+a.ts) && +a.ts > 0 ? Math.round(+a.ts) : 0,
+    agua: si("agua"), agenda: si("agenda"), habitos: si("habitos"), amigos: si("amigos"), planes: si("planes"), avisos_dia: si("avisos_dia"),
+    noche: { auto: n.auto !== false, desde: HORA.test(n.desde || "") ? n.desde : D.desde, hasta: HORA.test(n.hasta || "") ? n.hasta : D.hasta },
+    aburrido: si("aburrido"),
+  };
+}
+async function ajustes({ sb, uid }) {
+  const A = ajustesDe(await leerEstado(sb, uid));
+  const apagados = ["agua", "agenda", "habitos", "amigos", "planes", "avisos_dia"].filter(k => !A[k]).length;
+  return exito(apagados ? `Tienes ${cuantos(apagados, "aviso apagado", "avisos apagados", "un")}.` : "Tienes todos mis avisos encendidos.", A);
+}
+/* El robot cambió sus alarmas (con su ts): van a la bandeja y la app las pone si son más nuevas que las de Rumbo */
+async function guardarAlarmas({ sb, uid, body, ahora }) {
+  let ts = Number(body.ts);
+  if (!Number.isFinite(ts) || ts <= 0) return fallo(400, "dato-invalido", "Me faltó la hora del cambio de tus alarmas.");
+  ts = Math.min(Math.round(ts), ahora.getTime());   // un reloj adelantado no deja las alarmas trabadas
+  if (!Array.isArray(body.lista) || body.lista.length > ALARMAS_MAX) return fallo(400, "dato-invalido", `Puedo guardar hasta ${ALARMAS_MAX} alarmas.`);
+  const lista = body.lista.map(alarmaLimpia);
+  if (lista.some(a => !a) || new Set(lista.map(a => a.id)).size !== lista.length) return fallo(400, "dato-invalido", "Una de tus alarmas vino mal.");
+  if (body.dormir != null && body.dormir !== "" && !(typeof body.dormir === "string" && HORA.test(body.dormir))) return fallo(400, "dato-invalido", "Tu hora de dormir vino mal.");
+  const amanecer = entero(body.amanecer, 0, 30, ALARMAS_DEFECTO.amanecer);
+  if (amanecer == null) return fallo(400, "dato-invalido", "El amanecer va de cero a treinta minutos.");
+  const sonido = body.sonido == null || body.sonido === "" ? ALARMAS_DEFECTO.sonido : body.sonido;
+  if (!SONIDOS.includes(sonido)) return fallo(400, "dato-invalido", `El sonido es uno de estos: ${enLista(SONIDOS, "o")}.`);
+  const datos = { ts, lista, dormir: body.dormir || null, amanecer, sonido };
+  if (muyGrande(datos)) return fallo(400, "dato-invalido", MUY_LARGO);
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), actual = alarmasActuales(data, simular(data, await leerBandeja(sb, uid), dia));
+  // Las de Rumbo son más nuevas (las cambiaste en la app): se quedan, y el robot recibe esas
+  if (actual.ts >= ts) return exito("Tus alarmas de Rumbo son más nuevas. Te las paso.", Object.assign({ ya: true }, actual));
+  const r = await aLaBandeja(sb, uid, "alarmas", datos, ahora);
+  if (r.limite) return falloDe(429, "demasiados-pedidos");
+  return exito("Guardé tus alarmas en Rumbo.", datos);
+}
+
+/* ---------- Recordatorios con hora (F08): iguales en Norte-Desk y el robot (settings.norte.recordatorios) ---------- */
+/* Los de Rumbo con lo que espera en la bandeja (crear, avisado, borrar), sin los borrados */
+function recordatoriosDe(data, s) {
+  const m = new Map(), lista = data && data.settings && data.settings.norte && data.settings.norte.recordatorios;
+  (Array.isArray(lista) ? lista : []).forEach(r => {
+    if (!r || typeof r.id !== "string" || !ID_TAREA.test(r.id) || !Number.isFinite(+r.cuando)) return;
+    m.set(r.id, { id: r.id, que: visible(r.que), cuando: Math.round(+r.cuando), avisado: !!r.avisado, borrado: !!r.borrado });
+  });
+  s.recOps.forEach(o => {
+    const r = m.get(String(o.id));
+    if (o.op === "crear" && !r && Number.isFinite(+o.cuando)) m.set(String(o.id), { id: String(o.id), que: visible(o.que), cuando: Math.round(+o.cuando), avisado: false, borrado: false });
+    else if (o.op === "avisado" && r) r.avisado = true;
+    else if (o.op === "borrar" && r) r.borrado = true;
+  });
+  return [...m.values()].filter(r => !r.borrado && r.que).map(({ borrado, ...r }) => r).sort((a, b) => a.cuando - b.cuando);
+}
+async function recordatorios({ sb, uid, ahora }) {
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), s = simular(data, await leerBandeja(sb, uid), dia);
+  // Los que faltan por avisar y los avisados de las últimas 24 horas
+  const lista = recordatoriosDe(data, s).filter(r => !r.avisado || r.cuando >= ahora.getTime() - 864e5);
+  const faltan = lista.filter(r => !r.avisado), prox = faltan[0];
+  const texto = !faltan.length ? "No tienes recordatorios pendientes."
+    : `Tienes ${cuantos(faltan.length, "recordatorio", "recordatorios")}. El próximo: ${paraVoz(prox.que)}, ${cuandoTxt(prox.cuando, tzDe(data), dia)}.`;
+  return exito(texto, { lista });
+}
+async function recordar({ sb, uid, body, ahora }) {
+  const que = textoLimpio(body.que);
+  if (que == null) return fallo(400, "dato-invalido", "Es muy largo. ¿Qué te recuerdo, en pocas palabras?");
+  if (!que) return fallo(400, "dato-invalido", "¿Qué te recuerdo?");
+  const cuando = Math.round(Number(body.cuando));
+  if (!Number.isFinite(cuando) || cuando < ahora.getTime() - 5 * 60e3 || cuando > ahora.getTime() + 366 * 864e5) return fallo(400, "dato-invalido", "¿A qué hora te lo recuerdo?");
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), s = simular(data, await leerBandeja(sb, uid), dia);
+  if (recordatoriosDe(data, s).filter(r => !r.avisado).length >= RECORDATORIOS_MAX) return fallo(429, "demasiados-recordatorios", "Ya tienes muchos recordatorios pendientes. Borra alguno y seguimos.");
+  const pid = idNuevo("n", ahora), id = "nr" + pid;
+  const r = await aLaBandeja(sb, uid, "recordatorio", { op: "crear", id, que, cuando }, ahora, pid);
+  if (r.limite) return falloDe(429, "demasiados-pedidos");
+  const eco = paraVoz(que);
+  return exito(`Listo, te recuerdo ${cuandoTxt(cuando, tzDe(data), dia)}${eco && eco.length <= 80 ? `: ${eco}` : ""}.`, { id, que, cuando, avisado: false });
+}
+/* «Ya avisé» y «borrar»: por el id que trae «recordatorios» */
+function recordatorioOp(op) {
+  return async ({ sb, uid, body, ahora }) => {
+    const id = typeof body.id === "string" ? body.id.trim() : "";
+    if (!ID_TAREA.test(id)) return fallo(400, "dato-invalido", "¿Qué recordatorio?");
+    const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), s = simular(data, await leerBandeja(sb, uid), dia);
+    const x = recordatoriosDe(data, s).find(r => r.id === id);
+    if (!x) return op === "borrar" ? exito("Ese recordatorio ya no estaba.", { id, ya: true }) : fallo(404, "recordatorio-no-encontrado", "No encontré ese recordatorio.");
+    if (op === "avisado" && x.avisado) return exito("Ya estaba avisado.", { id, ya: true });
+    const r = await aLaBandeja(sb, uid, "recordatorio", { op, id }, ahora);
+    if (r.limite) return falloDe(429, "demasiados-pedidos");
+    return exito(op === "borrar" ? `Borré el recordatorio: ${paraVoz(x.que)}.` : "Listo.", { id });
+  };
+}
+
+/* ---------- Posponer, delegar o soltar una tarea de hoy (F18), como en la app ---------- */
+const DESTINOS = ["manana", "delegar", "soltar"];
+async function moverTareaAccion({ sb, uid, body, ahora }) {
+  const destino = body.destino;
+  if (!DESTINOS.includes(destino)) return fallo(400, "dato-invalido", "¿La paso a mañana, la delegas o la sueltas?");
+  const a = textoLimpio(body.a, 80);
+  if (a == null) return fallo(400, "dato-invalido", "¿A quién se la delegas, en pocas palabras?");
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), d = resumenDia(data, await leerBandeja(sb, uid), dia);
+  const abiertas = d.tareas.filter(t => !t.hecha);
+  let t = null;
+  if (body.tid != null && body.tid !== "") {
+    t = typeof body.tid === "string" ? abiertas.find(x => x.id === body.tid.trim()) : null;
+  } else {
+    const consulta = textoLimpio(body.tarea, 200);
+    if (!consulta) return fallo(400, "dato-invalido", "¿Qué tarea?");
+    const xs = buscarPorNombre(abiertas, consulta, x => x.texto);
+    if (xs.length > 1) {
+      const opciones = xs.slice(0, 5).map(x => paraVoz(x.texto).slice(0, 80));
+      return fallo(400, "tarea-ambigua", `¿Cuál de estas? ${enLista(opciones, "o")}.`, { opciones: xs.slice(0, 5).map(x => ({ id: x.id, texto: x.texto })) });
+    }
+    t = xs[0] || null;
+  }
+  if (!t) return fallo(404, "tarea-no-encontrada", abiertas.length ? "No encontré esa tarea entre tus pendientes de hoy." : "No tienes tareas pendientes hoy.");
+  const datos = { tid: t.id, fecha: dia, destino, texto: t.texto };
+  if (destino === "delegar" && a) datos.a = a;
+  const r = await aLaBandeja(sb, uid, "tarea_mover", datos, ahora);
+  if (r.limite) return falloDe(429, "demasiados-pedidos");
+  const eco = paraVoz(t.texto).slice(0, 80) || "tu tarea";
+  const texto = destino === "manana" ? `Listo, ${eco} pasa a mañana.` : destino === "soltar" ? `Listo, soltaste ${eco}. Una cosa menos.`
+    : a ? `Listo, le delegaste ${eco} a ${paraVoz(a)}.` : `Listo, delegaste ${eco}.`;
+  return exito(texto, Object.assign({ id: t.id, destino, quedan: abiertas.length - 1 }, a && destino === "delegar" ? { a } : {}));
+}
+
+/* ---------- Aportar a una alcancía (F23) ---------- */
+async function alcancia({ sb, uid, body, ahora }) {
+  const monto = entero(typeof body.monto === "string" ? body.monto.replace(/[.$\s]/g, "") : body.monto, 1, MONTO_MAX, null);
+  if (monto == null) return fallo(400, "dato-invalido", "¿Cuánto guardo?");
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), s = simular(data, await leerBandeja(sb, uid), dia);
+  const abiertas = alcanciasDe(s.copia, s);
+  if (!abiertas.length) return fallo(404, "alcancia-no-encontrada", "No tienes alcancías abiertas. Crea una en Rumbo, en Finanzas.");
+  let a = null;
+  if (body.id != null && body.id !== "") a = abiertas.find(x => x.id === String(body.id)) || null;
+  else if (body.alcancia != null && body.alcancia !== "") {
+    const xs = buscarPorNombre(abiertas, textoLimpio(body.alcancia, 80) || "");
+    if (xs.length > 1) { const opciones = xs.map(x => x.nombre); return fallo(400, "alcancia-ambigua", `¿En cuál? ${enLista(opciones, "o")}.`, { opciones }); }
+    a = xs[0] || null;
+  } else if (abiertas.length === 1) a = abiertas[0];   // si tienes una sola, es esa
+  else return fallo(400, "alcancia-ambigua", `¿En cuál? ${enLista(abiertas.map(x => x.nombre), "o")}.`, { opciones: abiertas.map(x => x.nombre) });
+  if (!a) return fallo(404, "alcancia-no-encontrada", `No encontré esa alcancía. Tienes ${enLista(abiertas.map(x => x.nombre))}.`, { alcancias: abiertas.map(x => x.nombre) });
+  const r = await aLaBandeja(sb, uid, "alcancia", { aid: a.id, monto, fecha: dia, nombre: a.nombre.slice(0, 40) }, ahora);
+  if (r.limite) return falloDe(429, "demasiados-pedidos");
+  const total = a.total + monto, falta = Math.max(0, a.meta - total), llena = a.meta > 0 && total >= a.meta;
+  const cola = llena ? (a.total < a.meta ? ` Llenaste ${a.nombre}, bien hecho.` : "") : a.meta > 0 ? ` Te faltan ${pesosTxt(falta)}.` : "";
+  return exito(`Guardé ${pesosTxt(monto)} en ${a.nombre}.${cola}`, { id: a.id, nombre: a.nombre, monto, meta: a.meta, total, falta, llena });
+}
+
+/* ---------- Dictar al diario (F25): tal cual lo dices ---------- */
+async function diario({ sb, uid, body, ahora }) {
+  const texto = textoConLineas(body.texto, DIARIO_MAX);
+  if (texto == null) return fallo(400, "dato-invalido", "Es muy largo para una entrada. Divídelo en dos.");
+  if (!texto) return fallo(400, "dato-invalido", "¿Qué escribo en tu diario?");
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora);
+  const r = await aLaBandeja(sb, uid, "diario", { texto, fecha: dia }, ahora);
+  if (r.limite) return falloDe(429, "demasiados-pedidos");
+  return exito("Lo guardé en tu diario.", { fecha: dia, texto });
+}
+
+/* ---------- Sesión de lectura (F24): la página del libro y, con minutos, un foco de lectura ---------- */
+async function lectura({ sb, uid, body, ahora }) {
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), s = simular(data, await leerBandeja(sb, uid), dia);
+  const libros = leyendoDe(s.copia, s);
+  if (!libros.length) return fallo(404, "libro-no-encontrado", "No tienes libros en Leyendo ahora. Agrégalo en Rumbo, en Lecturas.");
+  let l = null;
+  if (body.id != null && body.id !== "") l = libros.find(x => x.id === String(body.id)) || null;
+  else if (body.libro != null && body.libro !== "") {
+    const xs = buscarPorNombre(libros, textoLimpio(body.libro, 120) || "", x => x.titulo);
+    if (xs.length > 1) { const opciones = xs.map(x => x.titulo); return fallo(400, "libro-ambiguo", `¿Cuál? ${enLista(opciones, "o")}.`, { opciones }); }
+    l = xs[0] || null;
+  } else if (libros.length === 1) l = libros[0];
+  else return fallo(400, "libro-ambiguo", `¿Cuál estás leyendo? ${enLista(libros.map(x => x.titulo), "o")}.`, { opciones: libros.map(x => x.titulo) });
+  if (!l) return fallo(404, "libro-no-encontrado", `No encontré ese libro. Estás leyendo ${enLista(libros.map(x => x.titulo))}.`, { libros: libros.map(x => x.titulo) });
+  const pagina = entero(body.pagina, 0, 3000, null), min = entero(body.minutos, 1, 600, null);
+  if ((body.pagina != null && body.pagina !== "" && pagina == null) || (body.minutos != null && body.minutos !== "" && min == null)) return fallo(400, "dato-invalido", "La página o los minutos vinieron mal.");
+  if (pagina == null && min == null) return fallo(400, "dato-invalido", "¿En qué página quedaste?");
+  const datos = { lid: l.id, fecha: dia, titulo: l.titulo.slice(0, 120) };
+  if (pagina != null) datos.pagina = l.paginas > 0 ? Math.min(pagina, l.paginas) : pagina;
+  if (min != null) {
+    let ini = Date.parse(body.inicio);
+    if (!Number.isFinite(ini) || ini > ahora.getTime() || ini < ahora.getTime() - 12 * 3600e3) ini = ahora.getTime() - min * 60e3;
+    Object.assign(datos, { min, completa: body.completa !== false, ini });
+  }
+  const r = await aLaBandeja(sb, uid, "lectura", datos, ahora);
+  if (r.limite) return falloDe(429, "demasiados-pedidos");
+  const titulo = paraVoz(l.titulo), avance = datos.pagina != null ? datos.pagina - l.pagina : 0, termino = datos.pagina != null && l.paginas > 0 && datos.pagina >= l.paginas;
+  const partes = [];
+  if (min != null) partes.push(`Guardé ${min === 1 ? "un minuto" : min + " minutos"} de lectura`);
+  if (datos.pagina != null) partes.push(`${partes.length ? "y anoté" : "Anoté"} la página ${datos.pagina} de ${titulo}${avance > 0 ? `: ${avance === 1 ? "una página" : avance + " páginas"} más` : ""}`);
+  const texto = `${partes.join(" ")}.${termino ? " ¡Lo terminaste! Márcalo como terminado en Rumbo para ponerlo en tu biblioteca." : ""}`;
+  return exito(texto, { id: l.id, titulo: l.titulo, pagina: datos.pagina != null ? datos.pagina : l.pagina, paginas: l.paginas, minutos: min, termino });
+}
+
+/* ---------- Amigos (F20, F21 y F22): lo que comparten contigo, en las tablas de amigos.sql, conjunto.sql y planes.sql ---------- */
+/* Tus amigos (amistad aceptada) con su nombre y lo que muestran (perfiles.estado, con su cumpleaños si lo comparten) */
+async function amigosDe(sb, uid) {
+  const [x, y] = await Promise.all([
+    sb.from("amistades").select("a, b").eq("a", uid).eq("estado", "aceptada"),
+    sb.from("amistades").select("a, b").eq("b", uid).eq("estado", "aceptada"),
+  ]);
+  const e = x.error || y.error;
+  if (e) throw new Error(e.message);
+  const ids = [...new Set([...(x.data || []).map(r => r.b), ...(y.data || []).map(r => r.a)])].filter(id => id && id !== uid);
+  if (!ids.length) return [];
+  const { data, error } = await sb.from("perfiles").select("user_id, nombre, estado").in("user_id", ids);
+  if (error) throw new Error(error.message);
+  return ids.map(id => {
+    const p = (data || []).find(r => r && r.user_id === id) || {};
+    return { id, nombre: paraVoz(p.nombre).slice(0, 60), estado: p.estado && typeof p.estado === "object" ? p.estado : {} };
+  });
+}
+/* Cada parte por separado: si falta una tabla (no se corrió su SQL), esa lista queda vacía */
+async function oVacio(fn) {
+  try { return await fn(); } catch (e) { if (sinTablas(e)) return []; throw e; }
+}
+async function animosDe(sb, uid, desde, amigos) {
+  const { data, error } = await sb.from("animos").select("id, de, creado").eq("para", uid).gte("creado", new Date(desde).toISOString());
+  if (error) throw new Error(error.message);
+  return (data || []).map(a => ({ de: (amigos.find(f => f.id === a.de) || {}).nombre || "Un amigo", ts: Date.parse(a.creado) || 0 }))
+    .sort((a, b) => a.ts - b.ts).slice(-20);
+}
+/* Las marcas de tus amigos en los hábitos en conjunto desde `desde` (de hoy o ayer), con la racha del grupo. Sin la columna
+   «creado» de las marcas (supabase/norte-fase2.sql), van las de los días desde `desde`, con ts al comienzo de su día. */
+async function conjuntoDe(sb, uid, desde, amigos, hoy, tz) {
+  const { data: mios, error } = await sb.from("habitos_conjunto_miembros").select("habito, estado").eq("user_id", uid);
+  if (error) throw new Error(error.message);
+  const out = [], ayer = diaMas(hoy, -1);
+  for (const habito of (mios || []).filter(m => m && m.estado === "activo").map(m => m.habito).slice(0, 10)) {
+    const corte = diaMas(hoy, -400);
+    let mq = await sb.from("habitos_conjunto_marcas").select("user_id, fecha, creado").eq("habito", habito).gte("fecha", corte);
+    if (mq.error && /creado/.test(mq.error.message || "")) mq = await sb.from("habitos_conjunto_marcas").select("user_id, fecha").eq("habito", habito).gte("fecha", corte);
+    if (mq.error) throw new Error(mq.error.message);
+    const marcas = (mq.data || []).filter(m => m && FECHA.test(String(m.fecha || "").slice(0, 10))).map(m => Object.assign({}, m, { fecha: String(m.fecha).slice(0, 10) }));
+    const tsDe = m => (m.creado ? Date.parse(m.creado) : instantePlan(m.fecha, "00:00", tz).getTime()) || 0;
+    // sin «creado», no se sabe la hora: van las de los días desde «desde» (el robot las reconoce por hábito, quién y fecha)
+    let diaDesde; try { diaDesde = localDate(tz, new Date(desde)); } catch { diaDesde = localDate(TZ_DEFECTO, new Date(desde)); }
+    const nuevas = marcas.filter(m => m.user_id !== uid && m.fecha >= ayer && (m.creado ? tsDe(m) >= desde : m.fecha >= diaDesde));
+    if (!nuevas.length) continue;
+    const [{ data: h, error: e1 }, { data: ms, error: e2 }] = await Promise.all([
+      sb.from("habitos_conjunto").select("nombre, frecuencia, creado").eq("id", habito).maybeSingle(),
+      sb.from("habitos_conjunto_miembros").select("user_id, estado, desde").eq("habito", habito),
+    ]);
+    if (e1 || e2) throw new Error((e1 || e2).message);
+    if (!h) continue;
+    let descansos = [];
+    try {
+      const dq = await sb.from("habitos_conjunto_descansos").select("user_id, fecha").eq("habito", habito).gte("fecha", corte);
+      descansos = dq.error ? [] : dq.data || [];
+    } catch (e) { descansos = []; }
+    const activos = (ms || []).filter(m => m && m.estado === "activo").map(m => ({ desde: m.desde, marcas: marcas.filter(x => x.user_id === m.user_id).map(x => x.fecha),
+      descansos: descansos.filter(x => x && x.user_id === m.user_id).map(x => String(x.fecha).slice(0, 10)) }));
+    let racha = { n: 0, unidad: "días" };
+    try { racha = rachaConjunto({ frecuencia: h.frecuencia, creado: h.creado }, activos, hoy); } catch (e) { /* sin racha */ }
+    nuevas.forEach(m => {
+      const quien = (amigos.find(f => f.id === m.user_id) || {}).nombre || "Un amigo";
+      out.push({ habito: paraVoz(h.nombre), quien, inicial: inicialDe(quien), racha: racha.n, unidad: racha.unidad, fecha: m.fecha, ts: tsDe(m) });
+    });
+  }
+  return out.sort((a, b) => a.ts - b.ts).slice(-20);
+}
+/* Los planes de hoy en los que participas (vas o tal vez vas), sin los cancelados */
+async function planesHoyDe(sb, uid, hoy) {
+  const { data: inv, error } = await sb.from("planes_invitados").select("plan, respuesta").eq("user_id", uid);
+  if (error) throw new Error(error.message);
+  const ids = [...new Set((inv || []).filter(i => i && (i.respuesta === "voy" || i.respuesta === "quizas")).map(i => i.plan))];
+  if (!ids.length) return [];
+  const { data: ps, error: e2 } = await sb.from("planes").select("id, titulo, fecha, hora, lugar, tz, cancelado").in("id", ids).eq("fecha", hoy);
+  if (e2) throw new Error(e2.message);
+  return (ps || []).filter(p => p && !p.cancelado && p.fecha === hoy).map(p => ({
+    titulo: visible(p.titulo) || "Un plan", hora: HORA.test(p.hora || "") ? p.hora : null, lugar: p.lugar ? visible(p.lugar) : null,
+    ts_inicio: instantePlan(p.fecha, HORA.test(p.hora || "") ? p.hora : "00:00", p.tz).getTime(),
+  })).sort((a, b) => a.ts_inicio - b.ts_inicio);
+}
+/* Todo lo social de una vez: ánimos y marcas en conjunto desde `desde`, los planes de hoy y los cumpleaños de hoy */
+/* `soloDia`: solo los planes y cumpleaños de hoy (para el buenos días) */
+async function socialDe(sb, uid, data, hoy, desde, soloDia = false) {
+  const amigos = await oVacio(() => amigosDe(sb, uid)), tz = tzDe(data);
+  const [animos, conjunto, planes_hoy] = await Promise.all([
+    soloDia ? [] : oVacio(() => animosDe(sb, uid, desde, amigos)),
+    soloDia ? [] : oVacio(() => conjuntoDe(sb, uid, desde, amigos, hoy, tz)),
+    oVacio(() => planesHoyDe(sb, uid, hoy)),
+  ]);
+  const cumples_hoy = amigos.filter(a => a.nombre && a.estado.cumple === hoy.slice(5)).map(a => a.nombre);
+  return { animos, conjunto, planes_hoy, cumples_hoy };
+}
+const planTxt = p => `${paraVoz(p.titulo)}${p.hora ? ` a las ${p.hora.replace(/^0(\d)/, "$1")}` : ""}`;
+export function textoSocial(x) {
+  const p = [];
+  const de = [...new Set(x.animos.map(a => a.de))];
+  if (de.length) p.push(`${enLista(de)} te ${de.length === 1 ? "mandó" : "mandaron"} ánimo.`);
+  x.conjunto.slice(-2).forEach(c => p.push(`${c.quien} cumplió ${c.habito}${c.racha > 1 ? `: llevan ${c.racha} ${c.unidad === "sem" ? "semanas" : c.unidad === "meses" ? "meses" : "días"} juntos` : ""}.`));
+  if (x.cumples_hoy.length) p.push(`Hoy está de cumpleaños ${enLista(x.cumples_hoy)}.`);
+  if (x.planes_hoy.length) p.push(`Hoy tienes ${enLista(x.planes_hoy.map(planTxt))}.`);
+  return p.length ? p.join(" ") : "Nada nuevo de tus amigos.";
+}
+async function social({ sb, uid, body, ahora }) {
+  let desde = Number(body.desde);
+  if (!Number.isFinite(desde)) desde = ahora.getTime() - 864e5;
+  desde = Math.max(ahora.getTime() - 7 * 864e5, Math.min(desde, ahora.getTime()));
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora);
+  const x = await socialDe(sb, uid, data, dia, desde);
+  return exito(textoSocial(x), x);
+}
+/* «Mándale ánimo a Ana» (F20): directo a la tabla animos, con las reglas de amigos_animo (amistad aceptada y hasta 3 al
+   día a la misma persona). Esa función usa auth.uid(), que aquí no hay: el servidor revisa lo mismo con la clave de servicio. */
+async function animo({ sb, uid, body, ahora }) {
+  const consulta = textoLimpio(body.a, 60), mensaje = textoLimpio(body.mensaje, 120);
+  if (!consulta) return fallo(400, "dato-invalido", "¿A quién le mando ánimo?");
+  if (mensaje == null) return fallo(400, "dato-invalido", "El mensaje es muy largo.");
+  const amigos = (await oVacio(() => amigosDe(sb, uid))).filter(a => a.nombre);
+  if (!amigos.length) return fallo(404, "amigo-no-encontrado", "Todavía no tienes amigos en Rumbo. Invítalos desde Amigos.");
+  const xs = buscarPorNombre(amigos, consulta);
+  if (xs.length > 1) { const opciones = xs.slice(0, 5).map(a => a.nombre); return fallo(400, "amigo-ambiguo", `¿A quién? ${enLista(opciones, "o")}.`, { opciones }); }
+  if (!xs.length) return fallo(404, "amigo-no-encontrado", "No encontré a ese amigo en Rumbo.");
+  const f = xs[0], dia = new Date(ahora.getTime() - 864e5).toISOString();
+  const [c1, c2] = await Promise.all([
+    sb.from("animos").select("id", { count: "exact", head: true }).eq("de", uid).eq("para", f.id).gte("creado", dia),
+    sb.from("animos").select("id", { count: "exact", head: true }).eq("de", uid).gte("creado", dia),
+  ]);
+  if (c1.error || c2.error) throw new Error((c1.error || c2.error).message);
+  if ((c1.count || 0) >= ANIMOS_DIA) return fallo(429, "limite-animos", `Ya le mandaste ánimo tres veces hoy a ${f.nombre}. Mañana puedes mandarle más.`);
+  if ((c2.count || 0) >= ANIMOS_DIA_TOTAL) return falloDe(429, "demasiados-pedidos");
+  const { error } = await sb.from("animos").insert({ de: uid, para: f.id, mensaje: mensaje || "" });
+  if (error) throw new Error(error.message);
+  return exito(`Listo, le mandé ánimo a ${f.nombre}.`, { a: f.nombre });
+}
+
+/* ---------- Tu año en Rumbo (F28): las láminas, con los números del año ---------- */
+/* Desde el 1 de diciembre, y en enero la del año que terminó (como tuAnioDisponible y tuAnioDeTemporada en js/tu-anio.js) */
+export function tuAnioDisponible(anio, hoy) { const ya = +hoy.slice(0, 4), m = +hoy.slice(5, 7); return anio < ya || (anio === ya && m === 12); }
+const tuAnioDeTemporada = hoy => { const ya = +hoy.slice(0, 4), m = +hoy.slice(5, 7); return m === 12 ? ya : m === 1 ? ya - 1 : null; };
+/* Los números del año (lo que espera en la bandeja ya cuenta), solo las láminas con datos: { titulo, numero, unidad, texto } */
+export function laminasAnio(copia, anio, hoy) {
+  const pref = anio + "-", fin = hoy.startsWith(pref) ? hoy : `${anio}-12-31`, ini = `${anio}-01-01`;
+  const dias = (copia.ritual && copia.ritual.dias) || {}, enAnio = d => d.startsWith(pref) && d <= fin;
+  let abiertos = 0, cerrados = 0, racha = 0, mejor = 0;
+  for (let d = ini; d <= fin; d = diaMas(d, 1)) {
+    const r = dias[d] || {};
+    if (r.hecho || r.cerrado) abiertos++;
+    if (r.cerrado) { cerrados++; racha++; mejor = Math.max(mejor, racha); } else if (d !== hoy) racha = 0;
+  }
+  let marcas = 0;
+  Object.entries((copia.habitos && copia.habitos.log) || {}).forEach(([k, hs]) => { if (k.startsWith(pref)) Object.values(hs || {}).forEach(ds => { marcas += Object.values(ds || {}).filter(Boolean).length; }); });
+  const ml = Object.entries((copia.agua && copia.agua.dias) || {}).filter(([d]) => enAnio(d)).reduce((t, [, x]) => t + totalAgua(x), 0);
+  const vasos = Math.round(ml / (vasoDe(copia) || 250));
+  const libros = (Array.isArray(copia.lecturas) ? copia.lecturas : []).filter(l => l && l.estado === "terminado" && !l.antes && String(l.fin || "").startsWith(pref)).length;
+  const foco = Math.round(((copia.enfoque && copia.enfoque.sesiones) || []).filter(x => x && !x.borrada && enAnio(String(x.fecha || ""))).reduce((t, x) => t + (+x.real || 0), 0));
+  const estrellas = ((copia.gamif && copia.gamif.ledger) || []).filter(m => m && !m.anulado && (+m.delta || 0) > 0 && +m.ts > 0 && new Date(+m.ts).getUTCFullYear() === anio).reduce((t, m) => t + (+m.delta || 0), 0);
+  const L = [
+    [abiertos, "Días abiertos", "días", `Abriste tu día ${cuantos(abiertos, "vez", "veces", "una")}.`],
+    [cerrados, "Días cerrados", "días", `Cerraste ${cuantos(cerrados, "día", "días")} con tu ritual.`],
+    [mejor >= 2 ? mejor : 0, "Tu mejor racha", "días seguidos", `Tu mejor racha fue de ${mejor} días seguidos cerrando el día.`],
+    [marcas, "Hábitos", "veces", `Marcaste tus hábitos ${cuantos(marcas, "vez", "veces", "una")}.`],
+    [vasos, "Tu agua", "vasos", `Tomaste unos ${vasos} vasos de agua.`],
+    [libros, "Tus libros", "libros", `Terminaste ${cuantos(libros, "libro", "libros")}.`],
+    [foco, "Tu foco", "minutos", `Le diste ${foco} minutos de foco a lo tuyo.`],
+    [estrellas, "Tus estrellas", "estrellas", `Ganaste ${estrellas} estrellas.`],
+  ];
+  return L.filter(x => x[0] > 0).map(([numero, titulo, unidad, texto]) => ({ titulo, numero, unidad, texto }));
+}
+async function tuAnio({ sb, uid, body, ahora }) {
+  const data = await leerEstado(sb, uid), dia = hoyDe(data, ahora), ya = +dia.slice(0, 4);
+  const anio = entero(body.anio, 2020, ya, tuAnioDeTemporada(dia) || ya);
+  if (anio == null) return fallo(400, "dato-invalido", "¿De qué año?");
+  const disponible = tuAnioDisponible(anio, dia);
+  if (!disponible) return exito(`Tu ${anio} en Rumbo se abre el 1 de diciembre. Te aviso cuando esté.`, { anio, disponible, laminas: [] });
+  const s = simular(data, await leerBandeja(sb, uid), dia), laminas = laminasAnio(s.copia, anio, dia);
+  return exito(laminas.length ? `Tu ${anio} en Rumbo, en ${cuantos(laminas.length, "lámina", "láminas", "una")}. Empecemos.` : `Todavía no hay mucho de tu ${anio} en Rumbo.`,
+    { anio, disponible, laminas });
+}
+
 const ACCIONES = { hoy, sumar_agua: sumarAgua, marcar_habito: marcarHabito, anotar, abrir_dia: abrirDia, cerrar_dia: cerrarDia, completar_tarea: completarTarea, foco,
-  reportar_falla: reportarFalla, buenos_dias: buenosDias, agenda };
+  reportar_falla: reportarFalla, buenos_dias: buenosDias, agenda,
+  // fase 2
+  alarmas, guardar_alarmas: guardarAlarmas, ajustes, recordatorios, recordar, recordatorio_listo: recordatorioOp("avisado"), borrar_recordatorio: recordatorioOp("borrar"),
+  mover_tarea: moverTareaAccion, alcancia, diario, lectura, social, animo, tu_anio: tuAnio };
 
 /* Para la charla (notifier/norte-chat.mjs): quién habla y las mismas acciones, con la persona ya identificada.
    Así lo que Norte hace conversando pasa por la misma bandeja, con los mismos límites y los mismos textos. */

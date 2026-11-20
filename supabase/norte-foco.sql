@@ -3,5 +3,6 @@
 BEGIN;
 ALTER TABLE norte_pendientes DROP CONSTRAINT IF EXISTS norte_pendientes_tipo_check;
 ALTER TABLE norte_pendientes ADD CONSTRAINT norte_pendientes_tipo_check
-  CHECK (tipo IN ('habito', 'tarea', 'nota', 'abrir', 'cerrar', 'tarea_hecha', 'foco'));
+  CHECK (tipo IN ('habito', 'tarea', 'nota', 'abrir', 'cerrar', 'tarea_hecha', 'foco',
+                  'alarmas', 'recordatorio', 'tarea_mover', 'alcancia', 'diario', 'lectura'));   -- con los de la fase 2 (norte-fase2.sql)
 COMMIT;

@@ -33,6 +33,7 @@ const ROUTES = [
   { id: "visita-cielo", pie: true, lugar: true, label: "De visita", icon: "✨", render: renderVisitaCielo, subtitle: "Las medallas de tu amigo en su cielo." },
   { id: "apariencia", pie: true, label: "Apariencia", icon: "🎨", render: renderApariencia, subtitle: "Tu tema, tus títulos, tus marcos y tus efectos." },
   { id: "cuenta", pie: true, label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
+  { id: "norte", pie: true, label: "Norte, tu brújula", icon: "🧭", render: renderNorte, subtitle: "Tu robot del escritorio: aparatos, alarmas, avisos y modo noche." },
   { id: "notif", pie: true, label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
   { id: "tutoriales", pie: true, label: "Ayuda", icon: "🎓", render: renderTutoriales, subtitle: "Recorridos guiados para aprender Rumbo a tu ritmo." },
 ];
@@ -1178,7 +1179,7 @@ function onClick(e) {
   if (a.startsWith("dj-") || a.startsWith("rd-")) { dejarAccion(a, d); return; }   // 🌵 dejar y reducir hábitos (dejar.js)
   if (a.startsWith("arma-")) { armaAccion(a, d); return; }   // 👋 «Arma tu Rumbo», la bienvenida (bienvenida.js)
   if (a.startsWith("bv-")) { bienvenidaAccion(a, d); return; }   // 👋 la primera semana (bienvenida.js)
-  if (a.startsWith("norte-") && typeof norteAccion === "function") { norteAccion(a, d); return; }   // 🧭 Norte, tu brújula (norte.js)
+  if (a.startsWith("norte-") && typeof norteAccion === "function") { norteAccion(a, d, el); return; }   // 🧭 Norte, tu brújula (norte.js)
 
   switch (a) {
     case "close-modal": if (typeof cadenaCortar === "function") cadenaCortar(); closeModal(); break;

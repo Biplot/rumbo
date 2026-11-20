@@ -64,6 +64,8 @@ CREATE TABLE IF NOT EXISTS habitos_conjunto_marcas (
   fecha   date NOT NULL,
   PRIMARY KEY (habito, user_id, fecha)
 );
+-- Cuándo se marcó (Norte avisa solo las marcas nuevas de tus amigos; supabase/norte-fase2.sql la agrega a las bases que ya la tenían)
+ALTER TABLE habitos_conjunto_marcas ADD COLUMN IF NOT EXISTS creado timestamptz NOT NULL DEFAULT now();
 ALTER TABLE habitos_conjunto_marcas ENABLE ROW LEVEL SECURITY;
 
 -- ---------- 4. habitos_conjunto_descansos (v55) ----------

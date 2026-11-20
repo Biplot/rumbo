@@ -300,14 +300,20 @@ function norteLimpiarRecordatorios(S, now) {
   const N = norteAjustes(S), corte = (now || Date.now()) - 30 * 864e5;
   N.recordatorios = N.recordatorios.filter(r => r && r.id && !((r.avisado || r.borrado) && +r.cuando < corte)).slice(-200);
 }
-const NORTE_SONIDOS = [["campanas", "Campanas"], ["marimba", "Marimba"], ["pajaros", "Pájaros"], ["brujula", "La brújula"], ["ola", "La ola"]];
+/* Los 11 tonos del robot (alarmas.cc en Biplot/norte), elegidos por Chris el 2026-11-20 en el artefacto «Tonos de alarma de
+   Norte»; la marimba es la de siempre. Campanas, pájaros y la brújula salieron: lo guardado con ellos pasa a la marimba. */
+const NORTE_SONIDOS = [["marimba", "Marimba"], ["ola", "La ola"], ["arpa", "Arpa"], ["kalimba", "Kalimba"], ["carrillon", "Carrillón"],
+  ["reloj", "Reloj clásico"], ["digital", "Despertador digital"], ["grillos", "Grillos"], ["piano", "Piano suave"], ["flauta", "Flauta de pan"],
+  ["elefante", "Trompeta del elefante"]];
+const NORTE_SONIDOS_VIEJOS = { campanas: "marimba", pajaros: "marimba", brujula: "marimba" };
+const norteSonidoValido = v => { v = NORTE_SONIDOS_VIEJOS[v] || v; return NORTE_SONIDOS.some(x => x[0] === v) ? v : null; };
 const NORTE_ALARMAS_MAX = 10, NORTE_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 /* Una alarma como la entienden el robot y el servidor (alarmaLimpia en notifier/norte.mjs); null si viene mal */
 function norteAlarmaLimpia(a) {
   if (!a || typeof a !== "object" || !/^[A-Za-z0-9_-]{1,40}$/.test(String(a.id || "")) || !NORTE_HORA.test(String(a.hora || ""))) return null;
   const dias = [...new Set((Array.isArray(a.dias) ? a.dias : []).map(Number))].filter(x => Number.isInteger(x) && x >= 0 && x <= 6).sort((x, y) => x - y);
   const fecha = !dias.length && /^\d{4}-\d{2}-\d{2}$/.test(String(a.fecha || "")) ? a.fecha : null;
-  return { id: String(a.id), hora: a.hora, dias, fecha, nombre: norteTexto(a.nombre, 40), sonido: NORTE_SONIDOS.some(x => x[0] === a.sonido) ? a.sonido : null, activa: a.activa !== false };
+  return { id: String(a.id), hora: a.hora, dias, fecha, nombre: norteTexto(a.nombre, 40), sonido: norteSonidoValido(a.sonido), activa: a.activa !== false };
 }
 function norteAlarmasDe(x) {
   const a = x && typeof x === "object" ? x : {}, am = a.amanecer == null ? null : Number(a.amanecer);
@@ -316,7 +322,7 @@ function norteAlarmasDe(x) {
     lista: (Array.isArray(a.lista) ? a.lista : []).map(norteAlarmaLimpia).filter(Boolean).slice(0, NORTE_ALARMAS_MAX),
     dormir: NORTE_HORA.test(String(a.dormir || "")) ? a.dormir : null,
     amanecer: Number.isInteger(am) && am >= 0 && am <= 30 ? am : 10,
-    sonido: NORTE_SONIDOS.some(s => s[0] === a.sonido) ? a.sonido : "campanas",
+    sonido: norteSonidoValido(a.sonido) || "marimba",
   };
 }
 /* Tus alarmas (una copia: para cambiarlas, norteAlarmasCambiar) */
@@ -712,7 +718,7 @@ function norteGuardarAlarmas(fn, aviso) {
 function norteDormir(v) { norteGuardarAlarmas(A => { const n = NORTE_HORA.test(v || "") ? v : null; if (A.dormir === n) return false; A.dormir = n; }); }
 function norteAmanecer(v) { norteGuardarAlarmas(A => { const n = Math.max(0, Math.min(30, Math.round(+v || 0))); if (A.amanecer === n) return false; A.amanecer = n; }); }
 function norteSonido(v) { norteEscuchar(v); norteGuardarAlarmas(A => { if (!NORTE_SONIDOS.some(x => x[0] === v) || A.sonido === v) return false; A.sonido = v; }); }
-/* Escuchar los tonos antes de elegir (Chris, 2026-11-20): son los mismos 5 del robot (main/boards/norte/sonidos en
+/* Escuchar los tonos antes de elegir (Chris, 2026-11-20): son los mismos 11 del robot (main/boards/norte/sonidos en
    Biplot/norte), en MP3 para que suenen en cualquier navegador, también en el iPhone. Uno a la vez: el que suena se
    corta si tocas otro. Al elegir el sonido de tus alarmas también suena. */
 let NORTE_AUDIO = null;

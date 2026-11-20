@@ -698,7 +698,8 @@ function norteAlarmasHtml() {
       ${elContador("norte-amanecer", A.amanecer, { min: 0, max: 30, paso: 5, label: "Minutos de amanecer", unidad: "min", fn: "norteAmanecer" })}
     </div>
     <div class="field mt-8"><label>Sonido de tus alarmas</label>
-      ${elLista("norte-sonido", NORTE_SONIDOS, A.sonido, { label: "Sonido de tus alarmas", hoja: true, fn: "norteSonido" })}</div>
+      ${elLista("norte-sonido", NORTE_SONIDOS, A.sonido, { label: "Sonido de tus alarmas", hoja: true, fn: "norteSonido" })}
+      ${norteEscucharHtml()}</div>
   </div>`;
 }
 function norteGuardarAlarmas(fn, aviso) {
@@ -710,7 +711,24 @@ function norteGuardarAlarmas(fn, aviso) {
 }
 function norteDormir(v) { norteGuardarAlarmas(A => { const n = NORTE_HORA.test(v || "") ? v : null; if (A.dormir === n) return false; A.dormir = n; }); }
 function norteAmanecer(v) { norteGuardarAlarmas(A => { const n = Math.max(0, Math.min(30, Math.round(+v || 0))); if (A.amanecer === n) return false; A.amanecer = n; }); }
-function norteSonido(v) { norteGuardarAlarmas(A => { if (!NORTE_SONIDOS.some(x => x[0] === v) || A.sonido === v) return false; A.sonido = v; }); }
+function norteSonido(v) { norteEscuchar(v); norteGuardarAlarmas(A => { if (!NORTE_SONIDOS.some(x => x[0] === v) || A.sonido === v) return false; A.sonido = v; }); }
+/* Escuchar los tonos antes de elegir (Chris, 2026-11-20): son los mismos 5 del robot (main/boards/norte/sonidos en
+   Biplot/norte), en MP3 para que suenen en cualquier navegador, también en el iPhone. Uno a la vez: el que suena se
+   corta si tocas otro. Al elegir el sonido de tus alarmas también suena. */
+let NORTE_AUDIO = null;
+function norteEscuchar(v) {
+  if (!NORTE_SONIDOS.some(x => x[0] === v)) return;
+  try {
+    if (NORTE_AUDIO) NORTE_AUDIO.pause();
+    NORTE_AUDIO = new Audio(`assets/norte-sonidos/alarma_${v}.mp3`);
+    const p = NORTE_AUDIO.play();
+    if (p && p.catch) p.catch(() => toast("No pude reproducir el sonido. Revisa que el volumen esté encendido.", true));
+  } catch (e) { /* sin audio en este navegador */ }
+}
+function norteEscucharHtml() {
+  return `<div class="norte-escuchar"><span class="text-xs muted">Escúchalos:</span>${NORTE_SONIDOS.map(([v, t]) =>
+    `<button type="button" class="chip chip--amb" data-action="norte-escuchar" data-v="${v}" aria-label="Escuchar ${escapeAttr(t)}">▶ ${escapeHtml(t)}</button>`).join("")}</div>`;
+}
 /* La próxima fecha de una alarma de una vez: hoy si su hora todavía no pasa, si no mañana */
 function norteFechaUnaVez(hora) {
   const hoy = todayISO(), d = new Date(), ahora = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -730,7 +748,8 @@ function openNorteAlarma(id) {
       ${elFichas(NORTE_DIAS.map(([v, l, n]) => [v, l, { aria: n }]), a ? a.dias : [1, 2, 3, 4, 5], { id: "na-dias", dias: true, label: "Días de la alarma" })}
       <div class="text-xs muted mt-8">Sin ningún día, suena una sola vez.</div></div>
     <div class="field"><label>Sonido</label>
-      ${elLista("na-sonido", [["", "El de siempre"]].concat(NORTE_SONIDOS), a && a.sonido ? a.sonido : "", { label: "Sonido de esta alarma", hoja: true })}</div>
+      ${elLista("na-sonido", [["", "El de siempre"]].concat(NORTE_SONIDOS), a && a.sonido ? a.sonido : "", { label: "Sonido de esta alarma", hoja: true })}
+      ${norteEscucharHtml()}</div>
     <button class="btn btn--primary btn-block mt-8" data-action="norte-alarma-guardar">${a ? "Guardar cambios" : "Agregar alarma"}</button>
     ${a ? `<button class="btn-ghost btn-block mt-8" data-action="norte-alarma-borrar" data-id="${escapeAttr(a.id)}" style="color:var(--coral);border-color:var(--coral)">Borrar alarma</button>` : ""}`);
 }
@@ -871,4 +890,5 @@ function norteAccion(a, d, el) {
   if (a === "norte-alarma-borrar") return norteAlarmaBorrar(d.id);
   if (a === "norte-alarma-activa") return norteAlarmaActiva(d.id, !!(el && el.checked));
   if (a === "norte-ajuste") return norteAjuste(d.k, !!(el && el.checked));
+  if (a === "norte-escuchar") return norteEscuchar(d.v);
 }

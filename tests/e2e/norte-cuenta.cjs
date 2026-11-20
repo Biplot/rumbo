@@ -38,6 +38,12 @@ module.exports = async ({ b, ok, errs }) => {
     "la alarma queda en settings.norte.alarmas con su ts: " + JSON.stringify(A1.lista[0]));
   ok(/06:45 · Despertar temprano/.test(await p.locator("#norte-alarmas").innerText()) && /De lunes a viernes/.test(await p.locator("#norte-alarmas").innerText()), "y se ve en la lista con sus días");
   await shot(p, "norte-alarmas");
+  // Escuchar los tonos antes de elegir: los 5 botones ▶ y sus MP3 se sirven
+  ok(await p.locator('#norte-alarmas [data-action="norte-escuchar"]').count() === 5, "«Escúchalos»: un botón ▶ por cada uno de los 5 tonos");
+  const tonos = await p.evaluate(async () => Promise.all(NORTE_SONIDOS.map(async ([v]) => { const r = await fetch(`assets/norte-sonidos/alarma_${v}.mp3`); return r.ok && (await r.arrayBuffer()).byteLength > 4000; })));
+  ok(tonos.every(Boolean), "los 5 tonos están en assets/norte-sonidos (MP3): " + tonos.join());
+  ok(await p.evaluate(() => { let src = ""; const A = window.Audio; window.Audio = function (u) { src = u; return { play: () => Promise.resolve(), pause() {} }; };
+    document.querySelector('#norte-alarmas [data-action="norte-escuchar"][data-v="marimba"]').click(); window.Audio = A; return src; }) === "assets/norte-sonidos/alarma_marimba.mp3", "tocar ▶ Marimba la hace sonar");
   // apagarla con el interruptor
   await p.click('#norte-alarmas [data-action="norte-alarma-activa"]'); await p.waitForTimeout(300);
   const A2 = await p.evaluate(() => JSON.parse(JSON.stringify(STATE.settings.norte.alarmas)));

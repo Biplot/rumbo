@@ -334,6 +334,8 @@ textarea.input { resize: vertical; min-height: 84px; }
 .chip--amb { border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-soft);
   font-family: inherit; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
 .chip--amb:hover { border-color: var(--cian); color: var(--text); }
+/* Escuchar los tonos de las alarmas de Norte (js/norte.js) */
+.norte-escuchar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
 .amb-pick { padding: 8px 10px; }
 .tarea-grupo { display: flex; align-items: center; justify-content: space-between; gap: 8px;
   font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; margin: 12px 2px 6px; }

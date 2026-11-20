@@ -900,14 +900,18 @@ async function agenda({ sb, uid }) {
 /* ============================================================
    Fase 2 (2026-11-20): alarmas, recordatorios, mover tareas, alcancías, diario, lectura, amigos y tu año
    ============================================================ */
-export const SONIDOS = ["campanas", "marimba", "pajaros", "brujula", "ola"];   // los tonos del robot (alarmas.cc)
+// Los 11 tonos del robot (alarmas.cc), elegidos por Chris el 2026-11-20; la marimba es la de siempre. Campanas, pájaros y
+// la brújula salieron: lo que llegue con ellos (un robot o una app sin actualizar) pasa a la marimba.
+export const SONIDOS = ["marimba", "ola", "arpa", "kalimba", "carrillon", "reloj", "digital", "grillos", "piano", "flauta", "elefante"];
+export const SONIDOS_VIEJOS = Object.freeze({ campanas: "marimba", pajaros: "marimba", brujula: "marimba" });
+const sonidoDe = v => (typeof v === "string" && SONIDOS_VIEJOS[v]) || v;
 export const ALARMAS_MAX = 10;          // como kMaxAlarmas en el robot
 export const RECORDATORIOS_MAX = 50;    // recordatorios por avisar a la vez
 export const MONTO_MAX = 100000000;     // un aporte a una alcancía, en pesos
 export const DIARIO_MAX = 1000;         // lo que dictas al diario
 export const ANIMOS_DIA = 3;            // ánimos de una persona a otra al día (como amigos_animo en amigos.sql)
 export const ANIMOS_DIA_TOTAL = 30;     // y a todos sus amigos (un token filtrado no llena de ánimos a nadie)
-export const ALARMAS_DEFECTO = Object.freeze({ ts: 0, lista: [], dormir: null, amanecer: 10, sonido: "campanas" });
+export const ALARMAS_DEFECTO = Object.freeze({ ts: 0, lista: [], dormir: null, amanecer: 10, sonido: "marimba" });
 const ID_CORTO = /^[A-Za-z0-9_-]{1,40}$/;
 const MESES_TXT = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const tzDe = data => (data && data.settings && data.settings.notif && data.settings.notif.tz) || TZ_DEFECTO;
@@ -956,9 +960,10 @@ export function alarmaLimpia(a) {
   if (a.fecha != null && a.fecha !== "" && !FECHA.test(a.fecha)) return null;
   const nombre = textoLimpio(a.nombre, 40);
   if (nombre == null) return null;
-  if (a.sonido != null && a.sonido !== "" && !SONIDOS.includes(a.sonido)) return null;
+  const sonido = sonidoDe(a.sonido);
+  if (sonido != null && sonido !== "" && !SONIDOS.includes(sonido)) return null;
   if (a.activa != null && typeof a.activa !== "boolean") return null;
-  return { id, hora, dias: dias.sort((x, y) => x - y), fecha: dias.length || !a.fecha ? null : a.fecha, nombre, sonido: a.sonido || null, activa: a.activa !== false };
+  return { id, hora, dias: dias.sort((x, y) => x - y), fecha: dias.length || !a.fecha ? null : a.fecha, nombre, sonido: sonido || null, activa: a.activa !== false };
 }
 /* Tus alarmas, con lo que falte puesto (las que vengan mal se dejan fuera) */
 export function alarmasDe(x) {
@@ -968,7 +973,7 @@ export function alarmasDe(x) {
     lista: (Array.isArray(a.lista) ? a.lista : []).map(alarmaLimpia).filter(Boolean).slice(0, ALARMAS_MAX),
     dormir: typeof a.dormir === "string" && HORA.test(a.dormir) ? a.dormir : null,
     amanecer: Number.isInteger(am) && am >= 0 && am <= 30 ? am : ALARMAS_DEFECTO.amanecer,
-    sonido: SONIDOS.includes(a.sonido) ? a.sonido : ALARMAS_DEFECTO.sonido,
+    sonido: SONIDOS.includes(sonidoDe(a.sonido)) ? sonidoDe(a.sonido) : ALARMAS_DEFECTO.sonido,
   };
 }
 /* Las de Rumbo, o las que el robot dejó en la bandeja si son más nuevas (la app todavía no las aplica) */
@@ -1029,7 +1034,7 @@ async function guardarAlarmas({ sb, uid, body, ahora }) {
   if (body.dormir != null && body.dormir !== "" && !(typeof body.dormir === "string" && HORA.test(body.dormir))) return fallo(400, "dato-invalido", "Tu hora de dormir vino mal.");
   const amanecer = entero(body.amanecer, 0, 30, ALARMAS_DEFECTO.amanecer);
   if (amanecer == null) return fallo(400, "dato-invalido", "El amanecer va de cero a treinta minutos.");
-  const sonido = body.sonido == null || body.sonido === "" ? ALARMAS_DEFECTO.sonido : body.sonido;
+  const sonido = body.sonido == null || body.sonido === "" ? ALARMAS_DEFECTO.sonido : sonidoDe(body.sonido);
   if (!SONIDOS.includes(sonido)) return fallo(400, "dato-invalido", `El sonido es uno de estos: ${enLista(SONIDOS, "o")}.`);
   const datos = { ts, lista, dormir: body.dormir || null, amanecer, sonido };
   if (muyGrande(datos)) return fallo(400, "dato-invalido", MUY_LARGO);

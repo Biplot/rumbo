@@ -144,14 +144,14 @@ export default async function ({ G, test, assert, clone }) {
   /* ---------- Alarmas ---------- */
   const al0 = await pedir(nuevoSb(), { accion: "alarmas" });
   const alV = await pedir(nuevoSb({ data: d => { delete d.settings.norte; } }), { accion: "alarmas" });
-  const robot = { ts: 5000, lista: [{ id: "x1", hora: "06:45", dias: [], fecha: "2026-11-21", nombre: "Vuelo", sonido: "ola", activa: true }], dormir: null, amanecer: 0, sonido: "pajaros" };
+  const robot = { ts: 5000, lista: [{ id: "x1", hora: "06:45", dias: [], fecha: "2026-11-21", nombre: "Vuelo", sonido: "ola", activa: true }], dormir: null, amanecer: 0, sonido: "grillos" };
   const alB = await pedir(nuevoSb({ tablas: { norte_pendientes: [pend("n00000010", "alarmas", robot)] } }), { accion: "alarmas" });
   test("alarmas: las de Rumbo (settings.norte.alarmas, con su ts), con lo que falte puesto y sin las que vienen mal", () => {
     assert.equal(al0.status, 200); assert.ok(sinEmoji(al0.cuerpo.texto));
     const { ajustes: _a, ...soloAlarmas } = al0.cuerpo.datos;
     assert.deepEqual(soloAlarmas, { ts: 1000, lista: [{ id: "a1", hora: "07:30", dias: [1, 2, 3, 4, 5], fecha: null, nombre: "Despertar", sonido: null, activa: true }], dormir: "23:00", amanecer: 15, sonido: "marimba" });
     assert.match(al0.cuerpo.texto, /Tienes una alarma a las 7:30, de lunes a viernes\./);
-    assert.deepEqual(Object.assign({}, alV.cuerpo.datos, { ajustes: undefined }), { ts: 0, lista: [], dormir: null, amanecer: 10, sonido: "campanas", ajustes: undefined }, "sin alarmas: lo de siempre del robot");
+    assert.deepEqual(Object.assign({}, alV.cuerpo.datos, { ajustes: undefined }), { ts: 0, lista: [], dormir: null, amanecer: 10, sonido: "marimba", ajustes: undefined }, "sin alarmas: lo de siempre del robot");
     assert.equal(alV.cuerpo.texto, "No tienes alarmas.");
   });
   test("alarmas: si el robot dejó unas más nuevas en la bandeja (la app todavía no las aplica), esas", () => {
@@ -165,7 +165,7 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(alarmaLimpia({ id: "a", hora: "07:30", dias: [1], fecha: "2026-11-21" }).fecha, null, "las que se repiten no llevan fecha");
     assert.equal(alarmasDe({ amanecer: 0 }).amanecer, 0, "cero es sin amanecer (no el de siempre)");
   });
-  const sbG = nuevoSb(), gA = await pedir(sbG, { accion: "guardar_alarmas", ts: 2000, lista: robot.lista, dormir: "22:30", amanecer: 20, sonido: "brujula" });
+  const sbG = nuevoSb(), gA = await pedir(sbG, { accion: "guardar_alarmas", ts: 2000, lista: robot.lista, dormir: "22:30", amanecer: 20, sonido: "kalimba" });
   const gViejo = await pedir(nuevoSb(), { accion: "guardar_alarmas", ts: 900, lista: [] });
   const sbF = nuevoSb(), gFut = await pedir(sbF, { accion: "guardar_alarmas", ts: AHORA.getTime() + 864e5, lista: [] });
   const gMal = await Promise.all([
@@ -179,7 +179,7 @@ export default async function ({ G, test, assert, clone }) {
   test("guardar_alarmas: van a la bandeja como «alarmas» con su ts; si las de Rumbo son más nuevas, el robot recibe esas", () => {
     assert.equal(gA.status, 200); assert.ok(sinEmoji(gA.cuerpo.texto));
     const p = enBandeja(sbG, "alarmas");
-    assert.equal(p.length, 1); assert.deepEqual(p[0].datos, { ts: 2000, lista: [robot.lista[0]], dormir: "22:30", amanecer: 20, sonido: "brujula" });
+    assert.equal(p.length, 1); assert.deepEqual(p[0].datos, { ts: 2000, lista: [robot.lista[0]], dormir: "22:30", amanecer: 20, sonido: "kalimba" });
     assert.equal(gViejo.status, 200); assert.equal(gViejo.cuerpo.datos.ya, true); assert.equal(gViejo.cuerpo.datos.ts, 1000);
     assert.equal(gViejo.cuerpo.datos.lista[0].id, "a1", "las de Rumbo, para que el robot las ponga");
     assert.equal(enBandeja(sbF, "alarmas")[0].datos.ts, AHORA.getTime(), "un reloj adelantado no deja las alarmas trabadas en el futuro");
@@ -429,12 +429,12 @@ export default async function ({ G, test, assert, clone }) {
     s.alcancias = { lista: [{ id: "alx", nombre: "Viaje", meta: 100000, estilo: "greda", aportes: [{ id: "ap0", monto: 50000, ts: 1, fecha: hoy }], b: [], cerrada: 0, ts: 1 },
       { id: "aly", nombre: "Vieja", meta: 10, aportes: [], b: [], cerrada: 5, ts: 1 }], borradas: [], ocultar: false, ts: 1 };
     s.lecturas = [{ id: "lx", titulo: "Rayuela", estado: "leyendo", pagina: 10, paginas: 600, juntos: true }];
-    s.settings.norte = { alarmas: { ts: 3000, lista: [{ id: "a1", hora: "07:00", dias: [1, 2, 3, 4, 5], nombre: "Despertar", activa: true }], dormir: null, amanecer: 10, sonido: "campanas" }, recordatorios: [] };
+    s.settings.norte = { alarmas: { ts: 3000, lista: [{ id: "a1", hora: "07:00", dias: [1, 2, 3, 4, 5], nombre: "Despertar", activa: true }], dormir: null, amanecer: 10, sonido: "marimba" }, recordatorios: [] };
     return s;
   };
   const lista = [
     ped(1, "alarmas", { ts: 2000, lista: [], dormir: null, amanecer: 0, sonido: "ola" }),   // más viejas que las de Rumbo: no
-    ped(2, "alarmas", { ts: 4000, lista: [{ id: "b1", hora: "06:30", dias: [], fecha: manana, nombre: "Vuelo", sonido: "ola", activa: true }], dormir: "23:00", amanecer: 20, sonido: "pajaros" }),
+    ped(2, "alarmas", { ts: 4000, lista: [{ id: "b1", hora: "06:30", dias: [], fecha: manana, nombre: "Vuelo", sonido: "ola", activa: true }], dormir: "23:00", amanecer: 20, sonido: "grillos" }),
     ped(3, "recordatorio", { op: "crear", id: "nrn0000000003", que: "Sacar la basura", cuando: t0 + 10 * 3600e3 }),
     ped(4, "recordatorio", { op: "avisado", id: "nrn0000000003" }),
     ped(5, "recordatorio", { op: "crear", id: "nrn0000000005", que: "Remedio", cuando: t0 + 12 * 3600e3 }),
@@ -453,7 +453,7 @@ export default async function ({ G, test, assert, clone }) {
   test("app: alarmas del robot solo si son más nuevas que las de Rumbo (por ts), y quedan limpias", () => {
     const N = A.settings.norte.alarmas;
     assert.equal(N.ts, 4000); assert.deepEqual(clone(N.lista), [{ id: "b1", hora: "06:30", dias: [], fecha: manana, nombre: "Vuelo", sonido: "ola", activa: true }]);
-    assert.deepEqual([N.dormir, N.amanecer, N.sonido], ["23:00", 20, "pajaros"]);
+    assert.deepEqual([N.dormir, N.amanecer, N.sonido], ["23:00", 20, "grillos"]);
     assert.equal(ra.aplicados.filter(x => x.tipo === "alarmas").length, 1, "las viejas no cambian nada");
   });
   test("app: recordatorios con su id fijo; «avisado» y «borrar» quedan marcados (no se pierden al juntar equipos)", () => {
@@ -530,5 +530,15 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(a1.ts, 3001, "nunca menos que la anterior + 1"); assert.equal(alarmasApp(S).lista.length, 2);
     assert.equal(cambiar(() => false, S), null, "sin cambios no se guarda");
     assert.equal(cambiar(A => { A.dormir = "22:00"; }, S, 9e12).ts, 9e12);
+  });
+  test("tonos (2026-11-20): son los 11 que eligió Chris; campanas, pájaros y la brújula pasan a la marimba (servidor y app)", () => {
+    const viejas = { ts: 1, sonido: "campanas", lista: [{ id: "a1", hora: "07:00", dias: [1], sonido: "pajaros", activa: true }, { id: "a2", hora: "08:00", dias: [], fecha: hoy, sonido: "ola", activa: true }] };
+    const A = alarmasDe(viejas);
+    assert.equal(A.sonido, "marimba", "servidor: el de siempre que salió pasa a la marimba");
+    assert.deepEqual(A.lista.map(a => a.sonido), ["marimba", "ola"], "servidor: en cada alarma también; los que siguen se quedan");
+    const S = nuevoEstado(); S.settings.norte.alarmas = viejas;
+    const B = alarmasApp(S);
+    assert.equal(B.sonido, "marimba"); assert.deepEqual(B.lista.map(a => a.sonido), ["marimba", "ola"], "app: igual");
+    assert.equal(G("NORTE_SONIDOS").length, 11);
   });
 }

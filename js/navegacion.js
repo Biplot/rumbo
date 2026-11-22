@@ -133,8 +133,8 @@ function openMas() {
   const ov = document.getElementById("masOverlay");
   if (!ov) return;
   const nueva = id => typeof seccionNueva === "function" && seccionNueva(id);
-  const mods = modulosMas().map(r => `<button class="mas-mod${r.id === CURRENT ? " is-active" : ""}${nueva(r.id) ? " is-nuevo" : ""}" data-route="${r.id}">${iconoLinea(r.id, 26)}<span>${r.label.replace("Salud y bienestar", "Salud").replace("Rueda de la vida", "Rueda")}</span>${nueva(r.id) ? `<i class="mas-mod__nuevo">Nuevo</i>` : ""}</button>`).join("")
-    ;   // v154: lo que todavía no es tuyo espera abajo, en «Descubrir» (antes, «Ver todo» la primera semana)
+  const mods = modulosMas().map(r => `<button class="mas-mod${r.id === CURRENT ? " is-active" : ""}${nueva(r.id) ? " is-nuevo" : ""}" data-route="${r.id}">${iconoLinea(r.id, 26)}<span>${r.label.replace("Salud y bienestar", "Salud").replace("Rueda de la vida", "Rueda")}</span>${nueva(r.id) ? `<i class="mas-mod__nuevo">Nuevo</i>` : ""}</button>`).join("");
+  // v154: lo que todavía no es tuyo espera abajo, en «Descubrir» (antes, «Ver todo» la primera semana)
   // En el celular la ayuda «?» de cada pantalla vive aquí (arriba van las puertas a Tu casa y Tu vitrina)
   const ayuda = typeof tourDePantalla === "function" && tourDePantalla(CURRENT)
     ? `<button class="mas-fila" data-action="tour-pantalla">${iconoLinea("tutoriales", 22)}<span>Ayuda de esta pantalla</span></button>` : "";

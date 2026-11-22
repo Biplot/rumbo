@@ -175,7 +175,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 81;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 82;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -564,6 +564,12 @@ const NOVEDADES = {
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
   ],
+  82: [
+    ["📌", "Más, con lo tuyo arriba", "Arriba están tus secciones, en tu orden. Abajo, en «Descubrir», las demás, en gris y con «+». Una sección aparece sola cuando guardas algo en ella. Con «Ordenar» las mueves o las quitas (también Amigos), sin borrar nada."],
+    ["⚙️", "Ajustes en un solo lugar", "Cuenta ahora se llama Ajustes y parte por tus avisos (con su estado), tu tema, tus secciones y Amigos. La ⭐ de arriba te lleva directo a Recompensas, en tres pestañas: Tienda, Tu elefante y Lo tuyo. Y en toda la app se dicen «estrellas»."],
+    ["🔗", "Menos cosas repetidas", "El calendario vive dentro del Diario, y tus eventos se ven en Semana, en Inicio y al abrir el día. Aprendizajes es un tipo de lista. Ritual → Semana es tu historial de semanas. Se dice «Objetivos» en todas partes, y hay una sola racha: tus días cerrados."],
+    ["🌱", "Pantallas vacías que enseñan", "Finanzas, Tendencias y Ritual (Mes y Trimestre) muestran, mientras no tengan datos, una tarjeta que explica y una acción, en vez de pantallas de ceros. Salud y Tendencias cuentan tu hábito de ejercicio como días entrenados."],
+  ],
   81: [
     ["☀️", "Abrir tu día, más corto", "Si ayer quedó sin cerrar, lo cierras ahí mismo al abrir el día, en 1 toque. Tus misiones de antes aparecen como chips bajo la misión. Y si prefieres un solo campo, «Lo más importante de hoy» guarda tu misión y tu primer bocado a la vez (con un toque vuelves a separarlos)."],
     ["🌙", "Cerrar tu día, con tus hábitos", "El cierre parte por tu ánimo y tus hábitos de hoy: márcalos ahí mismo. Lo pendiente queda resumido («3 pendientes pasan a mañana · Cambiar») y lo demás va plegado en «Más para tu cierre»."],
@@ -800,7 +806,8 @@ function buildNav() {
   const item = r => `<button class="nav__item" data-route="${r.id}"><span class="nav__ico">${ICONOS_LINEA[r.id] ? iconoLinea(r.id, 20) : r.icon}</span><span>${r.label}</span></button>`;
   // v154: tus secciones, en tu orden (secciones.js); las demás esperan en «Descubrir»
   const tuyas = typeof seccionesTuyas === "function" ? seccionesTuyas() : [];
-  const enOrden = l => tuyas.length ? l.slice().sort((a, b) => (tuyas.indexOf(a.id) + 1 || 999) - (tuyas.indexOf(b.id) + 1 || 999)) : l;
+  // Inicio, Semana y Hábitos (que no se ordenan) quedan primero; el resto, en tu orden (sort es estable)
+  const enOrden = l => tuyas.length ? l.slice().sort((a, b) => tuyas.indexOf(a.id) - tuyas.indexOf(b.id)) : l;
   const principal = enOrden(ROUTES.filter(r => r.id && !r.mas && !r.pie && !moduloOculto(r.id)));
   const mods = enOrden(ROUTES.filter(r => r.id && r.mas && !moduloOculto(r.id)));
   const nDesc = typeof seccionesDescubrir === "function" ? seccionesDescubrir().length : 0;

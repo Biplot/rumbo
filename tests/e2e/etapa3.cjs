@@ -17,7 +17,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.locator('#nav [data-route="listas"]').count() === 1, "se puede volver a agregar");
   await p.click('#secc-tuyas [data-action="secc-mover"][data-id="diario"][data-dir="-1"]'); await p.waitForTimeout(200);
   const orden = await p.evaluate(() => [...document.querySelectorAll("#nav .nav__item[data-route]")].map(b => b.dataset.route));
-  ok(orden.indexOf("diario") < orden.indexOf("ritual"), "subir Diario lo deja antes que Ritual en el menú: " + orden.join(", "));
+  ok(orden.indexOf("diario") < orden.indexOf("ritual") && orden.slice(0, 3).join() === "inicio,semana,habitos", "subir Diario lo deja antes que Ritual en el menú (Inicio, Semana y Hábitos siguen primero): " + orden.join(", "));
   await p.evaluate(() => closeModal());
   // Aprendizajes, un tipo de lista (v154)
   await p.goto(URL + "#listas"); await p.waitForTimeout(250);

@@ -39,8 +39,9 @@ const ROUTES = [
 ];
 const ROUTE_MAP = {};
 ROUTES.forEach(r => { if (r.id) ROUTE_MAP[r.id] = r; });
-/* Módulos ocultos por la persona (settings.menu.ocultos) */
+/* v154: una sección de Más que no es tuya (está en «Descubrir»: secciones.js) no va en el menú */
 function moduloOculto(id) {
+  if (typeof seccionTuya === "function") return !!(STATE && ROUTE_MAP[id] && !seccionTuya(id));
   const m = STATE && STATE.settings && STATE.settings.menu;
   if (m && (m.ocultos || []).includes(id) && ROUTE_MAP[id] && ROUTE_MAP[id].mas) return true;
   // la primera semana de una cuenta nueva, las secciones despiertan de a una (bienvenida.js)
@@ -779,6 +780,7 @@ async function doForgot() {
   authError(""); toast("Si existe la cuenta te llegará un correo (se activa con Supabase).");
 }
 async function doLogout() {
+  if (typeof seccionesReiniciar === "function") seccionesReiniciar();
   await soltarDispositivoPush();   // 🔔 este dispositivo deja de recibir los avisos de quien sale
   await BACKEND.logout();
   if (typeof cerrarFoco === "function") { cerrarFoco(); focoCallar(0.2); }   // ⏱️ la sesión de foco queda guardada en este equipo para cuando vuelvas
@@ -796,14 +798,19 @@ function buildNav() {
   const nav = document.getElementById("nav");
   // Íconos de línea (los mismos de la barra inferior); el emoji queda solo si una sección no tiene dibujo
   const item = r => `<button class="nav__item" data-route="${r.id}"><span class="nav__ico">${ICONOS_LINEA[r.id] ? iconoLinea(r.id, 20) : r.icon}</span><span>${r.label}</span></button>`;
-  const principal = ROUTES.filter(r => r.id && !r.mas && !r.pie);
-  const mods = ROUTES.filter(r => r.id && r.mas && !moduloOculto(r.id));
+  // v154: tus secciones, en tu orden (secciones.js); las demás esperan en «Descubrir»
+  const tuyas = typeof seccionesTuyas === "function" ? seccionesTuyas() : [];
+  const enOrden = l => tuyas.length ? l.slice().sort((a, b) => (tuyas.indexOf(a.id) + 1 || 999) - (tuyas.indexOf(b.id) + 1 || 999)) : l;
+  const principal = enOrden(ROUTES.filter(r => r.id && !r.mas && !r.pie && !moduloOculto(r.id)));
+  const mods = enOrden(ROUTES.filter(r => r.id && r.mas && !moduloOculto(r.id)));
+  const nDesc = typeof seccionesDescubrir === "function" ? seccionesDescubrir().length : 0;
   let abierto = true;
   try { abierto = localStorage.getItem("rumbo-nav-modulos") !== "0"; } catch (e) {}
   nav.innerHTML = principal.map(item).join("")
     + `<details class="nav-mods" id="navMods"${abierto ? " open" : ""}><summary class="nav__label nav-mods__sum">Módulos (${mods.length})${iconoLinea("chevron", 16)}</summary>
       ${mods.map(item).join("")}
-      <button class="nav__item nav__item--sub" data-action="menu-personalizar"><span class="nav__ico">${iconoLinea("personalizar", 20)}</span><span>Personalizar menú</span></button></details>`;
+      <button class="nav__item nav__item--sub" data-action="menu-personalizar"><span class="nav__ico">${iconoLinea(nDesc ? "mas" : "personalizar", 20)}</span><span>${nDesc ? `Descubrir (${nDesc})` : "Personalizar menú"}</span></button></details>`;
+  if (typeof seccionesRevisar === "function") seccionesRevisar();
   if (typeof amigosMarcarNav === "function") amigosMarcarNav();
   const det = document.getElementById("navMods");
   det.addEventListener("toggle", () => { try { localStorage.setItem("rumbo-nav-modulos", det.open ? "1" : "0"); } catch (e) {} });
@@ -835,22 +842,32 @@ function onRoute() {
 
 function go(id) { location.hash = id; }
 
-/* -------- Personalizar menú: ocultar módulos de "Más" (los datos no se tocan) -------- */
+/* -------- Tus secciones (v154): ordenar, quitar a «Descubrir» y agregar (los datos no se tocan) -------- */
 function openPersonalizarMenu() {
   setSidebar(false); cerrarMas();
-  const ocultos = new Set(((STATE.settings.menu || {}).ocultos) || []);
-  openModal("Personalizar menú", `
-    <p class="text-sm muted" style="margin-bottom:12px">Elige qué módulos ver en el menú. Ocultar uno no borra nada: vuelve a mostrarlo cuando quieras y todo seguirá ahí.</p>
-    ${elCasillas(ROUTES.filter(r => r.mas).map(r => [r.id, `${r.icon} ${r.label}`]), ROUTES.filter(r => r.mas && !ocultos.has(r.id)).map(r => r.id), { cls: "menu-mod", label: "Módulos del menú" })}
-    <p class="text-xs muted mt-8">Inicio, Semana, Hábitos, Objetivos, Ritual y Diario siempre se ven.</p>
-    <button class="btn btn--primary btn-block mt-16" data-action="menu-guardar">Guardar</button>`);
+  const tuyas = seccionesTuyas().filter(id => ROUTE_MAP[id]), desc = seccionesDescubrir().filter(id => ROUTE_MAP[id]);
+  const fila = (id, i) => `<li class="secc-fila"><span class="secc-fila__n">${iconoLinea(id, 20)} ${escapeHtml(ROUTE_MAP[id].label)}</span>
+      <span class="secc-fila__b"><button class="icon-btn" data-action="secc-mover" data-id="${id}" data-dir="-1" ${i ? "" : "disabled"} aria-label="Subir ${escapeAttr(ROUTE_MAP[id].label)}">↑</button>
+        <button class="icon-btn" data-action="secc-mover" data-id="${id}" data-dir="1" ${i < tuyas.length - 1 ? "" : "disabled"} aria-label="Bajar ${escapeAttr(ROUTE_MAP[id].label)}">↓</button>
+        ${SECC_FIJAS.includes(id) ? `<span class="secc-fija">Siempre</span>` : `<button class="btn-ghost secc-quitar" data-action="secc-quitar" data-id="${id}">Quitar</button>`}</span></li>`;
+  openModal("Tus secciones", `
+    <p class="text-sm muted" style="margin-bottom:12px">Así se ven en Más, en este orden. Quitar una no borra nada: queda en «Descubrir» y vuelve cuando quieras (o sola, cuando guardes algo en ella).</p>
+    <ol class="secc-lista" id="secc-tuyas">${tuyas.map(fila).join("")}</ol>
+    ${desc.length ? `<div class="section-title mt-16">Descubrir</div>
+    <ul class="secc-lista">${desc.map(id => `<li class="secc-fila is-desc"><span class="secc-fila__n">${iconoLinea(id, 20)} ${escapeHtml(ROUTE_MAP[id].label)}<small>${escapeHtml(ROUTE_MAP[id].subtitle || "")}</small></span>
+      <button class="btn btn--soft" data-action="secc-agregar" data-id="${id}">+ Agregar</button></li>`).join("")}</ul>` : ""}
+    <p class="text-xs muted mt-8">Inicio, Semana y Hábitos van en la barra de abajo.</p>`);
 }
-function guardarPersonalizarMenu() {
-  const ocultos = Array.from(document.querySelectorAll(".menu-mod")).filter(c => !c.checked).map(c => c.value);
-  STATE.settings.menu = { ocultos, ts: Date.now() };
-  saveState(); closeModal(); buildNav();
-  if (moduloOculto(CURRENT)) go("inicio"); else onRoute();
-  toast(ocultos.length ? `Menú actualizado · ${ocultos.length} módulo${ocultos.length === 1 ? "" : "s"} oculto${ocultos.length === 1 ? "" : "s"}` : "Menú actualizado");
+/* Agregar, quitar o mover: se guarda al tiro y se redibujan el menú y la hoja abierta */
+function seccionAccion(tipo, id, dir) {
+  const masAbierta = !document.getElementById("masOverlay")?.hidden, enModal = !!document.getElementById("secc-tuyas");
+  const cambio = tipo === "agregar" ? seccionAgregar(id) : tipo === "quitar" ? seccionQuitar(id) : seccionMover(id, +dir);
+  if (!cambio) return;
+  saveState(); seccionesRevisar(); buildNav();
+  if (enModal) openPersonalizarMenu(); else if (masAbierta) openMas();
+  const nom = (ROUTE_MAP[id] || {}).label || "";
+  if (tipo === "agregar") toast(`📌 ${nom} quedó en tus secciones`);
+  if (tipo === "quitar") { toast(`${nom} pasó a «Descubrir». No se borró nada.`); if (CURRENT === id && !enModal) go("inicio"); }
 }
 
 /* Menú lateral en móvil: abrir/cerrar con fondo oscuro */
@@ -968,6 +985,7 @@ function initGestures() {
 
 function rerender() {
   if (typeof checkBadges === "function") checkBadges();
+  if (typeof seccionesRevisar === "function") seccionesRevisar();   // una sección con su primer dato aparece sola en Más
   const route = ROUTE_MAP[CURRENT];
   const view = document.getElementById("view");
   view.innerHTML = iconizar((typeof ayudaFranjaHtml === "function" ? ayudaFranjaHtml(CURRENT) : "") + route.render());
@@ -1484,6 +1502,9 @@ function onClick(e) {
     case "semw-add": semWizAdd(d.fecha, +d.i); break;
     case "semw-del": semWizDel(d.fecha, +d.i); break;
     case "menu-personalizar": openPersonalizarMenu(); break;
+    case "secc-agregar": seccionAccion("agregar", d.id); break;
+    case "secc-quitar": seccionAccion("quitar", d.id); break;
+    case "secc-mover": seccionAccion("mover", d.id, d.dir); break;
     case "rec-open": openRecurrentes(); break;
     case "informe-open": openInformeMes(d.key); break;
     case "informe-compartir": compartirInforme(); break;
@@ -1498,7 +1519,6 @@ function onClick(e) {
     case "rec-save": guardarRecurrente(); break;
     case "rec-del": eliminarRecurrente(d.id); break;
     case "sem-ir": SEM_LUNES = d.lunes === agLunes(todayISO()) ? null : d.lunes; if (CURRENT !== "semana") go("semana"); else rerender(); window.scrollTo(0, 0); break;
-    case "menu-guardar": guardarPersonalizarMenu(); break;
     case "anio-nav": if (+d.dir === 0) { ANIO_VISTA = null; rerender(); } else cambiarAnioVista(+d.dir); break;
 
     /* Bitácora */

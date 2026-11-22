@@ -313,7 +313,7 @@ function psIr(id) {
   if (id === "semana") return openSemCorta(agLunes(todayISO()));   // tus 3 prioridades, en una pantalla
   if (id === "objetivo") { go("metas"); return setTimeout(() => { const el = document.getElementById("mt-mes-" + new Date().getMonth()); if (el) { el.scrollIntoView({ block: "center" }); el.focus({ preventScroll: true }); } }, 350); }
   if (id === "plata") return go("finanzas");
-  if (id === "mas") { verTodasLasSecciones(); setTimeout(() => { openMas(); toast("Estas son todas tus secciones. Con Personalizar ocultas las que no uses."); }, 200); return; }
+  if (id === "mas") { setTimeout(() => { openMas(); toast("Arriba, tus secciones. Abajo, en «Descubrir», las demás: tócalas para conocerlas."); }, 200); return; }
   if (id === "resumen") return openResumenPrimeraSemana();
 }
 function modulosTodos() { return typeof ROUTES !== "undefined" ? ROUTES.filter(r => r.id && !r.pie && ROUTE_MAP[r.id] && ROUTE_MAP[r.id].mas) : []; }

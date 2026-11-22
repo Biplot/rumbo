@@ -1,6 +1,6 @@
 /* Pruebas en navegador · 🚀 La primera semana de una cuenta nueva: la misión de 7 días en torno a volver
    (solo el paso de hoy, estrellas, «la misión espera»), las secciones de Más que despiertan (con «Nuevo» y
-   «Ver todo»), las pantallas vacías que enseñan (Tendencias, Finanzas, Objetivos y Rueda), las Palabras de
+   «Descubrir»), las pantallas vacías que enseñan (Tendencias, Finanzas, Objetivos y Rueda), las Palabras de
    Rumbo y el cierre con la insignia Explorador. Quien ya usaba la app no ve nada distinto. */
 const { URL, nuevoContexto, registrar, shot } = require("./lib.cjs");
 
@@ -26,11 +26,12 @@ module.exports = async ({ b, ok, errs }) => {
   ok(/Lo que viene: Esta noche, ciérralo/.test(await card.innerText()), "y una línea con lo que viene");
   await shot(p, "semana-mision");
 
-  // 2) Más: lo que siempre se ve, lo que eligió y «Ver todo»
+  // 2) Más: tus secciones (lo de siempre) y, abajo, «Descubrir» con las demás
   await p.click("#bbMas"); await p.waitForTimeout(300);
-  const mas = await p.evaluate(() => [...document.querySelectorAll(".mas-mod[data-route]")].map(b => b.dataset.route));
-  ok(mas.includes("metas") && !mas.includes("listas") && !mas.includes("calendario") && !mas.includes("tendencias") && await p.locator('.mas-mod[data-action="bv-ver-todo"]').count() === 1,
-    "Más muestra lo de siempre y «Ver todo»: " + mas.join(", "));
+  const mas = await p.evaluate(() => [...document.querySelectorAll(".mas-grid:not(.mas-grid--desc) .mas-mod[data-route]")].map(b => b.dataset.route));
+  const desc = await p.evaluate(() => [...document.querySelectorAll(".mas-grid--desc .mas-mod[data-route]")].map(b => b.dataset.route));
+  ok(mas.includes("metas") && !mas.includes("listas") && !mas.includes("calendario") && !mas.includes("tendencias") && desc.includes("listas") && desc.includes("calendario"),
+    "Más muestra tus secciones arriba y el resto en «Descubrir»: " + mas.join(", ") + " · " + desc.join(", "));
   await p.evaluate(() => cerrarMas());
 
   // 3) Abrir el día desde la misión; el día 2 toca volver; el día 5, la semana despierta Calendario, con «Nuevo»
@@ -106,13 +107,15 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => document.documentElement.scrollWidth) <= 390, "sin scroll horizontal en el celular");
   await ctx.close();
 
-  // 7) Quien ya usaba la app: nada duerme y no hay «Ver todo»
+  // 7) Quien ya usaba la app: sus secciones con datos arriba; las vacías, en «Descubrir»
   {
     const ctx = await nuevoContexto(b, { fecha: "2026-11-02T09:10:00", w: 390, h: 844 });
     const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
     await registrar(p, "antes@test.cl");
+    await p.evaluate(() => { STATE.lecturas.push({ id: "l1", titulo: "Un libro" }); saveState(); rerender(); });
     await p.click("#bbMas"); await p.waitForTimeout(300);
-    ok(await p.locator('.mas-mod[data-route="listas"]').count() === 1 && await p.locator('[data-action="bv-ver-todo"]').count() === 0, "cuenta de antes: todas las secciones, sin «Ver todo»");
+    ok(await p.locator('.mas-grid:not(.mas-grid--desc) .mas-mod[data-route="lecturas"]').count() === 1 && await p.locator('.mas-grid--desc .mas-mod[data-route="listas"]').count() === 1
+      && await p.locator('[data-action="bv-ver-todo"]').count() === 0, "cuenta de antes: Lecturas (con datos) arriba; Listas (vacía) en «Descubrir»");
     await p.evaluate(() => { cerrarMas(); go("tendencias"); }); await p.waitForTimeout(400);
     ok(await p.locator('[data-ensena="tendencias"]').count() === 1, "Tendencias también le explica cuándo se llena, si aún no tiene 7 días cerrados");
     await ctx.close();

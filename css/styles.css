@@ -4341,3 +4341,24 @@ button.check { cursor: pointer; padding: 0; font: inherit; -webkit-appearance: n
 .semc-dia.is-on { background: var(--cian); border-color: var(--cian); color: var(--on-cian, #fff); }
 .semc-dia:disabled { opacity: .35; cursor: default; }
 .ruta__deuda { color: var(--coral); font-weight: 600; }
+/* v154 · Tus secciones y «Descubrir» */
+.mas-desc__cab { display: flex; flex-direction: column; gap: 2px; padding: 4px 6px 8px; }
+.mas-desc__cab b { font-size: 13px; letter-spacing: .02em; }
+.mas-desc__cab span { font-size: 12px; color: var(--text-muted); }
+.mas-desc-item { position: relative; display: grid; }
+.mas-mod--desc { color: var(--text-muted); opacity: .8; width: 100%; }
+.mas-mod--desc .ico-linea { color: var(--text-muted); }
+.mas-mod__mas { position: absolute; top: 2px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--surface); color: var(--cian-ink); font: 700 15px/1 var(--font-body); display: grid; place-items: center; cursor: pointer; }
+html[data-theme^="ruta"] .mas-mod.mas-mod--desc { background: transparent; border: 1px dashed var(--line); }
+.secc-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.secc-fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; }
+.secc-fila__n { display: flex; align-items: center; gap: 10px; min-width: 0; font-weight: 600; font-size: 14px; flex-wrap: wrap; }
+.secc-fila__n small { flex-basis: 100%; font-weight: 400; font-size: 12px; color: var(--text-muted); padding-left: 30px; }
+.secc-fila__b { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.secc-fila.is-desc .secc-fila__n { color: var(--text-soft); }
+.secc-fija { width: 64px; text-align: center; color: var(--text-muted); }
+.secc-quitar { width: 64px; }
+.secc-fila .btn { white-space: nowrap; flex-shrink: 0; padding-inline: 12px; }
+.secc-fila .icon-btn:disabled { opacity: .3; cursor: default; }
+.secc-fija { font-size: 12px; }

@@ -5,17 +5,20 @@ module.exports = async ({ b, ok, errs }) => {
   const p = await ctx.newPage(); p.on("pageerror", e => errs.push(e.message));
   await registrar(p, "etapa3@test.cl");
 
-  // Menú: ocultar y volver a mostrar un módulo (sus datos quedan)
-  await p.evaluate(() => { STATE.vida.listas.push({ id: "l1", nombre: "Compras", items: [] }); saveState(); buildNav(); });
-  ok(await p.locator('#nav [data-route="listas"]').count() === 1, "Listas está en el menú");
+  // Menú: tus secciones (v154). Con su primer dato, Listas aparece sola; se quita, se ordena y se vuelve a agregar
+  await p.evaluate(() => { STATE.vida.listas.push({ id: "l1", nombre: "Compras", items: [{ id: "i1", txt: "Pan" }] }); saveState(); rerender(); });
+  ok(await p.locator('#nav [data-route="listas"]').count() === 1, "Listas está en el menú (aparece sola con su primer dato)");
   await p.evaluate(() => openPersonalizarMenu());
-  await p.locator('.menu-mod[value="listas"]').uncheck();
-  await p.click('[data-action="menu-guardar"]'); await p.waitForTimeout(200);
-  ok(await p.locator('#nav [data-route="listas"]').count() === 0 && await p.evaluate(() => STATE.vida.listas.length) === 1, "ocultar Listas la saca del menú sin borrar sus datos");
-  await p.evaluate(() => openPersonalizarMenu());
-  await p.locator('.menu-mod[value="listas"]').check();
-  await p.click('[data-action="menu-guardar"]'); await p.waitForTimeout(200);
-  ok(await p.locator('#nav [data-route="listas"]').count() === 1, "se puede volver a mostrar");
+  ok((await p.locator("#modalTitle").innerText()) === "Tus secciones" && await p.locator('#secc-tuyas [data-action="secc-quitar"][data-id="amigos"]').count() === 1, "Tus secciones: Amigos también se puede quitar");
+  await p.click('[data-action="secc-quitar"][data-id="listas"]'); await p.waitForTimeout(200);
+  ok(await p.locator('#nav [data-route="listas"]').count() === 0 && await p.evaluate(() => STATE.vida.listas.length) === 1, "quitar Listas la saca del menú sin borrar sus datos");
+  ok(await p.locator('#modal [data-action="secc-agregar"][data-id="listas"]').count() === 1, "y queda en «Descubrir» con «+ Agregar»");
+  await p.click('[data-action="secc-agregar"][data-id="listas"]'); await p.waitForTimeout(200);
+  ok(await p.locator('#nav [data-route="listas"]').count() === 1, "se puede volver a agregar");
+  await p.click('#secc-tuyas [data-action="secc-mover"][data-id="diario"][data-dir="-1"]'); await p.waitForTimeout(200);
+  const orden = await p.evaluate(() => [...document.querySelectorAll("#nav .nav__item[data-route]")].map(b => b.dataset.route));
+  ok(orden.indexOf("diario") < orden.indexOf("ritual"), "subir Diario lo deja antes que Ritual en el menú: " + orden.join(", "));
+  await p.evaluate(() => closeModal());
 
   // Recurrentes
   await p.goto(URL + "#semana"); await p.waitForTimeout(300);

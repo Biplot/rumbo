@@ -22,6 +22,8 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click("#bbMas"); await p.waitForTimeout(300);
   ok(await p.locator("#masOverlay:not([hidden]) .mas-mod[data-route=metas]").count() === 1, "Más muestra Objetivos");
   ok(await p.locator(".mas-fila[data-route=recompensas]").count() === 1 && await p.locator(".mas-fila[data-route=cuenta]").count() === 1 && await p.locator(".mas-fila[data-route=tutoriales]").count() === 1, "Más muestra Recompensas, Cuenta y Ayuda");
+  ok(await p.locator(".mas-grid--desc .mas-mod[data-route=finanzas]").count() === 1 && await p.locator('.mas-desc-item [data-action="secc-agregar"][data-id="finanzas"]').count() === 1,
+    "sin datos, Finanzas espera en «Descubrir», en gris y con «+»");
   await shot(p, "nav-mas");
   await p.click(".mas-mod[data-route=finanzas]"); await p.waitForTimeout(300);
   ok(await p.evaluate(() => location.hash === "#finanzas" && document.getElementById("masOverlay").hidden), "elegir un módulo navega y cierra la hoja");
@@ -30,10 +32,15 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click("[data-action=mas-cerrar]"); await p.waitForTimeout(200);
   ok(await p.evaluate(() => document.getElementById("masOverlay").hidden), "la ✕ cierra la hoja");
 
-  // 3) Ocultar un módulo lo saca de la hoja (sin borrar datos)
-  await p.evaluate(() => { STATE.settings.menu = { ocultos: ["listas"], ts: Date.now() }; saveState(); buildNav(); });
+  // 3) Con su primer dato, una sección aparece sola en tus secciones; quitarla la deja en «Descubrir» (sin borrar datos)
+  await p.evaluate(() => { STATE.vida.listas.push({ id: "l1", nombre: "Compras", items: [{ id: "i1", txt: "Pan" }] }); saveState(); rerender(); });
   await p.click("#bbMas"); await p.waitForTimeout(200);
-  ok(await p.locator(".mas-mod[data-route=listas]").count() === 0, "un módulo oculto no aparece en Más");
+  ok(await p.locator(".mas-grid:not(.mas-grid--desc) .mas-mod[data-route=listas]").count() === 1, "con su primer dato, Listas aparece sola en tus secciones");
+  await p.click('#masOverlay [data-action="menu-personalizar"]'); await p.waitForTimeout(200);
+  await p.click('#modal [data-action="secc-quitar"][data-id="listas"]'); await p.waitForTimeout(200);
+  await p.evaluate(() => closeModal()); await p.click("#bbMas"); await p.waitForTimeout(200);
+  ok(await p.locator(".mas-grid:not(.mas-grid--desc) .mas-mod[data-route=listas]").count() === 0 && await p.locator(".mas-grid--desc .mas-mod[data-route=listas]").count() === 1
+    && await p.evaluate(() => STATE.vida.listas.length === 1), "quitada, Listas pasa a «Descubrir» y sus datos siguen");
   await p.keyboard.press("Escape"); await p.waitForTimeout(150);
   ok(await p.evaluate(() => document.getElementById("masOverlay").hidden), "Esc cierra la hoja");
 

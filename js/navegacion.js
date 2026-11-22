@@ -105,7 +105,21 @@ function marcarNavActiva() {
 /* -------- Hoja "Más" (móvil) -------- */
 /* Módulos que no están en la barra inferior, en el orden del menú (sin los ocultos) */
 function modulosMas() {
-  return ROUTES.filter(r => r.id && !r.pie && !BOTTOM_NAV.includes(r.id) && !moduloOculto(r.id));
+  const l = ROUTES.filter(r => r.id && !r.pie && !BOTTOM_NAV.includes(r.id) && !moduloOculto(r.id));
+  if (typeof seccionesTuyas !== "function") return l;
+  const orden = seccionesTuyas();   // v154: en tu orden (secciones.js)
+  return l.sort((a, b) => (orden.indexOf(a.id) + 1 || 999) - (orden.indexOf(b.id) + 1 || 999));
+}
+/* «Descubrir»: las secciones que todavía no son tuyas, en gris y con «+» (un toque las muestra; «+» las deja en tu menú) */
+function descubrirHtml() {
+  const l = typeof seccionesDescubrir === "function" ? seccionesDescubrir().filter(id => ROUTE_MAP[id]) : [];
+  if (!l.length) return "";
+  const corto = t => t.replace("Salud y bienestar", "Salud").replace("Rueda de la vida", "Rueda");
+  return `<div class="sheet__sep"></div>
+    <div class="mas-desc__cab"><b>Descubrir</b><span>Aparecen arriba solas cuando guardas algo en ellas</span></div>
+    <div class="mas-grid mas-grid--desc">${l.map(id => `<div class="mas-desc-item">
+      <button class="mas-mod mas-mod--desc" data-route="${id}" aria-label="Ver ${escapeAttr(ROUTE_MAP[id].label)}">${iconoLinea(id, 26)}<span>${corto(ROUTE_MAP[id].label)}</span></button>
+      <button class="mas-mod__mas" data-action="secc-agregar" data-id="${id}" aria-label="Agregar ${escapeAttr(ROUTE_MAP[id].label)} a tus secciones">+</button></div>`).join("")}</div>`;
 }
 const PIE_MAS = [
   { ruta: "recompensas", label: "Recompensas" },
@@ -119,8 +133,7 @@ function openMas() {
   if (!ov) return;
   const nueva = id => typeof seccionNueva === "function" && seccionNueva(id);
   const mods = modulosMas().map(r => `<button class="mas-mod${r.id === CURRENT ? " is-active" : ""}${nueva(r.id) ? " is-nuevo" : ""}" data-route="${r.id}">${iconoLinea(r.id, 26)}<span>${r.label.replace("Salud y bienestar", "Salud").replace("Rueda de la vida", "Rueda")}</span>${nueva(r.id) ? `<i class="mas-mod__nuevo">Nuevo</i>` : ""}</button>`).join("")
-    // la primera semana, lo que todavía duerme está a un toque
-    + (typeof hayDormidas === "function" && hayDormidas() ? `<button class="mas-mod mas-mod--sutil" data-action="bv-ver-todo">${iconoLinea("mas", 26)}<span>Ver todo</span></button>` : "");
+    ;   // v154: lo que todavía no es tuyo espera abajo, en «Descubrir» (antes, «Ver todo» la primera semana)
   // En el celular la ayuda «?» de cada pantalla vive aquí (arriba van las puertas a Tu casa y Tu vitrina)
   const ayuda = typeof tourDePantalla === "function" && tourDePantalla(CURRENT)
     ? `<button class="mas-fila" data-action="tour-pantalla">${iconoLinea("tutoriales", 22)}<span>Ayuda de esta pantalla</span></button>` : "";
@@ -128,7 +141,9 @@ function openMas() {
   ov.querySelector(".sheet").innerHTML = iconizar(`
     <div class="sheet__asa" aria-hidden="true"></div>
     <div class="sheet__head"><h2>Más</h2><button class="sheet__x" data-action="mas-cerrar" aria-label="Cerrar">${iconoLinea("cerrar", 22)}</button></div>
-    <div class="mas-grid">${mods}<button class="mas-mod mas-mod--sutil" data-action="menu-personalizar">${iconoLinea("personalizar", 26)}<span>Personalizar</span></button></div>
+    <div class="mas-desc__cab"><b>Tus secciones</b></div>
+    <div class="mas-grid">${mods}<button class="mas-mod mas-mod--sutil" data-action="menu-personalizar">${iconoLinea("personalizar", 26)}<span>Ordenar</span></button></div>
+    ${descubrirHtml()}
     <div class="sheet__sep"></div>
     ${pie}`);
   ov.hidden = false;

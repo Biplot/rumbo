@@ -16,6 +16,15 @@ module.exports = async ({ b, ok, errs }) => {
   await p.fill("#ev-txt", "Dentista"); await p.click('[data-action="evento-save"]'); await p.waitForTimeout(250);
   ok((await p.locator(".cal-ag").first().innerText()).includes("Dentista") && await p.locator('.calg__c[data-date="2026-09-25"] .calg__dots i').count() === 1, "agregar un evento lo muestra en la agenda del día y como punto en la grilla");
   await shot(p, "modulos-calendario");
+  // v154: el calendario vive dentro del Diario, y tus eventos se ven en Semana, en Inicio y al abrir el día
+  ok(await p.locator('#view .diario-tabs button.is-active[data-route="calendario"]').count() === 1, "Calendario es una pestaña del Diario");
+  await p.evaluate(() => { STATE.eventos["2026-09-23"] = ["Cumpleaños de Ana"]; saveState(); go("semana"); }); await p.waitForTimeout(300);
+  ok(await p.locator(".week-col", { hasText: "Dentista" }).count() === 1, "Semana muestra tus eventos en su día");
+  await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
+  ok((await p.locator("#view").innerText()).includes("Cumpleaños de Ana"), "Inicio muestra tus eventos de hoy");
+  await p.evaluate(() => openRitualModal()); await p.waitForTimeout(250);
+  ok((await p.locator("#modal").innerText()).includes("Cumpleaños de Ana"), "y al abrir el día también");
+  await p.evaluate(() => { closeModal(); delete STATE.eventos["2026-09-23"]; saveState(); });
 
   // ---------- Diario: mapa del ánimo + lista ----------
   await p.evaluate(() => {

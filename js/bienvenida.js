@@ -352,7 +352,7 @@ const PS_PASOS = [
     check: S => psCerrados(S) >= 2 },
   { id: "habito", dia: 3, t: "Cierra tu 3.er día y marca un hábito", premio: 5, despierta: [],
     check: S => psCerrados(S) >= 3 && psMarcoHabito(S) },
-  { id: "semana", dia: 5, t: "Elige tus 3 prioridades de la semana", premio: 75, despierta: ["calendario"],
+  { id: "semana", dia: 5, t: "Elige tus 3 prioridades de la semana", premio: 75, despierta: [],
     check: S => Object.values((S.ritual && S.ritual.semanas) || {}).some(w => w && w.apertura) },
   { id: "resumen", dia: 7, t: "Tu primera semana, en números", despierta: ["tendencias"],
     check: S => !!(S.settings.bienvenida && S.settings.bienvenida.resumen) },

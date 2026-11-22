@@ -30,7 +30,7 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click("#bbMas"); await p.waitForTimeout(300);
   const mas = await p.evaluate(() => [...document.querySelectorAll(".mas-grid:not(.mas-grid--desc) .mas-mod[data-route]")].map(b => b.dataset.route));
   const desc = await p.evaluate(() => [...document.querySelectorAll(".mas-grid--desc .mas-mod[data-route]")].map(b => b.dataset.route));
-  ok(mas.includes("metas") && !mas.includes("listas") && !mas.includes("calendario") && !mas.includes("tendencias") && desc.includes("listas") && desc.includes("calendario"),
+  ok(mas.includes("metas") && !mas.includes("listas") && !mas.includes("calendario") && !mas.includes("tendencias") && desc.includes("listas") && desc.includes("tendencias") && !desc.includes("calendario"),
     "Más muestra tus secciones arriba y el resto en «Descubrir»: " + mas.join(", ") + " · " + desc.join(", "));
   await p.evaluate(() => cerrarMas());
 
@@ -50,10 +50,10 @@ module.exports = async ({ b, ok, errs }) => {
   ok((await p.locator("#modalTitle").innerText()).includes("Tu semana") && await p.locator("#semc-t-0").count() === 1, "el paso abre tu semana en una pantalla (no la sección entera)");
   await p.evaluate(() => closeModal());
   await p.click("#bbMas"); await p.waitForTimeout(300);
-  ok(await p.locator('.mas-mod.is-nuevo[data-route="calendario"]').count() === 1, "despertó Calendario, con «Nuevo»");
-  await p.click('.mas-mod[data-route="calendario"]'); await p.waitForTimeout(400);
-  await p.click("#bbMas"); await p.waitForTimeout(300);
-  ok(await p.locator('.mas-mod.is-nuevo[data-route="calendario"]').count() === 0 && await p.locator('.mas-mod[data-route="calendario"]').count() === 1, "visitarlo le quita el «Nuevo»");
+  ok(await p.locator('.mas-mod[data-route="calendario"]').count() === 0, "Calendario ya no está en Más");
+  await p.click('.mas-mod[data-route="diario"]'); await p.waitForTimeout(400);
+  await p.click('#view .diario-tabs [data-route="calendario"]'); await p.waitForTimeout(400);
+  ok(await p.evaluate(() => location.hash === "#calendario") && await p.locator("#view .diario-tabs button.is-active").innerText() === "Calendario", "vive dentro del Diario, en su pestaña «Calendario»");
   await p.evaluate(() => { cerrarMas(); STATE.settings.alta = "2026-11-02"; STATE.ritual.dias["2026-11-02"].cerrado = false; delete STATE.ritual.dias["2026-10-31"]; delete STATE.ritual.dias["2026-11-01"]; saveState(); });   // de vuelta al día 1, con el día abierto
 
   // 4) Palabras de Rumbo: «primer bocado» se explica a un toque

@@ -4377,3 +4377,4 @@ html[data-theme^="ruta"] .mas-mod.mas-mod--desc { background: transparent; borde
 .recomp-ele { display: flex; gap: 16px; align-items: center; }
 .recomp-ele__fig { width: 96px; flex-shrink: 0; }
 .recomp-ele__fig svg { width: 100%; height: auto; }
+.diario-tabs { margin-bottom: 16px; }

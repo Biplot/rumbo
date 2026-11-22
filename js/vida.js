@@ -60,6 +60,11 @@ function diarioTexto(fecha) {
   return [r && r.mision, r && r.sapo, r && r.servir, c.mejor, c.nota, c.manana, ...es.map(e => [e.titulo, e.texto, e.gratitud].join(" "))].filter(Boolean).join(" ").toLowerCase();
 }
 
+/* v154 · El calendario vive dentro del Diario: dos pestañas, cada una con su dirección de siempre (#diario y #calendario) */
+function diarioTabsHtml(act) {
+  return `<div class="filtros diario-tabs" role="tablist" aria-label="Diario">${[["diario", "Tu diario"], ["calendario", "Calendario"]].map(([id, l]) =>
+    `<button role="tab" aria-selected="${id === act}" class="${id === act ? "is-active" : ""}" data-route="${id}">${l}</button>`).join("")}</div>`;
+}
 function renderDiario() {
   const hoy = todayISO();
   if (!DIARIO_MES) DIARIO_MES = hoy.slice(0, 7);
@@ -96,7 +101,7 @@ function renderDiario() {
   </div>
   <div class="dbusca"><input class="input" id="diario-busca" placeholder="Buscar en tu diario…" value="${escapeAttr(DIARIO_BUSCA)}" oninput="diarioBuscar(this.value)" aria-label="Buscar en tu diario"></div>`;
 
-  return `<div class="diario-layout"><div class="diario-izq">${mapa}${typeof albumDiarioHtml === "function" ? albumDiarioHtml(DIARIO_MES) : ""}</div>
+  return `${diarioTabsHtml("diario")}<div class="diario-layout"><div class="diario-izq">${mapa}${typeof albumDiarioHtml === "function" ? albumDiarioHtml(DIARIO_MES) : ""}</div>
     <div id="diario-lista">${diarioListaHtml()}</div></div>`;
 }
 function diarioListaHtml() {

@@ -9,8 +9,8 @@ export default async function ({ G, test, assert }) {
   test("una cuenta sin datos: Objetivos, Ritual, Diario y Amigos; lo demás espera en Descubrir", () => {
     const S = viejo();
     assert.equal(JSON.stringify(tuyas(S)), JSON.stringify(["metas", "ritual", "diario", "amigos"]));
-    assert.equal(desc(S).length, 10);
-    assert.ok(desc(S).includes("finanzas") && desc(S).includes("tendencias"));
+    assert.equal(desc(S).length, 9, "Calendario ya no está en Más: vive dentro del Diario");
+    assert.ok(desc(S).includes("finanzas") && desc(S).includes("tendencias") && !desc(S).includes("calendario"));
   });
 
   test("una sección aparece sola con su primer dato (en el año base o en otro año)", () => {

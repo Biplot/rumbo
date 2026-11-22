@@ -16,7 +16,7 @@ const ROUTES = [
   { id: "amigos", label: "Amigos", icon: "🤝", render: renderAmigos, subtitle: "Invita, acompaña y manda ánimo. Tú eliges qué ven." },
   { grupo: "Módulos" },
   { id: "tendencias", mas: true, label: "Tendencias", icon: "📈", render: renderTendencias, subtitle: "Tu evolución del año en gráficos." },
-  { id: "calendario", mas: true, label: "Calendario", icon: "🗓️", render: renderCalendario, subtitle: "Tu mes de un vistazo." },
+  { id: "calendario", pie: true, label: "Calendario", icon: "🗓️", render: () => diarioTabsHtml("calendario") + renderCalendario(), subtitle: "Tu mes de un vistazo: tus eventos, tus días y tus hábitos." },   // v154: vive dentro del Diario
   { id: "finanzas", mas: true, label: "Finanzas", icon: "💰", render: renderFinanzas, subtitle: "Ahorro, gastos y seguimiento mensual." },
   { id: "salud", mas: true, label: "Salud", icon: "💪", render: renderSalud, subtitle: "Peso, recetas y entrenamiento." },
   { id: "entrenamiento", pie: true, label: "Salud", icon: "🏋️", render: renderEntrenamiento, subtitle: "Tus rutinas y ejercicios." },
@@ -2291,7 +2291,7 @@ function renderInicio() {
   <div data-tour="dia">${renderDayHero()}</div>
   ${renderMisionCard()}
   ${plHoyHtml()}${plDespuesInicioHtml()}${amigosCumplesHoyHtml()}
-  ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
+  ${(h => h ? `<div style="margin-bottom:20px">${h}</div>` : "")(renderGcalHoy())}
   <div class="grid grid-${Math.min(3, 2 + (metasMes.length ? 1 : 0) + (aguaCard ? 1 : 0))} inicio-main">
     ${dayState() === "por-abrir" ? tareasCard : ""}
     <div class="card">

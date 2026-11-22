@@ -331,8 +331,14 @@ function gcalGuardarConfig() {
 }
 
 /* -------- Piezas de interfaz -------- */
+/* v154 · Tus eventos de Rumbo (los que anotas en Diario › Calendario) junto a los de Google, en Inicio, Semana y la apertura */
+function eventosDelDia(iso) {
+  const propios = ((typeof STATE !== "undefined" && STATE && STATE.eventos && STATE.eventos[iso]) || []).filter(Boolean).map(t => ({ titulo: String(t), todoDia: true, local: true }));
+  const google = gcalConectado() ? gcalEventosDia(iso) : [];
+  return propios.concat(google);
+}
 function gcalFila(e, compacto) {
-  const hora = e.todoDia ? "Todo el día" : e.hora + (e.horaFin && !compacto ? "–" + e.horaFin : "");
+  const hora = e.local ? "📌" : e.todoDia ? "Todo el día" : e.hora + (e.horaFin && !compacto ? "–" + e.horaFin : "");
   return `<div class="gcal-ev${compacto ? " gcal-ev--c" : ""}" title="${escapeAttr(e.titulo + (e.lugar ? " · " + e.lugar : ""))}">
     <span class="gcal-ev__h">${hora}</span><span class="gcal-ev__t">${escapeHtml(e.titulo)}</span></div>`;
 }
@@ -349,24 +355,23 @@ function gcalAvisoActualizar() {
 }
 /* Inicio: los eventos de hoy */
 function renderGcalHoy() {
-  if (!gcalConectado()) return "";
-  const evs = gcalEventosDia(todayISO());
+  const con = gcalConectado(), evs = eventosDelDia(todayISO());
+  if (!con && !evs.length) return "";
   return `<div class="card" data-tour="gcal">
     <div class="card__head"><div class="card__title">📆 Hoy en tu calendario</div>
-      <button class="icon-btn" data-action="gcal-config" title="Calendarios de Google" aria-label="Configurar Google Calendar">⚙️</button></div>
+      ${con ? `<button class="icon-btn" data-action="gcal-config" title="Calendarios de Google" aria-label="Configurar Google Calendar">⚙️</button>` : ""}</div>
     ${evs.length ? evs.map(e => gcalFila(e)).join("") : `<div class="empty" style="padding:10px">Sin eventos hoy.</div>`}
-    ${gcalAvisoActualizar()}
+    ${con ? gcalAvisoActualizar() : ""}
   </div>`;
 }
 /* Semana: eventos de un día (compacto) */
 function gcalDiaHtml(iso) {
-  const evs = gcalEventosDia(iso);
+  const evs = eventosDelDia(iso);
   return evs.length ? `<div class="gcal-dia">${evs.map(e => gcalFila(e, true)).join("")}</div>` : "";
 }
 /* Apertura del día: para planificar las tareas alrededor de las reuniones */
 function gcalAperturaHtml() {
-  if (!gcalConectado()) return "";
-  const evs = gcalEventosDia(todayISO());
+  const evs = eventosDelDia(todayISO());
   if (!evs.length) return "";
   return `<div class="gcal-apertura"><div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📆 Hoy en tu calendario</div>
     ${evs.map(e => gcalFila(e)).join("")}</div>`;

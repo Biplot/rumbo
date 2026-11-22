@@ -9,7 +9,7 @@
    ============================================================ */
 
 const SECC_FIJAS = ["metas", "ritual", "diario"];
-const SECC_MAS = ["tendencias", "calendario", "finanzas", "salud", "rueda", "lecturas", "relaciones", "listas", "aprendizajes", "notas"];
+const SECC_MAS = ["tendencias", "finanzas", "salud", "rueda", "lecturas", "relaciones", "listas", "aprendizajes", "notas"];
 const SECC_TODAS = SECC_FIJAS.concat(["amigos"], SECC_MAS);   // las de Más, en el orden de siempre
 
 function seccMenu(S) {

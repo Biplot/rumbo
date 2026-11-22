@@ -91,8 +91,9 @@ function buildBottomNav() {
   actualizarBotonDia();
 }
 function marcarNavActiva() {
+  const actual = CURRENT === "calendario" ? "diario" : CURRENT;   // el calendario vive dentro del Diario
   document.querySelectorAll(".nav__item, .bottombar__item, .tabs__b[data-route], .nav-pie").forEach(el =>
-    el.classList.toggle("is-active", el.dataset.route === CURRENT));
+    el.classList.toggle("is-active", el.dataset.route === actual));
   const pie = document.querySelector(".nav-pie");
   if (pie) pie.classList.toggle("is-active", CURRENT === "recompensas");
   const mas = document.getElementById("bbMas");

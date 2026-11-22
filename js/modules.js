@@ -394,7 +394,13 @@ function habitViewMensual() {
     .map(h => ({ h, c: cumplimiento(h, desde, hasta) }))
     .sort((a, b) => (b.c.pct ?? -1) - (a.c.pct ?? -1));
 
-  return `${selectorAnio()}${monthsSelector(m, "habit-month")}
+  // En el celular, la grilla parte en el día de hoy (antes empezaba en el 1 y había que buscarlo de lado)
+  setTimeout(() => {
+    const c = document.querySelector(".habit-grid th.today"); if (!c) return;
+    let g = c.parentElement; while (g && g !== document.body && !(g.scrollWidth > g.clientWidth + 4)) g = g.parentElement;
+    if (g && g !== document.body) g.scrollLeft += c.getBoundingClientRect().left - g.getBoundingClientRect().left - g.clientWidth / 2;
+  }, 0);
+  return `${selectorAnio()}${monthNav(m, "habit-month", "habit")}
   <div class="grid grid-2">
     <div class="card"><div class="card__title">Cumplimiento de ${MESES[m]}</div>
       <div class="row" style="gap:16px;align-items:center;margin-top:14px">${donutSvg(g.pct || 0)}
@@ -423,7 +429,7 @@ function habitViewAnual() {
   <div class="grid grid-3">
     ${statCard("✅", "Cumplimiento del año", anio.pct == null ? "—" : anio.pct + "%", "contra tu objetivo", anio.pct)}
     ${statCard("📅", "Mejor mes", mejor ? MESES[mejor.m] : "—", mejor ? mejor.v + "%" : "")}
-    ${statCard("🔥", "Racha actual", computeStreak() + " días", "cumpliendo lo que tocaba")}
+    ${statCard("🔥", "Racha actual", computeStreak() === 1 ? "1 día" : computeStreak() + " días", "cumpliendo lo que tocaba")}
   </div>
   <div class="grid grid-2 mt-24">
     <div class="card"><div class="card__head"><div class="card__title">Por mes</div><span class="card__hint">% de cumplimiento</span></div>${svgBar(porMes, { color: "var(--cian)", fmt: v => v + "%" })}</div>

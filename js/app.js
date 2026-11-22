@@ -136,7 +136,7 @@ async function enterApp(user) {
   setTimeout(() => { if (typeof focoSalaRevisar === "function") focoSalaRevisar(true); }, 2500);   // ¿un amigo te invitó a enfocarse? (foco-amigos.js)
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
   revisarDispositivoPush();              // 🔔 ¿este dispositivo sigue activado para esta cuenta?
-  if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
+  if (!STATE.settings.onboarded) setTimeout(() => { if (!STATE.settings.onboarded && !(typeof armaActiva === "function" && armaActiva())) openOnboarding("nuevo"); }, 350);   // si ya la terminó (u otra pestaña), no vuelve
   else if (amigosHayInvitacion()) { /* la invitación de un amigo va primero; las novedades, la próxima vez */ }
   else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
   else if (debeElegirElefante()) setTimeout(openElegirElefante, 600);
@@ -174,7 +174,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 79;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 80;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -563,6 +563,10 @@ const NOVEDADES = {
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
   ],
+  80: [
+    ["🔔", "Tus avisos, más fáciles", "Notificaciones ahora parte por lo importante: tus 2 horas (mañana y noche), cómo se verá el aviso y «Activar». Las horas se guardan solas al cambiarlas. Si el permiso está bloqueado, te dice paso a paso cómo desbloquearlo. El aviso de la mañana trae lo que dejaste para hoy y abre tu día directo; el de la noche, cuántos pendientes te quedan, y abre el cierre."],
+    ["🎯", "Detalles que se notan", "Enter agrega la tarea en Inicio y el cursor queda listo para la siguiente. El círculo de tus objetivos del mes, en Inicio, ahora los marca. Borrar un objetivo se puede deshacer. En Hábitos → Mes, el mes se elige con ‹ › y la grilla parte en hoy. Al agregar a alguien con cumpleaños en Relaciones, te aviso ese día."],
+  ],
   79: [
     ["📅", "Tu semana se abre con tu día", "Ya no hay avisos grandes arriba de Inicio. El lunes, al abrir tu día, primero abres tu semana: tu foco y tus 3 prioridades (y, si quieres, cierras la pasada). Es lo único obligatorio. Tu misión del día puede salir de la prioridad que le dejaste a hoy."],
     ["🌙", "El domingo, déjala lista", "Si prefieres, el domingo al cerrar tu día marca «Después, dejar lista mi semana»: la cierras y planificas la que viene, y el lunes abres tu día directo."],
@@ -872,7 +876,8 @@ function startsInScrollableX(el) {
   return false;
 }
 function navigateSection(dir) {
-  const orden = seccionesVisibles();
+  // Deslizar solo entre las 3 de la barra de abajo (antes recorría todas las secciones sin aviso)
+  const orden = ["inicio", "semana", "habitos"];
   const i = orden.indexOf(CURRENT);
   if (i === -1) return;
   const j = i + dir;
@@ -1198,6 +1203,12 @@ function onClick(e) {
     case "notif-enable": enableNotifications(); break;
     case "notif-disable": disableNotifications(); break;
     case "notif-times": saveNotifTimes(); break;
+    case "notif-revisar": notifRevisar(); break;
+    /* Activación (activacion.js): «Deja listo mañana» y los avisos en el momento justo */
+    case "dl-guardar": guardarDejaListo(); break;
+    case "avisos-oferta-si": avisosOfertaSi(); break;
+    case "avisos-oferta-no": avisosOfertaNo(); break;
+    case "app-instalar": instalarApp(); break;
     case "notif-test": testNotification(); break;
     case "notif-aviso": cambiarAviso(d.k, el.checked); break;
     case "notif-nivel": elegirNivelAvisos(d.n); break;
@@ -1233,8 +1244,14 @@ function onClick(e) {
     case "meta-del": {
       const metas = datosAnio(STATE, +d.anio || anioActual(), true).metas;
       const bucket = d.bucket === "tri" ? metas.trimestres : metas.mensuales;
+      const pos = bucket[+d.idx].findIndex(x => x.id === d.id), quitado = bucket[+d.idx][pos];
       bucket[+d.idx] = bucket[+d.idx].filter(x => x.id !== d.id);
-      saveState(); rerender(); break;
+      saveState(); rerender();
+      if (quitado) toastAccion("Objetivo borrado", "Deshacer", () => {
+        const b2 = datosAnio(STATE, +d.anio || anioActual(), true).metas, l = (d.bucket === "tri" ? b2.trimestres : b2.mensuales);
+        if (!l[+d.idx].some(x => x.id === quitado.id)) { l[+d.idx].splice(Math.max(0, pos), 0, Object.assign(quitado, { ts: Date.now() })); saveState(); rerender(); }
+      });
+      break;
     }
 
     /* Finanzas gastos */
@@ -1451,6 +1468,7 @@ function onClick(e) {
       nuevaTarea(STATE, d.fecha, { txt, ambito: ambEl && ambEl.value === "pro" ? "pro" : "per" });
       saveState(); rerender();
       if (d.cerrar) { closeModal(); toast("Tarea agregada a hoy ✓"); }
+      else { const otra = document.getElementById(d.input); if (otra && d.input === "inicio-tarea") otra.focus({ preventScroll: true }); }   // para anotar otra seguida
       break;
     }
     case "bocado-hecho":   // la parada del primer bocado en Inicio marca la misma tarea
@@ -2183,7 +2201,7 @@ function renderInicio() {
     ${renderBandejaPendientes()}
     ${tareasHoy.length ? (bocado ? tareaRowHtml(bocado, hoyISO, { sinSub: true }) : "") + grupo("pro") + grupo("per")
     : '<div class="empty" style="padding:14px">Sin tareas para hoy. Defínelas en tu ritual de apertura.</div>'}
-    <div class="row mt-8">${ambitoPicker("inicio-amb", "per")}<input class="input" id="inicio-tarea" placeholder="Nueva tarea..." style="padding:9px 11px">
+    <div class="row mt-8">${ambitoPicker("inicio-amb", "per")}<input class="input" id="inicio-tarea" placeholder="Nueva tarea..." enterkeyhint="done" style="padding:9px 11px" onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.nextElementSibling.click(); }">
       <button class="btn btn--cian" data-action="tarea-add" data-fecha="${hoyISO}" data-input="inicio-tarea" data-amb="inicio-amb" style="padding:9px 12px">+</button></div>
     ${pieTareas}
   </div>`;
@@ -2193,6 +2211,7 @@ function renderInicio() {
   return `
   ${avisoReinstalarHtml()}
   ${renderPendingYesterday()}
+  ${typeof dejaListoInicioHtml === "function" ? dejaListoInicioHtml() : ""}
   ${primeraSemana ? inicioRitualesPrimeraSemana() : typeof cadenaRecordatorioHtml === "function" ? cadenaRecordatorioHtml() : ""}
   ${primeraSemana ? inicioGuiaHtml() : ""}
   ${typeof tuAnioInicioHtml === "function" ? tuAnioInicioHtml() : ""}
@@ -2212,9 +2231,9 @@ function renderInicio() {
     </div>
     ${aguaCard}
     ${metasMes.length ? `<div class="card">
-      <div class="card__head"><div class="card__title">Metas de ${MESES[mIdx]}</div>
-        <a class="card__hint" href="#metas">Ver metas →</a></div>
-      ${metasMes.map(m => `<div class="item-row"><span class="check"></span>
+      <div class="card__head"><div class="card__title">Objetivos de ${MESES[mIdx]}</div>
+        <a class="card__hint" href="#metas">Ver objetivos →</a></div>
+      ${metasMes.map(m => `<div class="item-row"><button type="button" class="check" data-action="meta-toggle" data-bucket="mes" data-idx="${mIdx}" data-id="${m.id}" data-anio="${anioActual()}" aria-label="Marcar «${escapeAttr(m.texto)}» como cumplido" title="Marcar como cumplido"></button>
         <div class="item-row__main"><div class="item-row__title">${escapeHtml(m.texto)}</div></div></div>`).join("")}
     </div>` : ""}
   </div>

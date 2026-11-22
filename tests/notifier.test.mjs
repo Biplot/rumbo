@@ -262,6 +262,21 @@ export default async function ({ G, test, assert }) {
     assert.equal(avisoTrimestre("tri-apertura", "2027-01-02", { "2027-Q1": { apertura: { ts: 1 } } }), null);
   });
 
+  test("mañana y noche (v152): abren o cierran el día directo y dicen lo tuyo", async () => {
+    const R = await import("../notifier/recordatorios.mjs");
+    assert.equal(R.MSGS.manana.url, "./?atajo=abrir#inicio");
+    assert.equal(R.MSGS.noche.url, "./?atajo=cerrar#inicio");
+    assert.equal(R.MSGS["noche-2"].url, "./?atajo=cerrar#inicio");
+    const data = { ritual: { dias: { "2026-11-23": { hecho: true, cerrado: true, cierre: { manana: "Enviar la propuesta" } } } } };
+    assert.equal(R.loDeHoy(data, "2026-11-24"), "Enviar la propuesta", "«Una cosa para mañana» del cierre de ayer");
+    assert.equal(R.textoLoDeHoy("Enviar la propuesta"), "Hoy: «Enviar la propuesta». Abre tu día en 30 segundos.");
+    assert.equal(R.loDeHoy({ settings: { mananaPrimera: { fecha: "2026-11-24", mision: "Partir" } } }, "2026-11-24"), "Partir", "o lo que dejaste listo la noche del registro");
+    assert.equal(R.loDeHoy({}, "2026-11-24"), "");
+    const ag = { agenda: { dias: { "2026-11-24": [{ txt: "a" }, { txt: "b", estado: "hecha" }, { txt: "c", done: true }, { txt: "d", estado: "pendiente" }, { txt: "e", borrada: true }] } } };
+    assert.equal(R.pendientesHoy(ag, "2026-11-24"), 2);
+    assert.equal(R.textoPendientesHoy(1), "Te queda 1 pendiente: decide qué pasa con ella y cierra tu día.");
+  });
+
   test("semana: el día del ritual y el siguiente, solo si falta", () => {
     assert.equal(avisoSemana("semana-cierre", "2026-09-27", 0, {}), "noche");        // domingo
     assert.equal(avisoSemana("semana-apertura", "2026-09-28", 0, {}), "manana");     // lunes

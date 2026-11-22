@@ -116,6 +116,7 @@ function openRitualModal(op) {
     const yc = STATE.ritual.dias[isoLocal(y)];
     if (yc && yc.cierre && yc.cierre.manana) misionDefault = yc.cierre.manana;
   }
+  if (!misionDefault && typeof misionDejadaParaHoy === "function") misionDefault = misionDejadaParaHoy();   // «Deja listo mañana» (activacion.js)
   // Si no, la prioridad de tu semana que dejaste para hoy
   const pHoy = !misionDefault && typeof prioridadDeHoy === "function" ? prioridadDeHoy() : null;
   if (pHoy) { misionDefault = pHoy.texto; misionDeSemana = true; }
@@ -375,7 +376,8 @@ function saveCierre() {
   saveState(); closeModal(); updateTopbar(); rerender();
   const hubo = medallas && cierreMedallasTermina();
   if (STATE.gamif.equipped && STATE.gamif.equipped.confeti) launchConfetti();
-  if (!yaCerrado) { sonar("cierre"); vibrar([15, 60, 25]); animarRacha(); if (!hubo && !semana && typeof celebrarCierreElefante === "function") celebrarCierreElefante(); }
+  const ofrece = !yaCerrado && !semana && typeof activacionTrasCierre === "function" && activacionTrasCierre();   // el 1.er y 3.er cierre ofrecen los avisos
+  if (!yaCerrado) { sonar("cierre"); vibrar([15, 60, 25]); animarRacha(); if (!hubo && !semana && !ofrece && typeof celebrarCierreElefante === "function") celebrarCierreElefante(); }
   const resumenTr = decid ? textoTriage(decid) : "";
   if (yaCerrado) toast(resumenTr ? `Cambios guardados ✓ · ${resumenTr}` : "Cambios guardados ✓");
   else toast(resumenTr ? `Día cerrado 🌙 · ${resumenTr}` : "Día cerrado 🌙 ¡Descansa!");

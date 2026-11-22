@@ -22,9 +22,10 @@ export const VENTANA_MIN = 30;           // tolerancia en minutos DESPUÉS de la
 const TZ_DEFECTO = "America/Santiago";
 
 export const MSGS = {
-  manana: { title: "🌅 Buenos días", body: "Inicia tu ritual y define tu enfoque del día.", url: "./#ritual", tag: "rumbo-manana" },
+  /* v152: el de la mañana abre la apertura y el de la noche el cierre, directo (antes llevaban a la pestaña Ritual) */
+  manana: { title: "🌅 Buenos días", body: "Inicia tu ritual y define tu enfoque del día.", url: "./?atajo=abrir#inicio", tag: "rumbo-manana" },
   mediodia: { title: "☀️ Mediodía", body: "¿Cómo va tu primer bocado?", url: "./#inicio", tag: "rumbo-mediodia" },
-  noche: { title: "🌙 Cierra tu día", body: "Tómate un momento para reflexionar y cerrar tu día.", url: "./#ritual", tag: "rumbo-noche" },
+  noche: { title: "🌙 Cierra tu día", body: "Tómate un momento para reflexionar y cerrar tu día.", url: "./?atajo=cerrar#inicio", tag: "rumbo-noche" },
   /* Desde la v147 la semana, el mes y el trimestre se abren al abrir el día (js/rituales-cadena.js):
      los avisos llevan a abrir (o a cerrar) el día con el atajo del ícono */
   "mes-apertura": { title: "🗓️ Empieza un mes nuevo", body: "Al abrir tu día, cierras el mes que terminó y abres este: tu foco y tus objetivos.", url: "./?atajo=abrir#inicio", tag: "rumbo-mes-apertura" },
@@ -33,7 +34,7 @@ export const MSGS = {
   "semana-apertura": { title: "📅 Hoy abres tu semana", body: "Al abrir tu día, eliges tu foco y tus 3 prioridades.", url: "./?atajo=abrir#inicio", tag: "rumbo-semana-apertura" },
   "tri-cierre": { title: "🧭 Termina el trimestre", body: "Pasado mañana, al abrir tu día, cierras este trimestre y abres el nuevo (+200 ⭐ cada parte).", url: "./#inicio", tag: "rumbo-tri-cierre" },
   "tri-apertura": { title: "🧭 Empieza un trimestre nuevo", body: "Al abrir tu día, abres tu trimestre: tu foco y de 3 a 5 metas (+200 ⭐).", url: "./?atajo=abrir#inicio", tag: "rumbo-tri-apertura" },
-  "noche-2": { title: "🌙 ¿Cerramos el día?", body: "Aún no cierras hoy. Te toma un minuto y tu racha sigue.", url: "./#ritual", tag: "rumbo-noche-2" },
+  "noche-2": { title: "🌙 ¿Cerramos el día?", body: "Aún no cierras hoy. Te toma un minuto y tu racha sigue.", url: "./?atajo=cerrar#inicio", tag: "rumbo-noche-2" },
   "elefante-racha": { title: "🔥 Tu racha te espera", body: "", url: "./#habitos", tag: "rumbo-elefante-racha" },
   "elefante-agua": { title: "💧 ¿Un vaso?", body: "", url: "./?atajo=agua#inicio", tag: "rumbo-elefante-agua" },   // en iPhone, tocarlo abre la portilla
   "elefante-prestamo": { title: "📚 ¿Volvió tu libro?", body: "", url: "./#lecturas", tag: "rumbo-elefante-prestamo" },
@@ -42,6 +43,22 @@ export const MSGS = {
   cumpleanos: { title: "🎂 Cumpleaños", body: "", url: "./#relaciones", tag: "rumbo-cumpleanos" },
   contactos: { title: "💬 Tus relaciones", body: "", url: "./#relaciones", tag: "rumbo-contactos" },
 };
+/* Lo que dejaste para hoy: «Una cosa para mañana» del cierre de ayer, o lo que anotaste la noche del registro */
+export function loDeHoy(data, hoy) {
+  const dias = (data.ritual || {}).dias || {};
+  const ayer = new Date(hoy + "T12:00:00Z"); ayer.setUTCDate(ayer.getUTCDate() - 1);
+  const ra = dias[ayer.toISOString().slice(0, 10)] || {};
+  const m = ((data.settings || {}).mananaPrimera) || {};
+  const txt = (ra.cierre && ra.cierre.manana) || (m.fecha === hoy ? m.mision : "") || "";
+  return String(txt).trim().slice(0, 80);
+}
+export function textoLoDeHoy(txt) { return `Hoy: «${txt}». Abre tu día en 30 segundos.`; }
+/* Tareas de hoy que siguen abiertas (sin hacer, mover, delegar ni soltar) */
+export function pendientesHoy(data, hoy) {
+  const l = (((data.agenda || {}).dias || {})[hoy]) || [];
+  return Array.isArray(l) ? l.filter(t => t && !t.borrada && ((t.estado || (t.done ? "hecha" : "pendiente")) === "pendiente")).length : 0;
+}
+export function textoPendientesHoy(n) { return n === 1 ? "Te queda 1 pendiente: decide qué pasa con ella y cierra tu día." : `Te quedan ${n} pendientes: decide qué pasa con ellas y cierra tu día.`; }
 const TRI_APERTURA_CON_CIERRE = "Al abrir tu día, cierras el trimestre que terminó y abres este: tu foco y de 3 a 5 metas (+200 ⭐ cada parte).";
 /* Ritual de mes: apertura el día 1 (hora de "mañana"), cierre el último día (hora de "noche").
    Clave de mes "YYYY-MM" igual que STATE.ritual.meses en la app. Semana y trimestre: ver reglas.mjs */
@@ -148,7 +165,13 @@ export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), vent
       let hora = MOMENTO_DE[tipo], tri = null, body = null, sufijo = "", tambien = null, extra = null;
       if (tipo === "manana") {
         if (hoyRitual.hecho) continue;                // ya abrió el día
-        if (activos.pendientes && pendientesCierre().length) { body = voz("manana", hoy).body + " " + textoDiasSinCerrar(pendientesCierre(), hoy); tambien = "dias-sin-cerrar"; }
+        const lo = loDeHoy(data, hoy);                // lo que dejaste anotado anoche: el aviso lo dice
+        if (lo) body = textoLoDeHoy(lo);
+        if (activos.pendientes && pendientesCierre().length) { body = (body || voz("manana", hoy).body) + " " + textoDiasSinCerrar(pendientesCierre(), hoy); tambien = "dias-sin-cerrar"; }
+      }
+      if ((tipo === "noche" || tipo === "noche-2") && !hoyRitual.cerrado) {
+        const n = pendientesHoy(data, hoy);           // cuántas tareas de hoy siguen abiertas
+        if (n) body = textoPendientesHoy(n);
       }
       if (tipo === "dias-sin-cerrar") {
         if (activos.manana && !hoyRitual.hecho) continue;   // va dentro del aviso de la mañana

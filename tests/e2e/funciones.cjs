@@ -65,9 +65,10 @@ module.exports = async ({ b, ok, errs }) => {
   // 7) Mediodía en Notificaciones: gratis desde la v73, con un interruptor
   await p.goto(URL + "#notif"); await p.waitForTimeout(300);
   ok(await p.locator("#notif-mediodia").count() === 0, "con el aviso de mediodía apagado no aparece su hora");
+  if (await p.locator(".notif-mas").count()) { await p.click(".notif-mas > summary"); await p.waitForTimeout(150); }   // sin activar en este equipo, los avisos van plegados
   await p.click('[data-action="notif-aviso"][data-k="mediodia"]'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => avisosActivos(STATE.settings.notif).mediodia && STATE.settings.notif.mediodia === "13:00"), "al encenderlo queda con la hora sugerida, sin pasar por la Tienda");
-  await p.fill("#notif-mediodia", "13:15"); await p.click('[data-action="notif-times"]'); await p.waitForTimeout(200);
+  await p.fill("#notif-mediodia", "13:15"); await p.locator("#notif-mediodia").dispatchEvent("change"); await p.waitForTimeout(200);
   ok(await p.evaluate(() => STATE.settings.notif.mediodia) === "13:15", "guarda la hora del aviso de mediodía");
   await ctx.close();
 };

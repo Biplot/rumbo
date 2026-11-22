@@ -4274,3 +4274,37 @@ button.reabrir-tira__d:hover { border-color: var(--cian); }
 .norte-alarma.is-off .aviso__txt { opacity: .55; }
 .norte-alarma__cambiar { flex: 0 0 auto; min-height: 44px; padding: 0 6px; }
 .norte-alarmas .contador-caja { flex: 0 0 auto; }
+
+/* ===== Entrega 1 (v152): activación, avisos y Notificaciones ===== */
+.btn:disabled, .btn[disabled] { opacity: .45; cursor: not-allowed; filter: grayscale(.4); }
+/* La bienvenida: el botón para seguir queda siempre a la vista */
+.arma .onb-nav { position: sticky; bottom: 0; z-index: 2; margin: 8px -20px -20px; padding: 12px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to bottom, transparent, var(--surface) 30%); }
+.notif-pasos { margin: 12px 0 0; padding-left: 22px; display: grid; gap: 8px; font-size: 14px; }
+.notif-previa { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 10px; align-items: center; margin-top: 14px; padding: 10px 12px; border-radius: 16px;
+  background: var(--surface-2); border: 1px solid var(--line); }
+.notif-previa__ico { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--surface); overflow: hidden; }
+.notif-previa__ico svg { width: 34px; height: 34px; }
+.notif-previa__t { display: grid; gap: 1px; min-width: 0; font-size: 13px; }
+.notif-previa__t small { font-size: 11px; color: var(--text-muted); }
+.notif-previa__t b { font-size: 13.5px; }
+.notif-horas { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; }
+.notif-horas .field { margin: 0; display: grid; gap: 4px; }
+.notif-horas .field span { font-size: 12.5px; color: var(--text-soft); font-weight: 600; }
+.notif-mas > summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--text-soft); padding: 10px 2px; list-style: none; }
+.notif-mas > summary::before { content: "▸ "; }
+.notif-mas[open] > summary::before { content: "▾ "; }
+.notif-mas > .card { margin-top: 4px; }
+.dl-aviso { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: center; margin: 4px 0 12px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 14px; }
+.dl-aviso input[type="checkbox"] { width: 20px; height: 20px; margin: 0; accent-color: var(--cian); }
+.dl-aviso input[type="time"] { display: inline-block; width: auto; padding: 4px 8px; margin: 0 4px; }
+.avisos-oferta__hora { display: grid; gap: 4px; }
+.avisos-oferta__hora span { font-size: 13px; font-weight: 600; color: var(--text-soft); }
+/* Tu primera semana: solo el paso de hoy */
+.psem-hoy { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; width: 100%; padding: 14px 14px; border-radius: 14px;
+  border: 1.5px solid var(--coral, #F4AE3D); background: var(--coral-soft, #FDF0D8); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.psem-hoy.is-listo { border-color: var(--line); background: var(--surface-2); cursor: default; }
+.psem-hoy__eti { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--coral, #B26B00); }
+.psem-hoy__t { font-weight: 700; font-size: 15px; }
+.psem-hoy__d { font-size: 12.5px; font-weight: 700; color: var(--text-soft); white-space: nowrap; }
+button.check { cursor: pointer; padding: 0; font: inherit; -webkit-appearance: none; appearance: none; }

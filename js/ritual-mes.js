@@ -476,7 +476,7 @@ function renderRitualMes() {
   if (!mesCerrado(pk) && !(typeof mesAntesDeLaCuenta === "function" && mesAntesDeLaCuenta(prev.y, prev.m))) acciones.push(`<button class="btn-ghost" data-action="mes-close" data-key="${pk}">Cerrar ${MESES[prev.m]}</button>`);   // un mes antes de la cuenta no se pide cerrar
   acciones.push(`<button class="btn-ghost" data-action="informe-open" data-key="${key}">📤 Compartir mi mes</button>`);
 
-  const hist = Object.keys(STATE.ritual.meses || {}).filter(k => k < key).sort().reverse().slice(0, 12).map(k => {   // los anteriores, sin el actual
+  const hist = Object.keys(STATE.ritual.meses || {}).filter(k => k < key || (k === key && (STATE.ritual.meses[k] || {}).cierre)).sort().reverse().slice(0, 12).map(k => {   // los anteriores (el actual, solo si ya se cerró)
     const { y: hy, m: hm } = mesDeKey(k), x = STATE.ritual.meses[k];
     return `<div class="item-row">${typeof albumMiniHtml === "function" ? albumMiniHtml(k) : ""}<div class="item-row__main"><div class="item-row__title">${nombreMes(hy, hm)}${x.apertura && x.apertura.foco ? ` · <span class="hl-cian">${escapeHtml(x.apertura.foco)}</span>` : ""}</div>
       <div class="item-row__sub">${x.cierre && x.cierre.mejor ? escapeHtml(x.cierre.mejor) : ""}</div></div>

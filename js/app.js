@@ -136,7 +136,7 @@ async function enterApp(user) {
   setTimeout(() => { if (typeof focoSalaRevisar === "function") focoSalaRevisar(true); }, 2500);   // ¿un amigo te invitó a enfocarse? (foco-amigos.js)
   if (!gcalRetorno()) gcalAlIniciar();   // Google Calendar: al volver de Google (iPhone) o al día si el permiso sigue vigente
   revisarDispositivoPush();              // 🔔 ¿este dispositivo sigue activado para esta cuenta?
-  if (!STATE.settings.onboarded) setTimeout(() => openOnboarding("nuevo"), 350);
+  if (!STATE.settings.onboarded) setTimeout(() => { if (!STATE.settings.onboarded && !(typeof armaActiva === "function" && armaActiva())) openOnboarding("nuevo"); }, 350);   // si ya la terminó (u otra pestaña), no vuelve
   else if (amigosHayInvitacion()) { /* la invitación de un amigo va primero; las novedades, la próxima vez */ }
   else if ((STATE.settings.introVersion || 1) < INTRO_VERSION) setTimeout(openNovedades, 450);
   else if (debeElegirElefante()) setTimeout(openElegirElefante, 600);

@@ -484,11 +484,11 @@ function openResumenPrimeraSemana() {
 const GLOSARIO = {
   bocado: { t: "Primer bocado", d: "La tarea más importante del día. Viene del dicho: ¿cómo te comes un elefante? Un bocado a la vez. Hazla primero y lo demás pesa menos." },
   ritual: { t: "Ritual", d: "Abrir y cerrar un ciclo: tu día (cada día), tu semana, tu mes y tu trimestre. Son minutos, y mantienen vivo todo lo demás." },
-  express: { t: "Express", d: "Para días apretados: abres o cierras tu día en 3 toques. Tus pendientes pasan a mañana y la racha se mantiene, con la mitad de las monedas." },
+  express: { t: "Express", d: "Para días apretados: abres o cierras tu día en 3 toques. Tus pendientes pasan a mañana y la racha se mantiene, con la mitad de las estrellas." },
   racha: { t: "Racha", d: "Días seguidos cumpliendo. La de 🔥 cuenta los días que cerraste; la de hábitos, los días en que hiciste los que tocaban. Un descanso planificado no la corta." },
-  monedas: { t: "⭐ Monedas", d: "Las ganas abriendo y cerrando días, con hábitos, rituales y objetivos. Las gastas en la Tienda: herramientas para tu día y cosas para tu estilo." },
+  monedas: { t: "⭐ Estrellas", d: "Las ganas abriendo y cerrando días, con hábitos, rituales y objetivos. Las gastas en la Tienda: herramientas para tu día y cosas para tu estilo." },
   vitrina: { t: "✨ Tu vitrina", d: "Donde viven tus medallas, como constelaciones en el cielo. Cada una se gana con algo que hiciste de verdad." },
-  xp: { t: "XP y rango", d: "La XP mide tu constancia y nunca baja, aunque gastes monedas. Con ella subes de rango y tu elefante crece de cría a sabio." },
+  xp: { t: "XP y rango", d: "La XP mide tu constancia y nunca baja, aunque gastes estrellas. Con ella subes de rango y tu elefante crece de cría a sabio." },
   maceta: { t: "Maceta", d: "En tu jardín, hasta 3 de los hábitos que estás formando viven en una maceta. Con 66 días cumplidos echan raíces y pasan al jardín como árbol." },
   pilar: { t: "Pilares", d: "Seis focos para tu día: psicología, fisiología, productividad, magnetismo, presencia y propósito. Eliges uno al abrir tu día, si quieres; con el tiempo ves cuáles cultivas." },
 };

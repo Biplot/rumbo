@@ -26,13 +26,13 @@ const ROUTES = [
   { id: "listas", mas: true, label: "Listas", icon: "🧾", render: renderListas, subtitle: "Compras, películas, viajes y más." },
   { id: "aprendizajes", mas: true, label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
   { id: "notas", mas: true, label: "Notas", icon: "📝", render: renderNotas, subtitle: "Tus ideas como post-its, con #etiquetas." },
-  { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus monedas y la Tienda." },
+  { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus estrellas y la Tienda." },
   { id: "cuarto", pie: true, lugar: true, label: "Tu casa", icon: "🏠", render: renderCuarto, subtitle: "Tu elefante en su casa, a pantalla completa." },
   { id: "cielo", pie: true, lugar: true, label: "Tu vitrina", icon: "✨", render: renderCielo, subtitle: "Tus medallas en el cielo, a pantalla completa." },
   { id: "visita-casa", pie: true, lugar: true, label: "De visita", icon: "🏠", render: renderVisitaCasa, subtitle: "La casa del elefante de tu amigo." },
   { id: "visita-cielo", pie: true, lugar: true, label: "De visita", icon: "✨", render: renderVisitaCielo, subtitle: "Las medallas de tu amigo en su cielo." },
   { id: "apariencia", pie: true, label: "Apariencia", icon: "🎨", render: renderApariencia, subtitle: "Tu tema, tus títulos, tus marcos y tus efectos." },
-  { id: "cuenta", pie: true, label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
+  { id: "cuenta", pie: true, label: "Ajustes", icon: "⚙️", render: renderCuenta, subtitle: "Tus avisos, tu tema, tu menú, tus conexiones y tu cuenta." },
   { id: "norte", pie: true, label: "Norte, tu brújula", icon: "🧭", render: renderNorte, subtitle: "Tu robot del escritorio: aparatos, alarmas, avisos y modo noche." },
   { id: "notif", pie: true, label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
   { id: "tutoriales", pie: true, label: "Ayuda", icon: "🎓", render: renderTutoriales, subtitle: "Recorridos guiados para aprender Rumbo a tu ritmo." },
@@ -267,7 +267,7 @@ const NOVEDADES = {
     ["📅", "Ritual de semana", "El domingo (o el lunes) cierras tu semana y planificas la siguiente: foco, 3 prioridades, tus días y tu premio. +75 ⭐ cada uno."],
   ],
   4: [
-    ["⚡", "Modo express", "¿Día apretado? Abre y cierra tu día en 3 toques con el botón ⚡ Express: tu primer bocado, tu energía y tu ánimo. Tus pendientes pasan a mañana y la racha se mantiene (mitad de monedas)."],
+    ["⚡", "Modo express", "¿Día apretado? Abre y cierra tu día en 3 toques con el botón ⚡ Express: tu primer bocado, tu energía y tu ánimo. Tus pendientes pasan a mañana y la racha se mantiene (mitad de estrellas)."],
   ],
   5: [
     ["📆", "Rumbo, año tras año", "Objetivos, Finanzas, Salud, Rueda, Hábitos, Calendario y Tendencias tienen selector de año ‹ 2026 ›: revisa años anteriores o adelanta las metas del próximo. Tu 2026 queda intacto."],
@@ -377,7 +377,7 @@ const NOVEDADES = {
     ["🐘", "Tu elefante, despierto", "Si no cierras tu día anda con sueño, pero solo duerme cuando toma su siesta."],
   ],
   29: [
-    ["🧭", "Norte, el tema de Rumbo", "Una aguja ámbar marca lo que sigue (abrir o cerrar tu día, tu racha, tus monedas) sobre tinta índigo. De día es la luz de la mañana; de noche, el mismo cielo de tu vitrina."],
+    ["🧭", "Norte, el tema de Rumbo", "Una aguja ámbar marca lo que sigue (abrir o cerrar tu día, tu racha, tus estrellas) sobre tinta índigo. De día es la luz de la mañana; de noche, el mismo cielo de tu vitrina."],
     ["🌗", "Automático, ahora con Norte", "Rumbo sigue el modo de tu teléfono: Norte de día y Norte noche de noche. ¿Lo quieres fijo? Elige Norte o Norte noche en Recompensas → Tienda → Temas. Ruta y Ruta noche siguen ahí."],
     ["🎨", "Adiós a Navy y Claro", "Si usabas Navy ahora tienes Norte noche, y si usabas Claro, Norte: el mismo modo que tenías."],
   ],
@@ -406,7 +406,7 @@ const NOVEDADES = {
   ],
   35: [
     ["🧭", "Íconos Norte", "Toda la app habla un solo idioma: los emojis de los títulos, las pestañas, los botones y los avisos pasan a íconos de línea, con el mismo trazo del menú y los colores de Norte."],
-    ["⭐", "La estrella de tus monedas", "Tus estrellas ahora son una estrella ámbar dibujada, igual en todos los teléfonos."],
+    ["⭐", "Tu estrella", "Tus estrellas ahora son una estrella ámbar dibujada, igual en todos los teléfonos."],
     ["🍪", "El bocado del logo", "Tu primer bocado lleva la galleta mordida de Rumbo, y todo lo de tu elefante, su silueta de perfil."],
     ["✏️", "Lo tuyo no cambia", "Lo que escribes o eliges tú (tus recetas, tus listas, tus notas y tu diario) sigue con sus emojis."],
   ],
@@ -738,7 +738,7 @@ function renderAccountBox() {
   const marco = typeof marcoClase === "function" ? marcoClase() : "";
   box.innerHTML = iconizar(`<div class="account__avatar${marco}" data-action="av-abrir" title="Tu avatar">${avatar}</div>
     <div class="account__info" data-action="cuenta-menu" style="min-width:0;flex:1"><div class="account__name">${escapeHtml(CURRENT_USER.name || "")}</div>
-    <div class="account__email">Cuenta, avisos y ayuda</div></div>`);
+    <div class="account__email">Ajustes, avisos y ayuda</div></div>`);
 }
 
 /* -------- Handlers del portal -------- */
@@ -1502,6 +1502,7 @@ function onClick(e) {
     case "semw-add": semWizAdd(d.fecha, +d.i); break;
     case "semw-del": semWizDel(d.fecha, +d.i); break;
     case "menu-personalizar": openPersonalizarMenu(); break;
+    case "recomp-tab": RECOMP_TAB = d.v; rerender(); break;
     case "secc-agregar": seccionAccion("agregar", d.id); break;
     case "secc-quitar": seccionAccion("quitar", d.id); break;
     case "secc-mover": seccionAccion("mover", d.id, d.dir); break;
@@ -2400,14 +2401,12 @@ function renderCuenta() {
   setTimeout(cargarVinculoGoogle, 0);
   setTimeout(() => { zonaVerifPintar("cv"); zonaCargarRespaldos(); }, 0);   // ¿eres tú? y las copias de 30 días (zona.js)
   return `
-  <div class="card">
+  ${ajustesAtajosHtml()}
+
+  <div class="card mt-16">
     <div class="card__title">👤 Tu cuenta</div>
     <div class="mt-8 text-sm soft">Sesión iniciada como <b>${escapeHtml(email)}</b></div>
   </div>
-
-  <button type="button" class="card mt-16 cuenta-apariencia" data-route="apariencia">
-    <span class="cuenta-apariencia__ico">${iconoLinea("personalizar", 22)}</span>
-    <span class="cuenta-apariencia__tx"><b>Apariencia</b><small>Tu tema (de día, de noche o automático), títulos, marcos y efectos</small></span>${iconoLinea("chevron", 18)}</button>
 
   ${renderAvatarCuenta()}
 
@@ -2456,6 +2455,25 @@ function renderCuenta() {
       <button class="btn-ghost" data-action="acc-delete" style="color:var(--coral);border-color:var(--coral)">✕ Eliminar mi cuenta</button>
     </div>
     <p class="text-xs muted mt-8">Reiniciar borra tus datos pero conserva tu cuenta, y guarda una copia por 30 días. Eliminar borra todo y cierra tu cuenta para siempre. Las dos piden escribir una palabra y confirmar que eres tú.</p>
+  </div>`;
+}
+
+/* v154 · Ajustes en un solo lugar: tus avisos (con su estado), tu tema, tu menú y Amigos, a un toque */
+function ajustesAtajosHtml() {
+  const est = typeof notifEstado === "function" ? notifEstado() : "apagadas";
+  const AV = { activas: ["Activadas en este aparato", "ok"], apagadas: ["Apagadas: actívalas para no olvidar tu día", "ojo"], bloqueadas: ["Bloqueadas en este aparato: te digo cómo cambiarlo", "ojo"],
+    instalar: ["Para recibirlas, instala Rumbo en tu inicio", "ojo"], nosoporte: ["Este navegador no las permite", ""], revisando: ["Revisando…", ""] };
+  const [avTxt, avCls] = AV[est] || AV.apagadas;
+  const n = (STATE.settings.notif || {}), horas = [n.manana, n.noche].filter(Boolean).join(" y ");
+  const tema = (typeof THEMES !== "undefined" && THEMES.find(t => t.id === STATE.settings.theme)) || null;
+  const nDesc = typeof seccionesDescubrir === "function" ? seccionesDescubrir().length : 0;
+  const fila = (attrs, ico, t, sub, cls) => `<button type="button" class="ajuste-fila${cls ? " is-" + cls : ""}" ${attrs}>
+      <span class="ajuste-fila__ico">${iconoLinea(ico, 22)}</span><span class="ajuste-fila__tx"><b>${t}</b><small>${sub}</small></span>${iconoLinea("flecha", 16)}</button>`;
+  return `<div class="card ajustes-lista">
+    ${fila('data-route="notif"', "notif", "Avisos", avTxt + (est === "activas" && horas ? ` · ${escapeHtml(horas)}` : ""), avCls)}
+    ${fila('data-route="apariencia"', "personalizar", "Apariencia", tema ? `Tema ${escapeHtml(tema.nombre || tema.label || "")}`.trim() + " · títulos, marcos y efectos" : "Tu tema, títulos, marcos y efectos")}
+    ${fila('data-action="menu-personalizar"', "mas", "Tus secciones", nDesc ? `Ordena tu menú · ${nDesc} por descubrir` : "Ordena tu menú")}
+    ${fila('data-route="amigos"', "amigos", "Amigos", "Qué ven tus amigos de ti")}
   </div>`;
 }
 

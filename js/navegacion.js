@@ -123,7 +123,7 @@ function descubrirHtml() {
 }
 const PIE_MAS = [
   { ruta: "recompensas", label: "Recompensas" },
-  { ruta: "cuenta", label: "Cuenta" },
+  { ruta: "cuenta", label: "Ajustes" },
   { ruta: "notif", label: "Notificaciones" },
   { ruta: "norte", label: "Norte, tu brújula", solo: () => typeof norteDisponible === "function" && norteDisponible() },   // solo la cuenta dueña
   { ruta: "tutoriales", label: "Ayuda" },
@@ -197,17 +197,15 @@ function pintarPieNav() {
   if (pts && STATE) pts.innerHTML = STATE.gamif.puntos + " " + icoUI("moneda");
 }
 
-/* -------- Rachas y monedas: qué significa cada una -------- */
+/* -------- Tu racha y tus estrellas (v154: una sola racha pública, la de días cerrados) -------- */
 function openInfoRachas() {
-  const cerr = computeClosedStreak(), hab = computeStreak();
-  const rit = computeRitualStreak();
+  const cerr = computeClosedStreak();
   const fila = (ico, n, txt, sub) => `<div class="info-racha"><span class="info-racha__ico">${ico}</span>
     <div><div class="info-racha__n"><b>${n}</b> ${txt}</div><div class="text-sm muted">${sub}</div></div></div>`;
-  openModal("Tus rachas y monedas", `
-    ${fila("🔥", cerr, cerr === 1 ? "día cerrado seguido" : "días cerrados seguidos", "Días seguidos en que abriste y cerraste tu día. Es la racha principal.")}
-    ${fila("✅", hab, hab === 1 ? "día de hábitos" : "días de hábitos", "Días seguidos cumpliendo todos los hábitos que tocaban.")}
-    ${fila("🌅", rit, rit === 1 ? "día abierto seguido" : "días abiertos seguidos", "Días seguidos en que hiciste tu ritual de apertura.")}
-    ${fila("⭐", STATE.gamif.puntos, "monedas", "Las ganas usando Rumbo y las gastas en Recompensas → Tienda.")}
+  openModal("Tu racha y tus estrellas", `
+    ${fila("🔥", cerr, cerr === 1 ? "día cerrado seguido" : "días cerrados seguidos", "Días seguidos en que cerraste tu día. Tienes 3 días para cerrar uno sin perderla, y los días libres no la cortan.")}
+    ${fila("⭐", STATE.gamif.puntos, STATE.gamif.puntos === 1 ? "estrella" : "estrellas", "Las ganas usando Rumbo y las gastas en Recompensas → Tienda.")}
+    <p class="text-xs muted mt-8">Cada hábito lleva su propio avance en Hábitos.</p>
     <button class="btn btn--soft btn-block mt-16" data-route="recompensas">Ver Recompensas</button>`);
 }
 

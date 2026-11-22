@@ -50,8 +50,17 @@ module.exports = async ({ b, ok, errs }) => {
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
   await p.click("#view .ruta-dia__racha, #view .recibo__racha"); await p.waitForTimeout(200);
   const info = await p.locator("#modal").innerText();
-  ok(info.includes("cerrad") && info.includes("hábitos") && info.includes("monedas"), "la racha, al pie de tu día, explica cada racha y las monedas");
+  ok(info.includes("cerrad") && info.includes("estrellas") && !info.includes("días de hábitos") && !info.includes("días abiertos seguidos"),
+    "la racha, al pie de tu día: una sola racha (días cerrados) y tus estrellas");
   await p.evaluate(() => closeModal());
+  // La ⭐ de arriba lleva directo a Recompensas, en 3 pestañas
+  await p.click("#ptsPill"); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => location.hash === "#recompensas") && await p.locator('[data-action="recomp-tab"]').count() === 3, "la ⭐ lleva a Recompensas: Tienda, Tu elefante y Lo tuyo");
+  await p.click('[data-action="recomp-tab"][data-v="tuyo"]'); await p.waitForTimeout(200);
+  ok(await p.locator("#view .fam-cards").count() === 1, "«Lo tuyo»: tu tema y lo que ya compraste, para usarlo");
+  await p.click('[data-action="recomp-tab"][data-v="elefante"]'); await p.waitForTimeout(200);
+  ok(await p.locator('#view [data-action="lugar-entrar"][data-ruta="cuarto"]').count() === 1 && await p.locator('#view [data-action="lugar-entrar"][data-ruta="cielo"]').count() === 1, "«Tu elefante»: su casa y tu vitrina");
+  await p.evaluate(() => { RECOMP_TAB = "tienda"; go("inicio"); }); await p.waitForTimeout(200);
 
   // 5) Botones: compras que dicen cuánto falta y zonas de toque de 44 px
   await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
@@ -88,7 +97,9 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 6) Cerrar sesión se encuentra en Cuenta
   await p.goto(URL + "#cuenta"); await p.waitForTimeout(300);
-  ok(await p.locator('#view [data-action="logout"]').count() === 1, "Cuenta tiene Cerrar sesión");
+  ok(await p.locator('#view [data-action="logout"]').count() === 1, "Ajustes tiene Cerrar sesión");
+  ok(await p.locator('#view .ajustes-lista [data-route="notif"]').count() === 1 && await p.locator('#view .ajustes-lista [data-action="menu-personalizar"]').count() === 1
+    && /Avisos/.test(await p.locator("#view .ajustes-lista").innerText()), "Ajustes parte por tus avisos (con su estado), tu tema, tus secciones y Amigos");
   await ctx.close();
 
   // ---------- Computador ----------

@@ -103,7 +103,7 @@ function tiendaHtml() {
       <button type="button" class="tienda-link tienda-elefante" data-action="lugar-entrar" data-ruta="cuarto">${iconoLinea("inicio", 20)}
         <span><b>Ropa y muebles para tu elefante</b><small>Se compran en Tu casa, viendo cómo quedan</small></span>${iconoLinea("chevron", 16)}</button>
       <button type="button" class="tienda-link" data-route="apariencia">${iconoLinea("personalizar", 20)}
-        <span><b>Lo que ya tienes</b><small>Temas, títulos, marcos y efectos se eligen en Cuenta › Apariencia</small></span>${iconoLinea("chevron", 16)}</button>
+        <span><b>Lo que ya tienes</b><small>Temas, títulos, marcos y efectos se eligen en «Lo tuyo» (o en Ajustes › Apariencia)</small></span>${iconoLinea("chevron", 16)}</button>
     </div>
     <p class="text-xs muted mt-16">Ganas ⭐ usando la app: cerrar el día, hábitos, rituales y objetivos.</p>
   </section>`;

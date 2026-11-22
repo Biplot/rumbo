@@ -17,14 +17,16 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 1) Por abrir: la barra del destino y las misiones recientes
   ok((await p.locator("#view .mision-barra").innerText()).includes("¿Cuál es tu misión?"), "Inicio pregunta por tu misión en una barra, como «¿A dónde vas?»");
-  const rec = await p.locator("#view .reciente").allInnerTexts();
-  ok(rec.length === 2 && rec[0].includes("Cerrar el informe") && rec[0].includes("anoche") && rec[1].includes("Revisar presupuesto"),
-    "las misiones recientes: lo que anotaste anoche y la de ayer: " + rec.map(t => t.replace(/\s+/g, " ")).join(" | "));
+  ok(await p.locator("#view .reciente").count() === 0, "las misiones de antes ya no llenan Inicio (están dentro de la apertura)");
 
-  // 2) Elegir una reciente abre el día con esa misión y el cursor en el primer bocado
-  await p.click("#view .reciente >> nth=0"); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => document.getElementById("r-mision").value === "Cerrar el informe" && document.activeElement.id === "r-sapo"),
-    "una misión reciente queda elegida y el cursor pasa al primer bocado");
+  // 2) Al abrir el día: lo que anotaste anoche ya viene escrito y las recientes, a un toque
+  await p.click("#view .mision-barra"); await p.waitForTimeout(250);
+  ok(await p.inputValue("#r-mision") === "Cerrar el informe", "lo que anotaste anoche viene escrito como tu misión");
+  const rec = await p.locator("#modal .apert-reciente").allInnerTexts();
+  ok(rec.some(t => t.includes("Revisar presupuesto")) && !rec.some(t => t.includes("Cerrar el informe")), "las recientes, como chips bajo la misión: " + rec.join(" | "));
+  await p.click('#modal .apert-reciente:has-text("Revisar presupuesto")'); await p.waitForTimeout(100);
+  ok(await p.inputValue("#r-mision") === "Revisar presupuesto", "un toque usa una misión reciente");
+  await p.fill("#r-mision", "Cerrar el informe");
   const cta = await p.locator("#modal .modal__cta .btn--precio").innerText();
   ok(/Abrir mi día/.test(cta) && /\+50/.test(cta), "el botón muestra lo que ganas, como el precio de un viaje: " + cta.replace(/\s+/g, " "));
   await p.fill("#r-sapo", "Enviar la propuesta");
@@ -46,16 +48,7 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.evaluate(() => document.activeElement.id === "r-mision") && /Guardar cambios/.test(await p.locator("#modal .modal__cta").innerText()),
     "tocar la barra abre tu ritual con el cursor en la misión (y el botón dice «Guardar cambios»)");
   await p.evaluate(() => closeModal());
-  const atajos = await p.locator("#view .atajos .atajo").evaluateAll(els => els.map(e => e.dataset.route));
-  ok(atajos.length === 4 && await p.locator("#view .atajos").isVisible(), "Todo en un lugar: cuatro accesos en el celular: " + atajos.join(", "));
-  await p.evaluate(() => { STATE.settings.menu = { ocultos: ["tendencias"] }; rerender(); });
-  const atajos2 = await p.locator("#view .atajos .atajo").evaluateAll(els => els.map(e => e.dataset.route));
-  ok(!atajos2.includes("tendencias") && atajos2.length === 4, "un módulo oculto no aparece en los accesos: " + atajos2.join(", "));
-  await p.click("#view .atajos__todo"); await p.waitForTimeout(250);
-  ok(await p.locator("#masOverlay").isVisible(), "«Ver todo» abre la hoja Más");
-  await p.evaluate(() => cerrarMas());
-  await p.click(`#view .atajo[data-route="${atajos2[0]}"]`); await p.waitForTimeout(250);
-  ok(await p.evaluate(r => location.hash === "#" + r, atajos2[0]), "un acceso lleva a su sección");
+  ok(await p.locator("#view .atajos").count() === 0, "sin «Todo en un lugar» en Inicio: las secciones están en Más");
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
 
   // 4) Primer bocado hecho: queda la hora en su parada y vibra distinto
@@ -147,6 +140,6 @@ module.exports = async ({ b, ok, errs }) => {
   const d = await c3.newPage(); d.on("pageerror", e => errs.push(e.message));
   await registrar(d, "detalles-pc@test.cl");
   await d.goto(URL + "#inicio"); await d.waitForTimeout(300);
-  ok(await d.locator("#view .mision-barra").isVisible() && await d.locator("#view .atajos").isHidden(), "en el computador está la barra de misión y no los accesos");
+  ok(await d.locator("#view .mision-barra").isVisible() && await d.locator("#view .atajos").count() === 0, "en el computador está la barra de misión y no los accesos");
   await c3.close();
 };

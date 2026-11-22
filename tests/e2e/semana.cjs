@@ -76,10 +76,13 @@ module.exports = async ({ b, ok, errs }) => {
   ok(s.vida.diario.some(e => e.fromRitualSemana && e.semana === "2026-09-21" && e.nota === 8 && e.gratitud === "Publicamos la web"), "entrada en el Diario");
   ok(s.gamif.ledger.some(m => m.id === "ritual-semana-cierre:2026-09-21" && m.delta === 75), "cierre da +75 ⭐");
 
-  // Apertura encadenada (empieza en Foco y prioridades)
+  // Apertura encadenada: la próxima semana en una pantalla, y «Afinar más» para los 5 pasos (empieza en Foco y prioridades)
+  ok((await p.locator("#modalTitle").innerText()).includes("Tu semana") && (await p.locator("#modal").innerText()).includes("Menos reuniones"),
+    "tras cerrar, se abre la próxima semana en una pantalla, con lo que anotaste para ajustar");
+  await p.click('[data-action="semc-afinar"]'); await p.waitForTimeout(200);
   const titulo = await p.locator("#modalTitle").innerText();
   const paso = await p.locator(".modal__body .text-xs.muted").first().innerText();
-  ok(titulo.includes("Planificar la semana") && /Paso 2 de 5/i.test(paso), "tras cerrar, se abre la planificación de la próxima: " + titulo + " · " + paso);
+  ok(titulo.includes("Planificar la semana") && /Paso 2 de 5/i.test(paso), "«Afinar más» abre la planificación completa: " + titulo + " · " + paso);
   ok((await p.locator("#sem-wiz").innerText()).includes("Menos reuniones"), "muestra lo que anotaste para ajustar");
   const opciones = await opcionesDe(p, "sp-o-0");
   ok(opciones.some(o => o.includes("Primeros 10 clientes")), "las prioridades se vinculan a los objetivos de octubre (mes de su jueves)");

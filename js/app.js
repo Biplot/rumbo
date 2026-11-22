@@ -174,7 +174,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 80;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 81;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -562,6 +562,12 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  81: [
+    ["☀️", "Abrir tu día, más corto", "Si ayer quedó sin cerrar, lo cierras ahí mismo al abrir el día, en 1 toque. Tus misiones de antes aparecen como chips bajo la misión. Y si prefieres un solo campo, «Lo más importante de hoy» guarda tu misión y tu primer bocado a la vez (con un toque vuelves a separarlos)."],
+    ["🌙", "Cerrar tu día, con tus hábitos", "El cierre parte por tu ánimo y tus hábitos de hoy: márcalos ahí mismo. Lo pendiente queda resumido («3 pendientes pasan a mañana · Cambiar») y lo demás va plegado en «Más para tu cierre»."],
+    ["📅", "Tu semana en un minuto", "El lunes, abrir tu semana es una sola pantalla: tu foco y tus 3 prioridades, cada una con su día. Si quieres repartir tareas, descansos y premio, «Afinar más»."],
+    ["🌱", "Hábitos al grano", "La lista de hoy va primero y arriba ves «Esta semana: X de Y». En la mañana puedes marcar lo que hiciste ayer. Vacaciones y rutinas están en ⋯."],
   ],
   80: [
     ["🔔", "Tus avisos, más fáciles", "Notificaciones ahora parte por lo importante: tus 2 horas (mañana y noche), cómo se verá el aviso y «Activar». Las horas se guardan solas al cambiarlas. Si el permiso está bloqueado, te dice paso a paso cómo desbloquearlo. El aviso de la mañana trae lo que dejaste para hoy y abre tu día directo; el de la noche, cuántos pendientes te quedan, y abre el cierre."],
@@ -1064,6 +1070,38 @@ function renderPendingYesterday() {
     <div class="text-sm soft mt-8">Tienes ${DIAS_HOLGURA} días de holgura para cerrar un día. Si lo cierras a tiempo, tu racha sigue.</div>
     ${dias.map(fila).join("")}</div>`;
 }
+/* v153: con el día aún sin abrir, los días que quedaron sin cerrar van DENTRO de la apertura (no arriba de Inicio),
+   y se cierran en 1 toque: cierre express con sus valores por defecto (los pendientes pasan a hoy, la racha sigue) */
+function pendientesEnAperturaHtml() {
+  const dias = pendingCierreDates(); if (!dias.length) return "";
+  const hoy = todayISO();
+  const nombre = iso => agSumar(iso, 1) === hoy ? "Ayer" : (s => s.charAt(0).toUpperCase() + s.slice(1))(agDate(iso).toLocaleDateString("es-CL", { weekday: "long" }));
+  return `<div class="apert-deuda" id="apert-deuda">${dias.map(iso => `<div class="apert-deuda__f" data-deuda="${iso}">
+      <span>🌙 <b>${escapeHtml(nombre(iso))}</b> quedó sin cerrar</span>
+      <span class="apert-deuda__b"><button type="button" class="btn btn--soft" data-action="cerrar-rapido" data-date="${iso}">Cerrarlo en 1 toque</button>
+        <button type="button" class="btn-ghost" data-action="day-close" data-date="${iso}">Completo</button></span></div>`).join("")}
+    <p class="text-xs muted">En 1 toque, sus pendientes pasan a hoy y tu racha sigue.</p></div>`;
+}
+function cerrarRapido(iso) {
+  const r = diaParaCerrar(iso); if (!r) return toast("Ese día ya no se puede cerrar", true);
+  const { nuevo } = aplicarCierreExpress(STATE, iso, { mood: 3, gratitud: "", elecciones: {} });
+  const pagado = nuevo && registrarMovimiento("ritual-cierre:" + iso, EXPRESS_MONEDAS.cierre, EXPRESS_MONEDAS.cierre, "Cierre express", true);
+  if (typeof notaElefanteGuardar === "function") notaElefanteGuardar(iso);
+  saveState(); updateTopbar();
+  const f = document.querySelector(`[data-deuda="${iso}"]`); if (f) f.remove();   // sin redibujar la hoja: no se pierde lo escrito
+  const caja = document.getElementById("apert-deuda"); if (caja && !caja.querySelector("[data-deuda]")) caja.remove();
+  toast(`🌙 Listo, quedó cerrado${pagado ? ` · +${EXPRESS_MONEDAS.cierre} ⭐` : ""}`);
+}
+/* Las misiones de antes, como chips para reusar dentro de la apertura (antes iban en Inicio) */
+function aperturaRecientesHtml(actual) {
+  const rec = misionesRecientes(3).filter(m => m.txt !== actual);
+  return rec.length ? `<div class="apert-recientes" role="group" aria-label="Usar una misión de antes">${rec.map(m =>
+    `<button type="button" class="apert-reciente" data-txt="${escapeAttr(m.txt)}" title="${escapeAttr(m.sub)}" onclick="aperturaUsarReciente(this)">↺ ${escapeHtml(m.txt)}</button>`).join("")}</div>` : "";
+}
+function aperturaUsarReciente(btn) {
+  const i = document.getElementById("r-mision") || document.getElementById("r-lo"); if (!i) return;
+  i.value = btn.dataset.txt; i.dispatchEvent(new Event("input")); i.focus();
+}
 function computeClosedStreak() {
   const now = new Date(); let s = 0;
   for (let b = 0; b < 366; b++) {
@@ -1411,6 +1449,14 @@ function onClick(e) {
     case "mision-reciente": openRitualModal({ mision: d.txt, foco: "r-sapo" }); break;
     case "day-close": openCierreModal(d.date); break;
     case "day-open-express": openExpressApertura(); break;
+    case "cerrar-rapido": cerrarRapido(d.date); break;
+    case "apertura-modo": cambiarModoApertura(d.v); break;
+    case "cierre-hab": cierreMarcarHabito(d.id, d.f); break;
+    case "hab-mas": openHabMas(); break;
+    case "semc-guardar": semCortaGuardar(); break;
+    case "semc-afinar": semCortaAfinar(d.lunes); break;
+    case "hab-pocos-si": habPocos(true, d.ids); break;
+    case "hab-pocos-no": habPocos(false); break;
     case "day-close-express": openExpressCierre(d.date); break;
     case "express-apertura-save": saveExpressApertura(); break;
     case "express-cierre-save": saveExpressCierre(); break;
@@ -1974,20 +2020,25 @@ function renderDayHero() {
 
   // El destino: tu misión de hoy, en una barra como la de "¿A dónde vas?"
   const mision = abierto && r.mision ? r.mision : "";
-  const barra = `<button type="button" class="mision-barra" data-action="mision-barra" aria-label="${mision ? "Misión de hoy: " + escapeAttr(mision) + ". Tócala para cambiarla" : "Escribe tu misión de hoy"}">
+  const uno = typeof aperturaUnCampo === "function" && aperturaUnCampo();   // «lo más importante de hoy» (modules2.js)
+  const eti = uno ? "Lo más importante de hoy" : "Misión de hoy";
+  // con un solo campo y el día abierto, lo más importante ya está en la ruta (primer bocado): sin repetirlo arriba
+  const barra = uno && abierto ? "" : `<button type="button" class="mision-barra" data-action="mision-barra" aria-label="${mision ? eti + ": " + escapeAttr(mision) + ". Tócala para cambiarla" : "Escribe " + eti.toLowerCase()}">
       ${iconoLinea("mision", 22)}
-      <span class="mision-barra__txt"><span class="mision-barra__eti">Misión de hoy</span>
-        <span class="mision-barra__v${mision ? "" : " is-vacia"}">${mision ? escapeHtml(mision) : abierto ? "Sin misión · escríbela" : "¿Cuál es tu misión?"}</span></span>
-      <span class="mision-barra__hoy">${iconoLinea("reloj", 15)}Hoy</span></button>`;
-  const rec = abierto ? [] : misionesRecientes();
+      <span class="mision-barra__txt"><span class="mision-barra__eti">${eti}</span>
+        <span class="mision-barra__v${mision ? "" : " is-vacia"}">${mision ? escapeHtml(mision) : abierto ? "Sin misión · escríbela" : uno ? "¿Qué es lo más importante hoy?" : "¿Cuál es tu misión?"}</span></span></button>`;
+  const rec = [];   // v153: las misiones de antes van como chips dentro de la apertura (aperturaRecientesHtml)
   const recientes = rec.length ? `<div class="recientes" aria-label="Misiones recientes">${rec.map(m =>
     `<button type="button" class="reciente" data-action="mision-reciente" data-txt="${escapeAttr(m.txt)}">${iconoLinea("historial", 18)}
       <span class="reciente__txt"><b>${escapeHtml(m.txt)}</b><small>${m.sub}</small></span>${iconoLinea("flecha", 16)}</button>`).join("")}</div>` : "";
 
   // 1) Abrir el día
   const det = abierto ? [r.energia ? "Energía " + r.energia + "/5" : "", r.pilar ? escapeHtml(r.pilar) : ""].filter(Boolean).join(" · ") : "";
+  // los días sin cerrar se cierran dentro de la apertura (pendientesEnAperturaHtml): aquí, solo el aviso
+  const deuda = !abierto ? pendingCierreDates() : [];
+  const deudaTxt = !deuda.length ? "" : deuda.length === 1 && agSumar(deuda[0], 1) === iso ? "Ayer quedó sin cerrar" : deuda.length === 1 ? "Te quedó un día sin cerrar" : `Te quedaron ${deuda.length} días sin cerrar`;
   const p1 = !abierto
-    ? paso("actual", "abre", `<span class="ruta__t">Abre tu día</span><span class="ruta__s">Elige tu primer bocado y arranca. Toma 30 segundos (o 3 toques en express).</span>`, "",
+    ? paso("actual", "abre", `<span class="ruta__t">Abre tu día</span><span class="ruta__s">${deudaTxt ? `<span class="ruta__deuda">🌙 ${deudaTxt}: lo cierras ahí mismo, en 1 toque.</span>` : "Elige tu primer bocado y arranca. Toma 30 segundos (o 3 toques en express)."}</span>`, "",
         `<button class="btn btn--primary" data-coral="dia" data-action="day-open">${iconoLinea("sol", 18)}Abre tu día</button><button class="btn btn--soft" data-action="day-open-express">${iconoLinea("rayo", 16)}Express</button>`)
     : paso("hecho", "abre", `<span class="ruta__t">Abriste tu día</span>${det ? `<span class="ruta__s">${det}</span>` : ""}`, horaCorta(r.abiertoTs));
 
@@ -2210,25 +2261,24 @@ function renderInicio() {
   const primeraSemana = typeof primeraSemanaActiva === "function" && primeraSemanaActiva();
   return `
   ${avisoReinstalarHtml()}
-  ${renderPendingYesterday()}
+  ${dayState() === "por-abrir" ? "" : renderPendingYesterday()}
   ${typeof dejaListoInicioHtml === "function" ? dejaListoInicioHtml() : ""}
   ${primeraSemana ? inicioRitualesPrimeraSemana() : typeof cadenaRecordatorioHtml === "function" ? cadenaRecordatorioHtml() : ""}
   ${primeraSemana ? inicioGuiaHtml() : ""}
   ${typeof tuAnioInicioHtml === "function" ? tuAnioInicioHtml() : ""}
   <div data-tour="dia">${renderDayHero()}</div>
-  ${primeraSemana ? renderMisionCard() : ""}
-  ${renderAtajos()}
-  ${primeraSemana ? "" : renderMisionCard()}
+  ${renderMisionCard()}
   ${plHoyHtml()}${plDespuesInicioHtml()}${amigosCumplesHoyHtml()}
   ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
   <div class="grid grid-${Math.min(3, 2 + (metasMes.length ? 1 : 0) + (aguaCard ? 1 : 0))} inicio-main">
-    ${tareasCard}
+    ${dayState() === "por-abrir" ? tareasCard : ""}
     <div class="card">
       <div class="card__head"><div class="card__title">Hábitos de hoy${habToca.length ? ` <span class="muted" style="font-weight:500;white-space:nowrap">· ${doneToday} de ${habToca.length}</span>` : ""}</div>
         <a class="card__hint" href="#habitos">Ver panel →</a></div>
-      ${typeof jardinInicioHtml === "function" ? jardinInicioHtml() : ""}
       ${habitsToday || (STATE.habitos.defs.length ? '<div class="empty">Hoy no te toca ninguno.</div>' : '<div class="empty">Aún no tienes hábitos. <a href="#habitos">Elige tu primero →</a></div>')}
+      ${typeof jardinInicioHtml === "function" ? jardinInicioHtml() : ""}
     </div>
+    ${dayState() === "por-abrir" ? "" : tareasCard}
     ${aguaCard}
     ${metasMes.length ? `<div class="card">
       <div class="card__head"><div class="card__title">Objetivos de ${MESES[mIdx]}</div>

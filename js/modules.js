@@ -276,17 +276,61 @@ function renderHabitos() {
   <div class="hab-head">
     <div class="filtros hab-vista" role="tablist" aria-label="Vista">${tabs.map(([k, l]) => `<button role="tab" aria-selected="${vista === k}" class="${vista === k ? "is-active" : ""}" data-action="habit-vista" data-v="${k}">${l}</button>`).join("")}</div>
     <div class="row" style="gap:8px;flex-wrap:wrap">
-      <button class="btn-ghost" data-action="dsc-vacaciones" title="Días de vacaciones: no cortan tu racha">${icoUI("tree-palm")} Vacaciones</button>
-      <button class="btn-ghost" data-action="plantillas-open" title="Plantillas de rutina">${icoHab("📋", 16)} Plantillas</button>
       <button class="btn btn--primary" data-action="habit-add">+ Nuevo hábito</button>
+      <button class="icon-btn hab-mas" data-action="hab-mas" aria-label="Más opciones: vacaciones y plantillas" title="Vacaciones y plantillas">⋯</button>
     </div>
   </div>
-  <div class="pill pill--streak mt-16" style="display:inline-flex" title="Días seguidos cumpliendo todos los hábitos que tocaban">${icoHab("✅", 16)} ${racha} ${racha === 1 ? "día" : "días"} de hábitos seguidos</div>
+  ${habSemanaCifraHtml()}
   ${vacAvisoHtml()}`;
   if (!defs.length) return head + (typeof habPrimerHtml === "function" ? habPrimerHtml() : `<div class="card mt-16"><div class="empty">Aún no tienes hábitos. Crea el primero con “+ Nuevo hábito”.</div></div>`);
   const body = HABIT_VIEW === "mensual" ? habitViewMensual() : HABIT_VIEW === "anual" ? habitViewAnual() : habitViewDiario();
   const jardin = HABIT_VIEW !== "mensual" && HABIT_VIEW !== "anual" && typeof jardinCardHtml === "function" ? jardinCardHtml() : "";   // 🌱 jardin.js
-  return head + (jardin ? `<div class="mt-16">${jardin}</div>` : "") + `<div class="mt-16">${body}</div>`;
+  return head + `<div class="mt-16">${body}</div>` + (jardin ? `<div class="mt-16">${jardin}</div>` : "");
+}
+/* La cifra de la semana: cuánto llevas de lo que tocaba (antes, una racha que exigía cumplir todos cada día) */
+function habSemanaCifraHtml() {
+  const hoy = todayISO(), activos = (STATE.habitos.defs || []).filter(h => !h.pausado && hmMeta(h) === "hacer");
+  if (!activos.length) return "";
+  const g = cumplimientoGrupo(activos, agLunes(hoy), hoy);
+  if (!g.esperado) return "";
+  return `<div class="pill pill--streak mt-16" style="display:inline-flex" title="Lo que llevas de lo que tocaba esta semana (de lunes a hoy)">${icoHab("✅", 16)} Esta semana: ${g.hecho} de ${g.esperado}</div>`;
+}
+/* «⋯»: vacaciones y plantillas, fuera de la cabecera */
+function openHabMas() {
+  openModal("Más opciones", `<div class="hab-mas-lista">
+    <button class="btn btn--soft btn-block" data-action="dsc-vacaciones">${icoUI("tree-palm")} Vacaciones · días que no cortan tu racha</button>
+    <button class="btn btn--soft btn-block mt-8" data-action="plantillas-open">${icoHab("📋", 16)} Plantillas de rutina</button></div>`);
+}
+/* Hasta mediodía: ponerse al día con lo de ayer, sin cambiar de pestaña */
+function habAyerHtml() {
+  if (new Date().getHours() >= 12) return "";
+  const ayer = agSumar(todayISO(), -1);
+  const l = (STATE.habitos.defs || []).filter(h => h && !h.pausado && !h.conjunto && hmMeta(h) === "hacer" && hmCreado(h) <= ayer && hmProgramado(h, ayer, STATE) && !hmDone(h, ayer, STATE));
+  if (!l.length) return "";
+  return `<div class="hab-ayer"><div class="text-sm"><b>¿Ayer?</b> <span class="muted">Marca lo que hiciste</span></div>
+    <div class="cierre-habs">${l.map(h => `<button type="button" class="cierre-hab" data-action="cierre-hab" data-id="${h.id}" data-f="${ayer}" aria-pressed="false">${icoHab(h.icon, 16)} <span>${escapeHtml(h.nombre)}</span></button>`).join("")}</div></div>`;
+}
+/* Con 6 o más y poco cumplimiento en 14 días: «Quedémonos con 3» (pausar no corta nada) */
+function habPocosHtml() {
+  const hoy = todayISO(), activos = (STATE.habitos.defs || []).filter(h => !h.pausado && !h.conjunto && hmMeta(h) === "hacer");
+  if (activos.length < 6) return "";
+  const of = STATE.settings.habPocos; if (of && of > agSumar(hoy, -14)) return "";
+  const desde = agSumar(hoy, -14), hasta = agSumar(hoy, -1);
+  const g = cumplimientoGrupo(activos, desde, hasta);
+  if (g.pct == null || g.pct >= 25) return "";
+  const orden = activos.map(h => ({ h, p: cumplimiento(h, desde, hasta).pct || 0 })).sort((a, b) => b.p - a.p);
+  const quedan = orden.slice(0, 3).map(x => x.h), pausar = orden.slice(3).map(x => x.h);
+  return `<div class="card hab-pocos mt-16">
+    <div class="card__title" style="font-size:15px">🌱 Quedémonos con 3 estas dos semanas</div>
+    <p class="text-sm soft mt-8">Con ${activos.length} hábitos cumpliste el ${g.pct}% en 14 días. Con pocos es más fácil sostenerlos: te propongo seguir con <b>${quedan.map(h => escapeHtml(h.nombre)).join(", ")}</b> y pausar los otros ${pausar.length}. Pausados no cuentan ni cortan nada, y los reactivas cuando quieras.</p>
+    <div class="row-wrap mt-8" style="gap:8px"><button class="btn btn--primary" data-action="hab-pocos-si" data-ids="${pausar.map(h => h.id).join(",")}">Pausar ${pausar.length}</button>
+      <button class="btn-ghost" data-action="hab-pocos-no">Ahora no</button></div></div>`;
+}
+function habPocos(si, ids) {
+  STATE.settings.habPocos = todayISO();
+  if (si) { const set = new Set(String(ids || "").split(",")), now = Date.now(); (STATE.habitos.defs || []).forEach(h => { if (set.has(h.id)) { h.pausado = true; h.ts = now; } }); }
+  saveState(); rerender();
+  if (si) toast("🌱 Listo: seguimos con 3. Los pausados están al final de Hábitos.");
 }
 
 function habitTodayCard(h) {
@@ -347,7 +391,7 @@ function habitViewDiario() {
   const grilla = hmOrdenarPorEstado(toca.concat(cumplidos));
   const done = toca.filter(h => habitDoneDate(h.id, now)).length;
   const pausados = defs.filter(h => h.pausado);
-  return sub + `<div class="text-sm muted" style="margin-bottom:12px">Hoy llevas <b>${done}/${toca.length}</b> hábitos que tocan hoy</div>
+  return sub + habPocosHtml() + habAyerHtml() + `<div class="text-sm muted" style="margin-bottom:12px">Hoy llevas <b>${done}/${toca.length}</b> hábitos que tocan hoy</div>
     <div class="hb-grid">${grilla.map(habitTodayCard).join("") || '<div class="empty">Nada pendiente hoy 🎉</div>'}</div>
     ${limites.length ? `<div class="section-title">Con límite</div><div class="hb-grid">${hmOrdenarPorEstado(limites).map(habitTodayCard).join("")}</div>` : ""}
     ${descansan.length ? `<details class="hb-more mt-16"><summary>${icoUI("moon")} Descansan hoy (${descansan.length})</summary>
@@ -536,7 +580,9 @@ async function saveHabit() {
     STATE.habitos.defs.push(Object.assign({ id: uid(), nombre, icon: val("h-icon") || "✅", frecuencia, creado: todayISO(), ts: Date.now() }, area != null ? { area } : {}, minutos ? { minutos } : {}, hora && !dj ? { hora } : {}, dj || {}));
   }
   HABIT_EDIT = null;
-  saveState(); closeModal(); rerender(); toast(h ? "Hábito actualizado" : "Hábito creado");
+  saveState(); closeModal(); rerender();
+  const nAct = (STATE.habitos.defs || []).filter(x => !x.pausado && hmMeta(x) === "hacer").length;
+  toast(h ? "Hábito actualizado" : nAct >= 6 ? `Hábito creado · con ${nAct} cuesta sostenerlos: si alguno pesa, páusalo desde su ficha` : "Hábito creado");
 }
 
 /* ============================================================

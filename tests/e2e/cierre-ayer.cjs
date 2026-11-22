@@ -9,24 +9,38 @@ module.exports = async ({ b, ok, errs }) => {
     return { c, p };
   };
   const tarjeta = '#view [data-action="day-close"][data-date="2026-10-05"]';
+  const enApertura = '#modal [data-deuda="2026-10-05"]';
 
-  // 1) Ayer abierto y sin cerrar: a las 15:00 todavía se puede cerrar
+  // 1) Ayer abierto y sin cerrar, hoy sin abrir: a las 15:00 se avisa en Inicio y se cierra dentro de la apertura
   let { c, p } = await caso("15:00:00", "ayer-tarde@test.cl", () => { STATE.ritual.dias["2026-10-05"] = { hecho: true, mision: "x", ts: 1 }; saveState(); rerender(); });
-  ok(await p.locator(tarjeta).count() === 1, "en la tarde de hoy aparece 'Te quedó un día por cerrar'");
-  await p.click(tarjeta); await p.waitForTimeout(250);
-  await p.click('#modal [data-action="cierre-save"]'); await p.waitForTimeout(300);
-  ok(await p.evaluate(() => STATE.ritual.dias["2026-10-05"].cerrado === true), "ayer queda cerrado");
-  ok(await p.locator(tarjeta).count() === 0, "la tarjeta desaparece al cerrarlo");
+  ok(await p.locator(tarjeta).count() === 0 && /Ayer quedó sin cerrar/.test(await p.locator("#view .ruta__deuda").innerText()), "con hoy sin abrir, Inicio solo avisa «Ayer quedó sin cerrar» (sin la tarjeta grande)");
+  await p.click('#view [data-action="day-open"]'); await p.waitForTimeout(300);
+  ok(await p.locator(enApertura).count() === 1 && /Ayer/.test(await p.locator(enApertura).innerText()), "al abrir tu día, ayer aparece dentro de la apertura");
+  await p.fill("#r-mision", "Algo que no se pierde");
+  await p.click(enApertura + ' [data-action="cerrar-rapido"]'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => STATE.ritual.dias["2026-10-05"].cerrado === true), "«Cerrarlo en 1 toque»: ayer queda cerrado");
+  ok(await p.locator(enApertura).count() === 0 && await p.inputValue("#r-mision") === "Algo que no se pierde", "la fila se va y lo que escribiste en la apertura sigue ahí");
+  await p.evaluate(() => closeModal());
   await p.goto(URL + "#ritual"); await p.waitForTimeout(300);
   ok(await p.locator(tarjeta).count() === 0, "tampoco aparece en Ritual");
   await c.close();
 
+  // 1b) Con hoy ya abierto, la tarjeta de siempre en Inicio con «Cerrar ayer» completo
+  ({ c, p } = await caso("15:00:00", "ayer-abierto@test.cl", () => { STATE.ritual.dias["2026-10-05"] = { hecho: true, mision: "x", ts: 1 }; STATE.ritual.dias["2026-10-06"] = { hecho: true, mision: "y", ts: 1 }; saveState(); rerender(); }));
+  ok(await p.locator(tarjeta).count() === 1, "con hoy abierto aparece 'Te quedó un día por cerrar'");
+  await p.click(tarjeta); await p.waitForTimeout(250);
+  await p.click('#modal [data-action="cierre-save"]'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => STATE.ritual.dias["2026-10-05"].cerrado === true), "ayer queda cerrado");
+  ok(await p.locator(tarjeta).count() === 0, "la tarjeta desaparece al cerrarlo");
+  await c.close();
+
   // 2) Ayer sin abrir pero con una tarea: se puede cerrar igual (express)
   ({ c, p } = await caso("09:00:00", "ayer-sin-abrir@test.cl", () => { nuevaTarea(STATE, "2026-10-05", { txt: "Llamar al banco", ambito: "per" }); saveState(); rerender(); }));
-  ok(await p.locator(tarjeta).count() === 1 && (await p.locator("#view").innerText()).includes("No lo abriste"), "ayer sin abrir pero usado: también se ofrece cerrarlo");
+  ok(await p.locator("#view .ruta__deuda").count() === 1, "ayer sin abrir pero usado: también se avisa");
   const antes = await p.evaluate(() => STATE.gamif.puntos);
-  await p.click('#view [data-action="day-close-express"][data-date="2026-10-05"]'); await p.waitForTimeout(250);
-  await p.click('#modal [data-action="express-cierre-save"]'); await p.waitForTimeout(300);
+  await p.click('#view [data-action="day-open-express"]'); await p.waitForTimeout(300);
+  ok(await p.locator(enApertura).count() === 1, "también dentro de la apertura express");
+  await p.click(enApertura + ' [data-action="cerrar-rapido"]'); await p.waitForTimeout(300);
   const r = await p.evaluate(() => STATE.ritual.dias["2026-10-05"]);
   ok(r && r.cerrado && r.hecho && r.sinApertura, "queda cerrado y marcado como día sin apertura");
   ok(await p.evaluate(a => STATE.gamif.puntos > a, antes), "el cierre da sus ⭐");
@@ -36,6 +50,7 @@ module.exports = async ({ b, ok, errs }) => {
   // 3) Holgura de 3 días: anteayer y el 3 se ofrecen (el más antiguo primero); el 2, ya no
   ({ c, p } = await caso("20:00:00", "holgura@test.cl", () => {
     ["2026-10-02", "2026-10-03", "2026-10-04"].forEach(d => { STATE.ritual.dias[d] = { hecho: true, ts: 1 }; });
+    STATE.ritual.dias["2026-10-06"] = { hecho: true, mision: "Hoy", ts: 1 };   // con hoy abierto, la tarjeta de Inicio
     nuevaTarea(STATE, "2026-10-03", { txt: "Pendiente del viernes", ambito: "per" });
     saveState(); rerender(); }));
   const fechas = await p.locator('#view [data-action="day-close"][data-date]').evaluateAll(xs => xs.map(x => x.dataset.date));

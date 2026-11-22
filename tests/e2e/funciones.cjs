@@ -53,7 +53,8 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 6) Plantilla y pack de íconos
   await p.goto(URL + "#habitos"); await p.waitForTimeout(300);
-  await p.click('[data-action="plantillas-open"]'); await p.waitForTimeout(200);
+  await p.click('.hab-head [data-action="hab-mas"]'); await p.waitForTimeout(200);
+  await p.click('#modal [data-action="plantillas-open"]'); await p.waitForTimeout(200);
   await p.click('[data-action="fun-buy"][data-id="plantilla:salud"]'); await p.waitForTimeout(300);
   await p.click('[data-action="plantilla-aplicar"][data-id="salud"]'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => STATE.habitos.defs.some(h => h.nombre === "Entrenar")), "la plantilla agrega sus hábitos");

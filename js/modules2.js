@@ -133,11 +133,15 @@ function openRitualModal(op) {
   RITUAL_VIENEN = vivas.filter(t => t.migraciones > 0 || t.bocadoSugerido).map(t => t.txt);
   const sapoDefault = r.sapo || (bocadoPrev && bocadoPrev.txt) || (sugerido && sugerido.txt) || "";
   const bocadoAmb = r.sapoAmbito || (bocadoPrev ? ambitoDe(bocadoPrev) : sugerido ? ambitoDe(sugerido) : "pro");
+  const uno = aperturaUnCampo();
+  if (uno) return openAperturaUnCampo({ op, r, misionDefault: misionDefault || sapoDefault, misionDeSemana, bocadoAmb, tareasDe, vienen });
   openModal("Ritual de apertura", `
     ${typeof cadenaBarraDia === "function" ? cadenaBarraDia(op) : ""}
+    ${!r.hecho && typeof pendientesEnAperturaHtml === "function" ? pendientesEnAperturaHtml() : ""}
     ${gcalAperturaHtml()}${plAperturaHtml()}
     <div class="field"><label>Misión de hoy</label><input class="input" id="r-mision" value="${escapeAttr(misionDefault)}" placeholder="¿Qué hará hoy un gran día?">
-      ${misionDeSemana ? `<div class="text-xs mt-8 hl-cian">↳ Viene de la prioridad que dejaste para hoy en tu semana</div>` : ""}</div>
+      ${misionDeSemana ? `<div class="text-xs mt-8 hl-cian">↳ Viene de la prioridad que dejaste para hoy en tu semana</div>` : ""}
+      ${!r.hecho && typeof aperturaRecientesHtml === "function" ? aperturaRecientesHtml(misionDefault) : ""}</div>
 
     ${prioridadesSemanaMini()}
     <div class="field"><label>📋 Tareas del día</label>
@@ -157,13 +161,74 @@ function openRitualModal(op) {
       ${vienen.length ? `<div class="vienen mt-8"><div class="text-xs muted">↪ Vienen de días anteriores (${vienen.length}) · ya están en tu lista de hoy</div>
         <div class="row-wrap mt-8" style="gap:6px">${vienen.map(t => `<span class="chip">${AMBITOS[ambitoDe(t)].icon} ${escapeHtml(t.txt)}${t.migraciones ? ` · ↪ ${t.migraciones}` : ""}</span>`).join("")}</div></div>` : ""}
       <div class="text-xs muted mt-8" id="r-cap">${capacidadHint(contarTareasRitual(sapoDefault, tareasDe("pro"), tareasDe("per"), RITUAL_VIENEN), tmCapacidad(STATE, todayISO()))}</div>
-      <div class="text-xs muted mt-8">Tu primer bocado y estas tareas aparecen juntos en Inicio y en tu Semana.</div></div>
+      <div class="text-xs muted mt-8">Tu primer bocado y estas tareas aparecen juntos en Inicio y en tu Semana.</div>
+      <button type="button" class="btn-link text-xs mt-8" data-action="apertura-modo" data-v="uno">Usar un solo campo: «lo más importante de hoy»</button></div>
 
     ${aperturaExtrasHtml(r)}
     <div class="modal__cta">${r.hecho ? `<button class="btn btn--primary btn-block" data-action="ritual-save">Guardar cambios</button>`
       : `<button class="btn btn--primary btn-block btn--precio" data-action="ritual-save"><span>Abrir mi día</span><span class="btn__precio">+50 ${iconoLinea("estrella", 16)}</span></button>`}</div>`);
   if (op.foco) enfocarCampo(op.foco);
 }
+/* -------- v153: un solo «lo más importante de hoy» --------
+   Las cuentas nuevas (aperturaSimple) abren el día con un solo campo que guarda la misión y el primer bocado a la vez,
+   y las tareas como renglones (Enter agrega otro). settings.misionAparte: true = misión y bocado separados (como siempre),
+   false = un campo. Sin elegir: un campo para las cuentas nuevas, separados para las de antes. */
+function aperturaUnCampo() {
+  const m = STATE.settings.misionAparte;
+  return m === false || (m == null && !!STATE.settings.aperturaSimple);
+}
+function cambiarModoApertura(v) {
+  STATE.settings.misionAparte = v !== "uno";
+  saveState(); openRitualModal({ cadena: { n: 1, total: 1 } });   // sin volver a pasar por la cadena
+}
+function openAperturaUnCampo({ op, r, misionDefault, misionDeSemana, bocadoAmb, tareasDe, vienen }) {
+  const filas = [["pro", tareasDe("pro")], ["per", tareasDe("per")]].flatMap(([a, txt]) => txt.split("\n").filter(Boolean).map(t => ({ a, t })));
+  const glosaB = typeof glosa === "function" ? " " + glosa("bocado", "¿Por qué «bocado»?") : "";
+  openModal("Abre tu día", `
+    ${typeof cadenaBarraDia === "function" ? cadenaBarraDia(op) : ""}
+    ${!r.hecho && typeof pendientesEnAperturaHtml === "function" ? pendientesEnAperturaHtml() : ""}
+    ${gcalAperturaHtml()}${plAperturaHtml()}
+    <div class="field apert-lo"><label for="r-mision">🎯 Lo más importante de hoy</label>
+      <input class="input" id="r-mision" value="${escapeAttr(misionDefault)}" placeholder="Lo que más mueve la aguja hoy" oninput="aperturaSincronizar()" autocomplete="off">
+      <div class="text-xs mt-8 soft">Empieza por aquí: es tu misión y tu primer bocado.${glosaB}</div>
+      ${misionDeSemana ? `<div class="text-xs mt-8 hl-cian">↳ Viene de la prioridad que dejaste para hoy en tu semana</div>` : ""}
+      ${!r.hecho && typeof aperturaRecientesHtml === "function" ? aperturaRecientesHtml(misionDefault) : ""}
+      <input type="hidden" id="r-sapo" value="${escapeAttr(misionDefault)}"><input type="hidden" id="r-sapo-amb" value="${bocadoAmb}"></div>
+    <div class="field"><label for="r-nueva">¿Algo más para hoy? <span class="text-xs muted">(opcional)</span></label>
+      <div class="apert-tareas" id="r-lista">${filas.map(f => aperturaFilaHtml(f.t, f.a)).join("")}</div>
+      <div class="row mt-8" style="gap:8px">${ambitoPicker("r-nueva-amb", bocadoAmb, true)}<input class="input" id="r-nueva" placeholder="Otra tarea…" enterkeyhint="enter" autocomplete="off"
+          onkeydown="if (event.key === 'Enter') { event.preventDefault(); aperturaTareaAgregar(); }">
+        <button type="button" class="btn btn--cian" onclick="aperturaTareaAgregar()" aria-label="Agregar tarea">+</button></div>
+      <textarea id="r-tareas-pro" hidden>${escapeHtml(tareasDe("pro"))}</textarea><textarea id="r-tareas-per" hidden>${escapeHtml(tareasDe("per"))}</textarea>
+      ${vienen.length ? `<div class="vienen mt-8"><div class="text-xs muted">↪ Vienen de días anteriores (${vienen.length}) · ya están en tu lista de hoy</div>
+        <div class="row-wrap mt-8" style="gap:6px">${vienen.map(t => `<span class="chip">${AMBITOS[ambitoDe(t)].icon} ${escapeHtml(t.txt)}${t.migraciones ? ` · ↪ ${t.migraciones}` : ""}</span>`).join("")}</div></div>` : ""}
+      <div class="text-xs muted mt-8" id="r-cap"></div>
+      <button type="button" class="btn-link text-xs mt-8" data-action="apertura-modo" data-v="dos">Separar misión y primer bocado</button></div>
+    ${aperturaExtrasHtml(r)}
+    <div class="modal__cta">${r.hecho ? `<button class="btn btn--primary btn-block" data-action="ritual-save">Guardar cambios</button>`
+      : `<button class="btn btn--primary btn-block btn--precio" data-action="ritual-save"><span>Abrir mi día</span><span class="btn__precio">+50 ${iconoLinea("estrella", 16)}</span></button>`}</div>`);
+  ritualCapHint();
+  if (op.foco) enfocarCampo(op.foco === "r-sapo" ? "r-nueva" : "r-mision");
+}
+function aperturaFilaHtml(txt, amb) {
+  return `<div class="apert-tarea" data-amb="${amb}" data-txt="${escapeAttr(txt)}"><span>${AMBITOS[amb].icon} ${escapeHtml(txt)}</span>
+    <button type="button" class="icon-btn" onclick="aperturaTareaQuitar(this)" aria-label="Quitar ${escapeAttr(txt)}">✕</button></div>`;
+}
+/* Los renglones se guardan en los cuadros de siempre (ocultos): saveRitual no cambia */
+function aperturaVolcar() {
+  const filas = [...document.querySelectorAll("#r-lista .apert-tarea")];
+  ["pro", "per"].forEach(a => { const t = document.getElementById("r-tareas-" + a); if (t) t.value = filas.filter(f => f.dataset.amb === a).map(f => f.dataset.txt).join("\n"); });
+  ritualCapHint();
+}
+function aperturaTareaAgregar() {
+  const i = document.getElementById("r-nueva"), txt = i ? i.value.trim() : ""; if (!txt) return;
+  const amb = val("r-nueva-amb") === "pro" ? "pro" : "per";
+  document.getElementById("r-lista").insertAdjacentHTML("beforeend", iconizar(aperturaFilaHtml(txt, amb)));
+  i.value = ""; i.focus(); aperturaVolcar();
+}
+function aperturaTareaQuitar(btn) { const f = btn.closest(".apert-tarea"); if (f) f.remove(); aperturaVolcar(); }
+function aperturaSincronizar() { const m = document.getElementById("r-mision"), s = document.getElementById("r-sapo"); if (m && s) s.value = m.value; ritualCapHint(); }
+
 /* Pilar, energía, a quién sirves y proyectos. En las cuentas nuevas (aperturaSimple) van plegados en «Más para tu día»
    y el pilar parte sin elegir; quien los abre una vez los encuentra abiertos la próxima (settings.aperturaMas). */
 function aperturaExtrasHtml(r) {
@@ -285,6 +350,12 @@ function openCierreModal(date) {
   const corrige = !esHoy && !!r.cerrado;   // un día pasado ya cerrado (reabierto)
   const titulo = esHoy ? "Cierra tu " + dObj.toLocaleDateString("es-CL", { weekday: "long" }) : (corrige ? "Corregir el " : "Cerrar el ") + fechaLarga;
   const mananaLabel = esHoy ? "Una cosa para mañana" : "Una cosa para el día siguiente";
+  // v153: a la vista, lo que importa al cerrar (ánimo, tus hábitos, lo pendiente y una cosa para mañana); lo demás, plegado
+  const misionIgual = !!(r.mision && r.sapo && r.mision.trim() === r.sapo.trim());   // un solo «lo más importante»: una sola pregunta
+  const hechas = tr ? tr.pro[0] + tr.per[0] : 0;
+  const misionDef = c.mision || (sapoDone ? "si" : hechas ? "parcial" : "no");   // deducida (antes partía en «Sí» aunque no hubieras hecho nada)
+  const masAbierto = STATE.settings.cierreMas === true || (STATE.settings.cierreMas == null && !STATE.settings.aperturaSimple);
+  const habs = cierreHabitosHtml(iso);
   openModal(titulo, `
     ${corrige ? `<p class="reabrir-aviso">✏️ Día reabierto: cambia lo que quieras y toca «Guardar cambios». Las ⭐ del cierre no se vuelven a dar.</p>` : ""}
     ${finRecorridoHtml(iso, r, sapoTask)}
@@ -292,29 +363,51 @@ function openCierreModal(date) {
       <div class="row mt-8" id="c-moods" style="gap:8px">
         ${MOODS.map((m, i) => `<button type="button" class="mood-btn ${i + 1 === moodCur ? "is-on" : ""}" data-v="${i + 1}" aria-label="${MOOD_ETI[i]}" title="${MOOD_ETI[i]}" aria-pressed="${i + 1 === moodCur}" onclick="cierreMoodPick(this)">${m}</button>`).join("")}
       </div><input type="hidden" id="c-mood" value="${moodCur}"></div>
-    <div class="field"><label>¿Cumpliste tu misión?</label>
-      ${elTramos("c-mision-v", [["si", "Sí"], ["parcial", "Parcial"], ["no", "No"]], c.mision || "si", { label: "¿Cumpliste tu misión?", attrs: 'id="c-mision"' })}</div>
+    ${habs}
     ${typeof djCierreHtml === "function" ? djCierreHtml(iso) : ""}
-    ${sapoTask ? `<div class="field"><label>${BOCADO.emoji} Tu primer bocado</label>
+    ${sapoTask ? `<div class="field"><label>${BOCADO.emoji} ${misionIgual ? "Lo más importante" : "Tu primer bocado"}</label>
         <div class="text-sm">${escapeHtml(sapoTask.txt)} ${estadoTarea(sapoTask) === "hecha" ? '<span class="chip chip--done">✓ hecho</span>'
-          : tareaAbierta(sapoTask) ? '<span class="chip chip--coral">pendiente · decide abajo qué hacer</span>' : `<span class="chip">${signoTarea(sapoTask)}</span>`}</div></div>`
-    : `<div class="field"><label>${BOCADO.emoji} ¿Diste tu primer bocado?${r.sapo ? ` <span class="text-xs muted">(${escapeHtml(r.sapo)})</span>` : ""}</label>
+          : tareaAbierta(sapoTask) ? '<span class="chip chip--coral">pendiente</span>' : `<span class="chip">${signoTarea(sapoTask)}</span>`}</div></div>`
+    : `<div class="field"><label>${BOCADO.emoji} ${misionIgual ? "¿Hiciste lo más importante?" : "¿Diste tu primer bocado?"}${r.sapo ? ` <span class="text-xs muted">(${escapeHtml(r.sapo)})</span>` : ""}</label>
       ${elTramos("c-sapo-v", [["1", "Sí"], ["0", "No"]], sapoCur, { label: "¿Diste tu primer bocado?", attrs: 'id="c-sapo"' })}</div>`}
-    ${tr && (tr.pro[1] || tr.per[1]) ? `<div class="field"><label>📋 Tus tareas del día</label>
-      <div class="row-wrap"><span class="chip">${AMBITOS.pro.icon} ${AMBITOS.pro.label} ${tr.pro[0]}/${tr.pro[1]}</span>
-        <span class="chip">${AMBITOS.per.icon} ${AMBITOS.per.label} ${tr.per[0]}/${tr.per[1]}</span></div></div>` : ""}
-    ${pendientes.length ? `<div class="field"><label>↪ Tus pendientes de ${esHoy ? "hoy" : "ese día"} (${pendientes.length})</label>
-      <div id="c-triage">${triageHtml(pendientes.map(t => ({ t, iso })), Object.assign({ base: iso }, triageCierreCfg(iso)))}</div></div>` : ""}
-    <div class="field"><label>Energía con la que terminas</label>
-      ${elEscala("c-energia", c.energia || 3, { ico: "rayo", etiquetas: ENERGIA_ETI, label: "Energía con la que terminas, de 1 a 5" })}</div>
-    <div class="field"><label>Lo mejor del día / gratitud</label><textarea class="input" id="c-mejor" placeholder="¿Qué agradeces de hoy?">${escapeHtml(c.mejor || "")}</textarea></div>
+    ${pendientes.length ? `<details class="field cierre-pend" id="c-pend-det"><summary><b>↪ ${pendientes.length} ${pendientes.length === 1 ? "pendiente pasa" : "pendientes pasan"} a ${esHoy ? "mañana" : "hoy"}</b> <span class="cierre-pend__c">Cambiar</span></summary>
+      <div id="c-triage" class="mt-8">${triageHtml(pendientes.map(t => ({ t, iso })), Object.assign({ base: iso }, triageCierreCfg(iso)))}</div></details>` : ""}
     <div class="field"><label>${mananaLabel}</label><input class="input" id="c-manana" value="${escapeAttr(c.manana || "")}" placeholder="Se sembrará como tu misión del día siguiente"></div>
-    <div class="field"><label>Nota de cierre (libre)</label><textarea class="input" id="c-nota" placeholder="¿Cómo estuvo el día?">${escapeHtml(c.nota || "")}</textarea></div>
-    <p class="text-xs muted" style="margin:-4px 0 12px">📔 Tu ánimo, esta nota y tu gratitud se guardan en tu <b>Diario de vida</b>.</p>
     ${typeof norteDespertarHtml === "function" ? norteDespertarHtml(iso) : ""}
+    <details class="r-mas cierre-mas" id="c-mas" ${masAbierto ? "open" : ""} ontoggle="cierreMasToggle(this.open)">
+      <summary><span class="r-mas__t">Más para tu cierre</span><span class="r-mas__d">tu misión, tu energía, tu gratitud y una nota</span></summary>
+      ${misionIgual ? `<input type="hidden" id="c-mision-igual" value="1"><input type="hidden" id="c-mision-v" value="${misionDef}">`
+        : `<div class="field"><label>¿Cumpliste tu misión?</label>
+        ${elTramos("c-mision-v", [["si", "Sí"], ["parcial", "Parcial"], ["no", "No"]], misionDef, { label: "¿Cumpliste tu misión?", attrs: 'id="c-mision"' })}</div>`}
+      ${tr && (tr.pro[1] || tr.per[1]) ? `<div class="field"><label>📋 Tus tareas del día</label>
+        <div class="row-wrap"><span class="chip">${AMBITOS.pro.icon} ${AMBITOS.pro.label} ${tr.pro[0]}/${tr.pro[1]}</span>
+          <span class="chip">${AMBITOS.per.icon} ${AMBITOS.per.label} ${tr.per[0]}/${tr.per[1]}</span></div></div>` : ""}
+      <div class="field"><label>Energía con la que terminas</label>
+        ${elEscala("c-energia", c.energia || 3, { ico: "rayo", etiquetas: ENERGIA_ETI, label: "Energía con la que terminas, de 1 a 5" })}</div>
+      <div class="field"><label>Lo mejor del día / gratitud</label><textarea class="input" id="c-mejor" placeholder="¿Qué agradeces de hoy?">${escapeHtml(c.mejor || "")}</textarea></div>
+      <div class="field"><label>Nota de cierre (libre)</label><textarea class="input" id="c-nota" placeholder="¿Cómo estuvo el día?">${escapeHtml(c.nota || "")}</textarea></div>
+    </details>
+    <p class="text-xs muted" style="margin:-4px 0 12px">📔 Tu ánimo, tu nota y tu gratitud se guardan en tu <b>Diario de vida</b>.</p>
     ${typeof cadenaDomingoHtml === "function" ? cadenaDomingoHtml(iso) : ""}
     <div class="modal__cta">${r.cerrado ? `<button class="btn btn--primary btn-block" data-action="cierre-save">Guardar cambios</button>`
       : `<button class="btn btn--primary btn-block btn--precio" data-action="cierre-save"><span>Cerrar el día</span><span class="btn__precio">+40 ${iconoLinea("estrella", 16)}</span></button>`}</div>`);
+}
+function cierreMasToggle(open) { if (STATE.settings.cierreMas !== !!open) { STATE.settings.cierreMas = !!open; saveState(); } }
+/* Tus hábitos de ese día, para marcar al cerrar (antes el cierre no los preguntaba) */
+function cierreHabitosLista(iso) {
+  return (STATE.habitos.defs || []).filter(h => h && !h.pausado && !h.conjunto && hmMeta(h) === "hacer" && hmCreado(h) <= iso
+    && (hmProgramado(h, iso, STATE) || hmDone(h, iso, STATE)));
+}
+function cierreHabitosHtml(iso) {
+  const l = cierreHabitosLista(iso); if (!l.length) return "";
+  return `<div class="field"><label>✅ Tus hábitos de ${iso === todayISO() ? "hoy" : "ese día"}</label>
+    <div class="cierre-habs" id="c-habs">${l.map(h => { const on = hmDone(h, iso, STATE); return `<button type="button" class="cierre-hab ${on ? "is-on" : ""}" data-action="cierre-hab" data-id="${h.id}" data-f="${iso}" aria-pressed="${on}">${icoHab(h.icon, 16)} <span>${escapeHtml(h.nombre)}</span>${on ? " ✓" : ""}</button>`; }).join("")}</div></div>`;
+}
+function cierreMarcarHabito(id, iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  toggleHabitDate(id, y, m - 1, d);
+  const b = document.querySelector(`#c-habs [data-id="${id}"]`), h = (STATE.habitos.defs || []).find(x => x.id === id);
+  if (b && h) { const on = hmDone(h, iso, STATE); b.classList.toggle("is-on", on); b.setAttribute("aria-pressed", on); b.innerHTML = iconizar(`${icoHab(h.icon, 16)} <span>${escapeHtml(h.nombre)}</span>${on ? " ✓" : ""}`); }
 }
 /* Fin del recorrido: las horas de tu día, como el resumen de un viaje al llegar */
 function finRecorridoHtml(iso, r, sapoTask) {
@@ -346,9 +439,10 @@ function saveCierre() {
   const decid = trCont ? aplicarTriage(STATE, leerTriage(trCont), Object.assign({ base: iso }, triageCierreCfg(iso))) : null;
   const sapoTask = tareasDelDia(iso).find(t => t.esSapo);
   const sapoEl = document.getElementById("c-sapo-v");
+  const sapoHecho = sapoTask ? estadoTarea(sapoTask) === "hecha" : !!(sapoEl && sapoEl.value === "1");
   r.cierre = {
-    mision: document.getElementById("c-mision-v").value,
-    sapo: sapoTask ? estadoTarea(sapoTask) === "hecha" : !!(sapoEl && sapoEl.value === "1"),
+    mision: document.getElementById("c-mision-igual") ? (sapoHecho ? "si" : "no") : document.getElementById("c-mision-v").value,
+    sapo: sapoHecho,
     energia: parseNum(document.getElementById("c-energia").value),
     mejor: val("c-mejor"), manana: val("c-manana"), nota: val("c-nota"),
   };

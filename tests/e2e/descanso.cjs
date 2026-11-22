@@ -63,7 +63,8 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 5) Vacaciones: hasta 21 días, desde mañana
   await ir("diario", "hoy");
-  await p.locator('.hab-head [data-action="dsc-vacaciones"]').click(); await p.waitForTimeout(300);
+  await p.locator('.hab-head [data-action="hab-mas"]').click(); await p.waitForTimeout(200);
+  await p.locator('#modal [data-action="dsc-vacaciones"]').click(); await p.waitForTimeout(300);
   await p.fill("#vac-desde", "2026-11-06"); await p.fill("#vac-hasta", "2026-11-30"); await p.dispatchEvent("#vac-hasta", "input"); await p.waitForTimeout(100);
   ok(/Hasta 21 días seguidos/.test(await p.locator("#vac-resumen").innerText()), "más de 21 días: lo dice");
   await p.fill("#vac-desde", "2026-11-20"); await p.fill("#vac-hasta", "2026-11-28"); await p.dispatchEvent("#vac-hasta", "input"); await p.waitForTimeout(100);

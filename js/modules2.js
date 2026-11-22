@@ -373,6 +373,7 @@ function openCierreModal(date) {
     ${pendientes.length ? `<details class="field cierre-pend" id="c-pend-det"><summary><b>↪ ${pendientes.length} ${pendientes.length === 1 ? "pendiente pasa" : "pendientes pasan"} a ${esHoy ? "mañana" : "hoy"}</b> <span class="cierre-pend__c">Cambiar</span></summary>
       <div id="c-triage" class="mt-8">${triageHtml(pendientes.map(t => ({ t, iso })), Object.assign({ base: iso }, triageCierreCfg(iso)))}</div></details>` : ""}
     <div class="field"><label>${mananaLabel}</label><input class="input" id="c-manana" value="${escapeAttr(c.manana || "")}" placeholder="Se sembrará como tu misión del día siguiente"></div>
+    ${typeof norteDespertarHtml === "function" ? norteDespertarHtml(iso) : ""}
     <details class="r-mas cierre-mas" id="c-mas" ${masAbierto ? "open" : ""} ontoggle="cierreMasToggle(this.open)">
       <summary><span class="r-mas__t">Más para tu cierre</span><span class="r-mas__d">tu misión, tu energía, tu gratitud y una nota</span></summary>
       ${misionIgual ? `<input type="hidden" id="c-mision-igual" value="1"><input type="hidden" id="c-mision-v" value="${misionDef}">`

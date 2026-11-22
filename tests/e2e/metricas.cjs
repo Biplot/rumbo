@@ -95,7 +95,7 @@ module.exports = async ({ b, ok, errs }) => {
 
   // Cierre del día: chips de lo que pasó con lo pendiente
   await p.evaluate(() => openRitualModal()); await p.click('[data-action="ritual-save"]'); await p.waitForTimeout(200);
-  await p.evaluate(() => openCierreModal()); await p.waitForTimeout(200);
+  await p.evaluate(() => { openCierreModal(); document.getElementById("c-pend-det").open = true; }); await p.waitForTimeout(200);
   const filas = p.locator("#c-triage .triage-row");
   const n = await filas.count();
   if (n) { await filas.nth(0).locator('button[data-v="soltar"]').click(); }

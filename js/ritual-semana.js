@@ -95,7 +95,7 @@ function renderSemanaBanner() {
   const p = ritualSemanaPendientes();
   if (p.cierre && p.apertura) return heroCoral("📅 Tu ritual semanal", "Cierra tu semana y planifica la que viene: tus prioridades, tus números, tus pendientes y tu foco. Toma 10 minutos.", "Comenzar", "sem-ritual", { cierre: p.cierre, apertura: p.apertura });
   if (p.cierre) return heroCoral("📅 Cierra tu semana", `Revisa tus prioridades y tus números, y decide qué pasa con lo pendiente (${rangoSemanaTxt(p.cierre)}).`, "Cerrar la semana", "sem-ritual", { cierre: p.cierre });
-  if (p.apertura) return heroCoral("📅 Planifica tu semana", "Elige tu foco y tus 3 prioridades, y reparte tus tareas en los días.", "Planificar la semana", "sem-ritual", { apertura: p.apertura });
+  if (p.apertura) return heroCoral("📅 Planifica tu semana", "Tu foco y tus 3 prioridades, cada una con su día. Toma un minuto.", "Planificar la semana", "sem-ritual", { apertura: p.apertura });
   return "";
 }
 
@@ -163,7 +163,7 @@ const SEM_PASOS = {
 
 function openSemanaRitual(cierre, apertura) {
   if (cierre) openSemCierre(cierre, apertura || null);
-  else if (apertura) openSemApertura(apertura);
+  else if (apertura) openSemCorta(apertura);   // v153: en una pantalla («Afinar más» abre los 5 pasos)
 }
 
 function openSemApertura(lunes, op) {
@@ -223,6 +223,67 @@ function renderSemWiz() {
   if (cont && scroll) cont.scrollTop = scroll;
   if (w.focus) { const f = document.getElementById(w.focus); if (f) f.focus(); w.focus = null; }
   w._pasoDibujado = w.paso;
+}
+
+/* -------- v153: la semana en una pantalla --------
+   Tu foco (opcional) y hasta 3 prioridades, cada una con su día. Es lo que se pide el lunes al abrir el día (sigue
+   siendo obligatorio) y en la primera semana. «Afinar más» abre los 5 pasos de siempre con lo que ya escribiste. */
+function openSemCorta(lunes) {
+  const r = ritualSemana(lunes) || {}, a = r.apertura || {};
+  const ps = (a.prioridades || []).map(p => Object.assign({}, p));
+  while (ps.length < 3) ps.push({ id: "", texto: "", ambito: "pro", dia: "" });
+  const fechas = Array.from({ length: 7 }, (_, k) => agSumar(lunes, k)), hoy = todayISO();
+  const pc = (ritualSemana(agSumar(lunes, -7)) || {}).cierre || {};
+  const dias = (i, sel) => `<div class="semc-dias" role="group" aria-label="Día de la prioridad ${i + 1}">${fechas.map(f => {
+    const d = agDate(f), on = f === sel, pasado = f < hoy;
+    return `<button type="button" class="semc-dia ${on ? "is-on" : ""}" data-i="${i}" data-f="${f}" ${pasado ? "disabled" : ""} aria-pressed="${on}" onclick="semCortaDia(this)" title="${escapeAttr(DIAS_SEMANA[(d.getDay() + 6) % 7] + " " + d.getDate())}">${DIAS_SEMANA[(d.getDay() + 6) % 7].charAt(0)}</button>`;
+  }).join("")}<input type="hidden" id="semc-d-${i}" value="${escapeAttr(sel || "")}"></div>`;
+  const barra = typeof cadenaBarraHtml === "function" ? cadenaBarraHtml("sem-apertura", lunes) : "";
+  const enCadena = typeof cadenaActiva === "function" && cadenaActiva("sem-apertura", lunes);
+  const queda = enCadena ? CADENA.items.length - CADENA.i - 1 : 0, conDia = enCadena && !queda && !!CADENA.abrir;
+  openModal(`Tu semana · ${rangoSemanaCorto(lunes)}`, `
+    ${barra}
+    <p class="text-sm soft" style="margin-bottom:12px">Un minuto: lo que, si lo logras, hace que la semana valga la pena.</p>
+    <div class="field"><label for="semc-foco">Tu foco <span class="text-xs muted">(opcional)</span></label>
+      <input class="input" id="semc-foco" value="${escapeAttr(a.foco || "")}" placeholder="Ej: Cerrar el proyecto, Descanso, Ventas" autocomplete="off">
+      ${pc.ajustar ? `<div class="text-xs muted mt-8">🔧 La semana pasada anotaste para ajustar: <b>${escapeHtml(pc.ajustar)}</b></div>` : ""}</div>
+    <div class="field"><label>Tus 3 prioridades</label>
+      ${ps.slice(0, 3).map((p, i) => `<div class="semc-p">
+        <input type="hidden" id="semc-id-${i}" value="${escapeAttr(p.id || "")}">
+        <div class="row" style="gap:8px">${ambitoPicker("semc-a-" + i, p.ambito, true)}
+          <input class="input" id="semc-t-${i}" value="${escapeAttr(p.texto || "")}" placeholder="Prioridad ${i + 1}${i ? " (opcional)" : ""}" style="flex:1;min-width:0" autocomplete="off"></div>
+        ${dias(i, p.dia)}</div>`).join("")}
+      <p class="text-xs muted">Toca un día para dejarla como tarea ese día.</p></div>
+    <div class="modal__cta">
+      ${a.foco || (a.prioridades || []).length ? `<button class="btn btn--primary btn-block" data-action="semc-guardar">Guardar cambios</button>`
+        : `<button class="btn btn--primary btn-block btn--precio" data-action="semc-guardar"><span>${conDia ? "Listo, abrir mi día" : queda ? "Listo, seguir" : "Listo"}</span><span class="btn__precio">+75 ${iconoLinea("estrella", 16)}</span></button>`}
+      <button class="btn-ghost btn-block mt-8" data-action="semc-afinar" data-lunes="${lunes}">Afinar más (tus días, descansos y premio)</button></div>`);
+  SEM_CORTA = lunes;
+}
+let SEM_CORTA = null;
+function semCortaDia(btn) {
+  const i = btn.dataset.i, h = document.getElementById("semc-d-" + i), on = h.value === btn.dataset.f;
+  h.value = on ? "" : btn.dataset.f;
+  document.querySelectorAll(`.semc-dia[data-i="${i}"]`).forEach(b => { const s = b.dataset.f === h.value; b.classList.toggle("is-on", s); b.setAttribute("aria-pressed", s); });
+}
+function semCortaLeer() {
+  const prioridades = [0, 1, 2].map(i => ({ id: val("semc-id-" + i), texto: val("semc-t-" + i), ambito: val("semc-a-" + i) === "per" ? "per" : "pro", objId: "", dia: val("semc-d-" + i) }));
+  return { foco: val("semc-foco"), prioridades };
+}
+/* Se guarda con el mismo motor que los 5 pasos (las prioridades con día quedan como tareas, +75 ⭐ una vez) */
+function semCortaGuardar() {
+  const lunes = SEM_CORTA; if (!lunes) return;
+  const r = ritualSemana(lunes) || {}, a = r.apertura || {}, d = semCortaLeer();
+  const viejas = new Map((a.prioridades || []).map(p => [p.id, p]));
+  d.prioridades.forEach(p => { const v = viejas.get(p.id); if (v && v.objId) p.objId = v.objId; });   // no se pierde el vínculo con un objetivo
+  SEM_CORTA = null;
+  guardarSemApertura({ tipo: "apertura", lunes, draft: { foco: d.foco, prioridades: d.prioridades, premio: (r.plan || {}).premio || "", habitosFoco: (a.habitosFoco || []).slice(), nuevas: {}, ambDia: {} } });
+}
+/* «Afinar más»: los 5 pasos, empezando en «Foco y prioridades» con lo que ya escribiste */
+function semCortaAfinar(lunes) {
+  const d = semCortaLeer(); SEM_CORTA = null;
+  openSemApertura(lunes, { desdeCierre: true });
+  if (SEM_WIZ) { SEM_WIZ.draft.foco = d.foco; SEM_WIZ.draft.prioridades = d.prioridades.map(p => Object.assign({ objId: "" }, p)); renderSemWiz(); }
 }
 
 /* -------- Apertura: pasos -------- */
@@ -463,7 +524,7 @@ function guardarSemCierre(w) {
   const extra = n ? textoTriage(n) : "";
   toast(`📅 Semana cerrada · ${d.nota}/10${pagado ? " · +75 ⭐" : ""}${extra ? " · " + extra : ""}`);
   if (typeof cadenaTermino === "function" && cadenaTermino("sem-cierre", w.lunes)) return;
-  if (w.siguiente && !semanaAbierta(w.siguiente)) openSemApertura(w.siguiente, { desdeCierre: true });
+  if (w.siguiente && !semanaAbierta(w.siguiente)) openSemCorta(w.siguiente);
 }
 
 /* ============================================================

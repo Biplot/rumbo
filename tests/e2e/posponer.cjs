@@ -11,6 +11,9 @@ module.exports = async ({ b, ok, errs }) => {
   await p.fill("#r-tareas-per", "Pagar luz\nComprar pan");
   await p.click('[data-action="ritual-save"]'); await p.waitForTimeout(200);
   await p.evaluate(() => openCierreModal());
+  ok(/6 pendientes pasan a mañana/.test(await p.locator("#c-pend-det > summary").innerText()) && !(await p.locator("#c-pend-det").evaluate(d => d.open)),
+    "el cierre resume «6 pendientes pasan a mañana», plegado");
+  await p.click("#c-pend-det > summary"); await p.waitForTimeout(100);
   const filas = await p.locator("#c-triage .triage-row").count();
   ok(filas === 6, "el cierre lista las 6 pendientes (bocado primero): " + filas);
   const fila = txt => p.locator("#c-triage .triage-row", { hasText: txt });

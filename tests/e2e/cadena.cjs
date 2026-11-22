@@ -37,10 +37,14 @@ module.exports = async ({ b, ok, errs }) => {
   const antes = await p.locator("#cad-ir").innerText();
   await p.locator("#cad-0").uncheck(); await p.waitForTimeout(100);
   const despues = await p.locator("#cad-ir").innerText();
-  ok(antes.includes("12 min") && despues.includes("7 min"), "los minutos siguen a lo marcado: " + antes + " → " + despues);
+  ok(antes.includes("8 min") && despues.includes("3 min"), "los minutos siguen a lo marcado (abrir la semana: 1 minuto): " + antes + " → " + despues);
   await p.click('[data-action="cadena-empezar"]'); await p.waitForTimeout(300);
-  ok((await p.locator("#modal .cad-barra small").innerText()).toLowerCase().includes("1 de 2 · abrir la semana") && (await titulo(p)).includes("Planificar la semana"),
-    "sigue con la planificación de la semana, con su barra de avance");
+  ok((await p.locator("#modal .cad-barra small").innerText()).toLowerCase().includes("1 de 2 · abrir la semana") && (await titulo(p)).includes("Tu semana")
+    && await p.locator("#semc-t-2").count() === 1 && await p.locator(".semc-dia").count() === 21,
+    "sigue con tu semana en una pantalla (foco, 3 prioridades con su día), con su barra de avance");
+  ok((await p.locator('[data-action="semc-guardar"]').innerText()).includes("Listo, abrir mi día") && await p.locator('[data-action="semc-afinar"]').count() === 1,
+    "«Listo, abrir mi día» y, para quien quiera, «Afinar más»");
+  await shot(p, "cadena-semana-corta");
 
   // Cerrar a mitad: el día no se abre y la próxima vez vuelve a aparecer
   await p.click('#modal [data-action="close-modal"]'); await p.waitForTimeout(200);
@@ -48,14 +52,11 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('#view [data-action="day-open"]'); await p.waitForTimeout(300);
   ok((await titulo(p)) === "Empieza una semana nueva" && await p.locator("#cad-lista .cad-fila").count() === 2, "al volver, la semana sigue esperando (lo desmarcado, para mañana)");
   await p.click('[data-action="cadena-empezar"]'); await p.waitForTimeout(300);
-  await p.click('[data-action="semw-next"]'); await p.waitForTimeout(150);
-  await p.fill("#sw-foco", "Clientes");
-  await p.fill("#sp-t-0", "Llamar a los 3 clientes nuevos");
-  await p.click('[data-action="semw-next"]'); await p.waitForTimeout(150);
-  await elegirEn(p, "sp-d-0", "2026-11-16"); await p.waitForTimeout(150);
-  await p.click('[data-action="semw-next"]'); await p.waitForTimeout(150);
-  await p.click('[data-action="semw-next"]'); await p.waitForTimeout(150);
-  await p.click('[data-action="semw-finish"]'); await p.waitForTimeout(350);
+  await p.fill("#semc-foco", "Clientes");
+  await p.fill("#semc-t-0", "Llamar a los 3 clientes nuevos");
+  await p.click('.semc-dia[data-i="0"][data-f="2026-11-16"]'); await p.waitForTimeout(100);
+  ok(await p.inputValue("#semc-d-0") === "2026-11-16" && await p.locator('.semc-dia[data-i="0"].is-on').count() === 1, "un toque deja la prioridad para el lunes");
+  await p.click('[data-action="semc-guardar"]'); await p.waitForTimeout(350);
   ok(await p.evaluate(() => !!(STATE.ritual.semanas["2026-11-16"] || {}).apertura), "la semana queda abierta (+75 ⭐)");
   ok((await titulo(p)) === "Ritual de apertura" && (await p.locator("#modal .cad-barra small").innerText()).toLowerCase().includes("2 de 2 · tu día"), "al final, tu día, con la barra en 2 de 2");
   ok(await p.inputValue("#r-mision") === "Llamar a los 3 clientes nuevos" && (await p.locator("#modal").innerText()).includes("Viene de la prioridad"),
@@ -112,10 +113,14 @@ module.exports = async ({ b, ok, errs }) => {
   ok((await p.locator("#modal .cad-barra small").innerText()).toLowerCase().includes("1 de 2 · cerrar la semana"), "sigue con el cierre de la semana");
   for (let i = 0; i < 4; i++) { await p.click('[data-action="semw-next"]'); await p.waitForTimeout(150); }
   await p.click('[data-action="semw-finish"]'); await p.waitForTimeout(350);
-  ok((await p.locator("#modal .cad-barra small").innerText()).toLowerCase().includes("2 de 2 · abrir la semana") && /Paso 2 de 5/i.test(await p.locator("#modal").innerText()),
-    "y con la planificación de la próxima (sin repetir la mirada atrás)");
-  await p.fill("#sw-foco", "Cerrar el año");
-  await p.fill("#sp-t-0", "Enviar el informe");
+  ok((await p.locator("#modal .cad-barra small").innerText()).toLowerCase().includes("2 de 2 · abrir la semana") && (await titulo(p)).includes("Tu semana"),
+    "y con la próxima semana, en una pantalla");
+  await p.fill("#semc-foco", "Cerrar el año");
+  await p.fill("#semc-t-0", "Enviar el informe");
+  // «Afinar más» lleva a los 5 pasos con lo escrito, sin perderlo
+  await p.click('[data-action="semc-afinar"]'); await p.waitForTimeout(250);
+  ok(/Paso 2 de 5/i.test(await p.locator("#modal").innerText()) && await p.inputValue("#sw-foco") === "Cerrar el año" && await p.inputValue("#sp-t-0") === "Enviar el informe"
+    && (await p.locator("#modal .cad-barra small").innerText()).toLowerCase().includes("2 de 2"), "«Afinar más» abre los 5 pasos con tu foco y tus prioridades, dentro de la cadena");
   for (let i = 0; i < 3; i++) { await p.click('[data-action="semw-next"]'); await p.waitForTimeout(150); }
   await p.click('[data-action="semw-finish"]'); await p.waitForTimeout(350);
   const r = await p.evaluate(() => ({ cerrada: !!(STATE.ritual.semanas["2026-11-16"] || {}).cierre, abierta: !!(STATE.ritual.semanas["2026-11-23"] || {}).apertura, lunes: cadenaItems(new Date("2026-11-23T09:00:00")).length }));

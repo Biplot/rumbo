@@ -35,7 +35,8 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 3) Abrir el día desde la misión; el día 2 toca volver; el día 5, la semana despierta Calendario, con «Nuevo»
   await card.locator('.psem-hoy').click(); await p.waitForTimeout(400);
-  await p.fill("#r-sapo", "Enviar la propuesta"); await p.click('[data-action="ritual-save"]'); await p.waitForTimeout(700);
+  ok((await p.locator("#modalTitle").innerText()) === "Abre tu día" && await p.locator("#r-sapo").isHidden(), "cuenta nueva: un solo campo, «Lo más importante de hoy»");
+  await p.fill("#r-mision", "Enviar la propuesta"); await p.click('[data-action="ritual-save"]'); await p.waitForTimeout(700);
   ok(/Esta noche, ciérralo/.test(await p.locator("[data-tour=mision] .psem-hoy").innerText()), "abierto: ahora toca cerrarlo esta noche");
   await p.evaluate(() => { const S = STATE; S.settings.alta = "2026-11-01"; S.ritual.dias["2026-11-02"].cerrado = true; saveState(); go("inicio"); rerender(); });
   await p.waitForTimeout(300);
@@ -44,6 +45,9 @@ module.exports = async ({ b, ok, errs }) => {
     S.habitos.log["2026-11"] = { [S.habitos.defs[0].id]: { 2: true } }; saveState(); go("inicio"); rerender(); });
   await p.waitForTimeout(300);
   ok(/Elige tus 3 prioridades de la semana/.test(await p.locator("[data-tour=mision] .psem-hoy").innerText()), "el día 5, con 3 días cerrados y un hábito: tus 3 prioridades");
+  await p.click("[data-tour=mision] .psem-hoy"); await p.waitForTimeout(300);
+  ok((await p.locator("#modalTitle").innerText()).includes("Tu semana") && await p.locator("#semc-t-0").count() === 1, "el paso abre tu semana en una pantalla (no la sección entera)");
+  await p.evaluate(() => closeModal());
   await p.click("#bbMas"); await p.waitForTimeout(300);
   ok(await p.locator('.mas-mod.is-nuevo[data-route="calendario"]').count() === 1, "despertó Calendario, con «Nuevo»");
   await p.click('.mas-mod[data-route="calendario"]'); await p.waitForTimeout(400);

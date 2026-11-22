@@ -24,7 +24,7 @@ function cadenaEnumerar(xs) { return xs.length <= 1 ? (xs[0] || "") : xs.slice(0
 function cadenaItem(tipo, clave, extra) {
   const it = { id: tipo + ":" + clave, tipo, clave, obligatorio: tipo === "sem-apertura" };
   if (tipo === "sem-cierre") Object.assign(it, { titulo: "Cerrar la semana del " + rangoSemanaTxt(clave), corto: "Cerrar la semana", frase: ["cerrar la semana pasada", "cierras la semana pasada"], pasos: SEM_PASOS.cierre.length, min: 5, pts: 75 });
-  if (tipo === "sem-apertura") Object.assign(it, { titulo: "Abrir la semana del " + rangoSemanaTxt(clave), corto: "Abrir la semana", frase: ["abrir tu semana", "abres tu semana"], pasos: SEM_PASOS.apertura.length, min: 5, pts: 75 });
+  if (tipo === "sem-apertura") Object.assign(it, { titulo: "Abrir la semana del " + rangoSemanaTxt(clave), corto: "Abrir la semana", frase: ["abrir tu semana", "abres tu semana"], pasos: 1, min: 1, pts: 75 });   // v153: una pantalla (openSemCorta)
   if (tipo === "mes-cierre" || tipo === "mes-apertura") {
     const { m } = mesDeKey(clave), cierre = tipo === "mes-cierre";
     const pasos = cierre ? MES_PASOS.cierre.length + (m === 11 ? 1 : 0) : MES_PASOS.apertura.length;
@@ -109,7 +109,7 @@ function openCadenaIntro(items, abrir) {
   const ptsDia = abrir ? (abrir.tipo === "express" ? EXPRESS_MONEDAS.apertura : 50) : 0;
   const filas = items.map((it, i) => `<label class="cad-fila${it.obligatorio ? " is-oblig" : ""}">
       <input type="checkbox" id="cad-${i}" checked ${it.obligatorio ? "disabled" : ""} onchange="cadenaMinutos()">
-      <span class="cad-fila__t"><b>${escapeHtml(it.titulo)}</b><small>${it.pasos} pasos · unos ${it.min} min${it.obligatorio ? " · obligatorio" : ""}</small></span>
+      <span class="cad-fila__t"><b>${escapeHtml(it.titulo)}</b><small>${it.pasos === 1 ? "1 pantalla" : it.pasos + " pasos"} · ${it.min === 1 ? "1 minuto" : "unos " + it.min + " min"}${it.obligatorio ? " · obligatorio" : ""}</small></span>
       <span class="cad-fila__pts">+${it.pts} ⭐</span></label>`).join("");
   const dia = abrir ? `<div class="cad-fila is-dia"><span class="cad-fila__dia" aria-hidden="true">★</span>
       <span class="cad-fila__t"><b>Abrir tu ${cadenaDiaNombre()}</b><small>siempre al final</small></span><span class="cad-fila__pts">+${ptsDia} ⭐</span></div>` : "";
@@ -168,7 +168,7 @@ function cadenaPaso() {
   const it = c.items[c.i], prev = c.items[c.i - 1];
   if (!it) return cadenaFin();
   if (it.tipo === "sem-cierre") openSemCierre(it.clave, null);
-  else if (it.tipo === "sem-apertura") openSemApertura(it.clave, { desdeCierre: !!(prev && prev.tipo === "sem-cierre") });
+  else if (it.tipo === "sem-apertura") openSemCorta(it.clave);   // v153: la semana en una pantalla («Afinar más» abre los 5 pasos)
   else if (it.tipo === "mes-cierre") openMesCierre(it.clave);
   else if (it.tipo === "mes-apertura") openMesApertura(it.clave);
   else if (it.tipo === "tri-cierre") openTriCierre(it.clave, null);

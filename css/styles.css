@@ -4308,3 +4308,36 @@ button.reabrir-tira__d:hover { border-color: var(--cian); }
 .psem-hoy__t { font-weight: 700; font-size: 15px; }
 .psem-hoy__d { font-size: 12.5px; font-weight: 700; color: var(--text-soft); white-space: nowrap; }
 button.check { cursor: pointer; padding: 0; font: inherit; -webkit-appearance: none; appearance: none; }
+
+/* ===== Entrega 2 (v153): abrir, cerrar y marcar más rápido ===== */
+.apert-deuda { display: grid; gap: 8px; margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--coral); background: var(--coral-soft); }
+.apert-deuda__f { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; font-size: 14px; }
+.apert-deuda__b { display: flex; gap: 6px; align-items: center; }
+.apert-deuda__b .btn { padding: 7px 12px; font-size: 13px; }
+.apert-recientes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.apert-reciente { border: 1px solid var(--line); background: var(--surface-2); color: var(--text-soft); border-radius: 999px; padding: 6px 11px; font: inherit; font-size: 12.5px; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.apert-lo .input { font-size: 16px; font-weight: 600; }
+.apert-tareas { display: grid; gap: 6px; }
+.apert-tarea { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); font-size: 14px; }
+.apert-tarea span { min-width: 0; overflow-wrap: anywhere; }
+.apert-tarea .icon-btn { width: 30px; height: 30px; flex: none; }
+.btn-link { background: none; border: 0; padding: 0; color: var(--cian); font: inherit; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+/* El cierre corto */
+.cierre-habs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cierre-hab { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); font: inherit; font-size: 13.5px; cursor: pointer; }
+.cierre-hab.is-on { border-color: var(--st-ok, #2F9E74); background: color-mix(in srgb, var(--st-ok, #2F9E74) 12%, var(--surface)); font-weight: 600; }
+.cierre-pend > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 12px; background: var(--surface-2); font-size: 14px; }
+.cierre-pend > summary::-webkit-details-marker { display: none; }
+.cierre-pend__c { color: var(--cian); font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.cierre-pend[open] .cierre-pend__c { visibility: hidden; }
+.hab-mas { font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+.hab-ayer { display: grid; gap: 4px; margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.hab-pocos { border: 1px solid var(--coral, #F4AE3D); }
+/* La semana en una pantalla */
+.semc-p { display: grid; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.semc-p:last-of-type { border-bottom: 0; }
+.semc-dias { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.semc-dia { height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text-soft); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.semc-dia.is-on { background: var(--cian); border-color: var(--cian); color: var(--on-cian, #fff); }
+.semc-dia:disabled { opacity: .35; cursor: default; }
+.ruta__deuda { color: var(--coral); font-weight: 600; }

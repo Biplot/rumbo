@@ -53,10 +53,11 @@ module.exports = async ({ b, ok, errs }) => {
   ok(st.ele.tipo === "asiatico" && st.ele.nombre === "Tito", "su elefante asiático se llama Tito");
 
   // Al terminar, directo a abrir su primer día (sin recorrido de globos)
-  ok(await p.locator("#tour").count() === 0 && (await p.locator("#modalTitle").innerText()) === "Ritual de apertura", "al terminar se abre su primer día, sin recorrido encima");
+  ok(await p.locator("#tour").count() === 0 && (await p.locator("#modalTitle").innerText()) === "Abre tu día" && await p.locator("#r-sapo").isHidden(), "al terminar se abre su primer día (un solo campo), sin recorrido encima");
   ok(await p.locator("#r-mas").count() === 1 && !(await p.locator("#r-mas").evaluate(d => d.open)) && await p.inputValue("#r-pilar") === "", "abrir el día: pilar, energía y a quién sirves, plegados en «Más para tu día» (y sin pilar elegido)");
-  ok(/Un bocado a la vez/.test(await p.locator("#modal").innerText()), "el primer bocado se explica en una línea");
-  await p.fill("#r-sapo", "Enviar la propuesta");
+  ok(/es tu misión y tu primer bocado/.test(await p.locator("#modal").innerText()) && await p.locator('#modal [data-action="apertura-modo"][data-v="dos"]').count() === 1,
+    "misión y primer bocado en un solo campo, explicado en una línea (y se pueden separar)");
+  await p.fill("#r-mision", "Enviar la propuesta");
   await p.click('[data-action="ritual-save"]'); await p.waitForTimeout(900);
   const dia = await p.evaluate(() => ({ r: STATE.ritual.dias[todayISO()], pil: Object.values(STATE.ritual.pilares).reduce((a, b) => a + b, 0) }));
   ok(dia.r.hecho && dia.r.pilar === "" && dia.pil === 0, "el día queda abierto sin inventar un pilar");
@@ -123,7 +124,7 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('[data-action="auth-register"]'); await p.waitForSelector("#app:not([hidden])"); await p.waitForTimeout(800);
     await p.click('#modal [data-action="arma-saltar"]'); await p.waitForTimeout(900);
     const st = await p.evaluate(() => ({ on: STATE.settings.onboarded, n: STATE.habitos.defs.length, todo: STATE.settings.bienvenida.verTodo, tour: !!TOUR, titulo: document.getElementById("modalTitle").innerText }));
-    ok(st.on && st.n === 0 && st.todo && !st.tour && st.titulo === "Ritual de apertura", "saltar: queda lista, sin hábitos de fábrica, con todo a la vista y directo a abrir su día: " + JSON.stringify(st));
+    ok(st.on && st.n === 0 && st.todo && !st.tour && st.titulo === "Abre tu día", "saltar: queda lista, sin hábitos de fábrica, con todo a la vista y directo a abrir su día: " + JSON.stringify(st));
     await ctx.close();
   }
 

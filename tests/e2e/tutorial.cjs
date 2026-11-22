@@ -15,7 +15,7 @@ module.exports = async ({ b, ok, errs }) => {
     for (let i = 0; i < 2; i++) { await p.click('#modal [data-action="arma-sig"]'); await p.waitForTimeout(200); }
     ok((await p.locator("#modalTitle").innerText()).includes("¿Cuándo te aviso?") && await p.locator("#arma-manana").count() === 1, "los avisos se ofrecen en la bienvenida, con su hora");
     await p.click('#modal [data-action="arma-fin"]'); await p.waitForTimeout(900);
-    ok(await p.locator("#tour").count() === 0 && (await p.locator("#modalTitle").innerText()) === "Ritual de apertura", "al terminar la bienvenida se abre su primer día (el recorrido queda en el «?»)");
+    ok(await p.locator("#tour").count() === 0 && (await p.locator("#modalTitle").innerText()) === "Abre tu día", "al terminar la bienvenida se abre su primer día (el recorrido queda en el «?»)");
     await p.evaluate(() => { closeModal(); tourIniciar("general"); }); await p.waitForTimeout(500);
     ok(await p.locator("#tour .tour-pop").isVisible(), "el recorrido guiado sigue disponible");
     ok(await p.locator("#modalOverlay").isHidden(), "nada se abre encima del recorrido");

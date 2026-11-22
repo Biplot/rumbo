@@ -310,7 +310,7 @@ function psIr(id) {
   if (id === "cerrar") { const iso = typeof puedeCerrarDia === "function" && puedeCerrarDia(todayISO()) ? todayISO() : null; return iso ? openCierreModal(iso) : toast("Primero abre tu día 🌅", true); }
   if (id === "volver") return dayState() === "por-abrir" ? openRitualModal() : dayState() === "cerrado" ? toast("Hoy ya lo cerraste ✓") : openCierreModal(todayISO());
   if (id === "habito") return psCerrados(STATE) >= 3 ? go("habitos") : (dayState() === "por-abrir" ? openRitualModal() : openCierreModal(todayISO()));
-  if (id === "semana") return go("semana");
+  if (id === "semana") return openSemCorta(agLunes(todayISO()));   // tus 3 prioridades, en una pantalla
   if (id === "objetivo") { go("metas"); return setTimeout(() => { const el = document.getElementById("mt-mes-" + new Date().getMonth()); if (el) { el.scrollIntoView({ block: "center" }); el.focus({ preventScroll: true }); } }, 350); }
   if (id === "plata") return go("finanzas");
   if (id === "mas") { verTodasLasSecciones(); setTimeout(() => { openMas(); toast("Estas son todas tus secciones. Con Personalizar ocultas las que no uses."); }, 200); return; }

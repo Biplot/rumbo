@@ -99,6 +99,7 @@ function openExpressApertura(op) {
   const energia = r.energia || 3;
   openModal("⚡ Abre tu día · express", `
     ${typeof cadenaBarraDia === "function" ? cadenaBarraDia(op) : ""}
+    ${!r.hecho && typeof pendientesEnAperturaHtml === "function" ? pendientesEnAperturaHtml() : ""}
     <div class="field"><label>${BOCADO.emoji} Tu primer bocado</label>
       ${cands.length ? `<div class="rapidas" style="margin-bottom:8px" role="group" aria-label="Usar una sugerida">${cands.map(c => `<button type="button" class="xp-cand" data-txt="${escapeAttr(c.txt)}" data-amb="${c.ambito}" onclick="expressElegir(this)">${AMBITOS[c.ambito].icon} ${escapeHtml(c.txt)}</button>`).join("")}</div>` : ""}
       <div class="row" style="gap:8px">${elAmbito("xp-amb", amb, { compacto: true, label: "Tu primer bocado: ¿profesional o personal?" })}<input class="input" id="xp-sapo" value="${escapeAttr(sapo)}" placeholder="La tarea que más mueve la aguja hoy" aria-label="Tu primer bocado" style="flex:1;min-width:0"></div></div>

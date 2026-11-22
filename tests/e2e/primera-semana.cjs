@@ -72,8 +72,12 @@ module.exports = async ({ b, ok, errs }) => {
   await shot(p, "semana-tendencias");
   await p.evaluate(() => go("finanzas")); await p.waitForTimeout(500);
   ok(/Tu plata, en 2 minutos al mes/.test(await p.locator("#view").innerText()), "Finanzas: «Tu plata, en 2 minutos al mes»");
+  ok(await p.locator(".habit-grid").count() === 0 && await p.locator('#view [data-action="alc-nueva"]').count() >= 1 && await p.locator('[data-action="fin-ver-todo"]').count() === 1,
+    "sin datos, Finanzas muestra solo lo que enseña (el mes y tu primera alcancía); lo vacío, detrás de «Ver todo»");
+  await p.click('[data-action="fin-ver-todo"]'); await p.waitForTimeout(300);
   const filas = await p.evaluate(() => [...document.querySelectorAll(".habit-grid tbody tr td.name")].map(t => t.textContent.trim()));
-  ok(filas.join() === "Nov,Dic" && /Desde noviembre/.test(await p.locator("#view").innerText()), "el seguimiento parte en noviembre, el mes en que llegó: " + filas.join(" "));
+  ok(filas.join() === "Nov" && /Desde noviembre/.test(await p.locator("#view").innerText()), "el seguimiento parte en noviembre, el mes en que llegó, sin los meses que aún no llegan: " + filas.join(" "));
+  await p.evaluate(() => { FIN_VER_TODO = false; });
   await p.fill('[data-ensena="finanzas"] input >> nth=0', "900000"); await p.press('[data-ensena="finanzas"] input >> nth=0', "Tab"); await p.waitForTimeout(200);
   ok(await p.evaluate(() => datosAnio(STATE, 2026).finanzas.meses[10].ingreso) === 900000, "lo que anota en la tarjeta queda en noviembre");
   await p.evaluate(() => go("metas")); await p.waitForTimeout(400);

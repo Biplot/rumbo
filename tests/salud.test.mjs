@@ -25,4 +25,15 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(m.recetas.map(r => r.nombre).sort().join(), "Cazuela,Pasta al pesto,Tortilla");
     assert.equal(m.entrenamiento.registro.length, 2);
   });
+
+  test("v154: tus hábitos de ejercicio cuentan como días entrenados (sin duplicar el día con un entrenamiento)", () => {
+    const S = migrate(defaultState()), dias = G("diasEjercicioMes"), habs = G("habitosEjercicio");
+    S.habitos.defs = [{ id: "h1", nombre: "Deporte", icon: "🏋️", frecuencia: { tipo: "diario" } }, { id: "h2", nombre: "Leer", icon: "📖", frecuencia: { tipo: "diario" } },
+      { id: "h3", nombre: "Mi rutina", icon: "🏃", frecuencia: { tipo: "diario" } }];
+    assert.equal(habs(S).map(h => h.id).join(), "h1,h3", "por el nombre o por el ícono");
+    S.habitos.log = { "2026-11": { h1: { 3: true, 4: true }, h2: { 5: true }, h3: { 6: true } } };
+    S.entrenamiento.registro = [{ id: "e1", fecha: "2026-11-04" }, { id: "e2", fecha: "2026-11-09" }];
+    assert.equal(dias(2026, 10, S), 4, "3, 4, 6 y 9 de noviembre");
+    assert.equal(dias(2026, 9, S), 0);
+  });
 }

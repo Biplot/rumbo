@@ -30,6 +30,7 @@ function monthNav(current, action, sel) {
 /* ============================================================
    FINANZAS
    ============================================================ */
+let FIN_VER_TODO = false;
 function renderFinanzas() {
   const f = STATE.finanzas;                                   // lo global: meta mensual, porqué y gastos
   const y = anioVista(), fy = datosAnio(STATE, y).finanzas, pre = rutaAnio(y);   // lo del año
@@ -39,6 +40,14 @@ function renderFinanzas() {
 
   const ensena = y === anioActual() && typeof finSinDatos === "function" && finSinDatos();   // nada anotado: primero, cómo (bienvenida.js)
   const desde = typeof finDesdeMes === "function" ? finDesdeMes(y) : 0;   // los meses antes de la cuenta no se muestran vacíos
+  // v154: sin nada anotado, solo lo que enseña (el mes, tus alcancías y tus deseos); lo vacío se esconde hasta que quieras verlo
+  if (ensena && !FIN_VER_TODO) return `
+  ${selectorAnio()}
+  <div style="margin-bottom:18px">${finEnsenaHtml(pre)}</div>
+  ${typeof alcFinanzasHtml === "function" ? alcFinanzasHtml() : ""}
+  ${typeof deseosHtml === "function" ? deseosHtml() : ""}
+  <button class="btn-ghost btn-block mt-16" data-action="fin-ver-todo">Ver todo Finanzas (metas, gastos recurrentes y los 12 meses)</button>`;
+  const hastaMes = y === anioActual() ? new Date().getMonth() : 11;   // los meses que aún no llegan, solo si ya tienen algo
   return `
   ${selectorAnio()}
   ${ensena ? `<div style="margin-bottom:18px">${finEnsenaHtml(pre)}</div>` : ""}
@@ -101,7 +110,7 @@ function renderFinanzas() {
           <thead><tr><th class="name"></th><th>Ingreso</th><th>Gasto</th><th>Ahorro</th></tr></thead>
           <tbody>
             ${fy.meses.map((m, i) => {
-              if (i < desde && !(m.ingreso || m.gasto)) return "";
+              if ((i < desde || i > hastaMes) && !(m.ingreso || m.gasto || m.ahorro || m.metaAhorro)) return "";
               const ahorro = (m.ingreso || 0) - (m.gasto || 0);
               return `<tr>
                 <td class="name">${MESES_CORTO[i]}</td>

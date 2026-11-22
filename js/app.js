@@ -1659,6 +1659,7 @@ function onClick(e) {
 
     /* Vida · Listas */
     case "lista-add": openListaModal(); break;
+    case "fin-ver-todo": FIN_VER_TODO = true; rerender(); break;
     case "apr-lista-crear": STATE.settings.aprendLista = true; saveState(); closeModal(); if (CURRENT !== "listas") go("listas"); else rerender(); toast("🧠 Tu lista de aprendizajes está en Listas"); break;
     case "apr-lista-quitar": delete STATE.settings.aprendLista; saveState(); rerender(); break;
     case "lista-save": saveLista(); break;

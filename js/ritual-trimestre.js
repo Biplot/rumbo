@@ -261,6 +261,11 @@ function renderRitualTrimestre() {
       <div class="item-row__sub">${x.cierre && x.cierre.logro ? escapeHtml(x.cierre.logro) : ""}</div></div>
       ${x.cierre ? `<span class="chip chip--done">Cerrado ✓ ${x.cierre.nota}/10</span>` : ""}</div>`;
   }).join("");
+  // v154: sin trimestre abierto, sin objetivos ni trimestres anteriores, una tarjeta que explica (antes, una pantalla de ceros)
+  if (!a && !metas.length && !hist) return `<div class="card ensena" data-ensena="ritual-trimestre"><div class="ensena__txt">
+    <div class="card__title">Cada 3 meses, una mirada más larga</div>
+    <p class="text-sm soft mt-8">Al empezar un trimestre eliges tu foco y de 3 a 5 objetivos grandes; tus objetivos de cada mes los empujan. Al terminarlo, revisas cómo te fue. Se ofrece solo al abrir tu día.</p>
+    <div class="row-wrap mt-16">${acciones.join("")}</div></div></div>`;
   return `
   <div class="card" style="background:linear-gradient(120deg, var(--cian-soft), var(--surface))">
     <div class="flex-between" style="flex-wrap:wrap;gap:12px">
@@ -271,7 +276,7 @@ function renderRitualTrimestre() {
     </div>
   </div>
   <div class="grid grid-2 mt-24">
-    <div class="card"><div class="card__head"><div class="card__title">🧭 Metas del trimestre</div><a class="card__hint" href="#metas">Ver objetivos →</a></div>
+    <div class="card"><div class="card__head"><div class="card__title">🧭 Objetivos del trimestre</div><a class="card__hint" href="#metas">Ver objetivos →</a></div>
       ${metas.length ? metas.map(o => metaRow(o, "tri", q, y)).join("") : '<div class="empty">Define tus objetivos al abrir el trimestre.</div>'}</div>
     <div class="card"><div class="card__title">📊 El trimestre hasta hoy</div><div class="mt-16">${resumenTrimestreHtml(resumenTrimestre(y, q))}</div></div>
   </div>

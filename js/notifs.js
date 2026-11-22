@@ -100,36 +100,106 @@ async function soltarDispositivoPush() {
   PUSH_DISPOSITIVO = null;
 }
 
+/* -------- La pantalla (v152): activar primero, configurar después --------
+   Apagadas: las 2 horas, una vista previa y «Activar» (los demás avisos, plegados).
+   Bloqueadas: los pasos para tu aparato y «Ya lo cambié». Activas: la prueba arriba y todos los avisos.
+   Las horas se guardan solas al cambiarlas (notifHoraCambio). */
+let NOTIF_MAS = false;   // «Elegir qué avisos» abierto (se mantiene al tocar un interruptor)
+function notifEstado() {
+  const soporte = soportePush(), perm = notifPerm();
+  if (soporte === "ios_instalar") return "instalar";
+  if (soporte === "no") return "nosoporte";
+  if (perm === "denied") return "bloqueadas";
+  if (perm === "granted" && PUSH_DISPOSITIVO === true) return "activas";
+  if (perm === "granted" && PUSH_DISPOSITIVO === null) return "revisando";
+  return "apagadas";
+}
+/* Cómo se desbloquea, según el aparato */
+function notifPasosBloqueo() {
+  if (esIOS()) return ["Abre los <b>Ajustes</b> del iPhone", "Toca <b>Notificaciones</b> y busca <b>Rumbo</b>", "Activa <b>Permitir notificaciones</b>"];
+  if (/android/i.test(navigator.userAgent)) return ["Toca el <b>candado</b> (o los tres puntos) junto a la dirección", "Entra a <b>Permisos</b> o <b>Configuración del sitio</b>", "En <b>Notificaciones</b>, elige <b>Permitir</b>"];
+  return ["Haz clic en el <b>candado</b> a la izquierda de la dirección", "Busca <b>Notificaciones</b>", "Elige <b>Permitir</b> y vuelve aquí"];
+}
+function notifPasosHtml(pasos) { return `<ol class="notif-pasos">${pasos.map(t => `<li>${t}</li>`).join("")}</ol>`; }
+/* Cómo se ve un aviso (con lo que anotaste para hoy, si hay) */
+function notifVistaPrevia() {
+  const r = (STATE.ritual.dias || {})[todayISO()] || {}, mision = r.mision || "";
+  const quien = typeof nombreDelElefante === "function" && nombreDelElefante();
+  return `<div class="notif-previa" aria-hidden="true">
+    <span class="notif-previa__ico">${typeof elefanteCaraSVG === "function" && typeof eleEstado === "function" && eleEstado().tipo ? elefanteCaraSVG() : "🐘"}</span>
+    <span class="notif-previa__t"><small>Rumbo · ahora</small><b>🌅 Buenos días${quien ? ", de " + escapeHtml(quien) : ""}</b><span>${mision ? `Hoy: «${escapeHtml(mision)}». Ábrelo en 30 segundos.` : "Abre tu día: lo más importante primero."}</span></span></div>`;
+}
+function notifHorasHtml(n) {
+  return `<div class="notif-horas">
+    <label class="field"><span>🌅 Mañana · abrir el día</span><input class="input" type="time" id="notif-manana" value="${n.manana || AVISOS_HORAS.manana}" onchange="notifHoraCambio(this)"></label>
+    <label class="field"><span>🌙 Noche · cerrar el día</span><input class="input" type="time" id="notif-noche" value="${n.noche || AVISOS_HORAS.noche}" onchange="notifHoraCambio(this)"></label></div>`;
+}
 function renderNotificaciones() {
   const n = STATE.settings.notif || {};
-  const soporte = soportePush();
-  const perm = notifPerm();
-  const activo = perm === "granted" && PUSH_DISPOSITIVO === true;
-  if (soporte === "si" && !activo) pushClave().catch(() => {});   // pedirla antes, para activar al tiro
+  const est = notifEstado();
+  if (est === "apagadas") pushClave().catch(() => {});   // pedirla antes, para activar al tiro
+  const nota = `<p class="text-xs muted mt-16">📱 Se activan en cada dispositivo por separado. En iPhone, Rumbo tiene que estar instalada en la pantalla de inicio.</p>`;
 
-  let banner, tono = "notif-banner";
-  if (soporte === "ios_instalar") { banner = "En iPhone, las notificaciones funcionan con Rumbo <b>instalada en la pantalla de inicio</b>: en Safari toca Compartir → Agregar a inicio y abre Rumbo desde ese ícono."; tono += " is-warn"; }
-  else if (soporte === "no") { banner = "Este navegador no soporta notificaciones."; tono += " is-warn"; }
-  else if (perm === "denied") { banner = "El permiso está bloqueado. Actívalo en los ajustes de notificaciones de tu navegador/teléfono para Rumbo."; tono += " is-warn"; }
-  else if (activo) { banner = "✅ Notificaciones activadas en este dispositivo."; tono += " is-ok"; }
-  else if (PUSH_DISPOSITIVO === null && perm === "granted") { banner = "Revisando este dispositivo…"; }
-  else if (n.enabled && !n.version) { banner = "Renovamos cómo llegan los avisos: toca <b>Activar</b> otra vez en cada dispositivo donde quieras recibirlos."; tono += " is-warn"; }
-  else { banner = "Actívalas para recibir tus recordatorios de mañana y noche."; }
+  if (est === "activas") return `
+  <div class="card">
+    <div class="card__title">🔔 Tus avisos</div>
+    <div class="notif-banner is-ok mt-16">✅ Notificaciones activadas en este dispositivo.</div>
+    <div class="row-wrap mt-16" style="gap:8px">
+      <button class="btn btn--soft" data-action="notif-test">Enviar una notificación de prueba</button>
+      <button class="btn-ghost" data-action="notif-disable">Desactivar en este dispositivo</button></div>
+  </div>
+  ${renderAvisos(n)}${nota}`;
 
+  if (est === "bloqueadas") return `
+  <div class="card">
+    <div class="card__title">🔔 Tus avisos están bloqueados</div>
+    <div class="notif-banner is-warn mt-16">El permiso de notificaciones está bloqueado para Rumbo. Se desbloquea así:</div>
+    ${notifPasosHtml(notifPasosBloqueo())}
+    <button class="btn btn--primary btn-block mt-16" data-action="notif-revisar">Ya lo cambié, revisar</button>
+  </div>
+  <details class="notif-mas mt-16" ${NOTIF_MAS ? "open" : ""} ontoggle="NOTIF_MAS = this.open"><summary>Elegir qué avisos</summary>${renderAvisos(n)}</details>${nota}`;
+
+  if (est === "instalar") return `
+  <div class="card">
+    <div class="card__title">🔔 Para que te avise, instala Rumbo</div>
+    <div class="notif-banner is-warn mt-16">En iPhone, los avisos llegan con Rumbo <b>instalada en la pantalla de inicio</b>:</div>
+    ${notifPasosHtml(["En Safari, toca <b>Compartir</b> (el cuadrado con la flecha)", "Elige <b>Agregar a inicio</b>", "Abre Rumbo desde ese ícono y entra con tu mismo correo"])}
+    <button class="btn btn--primary btn-block mt-16" data-action="notif-enable" disabled>Activar notificaciones</button>
+  </div>
+  <details class="notif-mas mt-16" ${NOTIF_MAS ? "open" : ""} ontoggle="NOTIF_MAS = this.open"><summary>Elegir qué avisos</summary>${renderAvisos(n)}</details>${nota}`;
+
+  if (est === "nosoporte") return `
+  <div class="card"><div class="card__title">🔔 Tus avisos</div>
+    <div class="notif-banner is-warn mt-16">Este navegador no soporta notificaciones. Prueba con Chrome, o con Rumbo instalada en tu celular.</div></div>${nota}`;
+
+  const renovar = n.enabled && !n.version;
   return `
   <div class="card">
-    <div class="card__title">🔔 Recordatorios del ritual</div>
-    <p class="soft mt-8">Un aviso en la <b>mañana</b> para iniciar tu día y otro en la <b>noche</b> para cerrarlo — aunque tengas la app cerrada.</p>
-    <div class="${tono} mt-16">${banner}</div>
-    ${activo
-      ? `<button class="btn btn--soft btn-block mt-16" data-action="notif-disable">Desactivar en este dispositivo</button>`
-      : `<button class="btn btn--primary btn-block mt-16" data-action="notif-enable" ${soporte !== "si" || perm === "denied" ? "disabled" : ""}>Activar notificaciones</button>`}
+    <div class="card__title">🔔 Tus avisos</div>
+    <div class="notif-banner mt-16${renovar ? " is-warn" : ""}">${est === "revisando" ? "Revisando este dispositivo…" : renovar ? "Renovamos cómo llegan los avisos: toca <b>Activar</b> otra vez en cada dispositivo donde quieras recibirlos." : "Actívalas para recibir tus recordatorios de mañana y noche."}</div>
+    <p class="soft mt-16">Te escribo 2 veces al día: en la mañana para abrir tu día y en la noche para cerrarlo. No llegan si ya lo hiciste.</p>
+    ${notifVistaPrevia()}
+    ${notifHorasHtml(n)}
+    <button class="btn btn--primary btn-block mt-16" data-action="notif-enable">Activar notificaciones</button>
+    ${typeof instalarDisponible === "function" && instalarDisponible() ? `<button class="btn-ghost btn-block mt-8" data-action="app-instalar">📲 Instalar Rumbo en tu pantalla de inicio</button>` : ""}
   </div>
-
-  ${renderAvisos(n)}
-
-  ${activo ? `<button class="btn-ghost btn-block mt-16" data-action="notif-test">Enviar una notificación de prueba</button>` : ""}
-  <p class="text-xs muted mt-16">📱 Se activan en cada dispositivo por separado. En iPhone, Rumbo tiene que estar instalada en la pantalla de inicio.</p>`;
+  <details class="notif-mas mt-16" ${NOTIF_MAS ? "open" : ""} ontoggle="NOTIF_MAS = this.open"><summary>Elegir qué avisos</summary>${renderAvisos(n, { sinHorasDia: true })}</details>${nota}`;
+}
+/* «Ya lo cambié»: vuelve a leer el permiso; si ya está permitido, activa */
+function notifRevisar() {
+  if (notifPerm() === "granted") return enableNotifications();
+  rerender();
+  toast(notifPerm() === "denied" ? "Todavía aparece bloqueado. Revisa los pasos." : "Listo: ahora puedes activarlas", notifPerm() === "denied");
+}
+/* Las horas se guardan al cambiarlas (sin redibujar: no se pierde nada) */
+const NOTIF_CAMPO = { "notif-manana": "manana", "notif-noche": "noche", "notif-mediodia": "mediodia", "notif-habitos": "habitosHora" };
+function notifHoraCambio(el) {
+  const k = el && NOTIF_CAMPO[el.id]; if (!k || !el.value) return;
+  const n = STATE.settings.notif = STATE.settings.notif || { subs: [] };
+  n[k] = el.value;
+  try { n.tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
+  saveState();
+  toast("Hora guardada ⏰");
 }
 
 /* ---------- La cara de tu elefante en los avisos (Android y computador; en iPhone, Apple muestra solo el ícono de la app) ----------
@@ -175,13 +245,21 @@ const AVISOS_NIVEL_TXT = {
 /* Hora editable al lado del aviso (mañana y noche siempre; mediodía y hábitos cuando están encendidos) */
 const AVISOS_HORA = { manana: ["notif-manana", "manana"], noche: ["notif-noche", "noche"], mediodia: ["notif-mediodia", "mediodia"], habitos: ["notif-habitos", "habitosHora"] };
 
-function renderAvisos(n) {
+/* ¿Este aviso aplica a esta cuenta? Cumpleaños y contactos, si tienes a alguien en Relaciones; Amigos, si tienes amigos */
+function avisoAplica(k) {
+  if (k === "cumpleanos" || k === "contactos") return ((STATE.vida && STATE.vida.relaciones) || []).length > 0;
+  if (k === "amigos") { const l = typeof AMIGOS !== "undefined" && AMIGOS.lista; return !l || !!((l.amigos || []).length || (l.recibidas || []).length || (l.enviadas || []).length); }
+  return true;
+}
+function renderAvisos(n, op) {
+  op = op || {};
   const act = avisosActivos(n), nivel = nivelAvisos(n);
   const semanaTxt = "El domingo a tu hora de la noche, por si quieres dejar lista tu semana al cerrar el día, y el lunes en la mañana si aún no la abres.";
   const fila = k => {
     const [ic, titulo, desc] = AVISOS_INFO[k];
     const h = AVISOS_HORA[k], conHora = h && (k === "manana" || k === "noche" || act[k]);
-    const hora = conHora ? `<input class="input aviso__hora" type="time" id="${h[0]}" value="${n[h[1]] || AVISOS_HORAS[k === "habitos" ? "habitos" : k]}" aria-label="Hora: ${titulo}">` : "";
+    const hora = conHora && !(op.sinHorasDia && (k === "manana" || k === "noche"))   // apagadas: las de mañana y noche ya están arriba
+      ? `<input class="input aviso__hora" type="time" id="${h[0]}" value="${n[h[1]] || AVISOS_HORAS[k === "habitos" ? "habitos" : k]}" aria-label="Hora: ${titulo}" onchange="notifHoraCambio(this)">` : "";
     return `<div class="aviso">
       <div class="aviso__txt"><span class="aviso__t">${ic} ${titulo}</span><span class="text-xs muted">${k === "semana" ? semanaTxt : desc}</span></div>
       <label class="sw"><input type="checkbox" role="switch" data-action="notif-aviso" data-k="${k}" ${act[k] ? "checked" : ""} aria-label="${titulo}"><span></span></label>
@@ -194,8 +272,8 @@ function renderAvisos(n) {
     <div class="seg seg--full mt-16" role="group" aria-label="Nivel de avisos">${[["esencial", "Lo esencial"], ["recomendado", "Recomendado"], ["todo", "Todo"]]
       .map(([k, l]) => `<button class="${nivel === k ? "is-active" : ""}" aria-pressed="${nivel === k}" data-action="notif-nivel" data-n="${k}">${l}</button>`).join("")}</div>
     <p class="text-xs muted mt-8">${AVISOS_NIVEL_TXT[nivel]} Valen para todos tus dispositivos.</p>
-    ${AVISOS_GRUPOS.map(([g, ks]) => `<div class="aviso-grupo">${g}</div>${ks.map(fila).join("")}`).join("")}
-    <button class="btn btn--cian btn-block mt-16" data-action="notif-times">Guardar horarios</button>
+    ${AVISOS_GRUPOS.map(([g, ks]) => { const v = ks.filter(avisoAplica); return v.length ? `<div class="aviso-grupo">${g}</div>${v.map(fila).join("")}` : ""; }).join("")}
+    <p class="text-xs muted mt-8">Las horas se guardan solas al cambiarlas.</p>
   </div>`;
 }
 

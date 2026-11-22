@@ -17,7 +17,14 @@ module.exports = async ({ b, ok, errs }) => {
   ok(pedidas === 1, "la clave pública se pide al servidor de la app (api/push/)");
   ok(await p.locator('[data-action="notif-test"]').count() === 0, "la prueba solo aparece con el dispositivo activado");
 
+  ok(await p.locator("#notif-manana").isVisible() && await p.locator(".notif-previa").count() === 1 && await p.locator('[data-action="notif-times"]').count() === 0,
+    "apagadas: las 2 horas y una vista previa del aviso arriba, sin «Guardar horarios»");
+  ok(await p.locator(".notif-mas").count() === 1 && !(await p.locator(".notif-mas").evaluate(d => d.open)), "los demás avisos, plegados en «Elegir qué avisos»");
+  await p.fill("#notif-manana", "07:15"); await p.locator("#notif-manana").dispatchEvent("change"); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => STATE.settings.notif.manana) === "07:15", "la hora se guarda sola al cambiarla");
+
   // 1b) Qué avisos recibir: niveles de un toque e interruptores, guardados en la cuenta
+  await p.click(".notif-mas > summary"); await p.waitForTimeout(150);
   ok(await p.locator('[data-action="notif-nivel"][data-n="recomendado"].is-active').count() === 1, "por defecto, el nivel Recomendado (como siempre)");
   ok(await p.locator('[data-action="notif-aviso"][data-k="elefante"]').isChecked() && /Tu elefante te escribe/.test(await p.locator(".card", { hasText: "Qué avisos" }).innerText())
     && /Como mucho uno al día/.test(await p.locator(".card", { hasText: "Qué avisos" }).innerText()), "«Tu elefante te escribe» viene encendido en Recomendado y dice que es como mucho uno al día");
@@ -29,8 +36,9 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click('[data-action="notif-aviso"][data-k="habitos"]'); await p.waitForTimeout(200);
   ok(await p.locator("#notif-habitos").inputValue() === "20:00" && (await p.locator(".card", { hasText: "Qué avisos" }).innerText()).includes("Elegiste tus propios avisos"),
     "encender hábitos muestra su hora sugerida y el nivel pasa a personalizado");
-  await p.fill("#notif-habitos", "19:30"); await p.click('[data-action="notif-times"]'); await p.waitForTimeout(200);
-  ok(await p.evaluate(() => STATE.settings.notif.habitosHora) === "19:30", "guarda la hora de los hábitos");
+  await p.fill("#notif-habitos", "19:30"); await p.locator("#notif-habitos").dispatchEvent("change"); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => STATE.settings.notif.habitosHora === "19:30" && STATE.settings.notif.manana === "07:15"), "guarda la hora de los hábitos (y la de la mañana no se perdió al tocar un interruptor)");
+  ok(await p.locator('[data-k="cumpleanos"]').count() === 0 && await p.locator('[data-k="contactos"]').count() === 0, "sin nadie en Relaciones, no aparecen los avisos de cumpleaños ni de contactos");
   await p.click('[data-action="notif-nivel"][data-n="todo"]'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => Object.values(avisosActivos(STATE.settings.notif)).every(Boolean) && !!STATE.settings.notif.mediodia), "Todo enciende cada aviso (mediodía con su hora sugerida)");
   await shot(p, "notificaciones-avisos");
@@ -45,6 +53,17 @@ module.exports = async ({ b, ok, errs }) => {
   await p.evaluate(() => doLogout()); await p.waitForTimeout(400);
   ok(await p.locator("#authScreen").isVisible(), "cerrar sesión funciona igual");
   await ctx.close();
+
+  // 3b) Permiso bloqueado: los pasos para desbloquearlo y «Ya lo cambié» (antes, un botón que no hacía nada)
+  const bl = await nuevoContexto(b, { fecha: "2026-10-15T10:00:00", w: 390, h: 844 });
+  await bl.addInitScript(() => { try { Object.defineProperty(Notification, "permission", { get: () => "denied" }); } catch (e) {} });
+  const z = await bl.newPage(); z.on("pageerror", e => errs.push(e.message));
+  await registrar(z, "bloqueadas@test.cl");
+  await z.goto(URL + "#notif"); await z.waitForTimeout(500);
+  ok(await z.locator(".notif-pasos li").count() === 3 && await z.locator('[data-action="notif-revisar"]').count() === 1 && await z.locator('[data-action="notif-enable"]').count() === 0,
+    "bloqueadas: 3 pasos para desbloquear y «Ya lo cambié, revisar»");
+  await shot(z, "notificaciones-bloqueadas");
+  await bl.close();
 
   // 4) iPhone desde Safari (sin instalar): explica cómo instalarla y no deja activar
   const ios = await nuevoContexto(b, { fecha: "2026-10-15T10:00:00", w: 390, h: 844, ua: IPHONE });

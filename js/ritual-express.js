@@ -174,7 +174,8 @@ function saveExpressCierre() {
   const hubo = medallas && cierreMedallasTermina();
   if (pagado && typeof sonar === "function") sonar("cierre");
   if (nuevo) { vibrar([15, 60, 25]); animarRacha(); }
-  if (nuevo && !hubo && !semana && typeof celebrarCierreElefante === "function") celebrarCierreElefante();
+  const ofrece = nuevo && !semana && typeof activacionTrasCierre === "function" && activacionTrasCierre();
+  if (nuevo && !hubo && !semana && !ofrece && typeof celebrarCierreElefante === "function") celebrarCierreElefante();
   const t = textoTriage(n);
   toast(`⚡ Día cerrado${pagado ? ` · +${monedas} ⭐` : ""}${t ? " · " + t : ""}`);
   if (semana && typeof cadenaDomingoEmpezar === "function") cadenaDomingoEmpezar(iso);

@@ -11,11 +11,13 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('[data-tab="register"]');
     await p.fill("#reg-name", "Nueva"); await p.fill("#reg-email", "tour@test.cl"); await p.fill("#reg-pass", "secreto123");
     await p.click('[data-action="auth-register"]'); await p.waitForTimeout(900);
-    // «Arma tu Rumbo»: lo que quiere ordenar, sus hábitos, su elefante y los avisos («Ahora no»)
-    for (let i = 0; i < 3; i++) { await p.click('#modal [data-action="arma-sig"]'); await p.waitForTimeout(200); }
+    // «Arma tu Rumbo»: sus hábitos, su elefante y los avisos («Ahora no»)
+    for (let i = 0; i < 2; i++) { await p.click('#modal [data-action="arma-sig"]'); await p.waitForTimeout(200); }
     ok((await p.locator("#modalTitle").innerText()).includes("¿Cuándo te aviso?") && await p.locator("#arma-manana").count() === 1, "los avisos se ofrecen en la bienvenida, con su hora");
     await p.click('#modal [data-action="arma-fin"]'); await p.waitForTimeout(900);
-    ok(await p.locator("#tour .tour-pop").isVisible(), "al terminar la bienvenida parte el recorrido guiado");
+    ok(await p.locator("#tour").count() === 0 && (await p.locator("#modalTitle").innerText()) === "Ritual de apertura", "al terminar la bienvenida se abre su primer día (el recorrido queda en el «?»)");
+    await p.evaluate(() => { closeModal(); tourIniciar("general"); }); await p.waitForTimeout(500);
+    ok(await p.locator("#tour .tour-pop").isVisible(), "el recorrido guiado sigue disponible");
     ok(await p.locator("#modalOverlay").isHidden(), "nada se abre encima del recorrido");
     ok(await p.locator("#tour .tour-cara svg").count() === 1, "lo cuenta tu elefante (su cara en la burbuja)");
     const titulos = [];

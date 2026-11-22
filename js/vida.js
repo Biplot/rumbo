@@ -379,7 +379,20 @@ function saveRel() {
   } else {
     STATE.vida.relaciones.push({ id: uid(), ...data, ultimoContacto: todayISO() });
   }
+  // La pantalla promete avisos de cumpleaños y de contacto: se encienden con la primera persona que los necesita
+  const enc = relEncenderAvisos(data);
   saveState(); closeModal(); rerender();
+  if (enc.length) toast(`🔔 Te aviso ${enc.join(" y ")} · se cambia en Notificaciones`);
+}
+function relEncenderAvisos(data) {
+  const n = STATE.settings.notif = STATE.settings.notif || { subs: [] };
+  if (typeof avisosActivos !== "function") return [];
+  const act = avisosActivos(n), out = [];
+  const prender = k => { n.avisos = Object.assign({}, n.avisos, { [k]: true }); };
+  const yaOfrecido = (n.relAvisos = n.relAvisos || {});
+  if (data.cumple && !act.cumpleanos && !yaOfrecido.cumpleanos) { prender("cumpleanos"); yaOfrecido.cumpleanos = Date.now(); out.push("el día de su cumpleaños"); }
+  if (data.frecuencia > 0 && !act.contactos && !yaOfrecido.contactos) { prender("contactos"); yaOfrecido.contactos = Date.now(); out.push("cuando toque escribirle"); }
+  return out;
 }
 
 /* ============================================================

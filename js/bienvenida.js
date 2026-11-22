@@ -37,9 +37,10 @@ function saludoBienvenida() { const n = primerNombre(); return n ? `¡Hola, ${n}
 
 /* ============================================================
    «Arma tu Rumbo»: la bienvenida que pregunta (cuentas nuevas)
-   4 preguntas que se responden tocando: qué quieres ordenar primero, tus primeros
-   hábitos (1 a 3, o una rutina armada de regalo), tu elefante con su nombre y cuándo
-   te aviso. Reemplaza a las láminas y a «Cuéntanos de ti»; las láminas siguen en Ayuda.
+   3 preguntas que se responden tocando: tus primeros hábitos (1 a 3, o una rutina armada
+   de regalo), tu elefante con su nombre y cuándo te aviso. Al terminar se abre tu primer día
+   (desde la v152 ya no parte el recorrido de globos ni se pregunta qué quieres ordenar primero:
+   el recorrido sigue en el «?» y en Ayuda). Reemplaza a las láminas y a «Cuéntanos de ti».
    ============================================================ */
 const ARMA_AREAS = [
   { id: "dia", t: "Mi día y mis tareas", mods: [] },
@@ -113,7 +114,7 @@ function armaIniciar() {
   armaPintar();
 }
 function armaSoporte() { return typeof soportePush === "function" ? soportePush() : "no"; }
-function armaTotal() { return armaSoporte() === "no" ? 3 : 4; }
+function armaTotal() { return armaSoporte() === "no" ? 2 : 3; }
 function armaLeer() {
   if (!ARMA) return;
   const n = document.getElementById("arma-nombre"); if (n) ARMA.nombre = n.value.trim().slice(0, 20);
@@ -135,26 +136,20 @@ function armaPintar() {
   const A = ARMA, t = armaTotal();
   const atras = `<button class="btn-ghost" data-action="arma-atras">Atrás</button>`;
   if (A.paso === 0) {
-    openModal(saludoBienvenida(), `<div class="arma">
-      <h3 class="arma__h">¿Qué quieres ordenar primero?</h3>
-      <p class="arma__p">Elige una o más. Te muestro primero lo tuyo; lo demás queda a mano en Más.</p>
-      <div class="arma-chips">${ARMA_AREAS.map(a => { const on = A.areas.includes(a.id); return `<button type="button" class="arma-chip ${on ? "is-on" : ""}" data-action="arma-area" data-id="${a.id}" aria-pressed="${on}">${escapeHtml(a.t)}</button>`; }).join("")}</div>
-      ${armaPuntos()}
-      <div class="onb-nav"><button class="btn-ghost" data-action="arma-saltar">Saltar y ver todo</button><button class="btn btn--primary" data-action="arma-sig">Siguiente</button></div></div>`);
-  } else if (A.paso === 1) {
     const n = armaCuantos();
     const rutinas = typeof PLANTILLAS !== "undefined" ? PLANTILLAS : [];
-    openModal("Tus primeros hábitos", `<div class="arma">
-      <p class="arma__p">Empieza con 1 a ${HAB_MAX_INICIO}. Tu jardín crece igual con pocos, y siempre puedes sumar más.</p>
+    openModal(saludoBienvenida(), `<div class="arma">
+      <h3 class="arma__h">Tus primeros hábitos</h3>
+      <p class="arma__p">Empieza con 1 a ${HAB_MAX_INICIO}, o con una rutina armada. Tu jardín crece igual con pocos, y siempre puedes sumar más.</p>
       <div class="arma-chips">${armaSugerencias().map(s => { const on = A.habitos.includes(s.id); return `<button type="button" class="arma-chip arma-chip--hab ${on ? "is-on" : ""}" data-action="arma-hab" data-id="${s.id}" aria-pressed="${on}">${icoHab(s.icon, 16)} ${escapeHtml(s.nombre)}<small>${s.meta === "dejar" ? "días sin" : escapeHtml(hmFreqLabel({ frecuencia: s.frecuencia }).toLowerCase())}</small></button>`; }).join("")}
         <button type="button" class="arma-chip ${A.otro ? "is-on" : ""}" data-action="arma-otro" aria-pressed="${A.otro}">${iconoLinea("personalizar", 16)} Otro, lo escribo yo</button></div>
       ${rutinas.length ? `<div class="arma__sub">O una rutina armada, de regalo</div>
       <div class="arma-rutinas">${rutinas.map(p => { const on = A.plantilla === p.id; return `<button type="button" class="arma-rutina ${on ? "is-on" : ""}" data-action="arma-rutina" data-id="${p.id}" aria-pressed="${on}">
         <span class="arma-rutina__t">${icoHab(p.icon, 18)} ${escapeHtml(p.nombre)}</span><span class="arma-rutina__d">${p.habitos.map(h => escapeHtml(h[1])).join(" · ")}</span></button>`; }).join("")}</div>
-      <p class="arma__nota">La rutina suma sus hábitos y tareas que se repiten. Las demás siguen en la Tienda.</p>` : ""}
+      <p class="arma__nota">La rutina trae sus hábitos y tareas que se repiten (en vez de los sueltos). Las demás siguen en la Tienda.</p>` : ""}
       ${armaPuntos()}
-      <div class="onb-nav">${atras}<button class="btn btn--primary" data-action="arma-sig">${n ? `Plantar ${n} ${n === 1 ? "hábito" : "hábitos"}` : A.otro ? "Siguiente" : "Seguir sin hábitos"}</button></div></div>`);
-  } else if (A.paso === 2) {
+      <div class="onb-nav"><button class="btn-ghost" data-action="arma-saltar">Saltar</button><button class="btn btn--primary" data-action="arma-sig">${n ? `Plantar ${n} ${n === 1 ? "hábito" : "hábitos"}` : A.otro ? "Siguiente" : "Seguir sin hábitos"}</button></div></div>`);
+  } else if (A.paso === 1) {
     const tipos = ["clasico", "asiatico"].filter(id => typeof TIPOS_ELEFANTE !== "undefined" && TIPOS_ELEFANTE[id]);
     openModal("Te presento a tu compañero", `<div class="arma">
       <div class="arma-ele">${elefanteSVG({ tipo: A.tipo, etapa: 0, ropa: {}, animo: "feliz" })}</div>
@@ -162,7 +157,7 @@ function armaPintar() {
       <div class="seg arma-seg" role="radiogroup" aria-label="Tu elefante">${tipos.map(id => `<button type="button" role="radio" aria-checked="${A.tipo === id}" class="${A.tipo === id ? "is-active" : ""}" data-action="arma-tipo" data-id="${id}">${escapeHtml(TIPOS_ELEFANTE[id].n)}</button>`).join("")}</div>
       <div class="field mt-16"><label for="arma-nombre">¿Cómo se llama?</label><input class="input" id="arma-nombre" maxlength="20" autocomplete="off" placeholder="Ej: Tito" value="${escapeAttr(A.nombre)}"></div>
       ${armaPuntos()}
-      <div class="onb-nav">${atras}<button class="btn btn--primary" data-action="arma-sig">${t === 3 ? "Empezar" : "Listo"}</button></div></div>`);
+      <div class="onb-nav">${atras}<button class="btn btn--primary" data-action="arma-sig">${t === 2 ? "Empezar" : "Listo"}</button></div></div>`);
   } else {
     const sop = armaSoporte(), quien = nombreDelElefante() || "Tu elefante";
     const dice = txt => `<div class="arma-dice"><span class="arma-cara">${elefanteCaraSVG()}</span><div class="arma-burbuja"><b>${escapeHtml(quien)}</b>${txt}</div></div>`;
@@ -185,14 +180,14 @@ function armaAccion(a, d) {
   if (a === "arma-hab") {
     if (A.habitos.includes(d.id)) A.habitos = A.habitos.filter(x => x !== d.id);
     else if (A.habitos.length >= HAB_MAX_INICIO) toast(`Con ${HAB_MAX_INICIO} basta para partir: después sumas más`);
-    else A.habitos = A.habitos.concat(d.id);
+    else { A.habitos = A.habitos.concat(d.id); A.plantilla = null; }   // sueltos o una rutina, no los dos
     armaPintar(); return true;
   }
   if (a === "arma-otro") { A.otro = !A.otro; armaPintar(); return true; }
-  if (a === "arma-rutina") { A.plantilla = A.plantilla === d.id ? null : d.id; armaPintar(); return true; }
+  if (a === "arma-rutina") { A.plantilla = A.plantilla === d.id ? null : d.id; if (A.plantilla) A.habitos = []; armaPintar(); return true; }
   if (a === "arma-tipo") { A.tipo = d.id; armaPintar(); return true; }
   if (a === "arma-atras") { A.paso = Math.max(0, A.paso - 1); armaPintar(); return true; }
-  if (a === "arma-sig") { if (A.paso + 1 >= armaTotal()) { armaTerminar(false); return true; } A.paso++; if (A.paso === 3) armaGuardarElefante(); armaPintar(); return true; }
+  if (a === "arma-sig") { if (A.paso + 1 >= armaTotal()) { armaTerminar(false); return true; } A.paso++; if (A.paso === 2) armaGuardarElefante(); armaPintar(); return true; }
   if (a === "arma-saltar") { A.verTodo = true; A.habitos = []; A.plantilla = null; A.tipo = eleEstado().tipo || null; armaTerminar(false); return true; }
   if (a === "arma-fin") { armaTerminar(false); return true; }
   if (a === "arma-avisos") { armaTerminar(true); return true; }
@@ -218,7 +213,8 @@ function armaTerminar(conAvisos) {
   closeModal(); updateTopbar(); rerender();
   const seguir = () => {
     if (typeof amigosHayInvitacion === "function" && amigosHayInvitacion()) return setTimeout(amigosAlEntrar, 400);   // la invitación de un amigo va primero
-    setTimeout(() => tourIniciar("general", { alTerminar: A.otro ? () => setTimeout(() => { go("habitos"); setTimeout(() => openHabitModal(), 350); }, 300) : null }), 400);
+    if (A.otro) return setTimeout(() => { go("habitos"); setTimeout(() => openHabitModal(), 350); }, 300);   // «Otro, lo escribo yo»
+    setTimeout(primerDiaEmpezar, 400);
   };
   if (conAvisos && typeof enableNotifications === "function") enableNotifications().finally(seguir);   // el permiso se pide en el mismo toque
   else seguir();
@@ -312,7 +308,8 @@ function bienvenidaAccion(a, d) {
 function psIr(id) {
   if (id === "abrir") return dayState() === "por-abrir" ? openRitualModal() : toast("Tu día ya está abierto ✓");
   if (id === "cerrar") { const iso = typeof puedeCerrarDia === "function" && puedeCerrarDia(todayISO()) ? todayISO() : null; return iso ? openCierreModal(iso) : toast("Primero abre tu día 🌅", true); }
-  if (id === "habito") return go("habitos");
+  if (id === "volver") return dayState() === "por-abrir" ? openRitualModal() : dayState() === "cerrado" ? toast("Hoy ya lo cerraste ✓") : openCierreModal(todayISO());
+  if (id === "habito") return psCerrados(STATE) >= 3 ? go("habitos") : (dayState() === "por-abrir" ? openRitualModal() : openCierreModal(todayISO()));
   if (id === "semana") return go("semana");
   if (id === "objetivo") { go("metas"); return setTimeout(() => { const el = document.getElementById("mt-mes-" + new Date().getMonth()); if (el) { el.scrollIntoView({ block: "center" }); el.focus({ preventScroll: true }); } }, 350); }
   if (id === "plata") return go("finanzas");
@@ -323,6 +320,11 @@ function modulosTodos() { return typeof ROUTES !== "undefined" ? ROUTES.filter(r
 
 /* Al abrir el primer día: el elefante celebra y cuenta qué hacer con las ⭐ y cuándo volver */
 function celebrarPrimerDia() {
+  // Si los avisos aún no están, es el mejor momento para ofrecerlos (activacion.js)
+  if (typeof avisosOfertaPuede === "function" && avisosOfertaPuede("abrir")) {
+    avisosOfertaMarcar("abrir"); saveState();
+    return openModal("¡Abriste tu primer día! 🎉", `<p class="soft" style="margin-bottom:12px">Ganaste +50 ⭐: se gastan en la Tienda. Esta noche lo cierras: son 2 minutos y +40 ⭐.</p>${avisosOfertaHtml("abrir")}`);
+  }
   if (typeof escenaElefante !== "function" || !eleEstado().tipo) return;
   const quien = nombreDelElefante();
   escenaElefante({ svg: elefanteSVG({ animo: "feliz" }), titulo: "¡Abriste tu primer día!",
@@ -337,22 +339,21 @@ function celebrarPrimerDia() {
    Si se salta un día, la misión espera: no hay castigo.
    Al completarla: +100 ⭐ e insignia Explorador (recompensas.js).
    ============================================================ */
+/* v152: la semana gira en torno a VOLVER (abrir y cerrar más días), no a explorar secciones:
+   lo que despierta Más es tu 2.º día (Diario) y tu semana (Calendario); al completarla, todo. */
+const psCerrados = S => Object.values((S.ritual && S.ritual.dias) || {}).filter(r => r && r.cerrado).length;
+const psMarcoHabito = S => Object.values((S.habitos && S.habitos.log) || {}).some(m => Object.values(m || {}).some(h => Object.values(h || {}).some(Boolean)));
 const PS_PASOS = [
   { id: "abrir", dia: 1, t: "Abre tu día", premio: 50, despierta: [],
     check: S => Object.values(S.ritual.dias || {}).some(r => r && r.hecho) },
   { id: "cerrar", dia: 1, t: "Esta noche, ciérralo", premio: 40, despierta: [],
-    check: S => Object.values(S.ritual.dias || {}).some(r => r && r.cerrado) },
-  { id: "habito", dia: 2, t: "Marca un hábito", premio: 5, despierta: [],
-    check: S => Object.values((S.habitos && S.habitos.log) || {}).some(m => Object.values(m || {}).some(h => Object.values(h || {}).some(Boolean))) },
-  { id: "semana", dia: 3, t: "Planifica tu semana (la versión corta)", premio: 75, despierta: ["calendario"],
+    check: S => psCerrados(S) >= 1 },
+  { id: "volver", dia: 2, t: "Vuelve: abre y cierra tu 2.º día", premio: 40, despierta: [],
+    check: S => psCerrados(S) >= 2 },
+  { id: "habito", dia: 3, t: "Cierra tu 3.er día y marca un hábito", premio: 5, despierta: [],
+    check: S => psCerrados(S) >= 3 && psMarcoHabito(S) },
+  { id: "semana", dia: 5, t: "Elige tus 3 prioridades de la semana", premio: 75, despierta: ["calendario"],
     check: S => Object.values((S.ritual && S.ritual.semanas) || {}).some(w => w && w.apertura) },
-  { id: "objetivo", dia: 4, t: "Un objetivo para este mes", despierta: [],
-    check: S => typeof todosLosMensuales === "function" && todosLosMensuales(S).flat().some(o => o && o.texto) },
-  { id: "plata", dia: 5, t: "Tu plata: una alcancía o un gasto del mes", despierta: ["finanzas"],
-    check: S => !!((S.alcancias && Array.isArray(S.alcancias.lista) && S.alcancias.lista.length) || (S.finanzas && (S.finanzas.gastos || []).length)
-      || (typeof datosAnio === "function" && datosAnio(S, new Date().getFullYear()).finanzas.meses.some(m => (m.ingreso || 0) || (m.gasto || 0)))) },
-  { id: "mas", dia: 6, t: "Elige qué más quieres ver", despierta: ["*"],
-    check: S => !!(S.settings.bienvenida && S.settings.bienvenida.verTodo) },
   { id: "resumen", dia: 7, t: "Tu primera semana, en números", despierta: ["tendencias"],
     check: S => !!(S.settings.bienvenida && S.settings.bienvenida.resumen) },
 ];
@@ -431,19 +432,18 @@ function primeraSemanaCardHtml() {
       <div class="flex-between" style="flex-wrap:wrap;gap:12px"><div><div class="card__title">🎉 ¡Completaste tu primera semana!</div>
         <div class="text-sm soft mt-8">Ganaste la insignia 🧭 Explorador (+100 ⭐). Ya conoces Rumbo: ahora es tuyo.</div></div>
         <button class="btn btn--primary" data-action="bv-cerrar">Genial</button></div></div>`;
-  const fila = p => {
-    const ico = p.ok ? "✓" : "";
-    const der = p.ok ? "" : p.estado === "ahora" ? (p.premio ? `+${p.premio} ⭐` : "") : psCuando(p, S);
-    const tag = p.estado === "ahora" ? "button" : "div";
-    return `<${tag} class="psem-paso is-${p.estado}" ${p.estado === "ahora" ? `data-action="bv-ir" data-id="${p.id}"` : ""}>
-      <span class="check ${p.ok ? "is-on" : ""}">${ico}</span><span class="psem-paso__t">${escapeHtml(p.t)}</span>${der ? `<span class="psem-paso__d">${escapeHtml(der)}</span>` : ""}</${tag}>`;
-  };
+  const actual = pasos.find(p => p.estado === "ahora"), sig = pasos.find(p => !p.ok && p.estado === "luego");
+  const paso = actual ? `<button class="psem-hoy" data-action="bv-ir" data-id="${actual.id}">
+      <span class="psem-hoy__eti">Hoy</span><span class="psem-hoy__t">${escapeHtml(actual.t)}</span>${actual.premio ? `<span class="psem-hoy__d">+${actual.premio} ⭐</span>` : ""}</button>`
+    : `<div class="psem-hoy is-listo"><span class="psem-hoy__eti">Hoy</span><span class="psem-hoy__t">Listo por hoy ✓</span></div>`;
+  const viene = sig ? `<div class="text-xs muted mt-8">Lo que viene${psCuando(sig, S) ? " (" + escapeHtml(psCuando(sig, S)) + ")" : ""}: ${escapeHtml(sig.t)}.</div>` : "";
   return `<div class="card mision psem" data-tour="mision" style="margin-bottom:20px">
     <div class="card__head"><div class="card__title">🚀 Tu primera semana <span class="muted" style="font-weight:500">· día ${dia} de 7</span></div>
       <button class="btn-ghost" data-action="bv-ocultar" title="Puedes volver a mostrarla en Ayuda">Ocultar</button></div>
     <div class="bar"><div class="bar__fill" style="width:${Math.round((hechos / pasos.length) * 100)}%"></div></div>
-    <div class="psem__pasos mt-16">${pasos.map(fila).join("")}</div>
-    <div class="text-xs muted mt-8">Se marcan solos cuando los haces, y cada uno abre su sección. Si te saltas un día, la misión te espera. Al terminarla: +100 ⭐ e insignia Explorador.</div>
+    <div class="psem__pasos mt-16">${paso}</div>
+    ${viene}
+    <div class="text-xs muted mt-8">${hechos} de ${pasos.length} hechos. Se marcan solos cuando los haces; si te saltas un día, la misión te espera. Al terminarla: +100 ⭐ e insignia Explorador.</div>
   </div>`;
 }
 /* -------- Tu primera semana, en números (el paso del día 7) -------- */

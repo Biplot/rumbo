@@ -44,13 +44,13 @@ module.exports = async ({ b, ok, errs }) => {
     await p.click('[data-tab="register"]');
     await p.fill("#reg-name", "Nueva"); await p.fill("#reg-email", "nueva@test.cl"); await p.fill("#reg-pass", "secreto123");
     await p.click('[data-action="auth-register"]'); await p.waitForTimeout(900);
-    // Cuenta nueva: «Arma tu Rumbo» (4 preguntas, o 3 si el navegador no tiene avisos); las láminas quedan para Ayuda
+    // Cuenta nueva: «Arma tu Rumbo» (3 preguntas, o 2 si el navegador no tiene avisos); las láminas quedan para Ayuda
     const titulos = [];
     for (let i = 0; i < 6 && await p.locator("#modalOverlay:not([hidden]) #modal .arma").count(); i++) {
       titulos.push(await p.locator("#modalTitle").innerText());
       await p.click('#modal [data-action="arma-sig"], #modal [data-action="arma-fin"]'); await p.waitForTimeout(250);
     }
-    ok(titulos[0].includes("¡Hola, Nueva!") && titulos.includes("Tus primeros hábitos") && titulos.includes("Te presento a tu compañero") && titulos.length <= 4,
+    ok(titulos[0].includes("¡Hola, Nueva!") && titulos.includes("Te presento a tu compañero") && titulos.length <= 3,   // ¡Hola! (sus hábitos) · su elefante · los avisos
       "la bienvenida pregunta en vez de explicar: " + titulos.join(" · "));
     await p.waitForTimeout(700);   // el recorrido parte al terminar la bienvenida
     await p.evaluate(() => { if (TOUR) tourTerminar(); openOnboarding("repetir"); }); await p.waitForTimeout(200);

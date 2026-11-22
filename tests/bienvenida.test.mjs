@@ -79,18 +79,23 @@ export default async function ({ G, test, assert, clone }) {
     assert.equal(activa(S, "2026-11-02"), false);
   });
 
-  test("«Tu primera semana»: un paso por día, en orden; si se salta un día, la misión espera", () => {
+  test("«Tu primera semana»: gira en torno a volver (abrir y cerrar más días); si se salta un día, la misión espera", () => {
     const S = nuevo(), aplicar = G("armaAplicar"), pasos = G("psPasos");
     aplicar(S, { areas: ["dia", "habitos"], habitos: ["leer"], tipo: "clasico", nombre: "" }, "2026-11-02"); S.settings.alta = "2026-11-02"; S.settings.onboarded = true;
     const est = hoy => clone(pasos(S, hoy).map(p => p.id + ":" + p.estado));
-    assert.deepEqual(est("2026-11-02").slice(0, 3), ["abrir:ahora", "cerrar:luego", "habito:luego"], "el día 1: abrir tu día");
+    assert.deepEqual(clone(pasos(S, "2026-11-02").map(p => p.id)), ["abrir", "cerrar", "volver", "habito", "semana", "resumen"], "sin «tu plata», objetivos ni «qué más ver»");
+    assert.deepEqual(est("2026-11-02").slice(0, 3), ["abrir:ahora", "cerrar:luego", "volver:luego"], "el día 1: abrir tu día");
     S.ritual.dias["2026-11-02"] = { hecho: true, ts: 1 };
-    assert.deepEqual(est("2026-11-02").slice(0, 3), ["abrir:ok", "cerrar:ahora", "habito:luego"], "abierto: toca cerrarlo");
+    assert.deepEqual(est("2026-11-02").slice(0, 3), ["abrir:ok", "cerrar:ahora", "volver:luego"], "abierto: toca cerrarlo");
     S.ritual.dias["2026-11-02"].cerrado = true;
-    assert.deepEqual(est("2026-11-02").slice(2, 3), ["habito:luego"], "el hábito es del día 2: hoy todavía no");
-    assert.deepEqual(est("2026-11-06").slice(2, 4), ["habito:ahora", "semana:luego"], "se saltó días: la misión espera en el hábito");
+    assert.deepEqual(est("2026-11-02").slice(2, 3), ["volver:luego"], "volver es del día 2: hoy todavía no");
+    assert.deepEqual(est("2026-11-03").slice(2, 3), ["volver:ahora"], "el día 2: abre y cierra tu 2.º día");
+    S.ritual.dias["2026-11-05"] = { hecho: true, cerrado: true, ts: 1 };
+    assert.deepEqual(est("2026-11-06").slice(2, 4), ["volver:ok", "habito:ahora"], "se saltó días: el 2.º día cerrado cuenta igual y la misión sigue");
+    S.ritual.dias["2026-11-06"] = { hecho: true, cerrado: true, ts: 1 };
+    assert.deepEqual(est("2026-11-06").slice(3, 4), ["habito:ahora"], "3 días cerrados, pero falta marcar un hábito");
     const h = S.habitos.defs[0]; S.habitos.log["2026-11"] = { [h.id]: { 6: true } };
-    assert.deepEqual(est("2026-11-06").slice(3, 4), ["semana:ahora"], "marcado: sigue la semana (ya es su día)");
+    assert.deepEqual(est("2026-11-06").slice(3, 5), ["habito:ok", "semana:ahora"], "con el hábito: tus 3 prioridades (ya es su día)");
   });
 
   test("las secciones despiertan: lo que eligió y lo de cada paso que llega; «Ver todo» o terminar las despiertan todas", () => {
@@ -102,9 +107,10 @@ export default async function ({ G, test, assert, clone }) {
     const hoy = G("todayISO")(), sumar = G("agSumar"), [y, m, d] = hoy.split("-").map(Number);
     S.ritual.dias[hoy] = { hecho: true, cerrado: true, ts: 1 }; S.settings.alta = hoy;
     S.habitos.log[y + "-" + m] = { x: { [d]: true } };
-    assert.equal(dormida("calendario", S), true, "el día 1, calendario espera el paso de la semana (día 3)");
-    S.settings.alta = sumar(hoy, -2);
-    assert.equal(dormida("calendario", S), false, "el día 3 llega la semana y despierta calendario");
+    assert.equal(dormida("calendario", S), true, "el día 1, calendario espera el paso de la semana (día 5)");
+    S.settings.alta = sumar(hoy, -4);
+    S.ritual.dias[sumar(hoy, -1)] = { hecho: true, cerrado: true, ts: 1 }; S.ritual.dias[sumar(hoy, -2)] = { hecho: true, cerrado: true, ts: 1 };
+    assert.equal(dormida("calendario", S), false, "el día 5, con 3 días cerrados y un hábito, llega la semana y despierta calendario");
     S.settings.bienvenida.verTodo = true;
     assert.deepEqual(v(["calendario", "tendencias", "listas"]), [false, false, false], "«Ver todo»: todas");
     delete S.settings.bienvenida.verTodo; S.settings.bienvenida.fin = "oculta";
@@ -116,12 +122,9 @@ export default async function ({ G, test, assert, clone }) {
   test("completar la semana da la insignia Explorador (en vez de «Primeros pasos»)", () => {
     const S = nuevo(), aplicar = G("armaAplicar"), completa = G("primeraSemanaCompleta");
     aplicar(S, { areas: [], habitos: ["leer"], tipo: "clasico", nombre: "" }, "2026-11-02"); S.settings.alta = "2026-11-02"; S.settings.onboarded = true;
-    S.ritual.dias["2026-11-02"] = { hecho: true, cerrado: true, ts: 1 };
+    ["2026-11-02", "2026-11-03", "2026-11-04"].forEach(d => { S.ritual.dias[d] = { hecho: true, cerrado: true, ts: 1 }; });
     S.habitos.log["2026-11"] = { [S.habitos.defs[0].id]: { 3: true } };
     S.ritual.semanas = { "2026-11-02": { apertura: { foco: "Partir", ts: 1 } } };
-    S.metas.mensuales[10].push({ id: "o1", texto: "Leer 2 libros", ts: 1 });
-    S.finanzas.gastos.push({ id: "g", nombre: "Arriendo", monto: 1, ts: 1 });
-    S.settings.bienvenida.verTodo = true;
     assert.equal(completa(S), false, "falta su resumen del día 7");
     S.settings.bienvenida.resumen = 1;
     assert.equal(completa(S), true);

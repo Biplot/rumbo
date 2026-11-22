@@ -300,7 +300,7 @@ function semAperturaPaso(w) {
     <div class="field"><label>✨ Hábitos en foco (elige hasta 3)</label>
       ${activos.length ? elFichas(activos.map(h => [h.id, `${icoHab(h.icon, 16)} ${escapeHtml(h.nombre)}`, { aria: `${h.nombre} · ${hmFreqLabel(h)}` }]), d.habitosFoco, { cls: "sw-hab", tope: 3, label: "Hábitos en foco, hasta 3" })
       : `<div class="empty">No tienes hábitos activos.</div>`}
-      <p class="text-xs muted mt-8">Los verás con su avance de la semana en Ritual → Semana.</p></div>`;
+      <p class="text-xs muted mt-8">Los verás con su avance en tu Semana.</p></div>`;
 }
 /* El día de una prioridad, elegido en su lista */
 function semWizDiaElegir(v, btn, cont) { semWizDiaPrioridad(+String(cont.dataset.elId).split("-").pop(), v); }

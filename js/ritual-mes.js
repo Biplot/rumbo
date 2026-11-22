@@ -133,7 +133,7 @@ function resumenAnioHtml(r, enTendencias) {
       ${n("🌙", "días cerrados", r.cerrados)}
       ${n("📊", "hábitos", pct(r.habitos))}
       ${n("🎯", "objetivos del mes", `${r.objetivos[0]}/${r.objetivos[1]}`)}
-      ${n("🧭", "metas trimestrales", `${r.trimestrales[0]}/${r.trimestrales[1]}`)}
+      ${n("🧭", "objetivos del trimestre", `${r.trimestrales[0]}/${r.trimestrales[1]}`)}
       ${n("✓", "tareas completadas", pct(r.tareas))}
       ${n("↪", "postergación", pct(r.postergacion))}
       ${n("📅", "semanas redondas", r.semanas)}
@@ -484,6 +484,11 @@ function renderRitualMes() {
         <button class="icon-btn" data-action="informe-open" data-key="${k}" title="Compartir este mes" aria-label="Compartir ${nombreMes(hy, hm)}">📤</button>` : ""}</div>`;
   }).join("");
 
+  // v154: sin mes abierto, sin objetivos ni meses anteriores, una tarjeta que explica (antes, una pantalla de ceros)
+  if (!a && !lista.length && !hist) return `<div class="card ensena" data-ensena="ritual-mes"><div class="ensena__txt">
+    <div class="card__title">Tu mes, en un ritual de 5 minutos</div>
+    <p class="text-sm soft mt-8">El día 1, al abrir tu día, cierras el mes que terminó y abres el nuevo: tu foco y tus objetivos del mes. Al cerrarlo ves tus números y lo compartes si quieres.</p>
+    <div class="row-wrap mt-16">${acciones.filter(b => !/informe-open/.test(b)).join("")}</div></div></div>`;
   return `
   <div class="card" style="background:linear-gradient(120deg, var(--cian-soft), var(--surface))">
     <div class="flex-between" style="flex-wrap:wrap;gap:12px">

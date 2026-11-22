@@ -212,7 +212,29 @@ function renderRecompensas() {
     <div class="rango-card__pie"><span class="rank-ladder" role="list" aria-label="Escalera de rangos">${escalera}</span>
       <span class="text-xs muted">${next ? `${next.icon} ${next.nombre} · faltan ${falta.toLocaleString("es-CL")} XP` : "¡Rango máximo! 👑"}</span></div>
   </div>
-  ${tiendaHtml()}`;
+  ${recompTabsHtml()}`;
+}
+/* v154 · Recompensas en tres pestañas: la Tienda, tu elefante (su casa y tu vitrina) y lo que ya tienes */
+let RECOMP_TAB = "tienda";
+const RECOMP_TABS = [["tienda", "Tienda"], ["elefante", "Tu elefante"], ["tuyo", "Lo tuyo"]];
+function recompTabsHtml() {
+  const tab = RECOMP_TABS.some(([id]) => id === RECOMP_TAB) ? RECOMP_TAB : "tienda";
+  const tabs = `<div class="filtros recomp-tabs mt-16" role="tablist" aria-label="Recompensas">${RECOMP_TABS.map(([id, l]) =>
+    `<button role="tab" aria-selected="${id === tab}" class="${id === tab ? "is-active" : ""}" data-action="recomp-tab" data-v="${id}">${l}</button>`).join("")}</div>`;
+  if (tab === "tuyo") return tabs + `<div class="mt-16">${typeof renderApariencia === "function" ? renderApariencia() : ""}</div>`;
+  if (tab === "elefante") {
+    const propio = ((STATE.gamif.equipped || {}).ele || {}).nombre, nom = propio ? escapeHtml(propio) : "Tu elefante";
+    return tabs + `<div class="card mt-16 recomp-ele">
+        <div class="recomp-ele__fig">${typeof elefanteSVG === "function" ? elefanteSVG() : ""}</div>
+        <div><div class="card__title">${nom} y su casa</div>
+          <p class="text-sm soft mt-8">Su ropa y sus muebles se compran en su casa, viendo cómo quedan. Con tus ⭐ también le cambias el tipo de elefante.</p>
+          <button class="btn btn--primary mt-16" data-action="lugar-entrar" data-ruta="cuarto">Entrar a su casa</button></div></div>
+      <div class="card mt-16 recomp-ele">
+        <div><div class="card__title">🏅 Tu vitrina</div>
+          <p class="text-sm soft mt-8">Tus medallas, en el cielo. Cada una cuenta algo que lograste.</p>
+          <button class="btn btn--soft mt-16" data-action="lugar-entrar" data-ruta="cielo">Ver tu vitrina</button></div></div>`;
+  }
+  return tabs + tiendaHtml();
 }
 
 /* Helpers para mostrar lo equipado en Inicio */

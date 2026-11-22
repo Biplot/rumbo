@@ -22,6 +22,8 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click("#bbMas"); await p.waitForTimeout(300);
   ok(await p.locator("#masOverlay:not([hidden]) .mas-mod[data-route=metas]").count() === 1, "Más muestra Objetivos");
   ok(await p.locator(".mas-fila[data-route=recompensas]").count() === 1 && await p.locator(".mas-fila[data-route=cuenta]").count() === 1 && await p.locator(".mas-fila[data-route=tutoriales]").count() === 1, "Más muestra Recompensas, Cuenta y Ayuda");
+  ok(await p.locator(".mas-grid--desc .mas-mod[data-route=finanzas]").count() === 1 && await p.locator('.mas-desc-item [data-action="secc-agregar"][data-id="finanzas"]').count() === 1,
+    "sin datos, Finanzas espera en «Descubrir», en gris y con «+»");
   await shot(p, "nav-mas");
   await p.click(".mas-mod[data-route=finanzas]"); await p.waitForTimeout(300);
   ok(await p.evaluate(() => location.hash === "#finanzas" && document.getElementById("masOverlay").hidden), "elegir un módulo navega y cierra la hoja");
@@ -30,10 +32,15 @@ module.exports = async ({ b, ok, errs }) => {
   await p.click("[data-action=mas-cerrar]"); await p.waitForTimeout(200);
   ok(await p.evaluate(() => document.getElementById("masOverlay").hidden), "la ✕ cierra la hoja");
 
-  // 3) Ocultar un módulo lo saca de la hoja (sin borrar datos)
-  await p.evaluate(() => { STATE.settings.menu = { ocultos: ["listas"], ts: Date.now() }; saveState(); buildNav(); });
+  // 3) Con su primer dato, una sección aparece sola en tus secciones; quitarla la deja en «Descubrir» (sin borrar datos)
+  await p.evaluate(() => { STATE.vida.listas.push({ id: "l1", nombre: "Compras", items: [{ id: "i1", txt: "Pan" }] }); saveState(); rerender(); });
   await p.click("#bbMas"); await p.waitForTimeout(200);
-  ok(await p.locator(".mas-mod[data-route=listas]").count() === 0, "un módulo oculto no aparece en Más");
+  ok(await p.locator(".mas-grid:not(.mas-grid--desc) .mas-mod[data-route=listas]").count() === 1, "con su primer dato, Listas aparece sola en tus secciones");
+  await p.click('#masOverlay [data-action="menu-personalizar"]'); await p.waitForTimeout(200);
+  await p.click('#modal [data-action="secc-quitar"][data-id="listas"]'); await p.waitForTimeout(200);
+  await p.evaluate(() => closeModal()); await p.click("#bbMas"); await p.waitForTimeout(200);
+  ok(await p.locator(".mas-grid:not(.mas-grid--desc) .mas-mod[data-route=listas]").count() === 0 && await p.locator(".mas-grid--desc .mas-mod[data-route=listas]").count() === 1
+    && await p.evaluate(() => STATE.vida.listas.length === 1), "quitada, Listas pasa a «Descubrir» y sus datos siguen");
   await p.keyboard.press("Escape"); await p.waitForTimeout(150);
   ok(await p.evaluate(() => document.getElementById("masOverlay").hidden), "Esc cierra la hoja");
 
@@ -43,8 +50,17 @@ module.exports = async ({ b, ok, errs }) => {
   await p.goto(URL + "#inicio"); await p.waitForTimeout(300);
   await p.click("#view .ruta-dia__racha, #view .recibo__racha"); await p.waitForTimeout(200);
   const info = await p.locator("#modal").innerText();
-  ok(info.includes("cerrad") && info.includes("hábitos") && info.includes("monedas"), "la racha, al pie de tu día, explica cada racha y las monedas");
+  ok(info.includes("cerrad") && info.includes("estrellas") && !info.includes("días de hábitos") && !info.includes("días abiertos seguidos"),
+    "la racha, al pie de tu día: una sola racha (días cerrados) y tus estrellas");
   await p.evaluate(() => closeModal());
+  // La ⭐ de arriba lleva directo a Recompensas, en 3 pestañas
+  await p.click("#ptsPill"); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => location.hash === "#recompensas") && await p.locator('[data-action="recomp-tab"]').count() === 3, "la ⭐ lleva a Recompensas: Tienda, Tu elefante y Lo tuyo");
+  await p.click('[data-action="recomp-tab"][data-v="tuyo"]'); await p.waitForTimeout(200);
+  ok(await p.locator("#view .fam-cards").count() === 1, "«Lo tuyo»: tu tema y lo que ya compraste, para usarlo");
+  await p.click('[data-action="recomp-tab"][data-v="elefante"]'); await p.waitForTimeout(200);
+  ok(await p.locator('#view [data-action="lugar-entrar"][data-ruta="cuarto"]').count() === 1 && await p.locator('#view [data-action="lugar-entrar"][data-ruta="cielo"]').count() === 1, "«Tu elefante»: su casa y tu vitrina");
+  await p.evaluate(() => { RECOMP_TAB = "tienda"; go("inicio"); }); await p.waitForTimeout(200);
 
   // 5) Botones: compras que dicen cuánto falta y zonas de toque de 44 px
   await p.goto(URL + "#tienda"); await p.waitForTimeout(300);
@@ -81,7 +97,9 @@ module.exports = async ({ b, ok, errs }) => {
 
   // 6) Cerrar sesión se encuentra en Cuenta
   await p.goto(URL + "#cuenta"); await p.waitForTimeout(300);
-  ok(await p.locator('#view [data-action="logout"]').count() === 1, "Cuenta tiene Cerrar sesión");
+  ok(await p.locator('#view [data-action="logout"]').count() === 1, "Ajustes tiene Cerrar sesión");
+  ok(await p.locator('#view .ajustes-lista [data-route="notif"]').count() === 1 && await p.locator('#view .ajustes-lista [data-action="menu-personalizar"]').count() === 1
+    && /Avisos/.test(await p.locator("#view .ajustes-lista").innerText()), "Ajustes parte por tus avisos (con su estado), tu tema, tus secciones y Amigos");
   await ctx.close();
 
   // ---------- Computador ----------

@@ -30,6 +30,7 @@ function monthNav(current, action, sel) {
 /* ============================================================
    FINANZAS
    ============================================================ */
+let FIN_VER_TODO = false;
 function renderFinanzas() {
   const f = STATE.finanzas;                                   // lo global: meta mensual, porqué y gastos
   const y = anioVista(), fy = datosAnio(STATE, y).finanzas, pre = rutaAnio(y);   // lo del año
@@ -39,6 +40,14 @@ function renderFinanzas() {
 
   const ensena = y === anioActual() && typeof finSinDatos === "function" && finSinDatos();   // nada anotado: primero, cómo (bienvenida.js)
   const desde = typeof finDesdeMes === "function" ? finDesdeMes(y) : 0;   // los meses antes de la cuenta no se muestran vacíos
+  // v154: sin nada anotado, solo lo que enseña (el mes, tus alcancías y tus deseos); lo vacío se esconde hasta que quieras verlo
+  if (ensena && !FIN_VER_TODO) return `
+  ${selectorAnio()}
+  <div style="margin-bottom:18px">${finEnsenaHtml(pre)}</div>
+  ${typeof alcFinanzasHtml === "function" ? alcFinanzasHtml() : ""}
+  ${typeof deseosHtml === "function" ? deseosHtml() : ""}
+  <button class="btn-ghost btn-block mt-16" data-action="fin-ver-todo">Ver todo Finanzas (metas, gastos recurrentes y los 12 meses)</button>`;
+  const hastaMes = y === anioActual() ? new Date().getMonth() : 11;   // los meses que aún no llegan, solo si ya tienen algo
   return `
   ${selectorAnio()}
   ${ensena ? `<div style="margin-bottom:18px">${finEnsenaHtml(pre)}</div>` : ""}
@@ -101,7 +110,7 @@ function renderFinanzas() {
           <thead><tr><th class="name"></th><th>Ingreso</th><th>Gasto</th><th>Ahorro</th></tr></thead>
           <tbody>
             ${fy.meses.map((m, i) => {
-              if (i < desde && !(m.ingreso || m.gasto)) return "";
+              if ((i < desde || i > hastaMes) && !(m.ingreso || m.gasto || m.ahorro || m.metaAhorro)) return "";
               const ahorro = (m.ingreso || 0) - (m.gasto || 0);
               return `<tr>
                 <td class="name">${MESES_CORTO[i]}</td>
@@ -153,7 +162,7 @@ function renderMetas() {
       <div class="card__head"><div class="card__title">${i + 1}° Trimestre</div>
         <div class="row" style="gap:6px">${alimentan ? `<span class="chip chip--cian" title="Objetivos mensuales vinculados">↳ ${alimentan} mensual${alimentan === 1 ? "" : "es"}</span>` : ""}
         <span class="chip">${done}/${list.length}</span></div></div>
-      ${list.map(m => metaRow(m, "tri", i, y)).join("") || '<div class="empty">Sin metas aún.</div>'}
+      ${list.map(m => metaRow(m, "tri", i, y)).join("") || '<div class="empty">Sin objetivos aún.</div>'}
       <div class="row mt-8">
         <input class="input" id="${inputId}" placeholder="Nueva meta...">
         <button class="btn btn--cian" data-action="meta-add" data-bucket="tri" data-idx="${i}" data-anio="${y}" data-input="${inputId}">+</button>
@@ -193,16 +202,16 @@ function renderMetas() {
   <div class="card" style="background:linear-gradient(120deg, var(--surface), var(--surface-2))">
     <div class="flex-between" style="flex-wrap:wrap;gap:12px">
       <div><div class="text-xs soft" style="text-transform:uppercase;letter-spacing:.08em">Resumen ${y}</div>
-        <div class="big-num">${doneT} <span class="text-sm muted">de ${totalT} metas trimestrales</span></div></div>
+        <div class="big-num">${doneT} <span class="text-sm muted">de ${totalT} objetivos del trimestre</span></div></div>
       <div style="min-width:160px;flex:1;max-width:320px"><div class="flex-between"><span class="text-sm soft">Completadas</span><span class="hl-cian">${pct}%</span></div>
         <div class="bar mt-8"><div class="bar__fill" style="width:${pct}%"></div></div></div>
     </div>
   </div>
 
-  <div class="section-title">Metas trimestrales</div>
+  <div class="section-title">Objetivos del trimestre</div>
   <div class="grid grid-2">${triCards}</div>
 
-  <div class="section-title">Metas mensuales clave</div>
+  <div class="section-title">Objetivos del mes</div>
   <div class="grid grid-3">${mesCards}</div>`;
 }
 function metaRow(m, bucket, idx, y) {
@@ -333,6 +342,13 @@ function habPocos(si, ids) {
   if (si) toast("🌱 Listo: seguimos con 3. Los pausados están al final de Hábitos.");
 }
 
+/* v154: la única racha pública es la de días cerrados; en Año, cuántos hábitos llevan su propia racha viva */
+function habAlDiaTxt() {
+  const act = (STATE.habitos.defs || []).filter(h => !h.pausado && hmMeta(h) === "hacer");
+  if (!act.length) return "—";
+  const vivos = act.filter(h => { try { return rachaPeriodos(h).n > 0; } catch (e) { return false; } }).length;
+  return `${vivos} de ${act.length}`;
+}
 function habitTodayCard(h) {
   if (hmMeta(h) !== "hacer") return djCardHtml(h);   // para dejar o reducir (dejar.js)
   const now = new Date();
@@ -473,7 +489,7 @@ function habitViewAnual() {
   <div class="grid grid-3">
     ${statCard("✅", "Cumplimiento del año", anio.pct == null ? "—" : anio.pct + "%", "contra tu objetivo", anio.pct)}
     ${statCard("📅", "Mejor mes", mejor ? MESES[mejor.m] : "—", mejor ? mejor.v + "%" : "")}
-    ${statCard("🔥", "Racha actual", computeStreak() === 1 ? "1 día" : computeStreak() + " días", "cumpliendo lo que tocaba")}
+    ${statCard("🌱", "Hábitos con racha", habAlDiaTxt(), "llevan su racha viva")}
   </div>
   <div class="grid grid-2 mt-24">
     <div class="card"><div class="card__head"><div class="card__title">Por mes</div><span class="card__hint">% de cumplimiento</span></div>${svgBar(porMes, { color: "var(--cian)", fmt: v => v + "%" })}</div>

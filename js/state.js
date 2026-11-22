@@ -249,7 +249,7 @@ function seedDemo(s) {
   }
 
   // Monedas de prueba para explorar la tienda completa
-  ledgerRegistrar(s, "demo-monedas", 6000, 0, "Monedas de prueba");
+  ledgerRegistrar(s, "demo-monedas", 6000, 0, "Estrellas de prueba");
 
   return s;
 }

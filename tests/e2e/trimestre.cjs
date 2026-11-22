@@ -17,7 +17,7 @@ module.exports = async ({ b, ok, errs }) => {
   await p.locator('.seg', { has: p.locator('#tc-e-t1') }).locator('button[data-v="cumplido"]').click().catch(async () => {
     await p.locator('.mes-obj', { hasText: "Conseguir 10 clientes" }).locator('button[data-v="cumplido"]').click(); });
   await p.click('[data-action="triw-next"]'); await p.waitForTimeout(120);
-  ok((await p.locator("#modalBody").innerText()).includes("metas del trimestre"), "muestra los números del trimestre");
+  ok((await p.locator("#modalBody").innerText()).includes("objetivos del trimestre"), "muestra los números del trimestre");
   await p.click('[data-action="triw-next"]'); await p.waitForTimeout(120);
   await p.fill("#tc-logro", "Llegamos a 10 clientes"); await p.fill("#tc-cambiar", "Entrenar temprano");
   await p.click('[data-action="triw-next"]'); await p.waitForTimeout(120);

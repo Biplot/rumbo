@@ -45,7 +45,7 @@ function saludoBienvenida() { const n = primerNombre(); return n ? `¡Hola, ${n}
 const ARMA_AREAS = [
   { id: "dia", t: "Mi día y mis tareas", mods: [] },
   { id: "habitos", t: "Mis hábitos", mods: [] },
-  { id: "metas", t: "Mis metas", mods: ["metas"] },
+  { id: "metas", t: "Mis objetivos", mods: ["metas"] },
   { id: "plata", t: "Mi plata", mods: ["finanzas"] },
   { id: "salud", t: "Mi salud", mods: ["salud"] },
   { id: "lecturas", t: "Mis lecturas", mods: ["lecturas"] },
@@ -313,7 +313,7 @@ function psIr(id) {
   if (id === "semana") return openSemCorta(agLunes(todayISO()));   // tus 3 prioridades, en una pantalla
   if (id === "objetivo") { go("metas"); return setTimeout(() => { const el = document.getElementById("mt-mes-" + new Date().getMonth()); if (el) { el.scrollIntoView({ block: "center" }); el.focus({ preventScroll: true }); } }, 350); }
   if (id === "plata") return go("finanzas");
-  if (id === "mas") { verTodasLasSecciones(); setTimeout(() => { openMas(); toast("Estas son todas tus secciones. Con Personalizar ocultas las que no uses."); }, 200); return; }
+  if (id === "mas") { setTimeout(() => { openMas(); toast("Arriba, tus secciones. Abajo, en «Descubrir», las demás: tócalas para conocerlas."); }, 200); return; }
   if (id === "resumen") return openResumenPrimeraSemana();
 }
 function modulosTodos() { return typeof ROUTES !== "undefined" ? ROUTES.filter(r => r.id && !r.pie && ROUTE_MAP[r.id] && ROUTE_MAP[r.id].mas) : []; }
@@ -352,7 +352,7 @@ const PS_PASOS = [
     check: S => psCerrados(S) >= 2 },
   { id: "habito", dia: 3, t: "Cierra tu 3.er día y marca un hábito", premio: 5, despierta: [],
     check: S => psCerrados(S) >= 3 && psMarcoHabito(S) },
-  { id: "semana", dia: 5, t: "Elige tus 3 prioridades de la semana", premio: 75, despierta: ["calendario"],
+  { id: "semana", dia: 5, t: "Elige tus 3 prioridades de la semana", premio: 75, despierta: [],
     check: S => Object.values((S.ritual && S.ritual.semanas) || {}).some(w => w && w.apertura) },
   { id: "resumen", dia: 7, t: "Tu primera semana, en números", despierta: ["tendencias"],
     check: S => !!(S.settings.bienvenida && S.settings.bienvenida.resumen) },
@@ -484,11 +484,11 @@ function openResumenPrimeraSemana() {
 const GLOSARIO = {
   bocado: { t: "Primer bocado", d: "La tarea más importante del día. Viene del dicho: ¿cómo te comes un elefante? Un bocado a la vez. Hazla primero y lo demás pesa menos." },
   ritual: { t: "Ritual", d: "Abrir y cerrar un ciclo: tu día (cada día), tu semana, tu mes y tu trimestre. Son minutos, y mantienen vivo todo lo demás." },
-  express: { t: "Express", d: "Para días apretados: abres o cierras tu día en 3 toques. Tus pendientes pasan a mañana y la racha se mantiene, con la mitad de las monedas." },
+  express: { t: "Express", d: "Para días apretados: abres o cierras tu día en 3 toques. Tus pendientes pasan a mañana y la racha se mantiene, con la mitad de las estrellas." },
   racha: { t: "Racha", d: "Días seguidos cumpliendo. La de 🔥 cuenta los días que cerraste; la de hábitos, los días en que hiciste los que tocaban. Un descanso planificado no la corta." },
-  monedas: { t: "⭐ Monedas", d: "Las ganas abriendo y cerrando días, con hábitos, rituales y objetivos. Las gastas en la Tienda: herramientas para tu día y cosas para tu estilo." },
+  monedas: { t: "⭐ Estrellas", d: "Las ganas abriendo y cerrando días, con hábitos, rituales y objetivos. Las gastas en la Tienda: herramientas para tu día y cosas para tu estilo." },
   vitrina: { t: "✨ Tu vitrina", d: "Donde viven tus medallas, como constelaciones en el cielo. Cada una se gana con algo que hiciste de verdad." },
-  xp: { t: "XP y rango", d: "La XP mide tu constancia y nunca baja, aunque gastes monedas. Con ella subes de rango y tu elefante crece de cría a sabio." },
+  xp: { t: "XP y rango", d: "La XP mide tu constancia y nunca baja, aunque gastes estrellas. Con ella subes de rango y tu elefante crece de cría a sabio." },
   maceta: { t: "Maceta", d: "En tu jardín, hasta 3 de los hábitos que estás formando viven en una maceta. Con 66 días cumplidos echan raíces y pasan al jardín como árbol." },
   pilar: { t: "Pilares", d: "Seis focos para tu día: psicología, fisiología, productividad, magnetismo, presencia y propósito. Eliges uno al abrir tu día, si quieres; con el tiempo ves cuáles cultivas." },
 };
@@ -563,7 +563,7 @@ function metasEnsenaHtml() {
   const m = new Date().getMonth();
   return `<div class="card ensena" data-ensena="metas"><div class="ensena__txt">
     <div class="card__title">Un paso concreto este mes</div>
-    <p class="text-sm soft mt-8">Un objetivo del mes es algo que puedes terminar en ${MESES[m].toLowerCase()}: leer 2 libros, ahorrar $100.000 o ir 8 veces al gimnasio. Las metas del trimestre son 3 a 5 cosas más grandes que esos pasos empujan.</p>
+    <p class="text-sm soft mt-8">Un objetivo del mes es algo que puedes terminar en ${MESES[m].toLowerCase()}: leer 2 libros, ahorrar $100.000 o ir 8 veces al gimnasio. Los objetivos del trimestre son 3 a 5 cosas más grandes que esos pasos empujan.</p>
     <button class="btn btn--primary mt-16" data-action="bv-foco" data-id="mt-mes-${m}">Escribir mi objetivo de ${MESES[m].toLowerCase()}</button></div></div>`;
 }
 function ruedaEnsenaHtml() {

@@ -15,7 +15,7 @@
 // Un paso sin "el" se muestra al centro.
 const TOURS = {
   general: {
-    icon: "🧭", titulo: "Recorrido por Rumbo", desc: "Lo esencial en un minuto: tu día, el botón del día, tus lugares y tus monedas, y tu misión.",
+    icon: "🧭", titulo: "Recorrido por Rumbo", desc: "Lo esencial en un minuto: tu día, el botón del día, tus lugares y tus estrellas, y tu misión.",
     // Corto a propósito: lo demás se explica cuando llegas a cada pantalla (la franja «Primera vez aquí»)
     pasos: [
       { titulo: "Te muestro Rumbo 👋", texto: m => `${eleSoy()}Un minuto por lo esencial, sobre tu propia app. Sal cuando quieras con ✕${m ? "" : " (o Esc)"}.` },
@@ -23,8 +23,8 @@ const TOURS = {
         texto: `En la mañana <b>abres tu día</b>: eliges lo más importante, tu <b>${BOCADO.corto.toLowerCase()}</b> ${BOCADO.emoji}. En la noche lo <b>cierras</b>: decides qué pasa con lo pendiente. ¿Día apretado? <b>⚡ Express</b> lo hace en 3 toques.` },
       { el: ["#bbDia", "#navDia"], titulo: "El botón del día",
         texto: m => `${m ? "Al centro de la barra de abajo" : "Arriba del menú"}: abre o cierra tu día desde cualquier pantalla. De noche, late suave para recordarte cerrarlo.` },
-      { el: ".topbar__meta", titulo: "Tus lugares y tus monedas",
-        texto: m => `La cara de tu elefante abre <b>Tu casa</b>. El destello ✨ abre <b>Tu vitrina</b>, donde viven tus medallas. Las ⭐ son tus monedas: las ganas abriendo y cerrando días, con hábitos y objetivos, y las gastas en Recompensas.${m ? " Tu racha 🔥 de días cerrados va al pie de tu día." : " 🔥 es tu racha de días cerrados."}` },
+      { el: ".topbar__meta", titulo: "Tus lugares y tus estrellas",
+        texto: m => `La cara de tu elefante abre <b>Tu casa</b>. El destello ✨ abre <b>Tu vitrina</b>, donde viven tus medallas. Las ⭐ son tus estrellas: las ganas abriendo y cerrando días, con hábitos y objetivos, y las gastas en Recompensas.${m ? " Tu racha 🔥 de días cerrados va al pie de tu día." : " 🔥 es tu racha de días cerrados."}` },
       { ruta: "inicio", el: "[data-tour=mision]", titulo: "Tu misión para arrancar",
         texto: "Unos pasos chicos, de a uno. Se marcan solos cuando los haces y al completarlos ganas +100 ⭐ y la insignia Explorador." },
       { titulo: "¡Listo! 🚀", texto: "Eso es lo esencial. Lo demás te lo explico cuando llegues: las primeras veces que entres a una pantalla te ofrezco su ayuda, y el <b>?</b> de arriba la repite. Parte abriendo tu día: te toma 30 segundos." },
@@ -38,7 +38,7 @@ const TOURS = {
       { ruta: "ritual", el: ["[data-tour=ritual-dia] .card", "#view .card"], titulo: "Abrir y cerrar",
         texto: "Abrir: enfoque, primer bocado y tareas. Cerrar: decides qué pasa con lo pendiente, reflexionas y agradeces. Abrir y cerrar mantiene tu racha 🔥." },
       { ruta: "ritual", el: "#view [data-action=day-open-express], #view [data-action=day-close-express]", titulo: "⚡ Express",
-        texto: "Para días apretados: 3 toques. Tus pendientes pasan a mañana y la racha se mantiene (con la mitad de monedas)." },
+        texto: "Para días apretados: 3 toques. Tus pendientes pasan a mañana y la racha se mantiene (con la mitad de estrellas)." },
     ],
   },
   semana: {
@@ -62,7 +62,7 @@ const TOURS = {
     ],
   },
   metas: {
-    icon: "🎯", titulo: "Objetivos", desc: "Metas del trimestre y objetivos del mes.",
+    icon: "🎯", titulo: "Objetivos", desc: "Tus objetivos del trimestre y del mes.",
     pasos: [
       { ruta: "metas", el: ".anio-nav", titulo: "Año a año", texto: "Revisa años anteriores o adelanta las metas del próximo." },
       { ruta: "metas", el: { sel: "#view .card", txt: "Trimestre" }, titulo: "Metas del trimestre", texto: "De 3 a 5 metas grandes. Se definen en la revisión trimestral (Ritual → Trimestre)." },
@@ -98,7 +98,7 @@ const TOURS = {
   recompensas: {
     icon: "🏆", titulo: "Recompensas", desc: "Tu rango y la Tienda.",
     pasos: [
-      { ruta: "recompensas", el: ".rango-card", titulo: "Tu rango", texto: "La XP mide tu rango y <b>nunca baja</b>, aunque gastes monedas. Las ⭐ son para gastar en la Tienda." },
+      { ruta: "recompensas", el: ".rango-card", titulo: "Tu rango", texto: "La XP mide tu rango y <b>nunca baja</b>, aunque gastes estrellas. Las ⭐ son para gastar en la Tienda." },
       { ruta: "recompensas", el: ".tienda-seg", titulo: "La Tienda", texto: "<b>Para tu día</b>: herramientas como el modo enfoque. <b>Para tu estilo</b>: temas, íconos y efectos. Solo ves lo que puedes comprar; lo tuyo se elige en Cuenta › Apariencia." },
       { ruta: "recompensas", el: ".tienda-elefante", titulo: "Tu elefante", texto: "Su ropa y sus muebles se compran en Tu casa, viendo cómo quedan. Entras tocando su cara, arriba." },
     ],

@@ -60,6 +60,11 @@ function diarioTexto(fecha) {
   return [r && r.mision, r && r.sapo, r && r.servir, c.mejor, c.nota, c.manana, ...es.map(e => [e.titulo, e.texto, e.gratitud].join(" "))].filter(Boolean).join(" ").toLowerCase();
 }
 
+/* v154 · El calendario vive dentro del Diario: dos pestañas, cada una con su dirección de siempre (#diario y #calendario) */
+function diarioTabsHtml(act) {
+  return `<div class="filtros diario-tabs" role="tablist" aria-label="Diario">${[["diario", "Tu diario"], ["calendario", "Calendario"]].map(([id, l]) =>
+    `<button role="tab" aria-selected="${id === act}" class="${id === act ? "is-active" : ""}" data-route="${id}">${l}</button>`).join("")}</div>`;
+}
 function renderDiario() {
   const hoy = todayISO();
   if (!DIARIO_MES) DIARIO_MES = hoy.slice(0, 7);
@@ -96,7 +101,7 @@ function renderDiario() {
   </div>
   <div class="dbusca"><input class="input" id="diario-busca" placeholder="Buscar en tu diario…" value="${escapeAttr(DIARIO_BUSCA)}" oninput="diarioBuscar(this.value)" aria-label="Buscar en tu diario"></div>`;
 
-  return `<div class="diario-layout"><div class="diario-izq">${mapa}${typeof albumDiarioHtml === "function" ? albumDiarioHtml(DIARIO_MES) : ""}</div>
+  return `${diarioTabsHtml("diario")}<div class="diario-layout"><div class="diario-izq">${mapa}${typeof albumDiarioHtml === "function" ? albumDiarioHtml(DIARIO_MES) : ""}</div>
     <div id="diario-lista">${diarioListaHtml()}</div></div>`;
 }
 function diarioListaHtml() {
@@ -409,9 +414,27 @@ function renderListas() {
   <button type="button" class="tienda-link mt-16 lista-deseos-link" data-action="des-ir">${iconoLinea("finanzas", 20)}
     <span><b>💎 Tus deseos están en Finanzas</b><small>${deseos ? `${deseos === 1 ? "1 deseo" : deseos + " deseos"} · ` : ""}Anota lo que quieres comprarte, espéralo unos días y ahórrale su alcancía</small></span>${iconoLinea("chevron", 16)}</button>
   <div class="grid grid-3 mt-16">
-    ${listas.length ? listas.map(listaNormalCard).join("")
-      : '<div class="card"><div class="empty">Crea tu primera lista: compras, películas, lo que quieras.</div></div>'}
+    ${aprendListaCard()}${listas.length ? listas.map(listaNormalCard).join("")
+      : aprendTiene() ? "" : '<div class="card"><div class="empty">Crea tu primera lista: compras, películas, lo que quieras.</div></div>'}
   </div>`;
+}
+/* v154 · Aprendizajes es un tipo de lista (antes, una sección aparte): temas profesionales y de interés, con su para qué.
+   Los datos siguen en STATE.aprendizajes; la lista aparece si tiene algo o si la creaste («Nueva lista» › Aprendizajes). */
+function aprendTiene() { return (STATE.aprendizajes || []).length > 0 || !!STATE.settings.aprendLista; }
+function aprendListaCard() {
+  if (!aprendTiene()) return "";
+  const l = STATE.aprendizajes || [], done = l.filter(a => a.done).length;
+  const grupo = (tipo, titulo) => { const xs = l.filter(a => a.tipo === tipo);
+    return `<div class="text-xs muted mt-8" style="text-transform:uppercase;letter-spacing:.06em">${titulo}</div>
+      ${xs.map(a => `<div class="item-row" style="padding:8px 10px">
+        <span class="check ${a.done ? "is-on" : ""}" data-action="apr-toggle" data-id="${a.id}">${a.done ? "✓" : ""}</span>
+        <div class="item-row__main"><div class="item-row__title text-sm ${a.done ? "strike" : ""}">${escapeHtml(a.tema)}</div>${a.objetivo ? `<div class="item-row__sub">${escapeHtml(a.objetivo)}</div>` : ""}</div>
+        <button class="icon-btn" data-action="apr-del" data-id="${a.id}" aria-label="Quitar ${escapeAttr(a.tema)}">✕</button></div>`).join("")}
+      <button class="btn-ghost mt-8" data-action="apr-add" data-tipo="${tipo}">+ Agregar</button>`; };
+  return `<div class="card lista-aprend">
+    <div class="card__head"><div class="card__title" style="font-size:15px">${emoLit("🧠")} Aprendizajes</div>
+      <div class="row" style="gap:6px"><span class="chip">${done}/${l.length}</span>${l.length ? "" : `<button class="icon-btn" data-action="apr-lista-quitar" aria-label="Quitar la lista de aprendizajes">🗑</button>`}</div></div>
+    ${grupo("prof", "Profesionales")}${grupo("interes", "Temas de interés")}</div>`;
 }
 function listaNormalCard(l) {
   const done = l.items.filter(i => i.done).length;
@@ -456,6 +479,8 @@ function openListaModal() {
     <div class="field" id="lst-icon-field"><label>Ícono</label>
       ${elGaleria(iconos.map((ic, i) => ({ v: ic, nombre: ["Compras", "Películas", "Viajes", "Libros", "Música", "Regalos", "Comida", "Ejercicio", "Ideas", "Tareas"][i], thumb: emoLit(ic) })), "🛒",
         { id: "lst-icon", contId: "lst-iconos", cls: "el-gal--ico", attr: "ic", label: "Ícono de la lista" })}</div>
+    ${aprendTiene() ? "" : `<button type="button" class="tienda-link" data-action="apr-lista-crear" style="margin:-4px 0 12px">${emoLit("🧠")}
+      <span><b>Una lista de aprendizajes</b><small>Temas para aprender (del trabajo o de interés), cada uno con su para qué</small></span></button>`}
     <p class="text-xs muted" style="margin:-4px 0 12px">💎 ¿Algo que quieres comprarte? Anótalo en Finanzas › Tus deseos: te ayuda a esperarlo y a ahorrar para eso.</p>
     <button class="btn btn--primary btn-block" data-action="lista-save">Crear lista</button>`);
 }

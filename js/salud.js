@@ -22,10 +22,22 @@ function renderSalud() {
 function renderEntrenamiento() { SALUD_TAB = "entrenar"; return renderSalud(); }
 
 /* -------- Resumen -------- */
-function entrenosDelMes(y, m) {
-  const pref = `${y}-${String(m + 1).padStart(2, "0")}-`;
-  return new Set((STATE.entrenamiento.registro || []).filter(r => !r.borrado && r.fecha.startsWith(pref)).map(r => r.fecha)).size;
+/* v154 · Tus hábitos de ejercicio (Deporte, Correr, Gimnasio, Yoga…) también cuentan como días entrenados */
+const EJERCICIO_RE = /deport|ejercic|entren|gimnas|\bgym\b|corr(er|o)|trot|camin|nad(ar|o)|bici|ciclis|yoga|pesas|crossfit|f[uú]tbol|pilates|baile|bail(ar|o)|tenis|p[aá]del|box|escal|cardio|spinning|funcional/i;
+const EJERCICIO_ICO = ["🏋️", "🏋", "🏃", "🏃‍♀️", "🏃‍♂️", "🚴", "🏊", "🧘", "⚽", "🤸", "💪", "🥊", "🎾", "🚶", "🧗", "⛹️"];
+function habitosEjercicio(S) {
+  S = S || STATE;
+  return ((S.habitos && S.habitos.defs) || []).filter(h => h && (typeof hmMeta !== "function" || hmMeta(h) === "hacer") && (EJERCICIO_RE.test(h.nombre || "") || EJERCICIO_ICO.includes(h.icon)));
 }
+/* Días del mes con algo de ejercicio: un entrenamiento registrado o un hábito de ejercicio marcado */
+function diasEjercicioMes(y, m, S) {
+  S = S || STATE;
+  const pref = `${y}-${String(m + 1).padStart(2, "0")}-`, dias = new Set(((S.entrenamiento || {}).registro || []).filter(r => r && !r.borrado && (r.fecha || "").startsWith(pref)).map(r => r.fecha));
+  const log = ((S.habitos || {}).log || {})[`${y}-${m + 1}`] || {};
+  habitosEjercicio(S).forEach(h => Object.keys(log[h.id] || {}).forEach(d => { if (log[h.id][d]) dias.add(pref + String(d).padStart(2, "0")); }));
+  return dias.size;
+}
+function entrenosDelMes(y, m) { return diasEjercicioMes(y, m, STATE); }
 function saludResumen() {
   const hoy = todayISO(), y = anioActual(), m = +hoy.slice(5, 7) - 1;
   const sy = datosAnio(STATE, y).salud, mes = sy.meses[m], pre = rutaAnio(y), meta = STATE.salud.pesoObjetivo;

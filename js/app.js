@@ -10,13 +10,13 @@ const ROUTES = [
   { id: "inicio", label: "Inicio", icon: "🏠", render: renderInicio, subtitle: "Tu centro de control diario." },
   { id: "semana", label: "Semana", icon: "🗂️", render: renderSemana, subtitle: "Tu plan y tus tareas de lunes a domingo." },
   { id: "habitos", label: "Hábitos", icon: "📊", render: renderHabitos, subtitle: "Marca cada día y cuida tu racha." },
-  { id: "metas", label: "Objetivos", icon: "🎯", render: renderMetas, subtitle: "Tus metas trimestrales y mensuales, y las que logras con amigos." },
+  { id: "metas", label: "Objetivos", icon: "🎯", render: renderMetas, subtitle: "Tus objetivos del trimestre y del mes, y los que logras con amigos." },
   { id: "ritual", label: "Ritual", icon: "🌅", render: renderRitual, subtitle: "Abre y cierra tu día, tu semana y tu mes." },
   { id: "diario", label: "Diario", icon: "📔", render: renderDiario, subtitle: "Tu día a día: ánimo, reflexión e historial del ritual." },
   { id: "amigos", label: "Amigos", icon: "🤝", render: renderAmigos, subtitle: "Invita, acompaña y manda ánimo. Tú eliges qué ven." },
   { grupo: "Módulos" },
   { id: "tendencias", mas: true, label: "Tendencias", icon: "📈", render: renderTendencias, subtitle: "Tu evolución del año en gráficos." },
-  { id: "calendario", mas: true, label: "Calendario", icon: "🗓️", render: renderCalendario, subtitle: "Tu mes de un vistazo." },
+  { id: "calendario", pie: true, label: "Calendario", icon: "🗓️", render: () => diarioTabsHtml("calendario") + renderCalendario(), subtitle: "Tu mes de un vistazo: tus eventos, tus días y tus hábitos." },   // v154: vive dentro del Diario
   { id: "finanzas", mas: true, label: "Finanzas", icon: "💰", render: renderFinanzas, subtitle: "Ahorro, gastos y seguimiento mensual." },
   { id: "salud", mas: true, label: "Salud", icon: "💪", render: renderSalud, subtitle: "Peso, recetas y entrenamiento." },
   { id: "entrenamiento", pie: true, label: "Salud", icon: "🏋️", render: renderEntrenamiento, subtitle: "Tus rutinas y ejercicios." },
@@ -24,23 +24,24 @@ const ROUTES = [
   { id: "lecturas", mas: true, label: "Lecturas", icon: "📚", render: renderLecturas, subtitle: "Tu biblioteca personal de lectura." },
   { id: "relaciones", mas: true, label: "Relaciones", icon: "👥", render: renderRelaciones, subtitle: "Cumpleaños y con quién no hablas hace rato." },
   { id: "listas", mas: true, label: "Listas", icon: "🧾", render: renderListas, subtitle: "Compras, películas, viajes y más." },
-  { id: "aprendizajes", mas: true, label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
+  { id: "aprendizajes", pie: true, label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
   { id: "notas", mas: true, label: "Notas", icon: "📝", render: renderNotas, subtitle: "Tus ideas como post-its, con #etiquetas." },
-  { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus monedas y la Tienda." },
+  { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus estrellas y la Tienda." },
   { id: "cuarto", pie: true, lugar: true, label: "Tu casa", icon: "🏠", render: renderCuarto, subtitle: "Tu elefante en su casa, a pantalla completa." },
   { id: "cielo", pie: true, lugar: true, label: "Tu vitrina", icon: "✨", render: renderCielo, subtitle: "Tus medallas en el cielo, a pantalla completa." },
   { id: "visita-casa", pie: true, lugar: true, label: "De visita", icon: "🏠", render: renderVisitaCasa, subtitle: "La casa del elefante de tu amigo." },
   { id: "visita-cielo", pie: true, lugar: true, label: "De visita", icon: "✨", render: renderVisitaCielo, subtitle: "Las medallas de tu amigo en su cielo." },
   { id: "apariencia", pie: true, label: "Apariencia", icon: "🎨", render: renderApariencia, subtitle: "Tu tema, tus títulos, tus marcos y tus efectos." },
-  { id: "cuenta", pie: true, label: "Cuenta", icon: "🔐", render: renderCuenta, subtitle: "Tus datos, seguridad y sesión." },
+  { id: "cuenta", pie: true, label: "Ajustes", icon: "⚙️", render: renderCuenta, subtitle: "Tus avisos, tu tema, tu menú, tus conexiones y tu cuenta." },
   { id: "norte", pie: true, label: "Norte, tu brújula", icon: "🧭", render: renderNorte, subtitle: "Tu robot del escritorio: aparatos, alarmas, avisos y modo noche." },
   { id: "notif", pie: true, label: "Notificaciones", icon: "🔔", render: renderNotificaciones, subtitle: "Recordatorios de tu ritual (mañana y noche)." },
   { id: "tutoriales", pie: true, label: "Ayuda", icon: "🎓", render: renderTutoriales, subtitle: "Recorridos guiados para aprender Rumbo a tu ritmo." },
 ];
 const ROUTE_MAP = {};
 ROUTES.forEach(r => { if (r.id) ROUTE_MAP[r.id] = r; });
-/* Módulos ocultos por la persona (settings.menu.ocultos) */
+/* v154: una sección de Más que no es tuya (está en «Descubrir»: secciones.js) no va en el menú */
 function moduloOculto(id) {
+  if (typeof seccionTuya === "function") return !!(STATE && ROUTE_MAP[id] && !seccionTuya(id));
   const m = STATE && STATE.settings && STATE.settings.menu;
   if (m && (m.ocultos || []).includes(id) && ROUTE_MAP[id] && ROUTE_MAP[id].mas) return true;
   // la primera semana de una cuenta nueva, las secciones despiertan de a una (bienvenida.js)
@@ -174,7 +175,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 81;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 82;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -266,7 +267,7 @@ const NOVEDADES = {
     ["📅", "Ritual de semana", "El domingo (o el lunes) cierras tu semana y planificas la siguiente: foco, 3 prioridades, tus días y tu premio. +75 ⭐ cada uno."],
   ],
   4: [
-    ["⚡", "Modo express", "¿Día apretado? Abre y cierra tu día en 3 toques con el botón ⚡ Express: tu primer bocado, tu energía y tu ánimo. Tus pendientes pasan a mañana y la racha se mantiene (mitad de monedas)."],
+    ["⚡", "Modo express", "¿Día apretado? Abre y cierra tu día en 3 toques con el botón ⚡ Express: tu primer bocado, tu energía y tu ánimo. Tus pendientes pasan a mañana y la racha se mantiene (mitad de estrellas)."],
   ],
   5: [
     ["📆", "Rumbo, año tras año", "Objetivos, Finanzas, Salud, Rueda, Hábitos, Calendario y Tendencias tienen selector de año ‹ 2026 ›: revisa años anteriores o adelanta las metas del próximo. Tu 2026 queda intacto."],
@@ -376,7 +377,7 @@ const NOVEDADES = {
     ["🐘", "Tu elefante, despierto", "Si no cierras tu día anda con sueño, pero solo duerme cuando toma su siesta."],
   ],
   29: [
-    ["🧭", "Norte, el tema de Rumbo", "Una aguja ámbar marca lo que sigue (abrir o cerrar tu día, tu racha, tus monedas) sobre tinta índigo. De día es la luz de la mañana; de noche, el mismo cielo de tu vitrina."],
+    ["🧭", "Norte, el tema de Rumbo", "Una aguja ámbar marca lo que sigue (abrir o cerrar tu día, tu racha, tus estrellas) sobre tinta índigo. De día es la luz de la mañana; de noche, el mismo cielo de tu vitrina."],
     ["🌗", "Automático, ahora con Norte", "Rumbo sigue el modo de tu teléfono: Norte de día y Norte noche de noche. ¿Lo quieres fijo? Elige Norte o Norte noche en Recompensas → Tienda → Temas. Ruta y Ruta noche siguen ahí."],
     ["🎨", "Adiós a Navy y Claro", "Si usabas Navy ahora tienes Norte noche, y si usabas Claro, Norte: el mismo modo que tenías."],
   ],
@@ -405,7 +406,7 @@ const NOVEDADES = {
   ],
   35: [
     ["🧭", "Íconos Norte", "Toda la app habla un solo idioma: los emojis de los títulos, las pestañas, los botones y los avisos pasan a íconos de línea, con el mismo trazo del menú y los colores de Norte."],
-    ["⭐", "La estrella de tus monedas", "Tus estrellas ahora son una estrella ámbar dibujada, igual en todos los teléfonos."],
+    ["⭐", "Tu estrella", "Tus estrellas ahora son una estrella ámbar dibujada, igual en todos los teléfonos."],
     ["🍪", "El bocado del logo", "Tu primer bocado lleva la galleta mordida de Rumbo, y todo lo de tu elefante, su silueta de perfil."],
     ["✏️", "Lo tuyo no cambia", "Lo que escribes o eliges tú (tus recetas, tus listas, tus notas y tu diario) sigue con sus emojis."],
   ],
@@ -562,6 +563,12 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  82: [
+    ["📌", "Más, con lo tuyo arriba", "Arriba están tus secciones, en tu orden. Abajo, en «Descubrir», las demás, en gris y con «+». Una sección aparece sola cuando guardas algo en ella. Con «Ordenar» las mueves o las quitas (también Amigos), sin borrar nada."],
+    ["⚙️", "Ajustes en un solo lugar", "Cuenta ahora se llama Ajustes y parte por tus avisos (con su estado), tu tema, tus secciones y Amigos. La ⭐ de arriba te lleva directo a Recompensas, en tres pestañas: Tienda, Tu elefante y Lo tuyo. Y en toda la app se dicen «estrellas»."],
+    ["🔗", "Menos cosas repetidas", "El calendario vive dentro del Diario, y tus eventos se ven en Semana, en Inicio y al abrir el día. Aprendizajes es un tipo de lista. Ritual → Semana es tu historial de semanas. Se dice «Objetivos» en todas partes, y hay una sola racha: tus días cerrados."],
+    ["🌱", "Pantallas vacías que enseñan", "Finanzas, Tendencias y Ritual (Mes y Trimestre) muestran, mientras no tengan datos, una tarjeta que explica y una acción, en vez de pantallas de ceros. Salud y Tendencias cuentan tu hábito de ejercicio como días entrenados."],
   ],
   81: [
     ["☀️", "Abrir tu día, más corto", "Si ayer quedó sin cerrar, lo cierras ahí mismo al abrir el día, en 1 toque. Tus misiones de antes aparecen como chips bajo la misión. Y si prefieres un solo campo, «Lo más importante de hoy» guarda tu misión y tu primer bocado a la vez (con un toque vuelves a separarlos)."],
@@ -737,7 +744,7 @@ function renderAccountBox() {
   const marco = typeof marcoClase === "function" ? marcoClase() : "";
   box.innerHTML = iconizar(`<div class="account__avatar${marco}" data-action="av-abrir" title="Tu avatar">${avatar}</div>
     <div class="account__info" data-action="cuenta-menu" style="min-width:0;flex:1"><div class="account__name">${escapeHtml(CURRENT_USER.name || "")}</div>
-    <div class="account__email">Cuenta, avisos y ayuda</div></div>`);
+    <div class="account__email">Ajustes, avisos y ayuda</div></div>`);
 }
 
 /* -------- Handlers del portal -------- */
@@ -779,6 +786,7 @@ async function doForgot() {
   authError(""); toast("Si existe la cuenta te llegará un correo (se activa con Supabase).");
 }
 async function doLogout() {
+  if (typeof seccionesReiniciar === "function") seccionesReiniciar();
   await soltarDispositivoPush();   // 🔔 este dispositivo deja de recibir los avisos de quien sale
   await BACKEND.logout();
   if (typeof cerrarFoco === "function") { cerrarFoco(); focoCallar(0.2); }   // ⏱️ la sesión de foco queda guardada en este equipo para cuando vuelvas
@@ -796,14 +804,20 @@ function buildNav() {
   const nav = document.getElementById("nav");
   // Íconos de línea (los mismos de la barra inferior); el emoji queda solo si una sección no tiene dibujo
   const item = r => `<button class="nav__item" data-route="${r.id}"><span class="nav__ico">${ICONOS_LINEA[r.id] ? iconoLinea(r.id, 20) : r.icon}</span><span>${r.label}</span></button>`;
-  const principal = ROUTES.filter(r => r.id && !r.mas && !r.pie);
-  const mods = ROUTES.filter(r => r.id && r.mas && !moduloOculto(r.id));
+  // v154: tus secciones, en tu orden (secciones.js); las demás esperan en «Descubrir»
+  const tuyas = typeof seccionesTuyas === "function" ? seccionesTuyas() : [];
+  // Inicio, Semana y Hábitos (que no se ordenan) quedan primero; el resto, en tu orden (sort es estable)
+  const enOrden = l => tuyas.length ? l.slice().sort((a, b) => tuyas.indexOf(a.id) - tuyas.indexOf(b.id)) : l;
+  const principal = enOrden(ROUTES.filter(r => r.id && !r.mas && !r.pie && !moduloOculto(r.id)));
+  const mods = enOrden(ROUTES.filter(r => r.id && r.mas && !moduloOculto(r.id)));
+  const nDesc = typeof seccionesDescubrir === "function" ? seccionesDescubrir().length : 0;
   let abierto = true;
   try { abierto = localStorage.getItem("rumbo-nav-modulos") !== "0"; } catch (e) {}
   nav.innerHTML = principal.map(item).join("")
     + `<details class="nav-mods" id="navMods"${abierto ? " open" : ""}><summary class="nav__label nav-mods__sum">Módulos (${mods.length})${iconoLinea("chevron", 16)}</summary>
       ${mods.map(item).join("")}
-      <button class="nav__item nav__item--sub" data-action="menu-personalizar"><span class="nav__ico">${iconoLinea("personalizar", 20)}</span><span>Personalizar menú</span></button></details>`;
+      <button class="nav__item nav__item--sub" data-action="menu-personalizar"><span class="nav__ico">${iconoLinea(nDesc ? "mas" : "personalizar", 20)}</span><span>${nDesc ? `Descubrir (${nDesc})` : "Personalizar menú"}</span></button></details>`;
+  if (typeof seccionesRevisar === "function") seccionesRevisar();
   if (typeof amigosMarcarNav === "function") amigosMarcarNav();
   const det = document.getElementById("navMods");
   det.addEventListener("toggle", () => { try { localStorage.setItem("rumbo-nav-modulos", det.open ? "1" : "0"); } catch (e) {} });
@@ -835,22 +849,32 @@ function onRoute() {
 
 function go(id) { location.hash = id; }
 
-/* -------- Personalizar menú: ocultar módulos de "Más" (los datos no se tocan) -------- */
+/* -------- Tus secciones (v154): ordenar, quitar a «Descubrir» y agregar (los datos no se tocan) -------- */
 function openPersonalizarMenu() {
   setSidebar(false); cerrarMas();
-  const ocultos = new Set(((STATE.settings.menu || {}).ocultos) || []);
-  openModal("Personalizar menú", `
-    <p class="text-sm muted" style="margin-bottom:12px">Elige qué módulos ver en el menú. Ocultar uno no borra nada: vuelve a mostrarlo cuando quieras y todo seguirá ahí.</p>
-    ${elCasillas(ROUTES.filter(r => r.mas).map(r => [r.id, `${r.icon} ${r.label}`]), ROUTES.filter(r => r.mas && !ocultos.has(r.id)).map(r => r.id), { cls: "menu-mod", label: "Módulos del menú" })}
-    <p class="text-xs muted mt-8">Inicio, Semana, Hábitos, Objetivos, Ritual y Diario siempre se ven.</p>
-    <button class="btn btn--primary btn-block mt-16" data-action="menu-guardar">Guardar</button>`);
+  const tuyas = seccionesTuyas().filter(id => ROUTE_MAP[id]), desc = seccionesDescubrir().filter(id => ROUTE_MAP[id]);
+  const fila = (id, i) => `<li class="secc-fila"><span class="secc-fila__n">${iconoLinea(id, 20)} ${escapeHtml(ROUTE_MAP[id].label)}</span>
+      <span class="secc-fila__b"><button class="icon-btn" data-action="secc-mover" data-id="${id}" data-dir="-1" ${i ? "" : "disabled"} aria-label="Subir ${escapeAttr(ROUTE_MAP[id].label)}">↑</button>
+        <button class="icon-btn" data-action="secc-mover" data-id="${id}" data-dir="1" ${i < tuyas.length - 1 ? "" : "disabled"} aria-label="Bajar ${escapeAttr(ROUTE_MAP[id].label)}">↓</button>
+        ${SECC_FIJAS.includes(id) ? `<span class="secc-fija">Siempre</span>` : `<button class="btn-ghost secc-quitar" data-action="secc-quitar" data-id="${id}">Quitar</button>`}</span></li>`;
+  openModal("Tus secciones", `
+    <p class="text-sm muted" style="margin-bottom:12px">Así se ven en Más, en este orden. Quitar una no borra nada: queda en «Descubrir» y vuelve cuando quieras (o sola, cuando guardes algo en ella).</p>
+    <ol class="secc-lista" id="secc-tuyas">${tuyas.map(fila).join("")}</ol>
+    ${desc.length ? `<div class="section-title mt-16">Descubrir</div>
+    <ul class="secc-lista">${desc.map(id => `<li class="secc-fila is-desc"><span class="secc-fila__n">${iconoLinea(id, 20)} ${escapeHtml(ROUTE_MAP[id].label)}<small>${escapeHtml(ROUTE_MAP[id].subtitle || "")}</small></span>
+      <button class="btn btn--soft" data-action="secc-agregar" data-id="${id}">+ Agregar</button></li>`).join("")}</ul>` : ""}
+    <p class="text-xs muted mt-8">Inicio, Semana y Hábitos van en la barra de abajo.</p>`);
 }
-function guardarPersonalizarMenu() {
-  const ocultos = Array.from(document.querySelectorAll(".menu-mod")).filter(c => !c.checked).map(c => c.value);
-  STATE.settings.menu = { ocultos, ts: Date.now() };
-  saveState(); closeModal(); buildNav();
-  if (moduloOculto(CURRENT)) go("inicio"); else onRoute();
-  toast(ocultos.length ? `Menú actualizado · ${ocultos.length} módulo${ocultos.length === 1 ? "" : "s"} oculto${ocultos.length === 1 ? "" : "s"}` : "Menú actualizado");
+/* Agregar, quitar o mover: se guarda al tiro y se redibujan el menú y la hoja abierta */
+function seccionAccion(tipo, id, dir) {
+  const masAbierta = !document.getElementById("masOverlay")?.hidden, enModal = !!document.getElementById("secc-tuyas");
+  const cambio = tipo === "agregar" ? seccionAgregar(id) : tipo === "quitar" ? seccionQuitar(id) : seccionMover(id, +dir);
+  if (!cambio) return;
+  saveState(); seccionesRevisar(); buildNav();
+  if (enModal) openPersonalizarMenu(); else if (masAbierta) openMas();
+  const nom = (ROUTE_MAP[id] || {}).label || "";
+  if (tipo === "agregar") toast(`📌 ${nom} quedó en tus secciones`);
+  if (tipo === "quitar") { toast(`${nom} pasó a «Descubrir». No se borró nada.`); if (CURRENT === id && !enModal) go("inicio"); }
 }
 
 /* Menú lateral en móvil: abrir/cerrar con fondo oscuro */
@@ -968,6 +992,7 @@ function initGestures() {
 
 function rerender() {
   if (typeof checkBadges === "function") checkBadges();
+  if (typeof seccionesRevisar === "function") seccionesRevisar();   // una sección con su primer dato aparece sola en Más
   const route = ROUTE_MAP[CURRENT];
   const view = document.getElementById("view");
   view.innerHTML = iconizar((typeof ayudaFranjaHtml === "function" ? ayudaFranjaHtml(CURRENT) : "") + route.render());
@@ -1469,6 +1494,7 @@ function onClick(e) {
 
     /* Ritual de mes */
     case "ritual-view": RITUAL_VIEW = d.v; rerender(); break;
+    case "sem-hist-mas": SEM_HIST_N += 12; rerender(); break;
     case "mes-open": openMesApertura(d.key); break;
     case "mes-close": openMesCierre(d.key); break;
     case "mes-next": mesWizMover(1); break;
@@ -1484,6 +1510,10 @@ function onClick(e) {
     case "semw-add": semWizAdd(d.fecha, +d.i); break;
     case "semw-del": semWizDel(d.fecha, +d.i); break;
     case "menu-personalizar": openPersonalizarMenu(); break;
+    case "recomp-tab": RECOMP_TAB = d.v; rerender(); break;
+    case "secc-agregar": seccionAccion("agregar", d.id); break;
+    case "secc-quitar": seccionAccion("quitar", d.id); break;
+    case "secc-mover": seccionAccion("mover", d.id, d.dir); break;
     case "rec-open": openRecurrentes(); break;
     case "informe-open": openInformeMes(d.key); break;
     case "informe-compartir": compartirInforme(); break;
@@ -1498,7 +1528,6 @@ function onClick(e) {
     case "rec-save": guardarRecurrente(); break;
     case "rec-del": eliminarRecurrente(d.id); break;
     case "sem-ir": SEM_LUNES = d.lunes === agLunes(todayISO()) ? null : d.lunes; if (CURRENT !== "semana") go("semana"); else rerender(); window.scrollTo(0, 0); break;
-    case "menu-guardar": guardarPersonalizarMenu(); break;
     case "anio-nav": if (+d.dir === 0) { ANIO_VISTA = null; rerender(); } else cambiarAnioVista(+d.dir); break;
 
     /* Bitácora */
@@ -1637,6 +1666,9 @@ function onClick(e) {
 
     /* Vida · Listas */
     case "lista-add": openListaModal(); break;
+    case "fin-ver-todo": FIN_VER_TODO = true; rerender(); break;
+    case "apr-lista-crear": STATE.settings.aprendLista = true; saveState(); closeModal(); if (CURRENT !== "listas") go("listas"); else rerender(); toast("🧠 Tu lista de aprendizajes está en Listas"); break;
+    case "apr-lista-quitar": delete STATE.settings.aprendLista; saveState(); rerender(); break;
     case "lista-save": saveLista(); break;
     case "lista-del": if (confirm("¿Eliminar esta lista?")) { STATE.vida.listas = STATE.vida.listas.filter(l => l.id !== d.id); saveState(); rerender(); } break;
     case "lista-item-add": {
@@ -2269,7 +2301,7 @@ function renderInicio() {
   <div data-tour="dia">${renderDayHero()}</div>
   ${renderMisionCard()}
   ${plHoyHtml()}${plDespuesInicioHtml()}${amigosCumplesHoyHtml()}
-  ${gcalConectado() ? `<div style="margin-bottom:20px">${renderGcalHoy()}</div>` : ""}
+  ${(h => h ? `<div style="margin-bottom:20px">${h}</div>` : "")(renderGcalHoy())}
   <div class="grid grid-${Math.min(3, 2 + (metasMes.length ? 1 : 0) + (aguaCard ? 1 : 0))} inicio-main">
     ${dayState() === "por-abrir" ? tareasCard : ""}
     <div class="card">
@@ -2380,14 +2412,12 @@ function renderCuenta() {
   setTimeout(cargarVinculoGoogle, 0);
   setTimeout(() => { zonaVerifPintar("cv"); zonaCargarRespaldos(); }, 0);   // ¿eres tú? y las copias de 30 días (zona.js)
   return `
-  <div class="card">
+  ${ajustesAtajosHtml()}
+
+  <div class="card mt-16">
     <div class="card__title">👤 Tu cuenta</div>
     <div class="mt-8 text-sm soft">Sesión iniciada como <b>${escapeHtml(email)}</b></div>
   </div>
-
-  <button type="button" class="card mt-16 cuenta-apariencia" data-route="apariencia">
-    <span class="cuenta-apariencia__ico">${iconoLinea("personalizar", 22)}</span>
-    <span class="cuenta-apariencia__tx"><b>Apariencia</b><small>Tu tema (de día, de noche o automático), títulos, marcos y efectos</small></span>${iconoLinea("chevron", 18)}</button>
 
   ${renderAvatarCuenta()}
 
@@ -2436,6 +2466,25 @@ function renderCuenta() {
       <button class="btn-ghost" data-action="acc-delete" style="color:var(--coral);border-color:var(--coral)">✕ Eliminar mi cuenta</button>
     </div>
     <p class="text-xs muted mt-8">Reiniciar borra tus datos pero conserva tu cuenta, y guarda una copia por 30 días. Eliminar borra todo y cierra tu cuenta para siempre. Las dos piden escribir una palabra y confirmar que eres tú.</p>
+  </div>`;
+}
+
+/* v154 · Ajustes en un solo lugar: tus avisos (con su estado), tu tema, tu menú y Amigos, a un toque */
+function ajustesAtajosHtml() {
+  const est = typeof notifEstado === "function" ? notifEstado() : "apagadas";
+  const AV = { activas: ["Activadas en este aparato", "ok"], apagadas: ["Apagadas: actívalas para no olvidar tu día", "ojo"], bloqueadas: ["Bloqueadas en este aparato: te digo cómo cambiarlo", "ojo"],
+    instalar: ["Para recibirlas, instala Rumbo en tu inicio", "ojo"], nosoporte: ["Este navegador no las permite", ""], revisando: ["Revisando…", ""] };
+  const [avTxt, avCls] = AV[est] || AV.apagadas;
+  const n = (STATE.settings.notif || {}), horas = [n.manana, n.noche].filter(Boolean).join(" y ");
+  const tema = (typeof THEMES !== "undefined" && THEMES.find(t => t.id === STATE.settings.theme)) || null;
+  const nDesc = typeof seccionesDescubrir === "function" ? seccionesDescubrir().length : 0;
+  const fila = (attrs, ico, t, sub, cls) => `<button type="button" class="ajuste-fila${cls ? " is-" + cls : ""}" ${attrs}>
+      <span class="ajuste-fila__ico">${iconoLinea(ico, 22)}</span><span class="ajuste-fila__tx"><b>${t}</b><small>${sub}</small></span>${iconoLinea("flecha", 16)}</button>`;
+  return `<div class="card ajustes-lista">
+    ${fila('data-route="notif"', "notif", "Avisos", avTxt + (est === "activas" && horas ? ` · ${escapeHtml(horas)}` : ""), avCls)}
+    ${fila('data-route="apariencia"', "personalizar", "Apariencia", tema ? `Tema ${escapeHtml(tema.nombre || tema.label || "")}`.trim() + " · títulos, marcos y efectos" : "Tu tema, títulos, marcos y efectos")}
+    ${fila('data-action="menu-personalizar"', "mas", "Tus secciones", nDesc ? `Ordena tu menú · ${nDesc} por descubrir` : "Ordena tu menú")}
+    ${fila('data-route="amigos"', "amigos", "Amigos", "Qué ven tus amigos de ti")}
   </div>`;
 }
 

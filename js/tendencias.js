@@ -233,7 +233,7 @@ function totalesAnio(S, y) {
   const D = datosAnio(S, y);
   const ahorro = D.finanzas.meses.reduce((a, m) => a + ((m.ingreso || 0) - (m.gasto || 0)), 0);
   const habitos = cumplimientoGrupo(S.habitos.defs, `${y}-01-01`, `${y}-12-31`, S).pct;
-  const entreno = D.salud.meses.reduce((a, m) => a + (m.diasEntren || 0), 0);
+  const entreno = D.salud.meses.reduce((a, m, i) => a + Math.max(m.diasEntren || 0, typeof diasEjercicioMes === "function" ? diasEjercicioMes(y, i, S) : 0), 0);   // v154: cuenta tu hábito de ejercicio
   const cerrados = Object.keys(S.ritual.dias || {}).filter(k => k.startsWith(y + "-") && S.ritual.dias[k].cerrado).length;
   const libros = (S.lecturas || []).filter(l => l.estado === "terminado" && (l.fin || "").startsWith(y + "-")).length;
   return { ahorro, habitos, entreno, cerrados, libros, hay: !!(ahorro || entreno || cerrados || libros) };
@@ -252,6 +252,14 @@ function comparacionAnios(S, y) {
     ${chip("💰", "ahorro", a.ahorro, b.ahorro, fmtCLP)}${chip("🏋️", "días entrenados", a.entreno, b.entreno, n)}${chip("📚", "libros", a.libros, b.libros, n)}</div>`;
 }
 
+/* v154 · Solo los gráficos que tienen algo (antes, la mitad salían vacíos); de a dos por fila */
+const tendHay = l => (l || []).some(v => v != null && v !== 0 && !Number.isNaN(v));
+function tendGraficosHtml(items) {
+  const con = items.filter(([ok]) => ok).map(([, h]) => h), filas = [];
+  for (let i = 0; i < con.length; i += 2) filas.push(`<div class="grid grid-2${i ? " mt-24" : ""}">${con[i]}${con[i + 1] || ""}</div>`);
+  const faltan = items.length - con.length;
+  return filas.join("") + (faltan ? `<p class="text-xs muted mt-16">${con.length ? "Los demás gráficos" : "Tus gráficos"} (peso, ahorro, rueda, ánimo y libros) aparecen cuando anotes algo en esas secciones.</p>` : "");
+}
 function renderTendencias() {
   const S = STATE;
   const now = new Date();
@@ -277,7 +285,7 @@ function renderTendencias() {
   });
 
   const libros = S.lecturas.filter(l => l.estado === "terminado").length;
-  const deTot = H.salud.meses.reduce((a, m) => a + (m.diasEntren || 0), 0);
+  const deTot = H.salud.meses.reduce((a, m, i) => a + Math.max(m.diasEntren || 0, typeof diasEjercicioMes === "function" ? diasEjercicioMes(anioActual(), i, S) : 0), 0);   // v154: cuenta tu hábito de ejercicio
 
   /* Libros terminados por mes (según fecha de término) */
   const librosMes = MESES.map((_, m) => S.lecturas.filter(l => {
@@ -332,10 +340,10 @@ function renderTendencias() {
   ${renderDescubrimientos()}
 
   <div class="grid grid-4 mt-24">
-    ${statCard("💰", "Ahorro acumulado", fmtCLP(ahorroAcum), "Meta " + fmtCLP(H.finanzas.metaAnual), pctAnual)}
-    ${statCard("⚖️", "Peso actual", (pesoActual != null ? pesoActual + " kg" : "—"), S.salud.pesoObjetivo != null ? "Meta " + S.salud.pesoObjetivo + " kg" : "Define tu meta en Salud")}
-    ${statCard("🏋️", "Días entrenados", deTot, "en " + anioActual())}
-    ${statCard("🔥", "Racha de días", computeClosedStreak() + " días", "cerrados seguidos")}
+    ${[ahorroAcum || H.finanzas.metaAnual ? statCard("💰", "Ahorro acumulado", fmtCLP(ahorroAcum), "Meta " + fmtCLP(H.finanzas.metaAnual), pctAnual) : "",
+      pesoActual != null || S.salud.pesoObjetivo != null ? statCard("⚖️", "Peso actual", (pesoActual != null ? pesoActual + " kg" : "—"), S.salud.pesoObjetivo != null ? "Meta " + S.salud.pesoObjetivo + " kg" : "Define tu meta en Salud") : "",
+      deTot ? statCard("🏋️", "Días entrenados", deTot, "en " + anioActual() + " · con tus hábitos de ejercicio") : "",
+      statCard("🔥", "Racha de días", computeClosedStreak() + " días", "cerrados seguidos")].join("")}
   </div>
 
   ${resumenSemana}
@@ -350,35 +358,19 @@ function renderTendencias() {
   ${comparacionAnios(S, y)}
   ${y < anioActual() ? `<div class="card" style="margin-bottom:18px">${resumenAnioHtml(resumenAnio(S, y), true)}</div>` : ""}
   ${informeAnioDisponible(y) || (typeof tuAnioBoton === "function" && tuAnioBoton(y)) ? `<div class="row" style="margin-bottom:18px;justify-content:flex-end;gap:8px;flex-wrap:wrap">${typeof tuAnioBoton === "function" ? tuAnioBoton(y) : ""}${informeAnioDisponible(y) ? `<button class="btn ${funcion("informe-anio") ? "btn--cian" : "btn--soft"}" data-action="informe-anio" data-y="${y}">${icoHab("🗂️", 16)} Informe de ${y}${funcion("informe-anio") ? "" : " · 400 ⭐"}</button>` : ""}</div>` : ""}
-  <div class="grid grid-2">
-    <div class="card">
-      <div class="card__head"><div class="card__title">${icoHab("⚖️", 16)} Peso (kg)</div><span class="card__hint">${S.salud.pesoObjetivo != null ? "objetivo " + S.salud.pesoObjetivo + " kg" : ""}</span></div>
-      ${svgLine(pesos, { color: "var(--cian)", goal: S.salud.pesoObjetivo, fmt: v => v })}
-    </div>
-    <div class="card">
-      <div class="card__head"><div class="card__title">${icoHab("💰", 16)} Ahorro por mes</div><span class="card__hint">ingreso − gasto</span></div>
-      ${svgBar(ahorroVals, { color: "var(--cian)", fmt: v => "$" + Math.round(v / 1000) + "k" })}
-    </div>
-  </div>
-  <div class="grid grid-2 mt-24">
-    <div class="card">
-      <div class="card__head"><div class="card__title">${icoHab("📊", 16)} Cumplimiento de hábitos</div><span class="card__hint">% del mes</span></div>
-      ${svgBar(habPct, { color: "var(--coral)", fmt: v => v + "%" })}
-    </div>
-    <div class="card">
-      <div class="card__head"><div class="card__title">${icoHab("🧭", 16)} Rueda de la vida</div><span class="card__hint">promedio mensual</span></div>
-      ${svgLine(ruedaAvg, { color: "var(--cian)", fmt: v => v })}
-    </div>
-  </div>
-  <div class="grid grid-2 mt-24">
-    <div class="card">
-      <div class="card__head"><div class="card__title">${icoHab("😊", 16)} Estado de ánimo por mes</div><span class="card__hint">promedio 1–5 · desde tu Diario</span></div>
-      ${svgLine(moodByMonth, { color: "var(--coral)", fmt: v => v })}
-    </div>
-    <div class="card">
-      <div class="card__head"><div class="card__title">${icoHab("📚", 16)} Libros terminados por mes</div><span class="card__hint">${libros} en el año</span></div>
-      ${svgBar(librosMes, { color: "var(--cian)", fmt: v => v })}
-    </div>
-  </div>
+  ${tendGraficosHtml([
+    [tendHay(pesos), `<div class="card"><div class="card__head"><div class="card__title">${icoHab("⚖️", 16)} Peso (kg)</div><span class="card__hint">${S.salud.pesoObjetivo != null ? "objetivo " + S.salud.pesoObjetivo + " kg" : ""}</span></div>
+      ${svgLine(pesos, { color: "var(--cian)", goal: S.salud.pesoObjetivo, fmt: v => v })}</div>`],
+    [tendHay(ahorroVals), `<div class="card"><div class="card__head"><div class="card__title">${icoHab("💰", 16)} Ahorro por mes</div><span class="card__hint">ingreso − gasto</span></div>
+      ${svgBar(ahorroVals, { color: "var(--cian)", fmt: v => "$" + Math.round(v / 1000) + "k" })}</div>`],
+    [tendHay(habPct), `<div class="card"><div class="card__head"><div class="card__title">${icoHab("📊", 16)} Cumplimiento de hábitos</div><span class="card__hint">% del mes</span></div>
+      ${svgBar(habPct, { color: "var(--coral)", fmt: v => v + "%" })}</div>`],
+    [tendHay(ruedaAvg), `<div class="card"><div class="card__head"><div class="card__title">${icoHab("🧭", 16)} Rueda de la vida</div><span class="card__hint">promedio mensual</span></div>
+      ${svgLine(ruedaAvg, { color: "var(--cian)", fmt: v => v })}</div>`],
+    [tendHay(moodByMonth), `<div class="card"><div class="card__head"><div class="card__title">${icoHab("😊", 16)} Estado de ánimo por mes</div><span class="card__hint">promedio 1–5 · desde tu Diario</span></div>
+      ${svgLine(moodByMonth, { color: "var(--coral)", fmt: v => v })}</div>`],
+    [tendHay(librosMes), `<div class="card"><div class="card__head"><div class="card__title">${icoHab("📚", 16)} Libros terminados por mes</div><span class="card__hint">${libros} en el año</span></div>
+      ${svgBar(librosMes, { color: "var(--cian)", fmt: v => v })}</div>`],
+  ])}
 `;
 }

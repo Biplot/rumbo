@@ -45,7 +45,7 @@ function saludoBienvenida() { const n = primerNombre(); return n ? `¡Hola, ${n}
 const ARMA_AREAS = [
   { id: "dia", t: "Mi día y mis tareas", mods: [] },
   { id: "habitos", t: "Mis hábitos", mods: [] },
-  { id: "metas", t: "Mis metas", mods: ["metas"] },
+  { id: "metas", t: "Mis objetivos", mods: ["metas"] },
   { id: "plata", t: "Mi plata", mods: ["finanzas"] },
   { id: "salud", t: "Mi salud", mods: ["salud"] },
   { id: "lecturas", t: "Mis lecturas", mods: ["lecturas"] },
@@ -563,7 +563,7 @@ function metasEnsenaHtml() {
   const m = new Date().getMonth();
   return `<div class="card ensena" data-ensena="metas"><div class="ensena__txt">
     <div class="card__title">Un paso concreto este mes</div>
-    <p class="text-sm soft mt-8">Un objetivo del mes es algo que puedes terminar en ${MESES[m].toLowerCase()}: leer 2 libros, ahorrar $100.000 o ir 8 veces al gimnasio. Las metas del trimestre son 3 a 5 cosas más grandes que esos pasos empujan.</p>
+    <p class="text-sm soft mt-8">Un objetivo del mes es algo que puedes terminar en ${MESES[m].toLowerCase()}: leer 2 libros, ahorrar $100.000 o ir 8 veces al gimnasio. Los objetivos del trimestre son 3 a 5 cosas más grandes que esos pasos empujan.</p>
     <button class="btn btn--primary mt-16" data-action="bv-foco" data-id="mt-mes-${m}">Escribir mi objetivo de ${MESES[m].toLowerCase()}</button></div></div>`;
 }
 function ruedaEnsenaHtml() {

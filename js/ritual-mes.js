@@ -133,7 +133,7 @@ function resumenAnioHtml(r, enTendencias) {
       ${n("🌙", "días cerrados", r.cerrados)}
       ${n("📊", "hábitos", pct(r.habitos))}
       ${n("🎯", "objetivos del mes", `${r.objetivos[0]}/${r.objetivos[1]}`)}
-      ${n("🧭", "metas trimestrales", `${r.trimestrales[0]}/${r.trimestrales[1]}`)}
+      ${n("🧭", "objetivos del trimestre", `${r.trimestrales[0]}/${r.trimestrales[1]}`)}
       ${n("✓", "tareas completadas", pct(r.tareas))}
       ${n("↪", "postergación", pct(r.postergacion))}
       ${n("📅", "semanas redondas", r.semanas)}

@@ -174,8 +174,8 @@ async function amigosPedir(codigo) {
 async function amigosInvitar() {
   if (!AMIGOS.codigo) await amigosCargar(true);
   const url = amigosEnlace(), texto = typeof invitaDisponible === "function" && invitaDisponible()
-    ? "Te invito a Rumbo: así nos acompañamos con nuestros hábitos y metas. Si entras con mi enlace y cierras tu primer día, ganamos ⭐ los dos."
-    : "Te invito a ser mi amigo en Rumbo: así nos acompañamos con nuestros hábitos y metas.";
+    ? "Te invito a Rumbo: así nos acompañamos con nuestros hábitos y objetivos. Si entras con mi enlace y cierras tu primer día, ganamos ⭐ los dos."
+    : "Te invito a ser mi amigo en Rumbo: así nos acompañamos con nuestros hábitos y objetivos.";
   if (navigator.share) {
     try { await navigator.share({ title: "Rumbo", text: texto, url }); return; } catch (e) { if (e && e.name === "AbortError") return; }
   }

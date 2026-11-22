@@ -62,7 +62,7 @@ const TOURS = {
     ],
   },
   metas: {
-    icon: "🎯", titulo: "Objetivos", desc: "Metas del trimestre y objetivos del mes.",
+    icon: "🎯", titulo: "Objetivos", desc: "Tus objetivos del trimestre y del mes.",
     pasos: [
       { ruta: "metas", el: ".anio-nav", titulo: "Año a año", texto: "Revisa años anteriores o adelanta las metas del próximo." },
       { ruta: "metas", el: { sel: "#view .card", txt: "Trimestre" }, titulo: "Metas del trimestre", texto: "De 3 a 5 metas grandes. Se definen en la revisión trimestral (Ritual → Trimestre)." },

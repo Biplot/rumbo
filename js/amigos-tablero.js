@@ -240,7 +240,7 @@ function atHojaObjetivos(amigos) {
   const act = (OBJ.lista || []).filter(o => o.estado === "activo");
   return `${act.length ? act.map(o => `<button type="button" class="oj-mini" data-action="oj-ver" data-id="${escapeHtml(o.id)}"><span class="oj__ico">${ojIcono(o)}</span>
       <span class="oj__t"><b>${escapeHtml(o.nombre)}</b><span class="text-xs muted">${o.cumplido ? "¡Lo lograron!" : ojPct(o) + " % · " + escapeHtml(ojFmt(ojTotal(o), o.unidad)) + " de " + escapeHtml(ojFmt(o.meta, o.unidad))}</span></span>${ojBarra(o, 6)}</button>`).join("")
-      : atVacio("Metas con avance sumado, como juntar para un viaje o correr 100 km entre varios. Al lograrla, la medalla En Equipo.")}
+      : atVacio("Objetivos con avance sumado, como juntar para un viaje o correr 100 km entre varios. Al lograrla, la medalla En Equipo.")}
     ${atPie(`${amigos.length ? `<button class="btn btn--soft" data-action="oj-nuevo">${icoUI("handshake")} Objetivo con amigos</button>` : ""}<button class="btn-ghost" data-action="am-ir" data-v="metas">Ir a Objetivos</button>`)}`;
 }
 function atHojaListas(amigos) {

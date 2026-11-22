@@ -112,6 +112,6 @@ module.exports = async ({ b, ok, errs }) => {
   // 10) Mientras no se corra supabase/objetivos.sql
   await p.evaluate(() => { BACKEND.objetivoLista = async () => ({ error: "sin-servidor" }); Object.assign(OBJ, { lista: null, error: null, t: 0 }); });
   await p.evaluate(() => objetivosCargar(true)); await ir("metas");
-  ok(!/con amigos/i.test(await vista()) && /metas trimestrales/i.test(await vista()), "sin la base de objetivos, Objetivos queda como siempre");
+  ok(!/con amigos/i.test(await vista()) && /objetivos del trimestre/i.test(await vista()), "sin la base de objetivos, Objetivos queda como siempre");
   await ctx.close();
 };

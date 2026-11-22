@@ -16,7 +16,7 @@ const FUNCIONES = [
     desc: "Pones dos meses lado a lado: tareas, hábitos, postergación, ánimo y ahorro.",
     donde: "Tendencias" },
   { id: "informe-anio", icon: "🗂️", nombre: "Informe del año", costo: 400,
-    desc: "Tu año completo en una imagen para guardar o compartir: días cerrados, hábitos, metas, libros y tu mejor mes.",
+    desc: "Tu año completo en una imagen para guardar o compartir: días cerrados, hábitos, objetivos, libros y tu mejor mes.",
     donde: "Tendencias → Tu evolución (en diciembre, y cuando quieras para años anteriores)" },
 ];
 /* El "Recordatorio de mediodía" se vendía aquí (300 ⭐) hasta la v73: ahora es gratis en
@@ -179,7 +179,7 @@ function datosInformeAnio(y) {
     tarjetas: [
       { v: String(r.cerrados), l: "días cerrados", c: "cian" },
       { v: r.habitos == null ? "—" : r.habitos + "%", l: "hábitos cumplidos", c: "cian" },
-      { v: r.trimestrales[1] ? `${r.trimestrales[0]}/${r.trimestrales[1]}` : "—", l: "metas del trimestre", c: "coral" },
+      { v: r.trimestrales[1] ? `${r.trimestrales[0]}/${r.trimestrales[1]}` : "—", l: "objetivos del trimestre", c: "coral" },
       { v: r.objetivos[1] ? `${r.objetivos[0]}/${r.objetivos[1]}` : "—", l: "objetivos del mes", c: "coral" },
       { v: r.libros ? String(r.libros) : "—", l: "libros terminados", c: "cian" },
       { v: r.mejorMes ? MESES[r.mejorMes.m] : "—", l: "tu mejor mes", c: "coral" },

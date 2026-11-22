@@ -552,7 +552,50 @@ function prioridadesSemanaMini() {
    Pantalla Semana (una sola): plan de la semana arriba, los 7 días abajo.
    Reemplaza al Planificador y a Ritual → Semana (que muestra lo mismo).
    ============================================================ */
-function renderRitualSemana() { return renderSemana(); }
+/* v154 · Ritual → Semana: tu historial de semanas (antes, una copia de Semana). Arriba esta semana con sus acciones;
+   abajo las anteriores con su foco, sus prioridades (cumplidas o no), su nota y lo mejor. Tus días siguen en Semana. */
+function renderRitualSemana() {
+  const hoy = todayISO(), W = agLunes(hoy), prevW = agSumar(W, -7), sigW = agSumar(W, 7);
+  const sem = STATE.ritual.semanas || {};
+  const estadoP = (p, L, ev) => ev[p.id] === "cumplida" ? '<span class="chip chip--done">✅ cumplida</span>'
+    : ev[p.id] === "parcial" ? '<span class="chip chip--coral">◐ parcial</span>'
+    : ev[p.id] === "no" ? '<span class="chip">✕ no</span>'
+    : prioridadHecha(p, L) ? '<span class="chip chip--done">✓ hecha</span>' : "";
+  const prios = (L, x) => {
+    const a = x.apertura || {}, ev = (x.cierre || {}).evaluacion || {};
+    return (a.prioridades || []).length ? a.prioridades.map(p => `<div class="item-row"><div class="item-row__main"><div class="item-row__title">🎯 ${escapeHtml(p.texto)}</div></div>${estadoP(p, L, ev)}</div>`).join("") : "";
+  };
+  const x = sem[W] || {}, a = x.apertura;
+  const acciones = [];
+  if (semanaPlanificable(W)) acciones.push(`<button class="btn ${a ? "btn--soft" : "btn--primary"}" data-action="sem-open" data-lunes="${W}">${a ? "Editar plan" : "📅 Abrir tu semana"}</button>`);
+  if (semanaCerrable(W)) acciones.push(`<button class="btn ${x.cierre ? "btn--soft" : "btn--primary"}" data-action="sem-close" data-lunes="${W}">${x.cierre ? "Editar cierre" : "🌙 Cerrar la semana"}</button>`);
+  if (!semanaCerrada(prevW) && semanaConActividad(prevW)) acciones.push(`<button class="btn-ghost" data-action="sem-close" data-lunes="${prevW}">Cerrar la semana anterior</button>`);
+  if (semanaPlanificable(sigW)) acciones.push(`<button class="btn-ghost" data-action="sem-open" data-lunes="${sigW}">${semanaAbierta(sigW) ? "Editar plan de la próxima" : "Planificar la próxima"}</button>`);
+  const esta = `<div class="card" style="background:linear-gradient(120deg, var(--cian-soft), var(--surface))">
+    <div class="text-xs muted" style="text-transform:uppercase;letter-spacing:.08em">📅 Esta semana · ${rangoSemanaTxt(W)}</div>
+    <div class="big-num">${a && a.foco ? escapeHtml(a.foco) : a ? "Sin foco" : "Todavía no la abres"}</div>
+    ${a ? `<div class="mt-8">${prios(W, x) || '<div class="empty">Sin prioridades.</div>'}</div>` : `<p class="text-sm soft mt-8">Se abre el lunes, al abrir tu día: tu foco y tus 3 prioridades, en un minuto.</p>`}
+    <div class="row-wrap mt-16">${acciones.join("")}<button class="btn-ghost" data-route="semana">Ver tus días</button></div></div>`;
+  const pasadas = Object.keys(sem).filter(k => k < W && sem[k] && (sem[k].apertura || sem[k].cierre)).sort().reverse();
+  const tarjeta = L => {
+    const y = sem[L], c = y.cierre;
+    return `<div class="card mt-16 sem-hist">
+      <div class="flex-between" style="gap:10px;flex-wrap:wrap"><div class="card__title" style="font-size:15px">${rangoSemanaTxt(L)}${y.apertura && y.apertura.foco ? ` · <span class="hl-cian">${escapeHtml(y.apertura.foco)}</span>` : ""}</div>
+        ${c ? `<span class="chip chip--done">${c.nota}/10</span>` : semanaCerrable(L) ? `<button class="btn-ghost" data-action="sem-close" data-lunes="${L}">Cerrarla</button>` : '<span class="chip">sin cerrar</span>'}</div>
+      ${prios(L, y) ? `<div class="mt-8">${prios(L, y)}</div>` : ""}
+      ${c && (c.mejor || c.aprendizaje) ? `<div class="text-sm soft mt-8">${c.mejor ? `✨ ${escapeHtml(c.mejor)}` : ""}${c.mejor && c.aprendizaje ? "<br>" : ""}${c.aprendizaje ? `💡 ${escapeHtml(c.aprendizaje)}` : ""}</div>` : ""}</div>`;
+  };
+  return `${esta}
+  <div class="section-title mt-24">Tus semanas</div>
+  ${pasadas.length ? pasadas.slice(0, SEM_HIST_N).map(tarjeta).join("") + (pasadas.length > SEM_HIST_N ? `<button class="btn-ghost btn-block mt-16" data-action="sem-hist-mas">Ver más semanas (${pasadas.length - SEM_HIST_N})</button>` : "")
+    : `<div class="card"><div class="empty">Aquí quedan tus semanas: su foco, sus prioridades y cómo te fue. La primera aparece al abrir o cerrar una.</div></div>`}
+  <details class="hb-more mt-16"><summary>📅 Cuándo se abre tu semana</summary>
+    <div class="card mt-16"><p class="text-sm soft">El lunes, al abrir tu día, primero abres tu semana (y cierras la pasada, si quieres). Si prefieres, el domingo al cerrar tu día puedes dejarla lista.
+      También puedes cerrarla desde el viernes en la tarde con los botones de arriba.</p>
+      <p class="text-xs muted mt-8">${STATE.settings.notif && STATE.settings.notif.enabled && avisosActivos(STATE.settings.notif).semana ? "Te avisaremos el domingo en la noche y el lunes en la mañana si aún no la abres." : "Activa las notificaciones para que te lo recordemos."}</p></div>
+  </details>`;
+}
+let SEM_HIST_N = 8;
 let SEM_FUTURO_ABIERTO = false;
 let SEM_NUMEROS_ABIERTO = null;   // null: abierto en computador, cerrado en el celular
 

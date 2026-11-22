@@ -10,7 +10,7 @@ const ROUTES = [
   { id: "inicio", label: "Inicio", icon: "🏠", render: renderInicio, subtitle: "Tu centro de control diario." },
   { id: "semana", label: "Semana", icon: "🗂️", render: renderSemana, subtitle: "Tu plan y tus tareas de lunes a domingo." },
   { id: "habitos", label: "Hábitos", icon: "📊", render: renderHabitos, subtitle: "Marca cada día y cuida tu racha." },
-  { id: "metas", label: "Objetivos", icon: "🎯", render: renderMetas, subtitle: "Tus metas trimestrales y mensuales, y las que logras con amigos." },
+  { id: "metas", label: "Objetivos", icon: "🎯", render: renderMetas, subtitle: "Tus objetivos del trimestre y del mes, y los que logras con amigos." },
   { id: "ritual", label: "Ritual", icon: "🌅", render: renderRitual, subtitle: "Abre y cierra tu día, tu semana y tu mes." },
   { id: "diario", label: "Diario", icon: "📔", render: renderDiario, subtitle: "Tu día a día: ánimo, reflexión e historial del ritual." },
   { id: "amigos", label: "Amigos", icon: "🤝", render: renderAmigos, subtitle: "Invita, acompaña y manda ánimo. Tú eliges qué ven." },
@@ -1487,6 +1487,7 @@ function onClick(e) {
 
     /* Ritual de mes */
     case "ritual-view": RITUAL_VIEW = d.v; rerender(); break;
+    case "sem-hist-mas": SEM_HIST_N += 12; rerender(); break;
     case "mes-open": openMesApertura(d.key); break;
     case "mes-close": openMesCierre(d.key); break;
     case "mes-next": mesWizMover(1); break;

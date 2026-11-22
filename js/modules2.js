@@ -75,7 +75,7 @@ function renderRitualDia() {
 
   return `
   <div class="flex-between" style="flex-wrap:wrap;gap:10px">
-    <div class="pill pill--streak">🌅 ${computeRitualStreak()} ${computeRitualStreak() === 1 ? "día abierto" : "días abiertos"} seguidos</div>
+    <div class="pill pill--streak" data-action="info-racha" role="button" tabindex="0">🔥 ${(n => n === 1 ? "1 día cerrado" : n + " días cerrados")(computeClosedStreak())} seguidos</div>
     <div class="pill pill--pts">🏆 ${logros} rituales completados</div>
   </div>
   <div class="mt-16">${renderPendingYesterday()}<div data-tour="ritual-dia">${banner}</div>${typeof reabrirCardHtml === "function" ? reabrirCardHtml() : ""}</div>

@@ -40,9 +40,9 @@ function ritualTriPendientes(now, S) {
 }
 function renderTrimestreBanner() {
   const p = ritualTriPendientes();
-  if (p.cierre && p.apertura) return heroCoral("🧭 Tu revisión trimestral", `Cierra el ${triNombre(p.cierre.y, p.cierre.q)} y define las metas del que viene. Toma 15 minutos.`, "Comenzar", "tri-ritual", { cierre: triKey(p.cierre.y, p.cierre.q), apertura: triKey(p.apertura.y, p.apertura.q) });
-  if (p.cierre) return heroCoral(`🧭 Cierra el ${triNombre(p.cierre.y, p.cierre.q)}`, "Revisa tus metas del trimestre, tus números y lo que aprendiste.", "Cerrar el trimestre", "tri-ritual", { cierre: triKey(p.cierre.y, p.cierre.q) });
-  if (p.apertura) return heroCoral(`🧭 Abre el ${triNombre(p.apertura.y, p.apertura.q)}`, "Elige tu foco y de 3 a 5 metas para los próximos 3 meses.", "Abrir el trimestre", "tri-ritual", { apertura: triKey(p.apertura.y, p.apertura.q) });
+  if (p.cierre && p.apertura) return heroCoral("🧭 Tu revisión trimestral", `Cierra el ${triNombre(p.cierre.y, p.cierre.q)} y define los objetivos del que viene. Toma 15 minutos.`, "Comenzar", "tri-ritual", { cierre: triKey(p.cierre.y, p.cierre.q), apertura: triKey(p.apertura.y, p.apertura.q) });
+  if (p.cierre) return heroCoral(`🧭 Cierra el ${triNombre(p.cierre.y, p.cierre.q)}`, "Revisa tus objetivos del trimestre, tus números y lo que aprendiste.", "Cerrar el trimestre", "tri-ritual", { cierre: triKey(p.cierre.y, p.cierre.q) });
+  if (p.apertura) return heroCoral(`🧭 Abre el ${triNombre(p.apertura.y, p.apertura.q)}`, "Elige tu foco y de 3 a 5 objetivos para los próximos 3 meses.", "Abrir el trimestre", "tri-ritual", { apertura: triKey(p.apertura.y, p.apertura.q) });
   return "";
 }
 
@@ -74,7 +74,7 @@ function resumenTrimestreHtml(r) {
   const n = (ico, label, v) => `<div class="mes-num"><div class="mes-num__v">${v}</div><div class="mes-num__l">${ico} ${label}</div></div>`;
   const pct = v => (v == null ? "—" : v + "%"), dec = v => (v == null ? "—" : String(v).replace(".", ","));
   return `<div class="mes-nums">
-    ${n("🧭", "metas del trimestre", `${r.trimestrales[0]}/${r.trimestrales[1]}`)}
+    ${n("🧭", "objetivos del trimestre", `${r.trimestrales[0]}/${r.trimestrales[1]}`)}
     ${n("🎯", "objetivos de los meses", `${r.objetivos[0]}/${r.objetivos[1]}`)}
     ${n("📊", "hábitos", pct(r.habitos))}
     ${n("🌙", "días cerrados", r.cerrados)}
@@ -91,7 +91,7 @@ function resumenTrimestreHtml(r) {
    Asistente (cierre / apertura)
    ============================================================ */
 let TRI_WIZ = null;   // { tipo, key, y, q, paso, draft, siguiente }
-const TRI_PASOS = { cierre: ["Metas", "Números", "Reflexión", "Nota"], apertura: ["Mirada atrás", "Foco", "Metas"] };
+const TRI_PASOS = { cierre: ["Objetivos", "Números", "Reflexión", "Nota"], apertura: ["Mirada atrás", "Foco", "Objetivos"] };
 
 function openTriRitual(cierre, apertura) {
   if (cierre) openTriCierre(cierre, apertura || null); else if (apertura) openTriApertura(apertura);
@@ -131,7 +131,7 @@ function triCierrePaso(w) {
   const d = w.draft;
   if (w.paso === 0) {
     const lista = datosAnio(STATE, w.y).metas.trimestres[w.q] || [];
-    if (!lista.length) return `<div class="empty">No tenías metas para este trimestre. Defínelas al abrir el siguiente 🧭</div>`;
+    if (!lista.length) return `<div class="empty">No tenías objetivos para este trimestre. Defínelos al abrir el siguiente 🧭</div>`;
     const seg = (id, v, label) => `<button type="button" class="${d.estados[id] === v ? "is-active" : ""}" data-v="${v}" onclick="segPick(this,'tc-e-${id}')">${label}</button>`;
     return `<p class="text-sm muted" style="margin-bottom:10px">${triMeses(w.q)}: ¿cómo te fue con cada meta?</p>` + lista.map(o => `<div class="mes-obj">
       <div class="text-sm" style="font-weight:600">🧭 ${escapeHtml(o.texto)}</div>
@@ -166,11 +166,11 @@ function triAperturaPaso(w) {
   const pend = (datosAnio(STATE, p.y).metas.trimestres[p.q] || []).filter(o => !o.done);
   const actuales = datosAnio(STATE, w.y).metas.trimestres[w.q] || [];
   const arrastrables = pend.filter(o => !actuales.some(x => x.arrastrado === o.id));
-  return `<p class="text-sm muted" style="margin-bottom:12px">De 3 a 5 metas para ${triMeses(w.q)}. Serán la guía de tus objetivos de cada mes.</p>
+  return `<p class="text-sm muted" style="margin-bottom:12px">De 3 a 5 objetivos para ${triMeses(w.q)}. Serán la guía de tus objetivos de cada mes.</p>
     ${filas}
     ${d.metas.length < 5 ? `<button type="button" class="btn-ghost mt-8" data-action="triw-mas">+ Otra meta</button>` : ""}
-    ${arrastrables.length ? `<div class="divider"></div><div class="text-xs muted" style="margin-bottom:8px">↪ Traer metas no cumplidas del trimestre anterior</div>
-      ${elCasillas(arrastrables.map(o => [o.id, escapeHtml(o.texto)]), d.arrastrar, { cls: "ta-arr", label: "Metas para traer" })}` : ""}`;
+    ${arrastrables.length ? `<div class="divider"></div><div class="text-xs muted" style="margin-bottom:8px">↪ Traer objetivos no cumplidos del trimestre anterior</div>
+      ${elCasillas(arrastrables.map(o => [o.id, escapeHtml(o.texto)]), d.arrastrar, { cls: "ta-arr", label: "Objetivos para traer" })}` : ""}`;
 }
 function triWizLeer() {
   const w = TRI_WIZ; if (!w) return;
@@ -272,7 +272,7 @@ function renderRitualTrimestre() {
   </div>
   <div class="grid grid-2 mt-24">
     <div class="card"><div class="card__head"><div class="card__title">🧭 Metas del trimestre</div><a class="card__hint" href="#metas">Ver objetivos →</a></div>
-      ${metas.length ? metas.map(o => metaRow(o, "tri", q, y)).join("") : '<div class="empty">Define tus metas al abrir el trimestre.</div>'}</div>
+      ${metas.length ? metas.map(o => metaRow(o, "tri", q, y)).join("") : '<div class="empty">Define tus objetivos al abrir el trimestre.</div>'}</div>
     <div class="card"><div class="card__title">📊 El trimestre hasta hoy</div><div class="mt-16">${resumenTrimestreHtml(resumenTrimestre(y, q))}</div></div>
   </div>
   ${hist ? `<div class="section-title">Trimestres anteriores</div><div class="card">${hist}</div>` : ""}`;

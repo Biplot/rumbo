@@ -9,7 +9,7 @@
    ============================================================ */
 
 const SECC_FIJAS = ["metas", "ritual", "diario"];
-const SECC_MAS = ["tendencias", "finanzas", "salud", "rueda", "lecturas", "relaciones", "listas", "aprendizajes", "notas"];
+const SECC_MAS = ["tendencias", "finanzas", "salud", "rueda", "lecturas", "relaciones", "listas", "notas"];   // v154: Calendario vive en el Diario y Aprendizajes es un tipo de lista
 const SECC_TODAS = SECC_FIJAS.concat(["amigos"], SECC_MAS);   // las de Más, en el orden de siempre
 
 function seccMenu(S) {
@@ -46,7 +46,7 @@ function seccionConDatos(id, S) {
     if (id === "rueda") return seccAnios(S, "rueda").some(x => (x.meses || []).some(m => Array.isArray(m) && m.some(n => (+n || 0) > 0)));
     if (id === "lecturas") return seccVivos(S.lecturas).length > 0;
     if (id === "relaciones") return seccVivos((S.vida || {}).relaciones).length > 0;
-    if (id === "listas") return seccVivos((S.vida || {}).listas).some(l => l.tipo !== "deseos" && (seccVivos(l.items).length > 0));
+    if (id === "listas") return seccVivos((S.vida || {}).listas).some(l => l.tipo !== "deseos" && (seccVivos(l.items).length > 0)) || seccVivos(S.aprendizajes).length > 0 || !!(S.settings || {}).aprendLista;
     if (id === "aprendizajes") return seccVivos(S.aprendizajes).length > 0;
     if (id === "notas") return seccVivos(S.postits).length > 0 || (S.notas || []).some(c => c && seccVivos(c.notas || c.items).length > 0);
     if (id === "calendario") return Object.values(S.eventos || {}).some(l => Array.isArray(l) ? l.length > 0 : !!l) || !!((S.settings || {}).gcal || {}).conectado;

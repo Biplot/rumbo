@@ -24,7 +24,7 @@ const ROUTES = [
   { id: "lecturas", mas: true, label: "Lecturas", icon: "📚", render: renderLecturas, subtitle: "Tu biblioteca personal de lectura." },
   { id: "relaciones", mas: true, label: "Relaciones", icon: "👥", render: renderRelaciones, subtitle: "Cumpleaños y con quién no hablas hace rato." },
   { id: "listas", mas: true, label: "Listas", icon: "🧾", render: renderListas, subtitle: "Compras, películas, viajes y más." },
-  { id: "aprendizajes", mas: true, label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
+  { id: "aprendizajes", pie: true, label: "Aprendizajes", icon: "🧠", render: renderAprendizajes, subtitle: "Temas profesionales y de interés." },
   { id: "notas", mas: true, label: "Notas", icon: "📝", render: renderNotas, subtitle: "Tus ideas como post-its, con #etiquetas." },
   { id: "recompensas", pie: true, label: "Recompensas", icon: "🏆", render: renderRecompensas, subtitle: "Tu rango, tus estrellas y la Tienda." },
   { id: "cuarto", pie: true, lugar: true, label: "Tu casa", icon: "🏠", render: renderCuarto, subtitle: "Tu elefante en su casa, a pantalla completa." },
@@ -1659,6 +1659,8 @@ function onClick(e) {
 
     /* Vida · Listas */
     case "lista-add": openListaModal(); break;
+    case "apr-lista-crear": STATE.settings.aprendLista = true; saveState(); closeModal(); if (CURRENT !== "listas") go("listas"); else rerender(); toast("🧠 Tu lista de aprendizajes está en Listas"); break;
+    case "apr-lista-quitar": delete STATE.settings.aprendLista; saveState(); rerender(); break;
     case "lista-save": saveLista(); break;
     case "lista-del": if (confirm("¿Eliminar esta lista?")) { STATE.vida.listas = STATE.vida.listas.filter(l => l.id !== d.id); saveState(); rerender(); } break;
     case "lista-item-add": {

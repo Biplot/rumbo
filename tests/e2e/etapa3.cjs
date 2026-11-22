@@ -19,6 +19,14 @@ module.exports = async ({ b, ok, errs }) => {
   const orden = await p.evaluate(() => [...document.querySelectorAll("#nav .nav__item[data-route]")].map(b => b.dataset.route));
   ok(orden.indexOf("diario") < orden.indexOf("ritual"), "subir Diario lo deja antes que Ritual en el menú: " + orden.join(", "));
   await p.evaluate(() => closeModal());
+  // Aprendizajes, un tipo de lista (v154)
+  await p.goto(URL + "#listas"); await p.waitForTimeout(250);
+  await p.click('[data-action="lista-add"]'); await p.waitForTimeout(150);
+  await p.click('#modal [data-action="apr-lista-crear"]'); await p.waitForTimeout(250);
+  ok(await p.locator("#view .lista-aprend").count() === 1, "«Nueva lista» › Aprendizajes crea la lista de aprendizajes en Listas");
+  await p.click('#view .lista-aprend [data-action="apr-add"][data-tipo="prof"]'); await p.waitForTimeout(150);
+  await p.fill("#ap-tema", "SQL"); await p.click('[data-action="apr-save"]'); await p.waitForTimeout(250);
+  ok((await p.locator("#view .lista-aprend").innerText()).includes("SQL") && await p.locator('#nav [data-route="aprendizajes"]').count() === 0, "se agrega un tema; Aprendizajes ya no es una sección aparte");
 
   // Recurrentes
   await p.goto(URL + "#semana"); await p.waitForTimeout(300);

@@ -9,7 +9,7 @@ export default async function ({ G, test, assert }) {
   test("una cuenta sin datos: Objetivos, Ritual, Diario y Amigos; lo demás espera en Descubrir", () => {
     const S = viejo();
     assert.equal(JSON.stringify(tuyas(S)), JSON.stringify(["metas", "ritual", "diario", "amigos"]));
-    assert.equal(desc(S).length, 9, "Calendario ya no está en Más: vive dentro del Diario");
+    assert.equal(desc(S).length, 8, "Calendario vive dentro del Diario y Aprendizajes es un tipo de lista");
     assert.ok(desc(S).includes("finanzas") && desc(S).includes("tendencias") && !desc(S).includes("calendario"));
   });
 
@@ -56,6 +56,14 @@ export default async function ({ G, test, assert }) {
     assert.equal(quitar("amigos", S), true, "Amigos ahora se puede ocultar");
     assert.ok(desc(S).includes("amigos"));
     assert.equal(quitar("ritual", S), false, "Objetivos, Ritual y Diario siempre están");
+  });
+
+  test("Aprendizajes es un tipo de lista: un aprendizaje hace aparecer Listas", () => {
+    const S = viejo();
+    assert.equal(conDatos("listas", S), false);
+    S.aprendizajes.push({ id: "a1", tema: "SQL", objetivo: "", tipo: "prof", done: false });
+    assert.equal(conDatos("listas", S), true);
+    assert.ok(!desc(S).includes("aprendizajes") && !tuyas(S).includes("aprendizajes"), "ya no es una sección de Más");
   });
 
   test("ordenar: el orden se guarda y lo nuevo va al final", () => {

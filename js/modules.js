@@ -46,6 +46,7 @@ function renderFinanzas() {
   <div style="margin-bottom:18px">${finEnsenaHtml(pre)}</div>
   ${typeof alcFinanzasHtml === "function" ? alcFinanzasHtml() : ""}
   ${typeof deseosHtml === "function" ? deseosHtml() : ""}
+  ${typeof deudasHtml === "function" ? deudasHtml() : ""}
   <button class="btn-ghost btn-block mt-16" data-action="fin-ver-todo">Ver todo Finanzas (metas, gastos recurrentes y los 12 meses)</button>`;
   const hastaMes = y === anioActual() ? new Date().getMonth() : 11;   // los meses que aún no llegan, solo si ya tienen algo
   return `
@@ -83,6 +84,7 @@ function renderFinanzas() {
   </div>
   ${typeof deseosHtml === "function" ? deseosHtml() : ""}
   ${typeof alcFinanzasHtml === "function" ? alcFinanzasHtml() : ""}
+  ${typeof deudasHtml === "function" ? deudasHtml() : ""}
 
   <div class="grid grid-2 mt-24">
     <div class="card">

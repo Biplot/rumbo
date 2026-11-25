@@ -1221,6 +1221,31 @@ function deseosMerge(l, s) {
   const nuevo = (l.ts || 0) >= (s.ts || 0) ? l : s;
   return { lista: [...map.values()], borrados, espera: nuevo.espera !== false, ts: Math.max(l.ts || 0, s.ts || 0) };
 }
+/* Las deudas en dos equipos (v156): cada una por id; nombre, cuota, interés y día, del ts más nuevo; los movimientos (abonos y
+   ajustes) se juntan por id y lo deshecho no vuelve; saldada, la más nueva de las dos (deshacer en un equipo la reabre al recalcular);
+   las borradas no reviven. Método, abono al mes y ocultar, de lo general más nuevo */
+function deudasMerge(l, s) {
+  l = l || {}; s = s || {};
+  const borradas = Array.from(new Set([...(l.borradas || []), ...(s.borradas || [])])), fuera = new Set(borradas), map = new Map();
+  [...(s.lista || []), ...(l.lista || [])].forEach(d => {
+    if (!d || !d.id || fuera.has(d.id)) return;
+    const o = map.get(d.id); if (!o) { map.set(d.id, JSON.parse(JSON.stringify(d))); return; }
+    const nuevo = (d.ts || 0) >= (o.ts || 0) ? d : o, mv = new Map();
+    [...(o.movs || []), ...(d.movs || [])].forEach(x => { if (x && x.id) mv.set(x.id, Object.assign({}, x)); });
+    const b = Array.from(new Set([...(o.b || []), ...(d.b || [])]));
+    const r = Object.assign(JSON.parse(JSON.stringify(nuevo)), { movs: [...mv.values()].sort((x, y) => (x.ts || 0) - (y.ts || 0)), b,
+      creada: Math.min(+o.creada || +d.creada || 0, +d.creada || +o.creada || 0), ts: Math.max(o.ts || 0, d.ts || 0) });
+    // con los movimientos juntos, saldada sale de lo que queda
+    const fueraB = new Set(b), vivos = r.movs.filter(x => !fueraB.has(x.id));
+    const total = Math.max(0, (+r.monto || 0) + vivos.filter(x => x.tipo === "ajuste").reduce((a, x) => a + (+x.monto || 0), 0));
+    const saldo = total - vivos.filter(x => x.tipo === "abono").reduce((a, x) => a + (+x.monto || 0), 0);
+    r.saldada = saldo <= 0 && total > 0 ? Math.max(+o.saldada || 0, +d.saldada || 0) || Date.now() : 0;
+    map.set(d.id, r);
+  });
+  const nuevo = (l.ts || 0) >= (s.ts || 0) ? l : s;
+  return { lista: [...map.values()].sort((x, y) => (x.creada || 0) - (y.creada || 0)), borradas, metodo: nuevo.metodo === "avalancha" ? "avalancha" : nuevo.metodo === "nieve" ? "nieve" : "",
+    abonoMes: Math.max(0, +nuevo.abonoMes || 0), ocultar: !!nuevo.ocultar, ts: Math.max(l.ts || 0, s.ts || 0) };
+}
 /* El jardín en dos equipos: las macetas y si se ve en Inicio, de lo elegido más nuevo; los trasplantes celebrados se juntan */
 function jardinMerge(l, s) {
   l = l || {}; s = s || {};
@@ -1355,6 +1380,7 @@ function mergeStates(server, local) {
   if (local.norte || server.norte) out.norte = norteMerge(local.norte, server.norte);   // 🧭 los pedidos de Norte ya aplicados
   if (local.alcancias || server.alcancias) out.alcancias = alcMerge(local.alcancias, server.alcancias);
   if (local.deseos || server.deseos) out.deseos = deseosMerge(local.deseos, server.deseos);
+  if (local.deudas || server.deudas) out.deudas = deudasMerge(local.deudas, server.deudas);
   if (local.jardin || server.jardin) out.jardin = jardinMerge(local.jardin, server.jardin);
   if (local.biblio || server.biblio) out.biblio = JSON.parse(JSON.stringify(server.biblio && (!local.biblio || (server.biblio.ts || 0) > (local.biblio.ts || 0)) ? server.biblio : local.biblio));   // 📚 la repisa: el ajuste más nuevo
 

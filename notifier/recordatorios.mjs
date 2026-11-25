@@ -13,7 +13,7 @@
    ============================================================ */
 import {
   ultimoDiaMes, lunesDe, avisoSemana, avisoTrimestre, avisoMediodia, enVentana, horasEnVentana, avisosActivos, horaAviso,
-  diaSemana, diasSinCerrar, textoDiasSinCerrar, textoHabitos, cumpleanosHoy, textoCumpleanos, contactosPendientes, textoContactos,
+  diaSemana, diasSinCerrar, textoDiasSinCerrar, textoHabitos, cumpleanosHoy, textoCumpleanos, contactosPendientes, textoContactos, deudasPagoHoy, textoDeudasPago,
 } from "./reglas.mjs";
 import { motorHabitos } from "./habitos.mjs";
 import { voz, COLA, textoRacha, aguaAtrasada, textoAgua, accionesAgua, prestamoPendiente, textoPrestamo } from "./elefante.mjs";
@@ -42,6 +42,7 @@ export const MSGS = {
   habitos: { title: "✅ Tus hábitos de hoy", body: "", url: "./#habitos", tag: "rumbo-habitos" },
   cumpleanos: { title: "🎂 Cumpleaños", body: "", url: "./#relaciones", tag: "rumbo-cumpleanos" },
   contactos: { title: "💬 Tus relaciones", body: "", url: "./#relaciones", tag: "rumbo-contactos" },
+  "deuda-pago": { title: "💳 Hoy toca pagar", body: "", url: "./#finanzas", tag: "rumbo-deuda-pago" },   // v156: lo pide cada deuda («Avísame ese día»)
 };
 /* Lo que dejaste para hoy: «Una cosa para mañana» del cierre de ayer, o lo que anotaste la noche del registro */
 export function loDeHoy(data, hoy) {
@@ -64,14 +65,14 @@ const TRI_APERTURA_CON_CIERRE = "Al abrir tu día, cierras el trimestre que term
    Clave de mes "YYYY-MM" igual que STATE.ritual.meses en la app. Semana y trimestre: ver reglas.mjs */
 const MES_TIPOS = { "mes-apertura": { hora: "manana", parte: "apertura" }, "mes-cierre": { hora: "noche", parte: "cierre" } };
 const TIPOS = ["manana", "dias-sin-cerrar", "mediodia", "elefante-agua", "elefante-racha", "elefante-prestamo", "habitos", "noche", "noche-2", "mes-apertura", "mes-cierre",
-  "semana-cierre", "semana-apertura", "tri-cierre", "tri-apertura", "cumpleanos", "contactos"];
+  "semana-cierre", "semana-apertura", "tri-cierre", "tri-apertura", "cumpleanos", "contactos", "deuda-pago"];
 /* Qué interruptor de 🔔 Notificaciones gobierna cada aviso, y a qué hora sale (mes, semana y trimestre la calculan) */
 const AVISO_DE = {
   manana: "manana", "dias-sin-cerrar": "pendientes", mediodia: "mediodia", habitos: "habitos", noche: "noche", "noche-2": "insistencia",
   "mes-apertura": "mes", "mes-cierre": "mes", "semana-cierre": "semana", "semana-apertura": "semana", "tri-cierre": "trimestre", "tri-apertura": "trimestre",
   cumpleanos: "cumpleanos", contactos: "contactos", "elefante-agua": "elefante", "elefante-racha": "elefante", "elefante-prestamo": "elefante",
 };
-const MOMENTO_DE = { manana: "manana", "dias-sin-cerrar": "manana", mediodia: "mediodia", habitos: "habitos", noche: "noche", "noche-2": "insistencia", cumpleanos: "manana", contactos: "manana",
+const MOMENTO_DE = { manana: "manana", "dias-sin-cerrar": "manana", mediodia: "mediodia", habitos: "habitos", noche: "noche", "noche-2": "insistencia", cumpleanos: "manana", contactos: "manana", "deuda-pago": "manana",
   "elefante-agua": "agua", "elefante-racha": "habitos", "elefante-prestamo": "manana" };
 
 export function localMinutes(tz, ahora = new Date()) {
@@ -160,7 +161,7 @@ export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), vent
     const anotar = async tipo => !(await sb.from("notif_sent").insert({ user_id: row.user_id, tipo, fecha: hoy })).error;
 
     for (const tipo of TIPOS) {
-      if (!activos[AVISO_DE[tipo]]) continue;       // la persona no quiere este aviso
+      if (tipo !== "deuda-pago" && !activos[AVISO_DE[tipo]]) continue;       // la persona no quiere este aviso (el de pago lo enciende cada deuda)
       const mt = MES_TIPOS[tipo];
       let hora = MOMENTO_DE[tipo], tri = null, body = null, sufijo = "", tambien = null, extra = null;
       if (tipo === "manana") {
@@ -196,6 +197,7 @@ export async function enviarRecordatorios({ sb, enviar, ahora = new Date(), vent
       if (tipo === "habitos") { const faltan = habitos().pendientesHoy().map(h => h.nombre || "un hábito"); if (!faltan.length) continue; body = textoHabitos(faltan) + " " + COLA.habitos; }
       if ((tipo === "noche" || tipo === "noche-2") && hoyRitual.cerrado) continue;   // ya cerró el día
       if (tipo === "cumpleanos") { const quienes = cumpleanosHoy(data, hoy); if (!quienes.length) continue; body = textoCumpleanos(quienes) + " " + COLA.cumpleanos; }
+      if (tipo === "deuda-pago") { const cuales = deudasPagoHoy(data, hoy); if (!cuales.length) continue; body = textoDeudasPago(cuales); sufijo = hoy; }
       if (tipo === "contactos") {
         if (diaSemana(hoy) !== "domingo") continue;   // una vez por semana
         const quienes = contactosPendientes(data, hoy); if (!quienes.length) continue;

@@ -258,7 +258,7 @@ function tendGraficosHtml(items) {
   const con = items.filter(([ok]) => ok).map(([, h]) => h), filas = [];
   for (let i = 0; i < con.length; i += 2) filas.push(`<div class="grid grid-2${i ? " mt-24" : ""}">${con[i]}${con[i + 1] || ""}</div>`);
   const faltan = items.length - con.length;
-  return filas.join("") + (faltan ? `<p class="text-xs muted mt-16">${con.length ? "Los demás gráficos" : "Tus gráficos"} (peso, ahorro, rueda, ánimo y libros) aparecen cuando anotes algo en esas secciones.</p>` : "");
+  return filas.join("") + (faltan ? `<p class="text-xs muted mt-16">${con.length ? "Los demás gráficos" : "Tus gráficos"} (peso, ahorro, rueda, ánimo, libros y deudas) aparecen cuando anotes algo en esas secciones.</p>` : "");
 }
 function renderTendencias() {
   const S = STATE;
@@ -285,6 +285,12 @@ function renderTendencias() {
   });
 
   const libros = S.lecturas.filter(l => l.estado === "terminado").length;
+  // 💳 lo que debías al terminar cada mes (hasta hoy), si anotaste deudas (deudas.js)
+  const hoyIso = todayISO(), deudaMes = typeof deudasHay === "function" && deudasHay(S) ? MESES.map((_, m) => {
+    const fin = isoLocal(new Date(y, m + 1, 0)), ini = isoLocal(new Date(y, m, 1));
+    const corte = fin < hoyIso ? fin : hoyIso, habia = deudasTodas(S).some(d => !d.creada || isoLocal(new Date(d.creada)) <= corte);
+    return ini > hoyIso || !habia ? null : deudasDebiaAl(S, corte);   // 0 si ya las saldaste; nada antes de anotarlas
+  }) : [];
   const deTot = H.salud.meses.reduce((a, m, i) => a + Math.max(m.diasEntren || 0, typeof diasEjercicioMes === "function" ? diasEjercicioMes(anioActual(), i, S) : 0), 0);   // v154: cuenta tu hábito de ejercicio
 
   /* Libros terminados por mes (según fecha de término) */
@@ -371,6 +377,8 @@ function renderTendencias() {
       ${svgLine(moodByMonth, { color: "var(--coral)", fmt: v => v })}</div>`],
     [tendHay(librosMes), `<div class="card"><div class="card__head"><div class="card__title">${icoHab("📚", 16)} Libros terminados por mes</div><span class="card__hint">${libros} en el año</span></div>
       ${svgBar(librosMes, { color: "var(--cian)", fmt: v => v })}</div>`],
+    [tendHay(deudaMes), `<div class="card"><div class="card__head"><div class="card__title">${icoHab("💳", 16)} Lo que debes, mes a mes</div><span class="card__hint">al cerrar cada mes</span></div>
+      ${svgLine(deudaMes, { color: "var(--coral)", fmt: v => "$" + Math.round(v / 1000) + "k" })}</div>`],
   ])}
 `;
 }

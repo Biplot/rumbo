@@ -23,7 +23,7 @@ function casaPublica(S) {
 }
 function vitrinaPublica(S) {
   S = S || STATE;
-  const medallas = (S.gamif.badges || []).filter(id => findBadge(id)), fechas = {};
+  const medallas = (S.gamif.badges || []).filter(id => findBadge(id) && !findBadge(id).privada), fechas = {};   // las de tus deudas no se muestran
   medallas.forEach(id => { const m = (S.gamif.ledger || []).find(x => x && x.id === "insignia:" + id && !x.anulado); if (m && m.ts) fechas[id] = isoLocal(new Date(m.ts)); });
   return { medallas, fechas };
 }

@@ -50,7 +50,7 @@ function amigosPerfilPropio() {
     muestra: cfg.muestra,
     estado: amigosEstadoPublico({ fecha: hoy, abrio: !!d.hecho, cerro: !!d.cerrado, racha: computeClosedStreak(), rango: r.idx, rangoNombre: r.cur.nombre,
       cumple: String((STATE.profile && STATE.profile.birthDate) || "").slice(5, 10),
-      casa: true, medallas: (STATE.gamif.badges || []).filter(id => typeof findBadge === "function" && findBadge(id)).length,
+      casa: true, medallas: (STATE.gamif.badges || []).filter(id => typeof findBadge === "function" && findBadge(id) && !findBadge(id).privada).length,
       libros: (STATE.lecturas || []).filter(l => l && l.estado === "terminado").length }, cfg.muestra),
     // Para que te visiten (visitas.js): la foto de tu casa y tus medallas, solo si eliges mostrarlas
     casa: cfg.muestra.casa && typeof casaPublica === "function" ? casaPublica() : null,

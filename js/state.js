@@ -152,6 +152,9 @@ function defaultState() {
     // tus deseos (deseos.js): lista: [{ id, nombre, precio, link, creado (YYYY-MM-DD), listo (saltó la espera), alc (su alcancía), capricho, orden,
     // soltado (YYYY-MM-DD), tengo: { pagado, fecha, gasto } | null, ts }], borrados: [ids], espera (7 días; 30 sobre $300.000) y ts (de espera)
     deseos: { lista: [], borrados: [], espera: true, ts: 0 },
+    // tus deudas (deudas.js, v156): lista: [{ id, nombre, monto, cuota, interes, dia, aviso, creada, saldada, ts, movs: [{ id, tipo, monto, fecha, ts }], b }],
+    // borradas: [ids], metodo ("nieve" | "avalancha" | ""), abonoMes, ocultar y ts (de lo general)
+    deudas: { lista: [], borradas: [], metodo: "", abonoMes: 0, ocultar: false, ts: 0 },
     // tu jardín (jardin.js): macetas (los hábitos que elegiste formar, hasta 3), inicio (se ve en Inicio),
     // raices: { idHábito: "YYYY-MM-DD" } (el día que se celebró que echó raíces) y ts (de lo que elegiste). El estilo, en gamif.equipped.jardin
     jardin: { macetas: [], inicio: true, raices: {}, ts: 0 },
@@ -270,6 +273,8 @@ function migrate(s) {
   if (!Array.isArray(s.alcancias.borradas)) s.alcancias.borradas = [];
   if (!s.deseos || typeof s.deseos !== "object" || !Array.isArray(s.deseos.lista)) s.deseos = { lista: [], borrados: [], espera: true, ts: 0 };   // v114 · tus deseos
   if (!Array.isArray(s.deseos.borrados)) s.deseos.borrados = [];
+  if (!s.deudas || typeof s.deudas !== "object" || !Array.isArray(s.deudas.lista)) s.deudas = { lista: [], borradas: [], metodo: "", abonoMes: 0, ocultar: false, ts: 0 };   // v156 · tus deudas
+  if (!Array.isArray(s.deudas.borradas)) s.deudas.borradas = [];
   if (!s.jardin || typeof s.jardin !== "object") s.jardin = { macetas: [], inicio: true, raices: {}, ts: 0 };   // v115 · tu jardín
   if (!Array.isArray(s.jardin.macetas)) s.jardin.macetas = [];
   if (!s.jardin.raices || typeof s.jardin.raices !== "object") s.jardin.raices = {};

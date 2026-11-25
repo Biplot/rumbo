@@ -144,6 +144,16 @@ export function textoHabitos(nombres) {
 
 /* Cumpleaños de hoy (Relaciones). Como la app (new Date(año, mes, día)): un 29 de febrero
    se celebra el 1 de marzo en los años que no son bisiestos. */
+/* v156 · 💳 Las deudas que pagas hoy (las que tienen «Avísame ese día»; un día 31 en un mes más corto cae el último día) */
+export function deudasPagoHoy(data, hoy) {
+  const D = (data && data.deudas) || {}, fuera = new Set(D.borradas || []), dia = +hoy.slice(8, 10), ultimo = ultimoDiaMes(hoy);
+  return (Array.isArray(D.lista) ? D.lista : []).filter(d => d && d.aviso && !d.saldada && !fuera.has(d.id) && +d.dia >= 1 && Math.min(+d.dia, ultimo) === dia)
+    .map(d => String(d.nombre || "tu deuda").slice(0, 40));
+}
+export function textoDeudasPago(nombres) {
+  const l = nombres.map(n => `«${n}»`), quien = l.length === 1 ? l[0] : l.slice(0, -1).join(", ") + " y " + l[l.length - 1];
+  return `Hoy toca la cuota de ${quien}. Cuando pagues, anótalo en Rumbo: +10 ⭐.`;
+}
 export function cumpleanosHoy(data, hoy) {
   const gente = ((((data && data.vida) || {}).relaciones) || []).filter(p => p && p.cumple && p.nombre);
   const y = +hoy.slice(0, 4), bisiesto = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;

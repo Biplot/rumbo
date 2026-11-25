@@ -1,7 +1,8 @@
 /* Tests del notificador: reglas (notifier/reglas.mjs) y a quién le toca cada aviso (notifier/recordatorios.mjs) */
 export default async function ({ G, test, assert }) {
   console.log("\nAvisos del servidor");
-  const { avisoSemana, avisoTrimestre, enVentana, horasEnVentana, avisosActivos, horaAviso, AVISOS_TIPOS, AVISOS_NIVELES } = await import("../notifier/reglas.mjs");
+  const reglas = await import("../notifier/reglas.mjs");
+  const { avisoSemana, avisoTrimestre, enVentana, horasEnVentana, avisosActivos, horaAviso, AVISOS_TIPOS, AVISOS_NIVELES } = reglas;
 
   test("ventana: desde la hora en punto hasta 30 minutos después", () => {
     assert.equal(enVentana(8 * 60, "08:00", 30), true);
@@ -194,6 +195,24 @@ export default async function ({ G, test, assert }) {
     assert.deepEqual(tags(rRel[1]), ["rumbo-manana", "rumbo-contactos-2026-10-12"]);
     assert.equal(rRel[1][1].body, "Hace tiempo que no hablas con Ana. ¿Le mandamos un saludo?");
     assert.deepEqual(tags(rRel[2]), ["rumbo-manana"]);
+  });
+
+  /* v156 · 💳 El día de pago de una deuda (lo enciende cada deuda; un 31 cae el último día del mes) */
+  const deudas = { lista: [{ id: "d1", nombre: "Tarjeta", dia: 15, aviso: true, saldada: 0 }, { id: "d2", nombre: "Crédito", dia: 15, aviso: false, saldada: 0 },
+    { id: "d3", nombre: "Saldada", dia: 15, aviso: true, saldada: 123 }, { id: "d4", nombre: "Fin de mes", dia: 31, aviso: true, saldada: 0 }], borradas: [] };
+  const rDeu = [
+    await correr(base({ deudas }), J0805),
+    await correr(base({ deudas: { ...deudas, borradas: ["d1"] } }), J0805),
+    await correr(base({ deudas }), "2026-12-01T03:05:00Z"),
+  ];
+  test("deudas: el aviso del día de pago, solo de las que lo pidieron y siguen vivas", () => {
+    assert.deepEqual(tags(rDeu[0]), ["rumbo-manana", "rumbo-deuda-pago-2026-10-15"]);
+    assert.equal(rDeu[0][1].body, "Hoy toca la cuota de «Tarjeta». Cuando pagues, anótalo en Rumbo: +10 ⭐.");
+    assert.deepEqual(tags(rDeu[1]), ["rumbo-manana"], "una borrada no avisa");
+    const { deudasPagoHoy } = reglas;
+    assert.deepEqual(deudasPagoHoy({ deudas }, "2026-11-30"), ["Fin de mes"], "el 31 cae el 30 en noviembre");
+    assert.deepEqual(deudasPagoHoy({ deudas }, "2026-10-31"), ["Fin de mes"]);
+    assert.deepEqual(deudasPagoHoy({}, "2026-10-15"), []);
   });
 
   /* Tu elefante te escribe: la racha en riesgo, el agua atrasada (uno al día entre los dos) y la voz de siempre */

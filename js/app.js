@@ -175,7 +175,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 83;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 84;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -563,6 +563,10 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  84: [
+    ["💳", "Tus deudas, de a una", "En Finanzas, anota cada deuda en 20 segundos: cuánto debes, la cuota si quieres y si su interés es alto, medio, bajo o sin interés. Rumbo te dice por cuál partir (bola de nieve: la más chica primero; avalancha: la de interés más alto) y cuándo quedarías libre según lo que puedes abonar al mes."],
+    ["⭐", "Abonar suma", "«+ Abonar» baja la barra y da +10 ⭐ (una vez al día por deuda). Saldar una da +100 ⭐, una medalla y la idea clave: lo que le abonabas, súmalo a la siguiente. Si quieres, Rumbo te avisa el día de pago. Es privado y los montos se pueden ocultar."],
   ],
   83: [
     ["⏰", "Tu foco termina con tu tono", "Al enfocarte, elige el «Aviso al terminar» entre los mismos tonos de las alarmas: marimba, la ola, arpa, kalimba, la trompeta del elefante y más (o las dos notas de siempre, o sin sonido). Toca uno para escucharlo. Suena al terminar la sesión y, en ciclos, al terminar cada tramo, también en el ▶ de tus hábitos con tiempo."],
@@ -1243,7 +1247,8 @@ function onClick(e) {
   if (a.startsWith("bib-") && typeof bibAccion === "function") { bibAccion(a, d, el); return; }   // 📚 la biblioteca (biblioteca.js)
   if (a.startsWith("zona-")) { zonaAccion(a, d); return; }         // 🔒 zona sensible: borrar con seguro (zona.js)
   if (a.startsWith("elenota-")) { notaElefanteAccion(a, d); return; }   // 🐘 el diario del elefante (nota-elefante.js)
-  if (a.startsWith("alc-")) { alcAccion(a, d, el); return; }       // 🐷 tus alcancías (alcancias.js)
+  if (a.startsWith("alc-")) { alcAccion(a, d, el); return; }
+  if (a.startsWith("deu-")) { deuAccion(a, d); return; }       // 💳 tus deudas (deudas.js)       // 🐷 tus alcancías (alcancias.js)
   if (a.startsWith("des-")) { deseosAccion(a, d); return; }        // 💎 tus deseos (deseos.js)
   if (a.startsWith("jar-")) { jardinAccion(a, d, el); return; }    // 🌱 tu jardín (jardin.js)
   if (a.startsWith("dsc-")) { descansoAccion(a, d, el); return; }   // 🛋 días de descanso y vacaciones (descansos.js)

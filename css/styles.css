@@ -4378,3 +4378,28 @@ html[data-theme^="ruta"] .mas-mod.mas-mod--desc { background: transparent; borde
 .recomp-ele__fig { width: 96px; flex-shrink: 0; }
 .recomp-ele__fig svg { width: 100%; height: auto; }
 .diario-tabs { margin-bottom: 16px; }
+/* v156 · Tus deudas (deudas.js) */
+.deu-total { display: grid; gap: 2px; margin-bottom: 8px; }
+.deu-total b { font-family: var(--font-display, inherit); font-weight: 800; font-size: 30px; line-height: 1.1; }
+.deu-bajo { font-size: 13px; color: var(--verde, #23825F); font-weight: 600; }
+.deu-lista { display: grid; }
+.deu-fila { display: grid; gap: 6px; width: 100%; padding: 12px 2px; background: none; border: 0; border-top: 1px solid var(--line); text-align: left; color: var(--text); font: inherit; cursor: pointer; }
+.deu-fila:first-child { border-top: 0; }
+.deu-fila__f { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-width: 0; }
+.deu-fila__f b { font-weight: 600; overflow-wrap: anywhere; }
+.deu-barra { height: 8px; border-radius: 99px; background: var(--cian-soft); overflow: hidden; display: block; }
+.deu-barra i { display: block; height: 100%; background: var(--cian); border-radius: 99px; transition: width .4s ease; }
+.deu-ataca { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; background: var(--coral-btn, var(--coral)); color: var(--on-coral, #161A2E); border-radius: 99px; padding: 2px 8px; white-space: nowrap; }
+.deu-int { border: 1px solid var(--line); border-radius: 99px; padding: 0 7px; white-space: nowrap; }
+.deu-plan { margin-top: 14px; font-size: 14px; background: var(--cian-soft); border-radius: 12px; padding: 10px 12px; }
+.deu-plan.is-ojo { background: var(--surface-2); }
+.deu-plan.is-libre { background: var(--surface-2); }
+.deu-plan label { font-size: 14px; font-weight: 600; }
+.deu-metodo { display: grid; gap: 3px; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; color: var(--text); font: inherit; cursor: pointer; }
+.deu-metodo.is-on { border: 2px solid var(--cian); }
+.deu-metodo span { font-size: 13.5px; color: var(--text-soft); }
+.deu-aviso { align-self: end; padding-bottom: 10px; }
+.deu-fiesta { display: grid; gap: 10px; justify-items: center; text-align: center; }
+.deu-medalla { width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; background: var(--coral-soft, #FDF0D8); border: 4px solid var(--coral-btn, var(--coral)); font-weight: 800; font-size: 13px; color: var(--text); }
+@media (prefers-reduced-motion: no-preference) { .deu-medalla { animation: deu-pop .6s cubic-bezier(.2, 1.4, .4, 1) both; } }
+@keyframes deu-pop { from { transform: scale(.4) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }

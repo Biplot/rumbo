@@ -36,7 +36,9 @@ function seccionConDatos(id, S) {
       const alc = S.alcancias || {}, fuera = new Set(alc.borradas || []);
       if ((alc.lista || []).some(a => a && !fuera.has(a.id))) return true;
       const des = S.deseos || {}, fueraD = new Set(des.borrados || []);
-      return (des.lista || []).some(d => d && !fueraD.has(d.id));
+      if ((des.lista || []).some(d => d && !fueraD.has(d.id))) return true;
+      const deu = S.deudas || {}, fueraU = new Set(deu.borradas || []);
+      return (deu.lista || []).some(d => d && !fueraU.has(d.id));   // v156 · tus deudas
     }
     if (id === "salud") {
       if ((S.salud || {}).pesoObjetivo) return true;

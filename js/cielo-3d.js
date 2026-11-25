@@ -52,6 +52,7 @@ function crearMotorCielo(T, D) {
   FIG.vida.p.push([0, -0.17]);   // En Equipo, en el centro de La Medalla
   FIG.vida.p.push([0, -0.52]); FIG.vida.l.push([14, 15]);   // Primera alcancía: adentro de La Medalla, bajo En Equipo
   FIG.vida.p.push([-1, -0.17], [1, -0.17], [-0.88, 0.45], [0.88, 0.45]); FIG.vida.l.push([16, 18], [17, 19]);   // 📚 Un libro al mes (bronce, plata, oro) y El ladrillo: a los lados, como laureles
+  FIG.vida.p.push([0, 0.18], [0, 1.0]); FIG.vida.l.push([14, 20], [4, 21]);   // 💳 Primera deuda saldada (adentro, sobre En Equipo) y Sin deudas (el broche entre las cintas)
   const SECRETAS = { buho: [0.27, 0.56], aniversario: [-0.24, 0.42], "anio-nuevo": [0.86, 0.6], remontada: [-0.2, 0.86] };   // en los huecos entre figuras
 
   /* -------- Utilidades -------- */

@@ -544,7 +544,7 @@ function finSinDatos(S) {
   S = S || STATE;
   const f = S.finanzas, fy = typeof datosAnio === "function" ? datosAnio(S, new Date().getFullYear()).finanzas : f;
   return !(fy.metaAnual || f.metaMensual || (f.porque || "").trim() || (f.gastos || []).length || fy.meses.some(m => (m.ingreso || 0) || (m.gasto || 0))
-    || (S.alcancias && Array.isArray(S.alcancias.lista) && S.alcancias.lista.length));
+    || (S.alcancias && Array.isArray(S.alcancias.lista) && S.alcancias.lista.length) || (S.deudas && Array.isArray(S.deudas.lista) && S.deudas.lista.length));
 }
 function finEnsenaHtml(pre) {
   const m = new Date().getMonth(), fy = datosAnio(STATE, new Date().getFullYear()).finanzas.meses[m];

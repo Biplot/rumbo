@@ -288,10 +288,11 @@ function openDeudaAbonar(id) {
 }
 function deuAbonarPintar() {
   const vivas = deudasOrden(), d = deudaPorId(DEU_ABONO.id) || vivas[0], atacar = deudaAtacar();
+  const escrito = document.getElementById("deu-abono") ? document.getElementById("deu-abono").value : "";   // al cambiar de deuda, no se pierde
   const rapidos = [d.cuota, Math.round(deudaSaldo(d) / 4 / 1000) * 1000, deudaSaldo(d)].filter((v, i, a) => v > 0 && a.indexOf(v) === i).slice(0, 3);
   openModal("Abonar", `<div class="field"><label>¿A cuál?</label><div class="fo-chips" id="deu-a-cual" role="group" aria-label="Deuda">${vivas.map(x =>
       `<button type="button" class="fo-chip${x.id === d.id ? " is-on" : ""}" data-action="deu-abonar-cual" data-id="${escapeAttr(x.id)}" aria-pressed="${x.id === d.id}">${escapeHtml(x.nombre)}${atacar && atacar.id === x.id ? " · ataca esta" : ""}</button>`).join("")}</div></div>
-    <div class="field"><label for="deu-abono">¿Cuánto abonaste?</label><input class="input" id="deu-abono" type="text" inputmode="numeric" placeholder="Ej: 50.000" autocomplete="off">
+    <div class="field"><label for="deu-abono">¿Cuánto abonaste?</label><input class="input" id="deu-abono" type="text" inputmode="numeric" placeholder="Ej: 50.000" autocomplete="off" value="${escapeAttr(escrito)}">
       ${rapidos.length ? `<div class="row-wrap mt-8" style="gap:6px">${rapidos.map(v => `<button type="button" class="chip" data-action="deu-abono-rapido" data-v="${v}">${v === deudaSaldo(d) ? "Todo: " : v === d.cuota ? "La cuota: " : ""}${fmtCLP(v)}</button>`).join("")}</div>` : ""}
       <small class="text-xs muted">Quedan ${deudaMonto(deudaSaldo(d))}.</small></div>
     <button type="button" class="btn btn--primary btn-block btn--precio" data-action="deu-abonar-ok"><span>Abonar</span><span class="btn__precio">+${DEUDA_ABONO} ${iconoLinea("estrella", 16)}</span></button>`);
@@ -373,11 +374,11 @@ function deuAccion(a, d) {
     const v = parseNum(val("deu-abono-mes")); if (!(v > 0)) return toast("Escribe cuánto puedes abonar al mes", true);
     const D = deudasDatos(); D.abonoMes = v; D.ts = Date.now(); saveState(); if (typeof rerender === "function") rerender(); return;
   }
-  if (a === "deu-abono-cambiar") { const D = deudasDatos(); D.abonoMes = 0; D.ts = Date.now();
-    if (!deudasCuotas(STATE)) { saveState(); if (typeof rerender === "function") rerender(); return; }
+  if (a === "deu-abono-cambiar") {   // no se toca nada hasta «Guardar»
+    const cuotas = deudasCuotas(STATE);
     openModal("Lo que puedes abonar al mes", `<div class="field"><label for="deu-abono-mes">En total, para todas tus deudas</label>
-      <input class="input" id="deu-abono-mes" type="text" inputmode="numeric" value="${deudasCuotas(STATE)}"></div>
-      <p class="text-xs muted">Tus cuotas suman ${fmtCLP(deudasCuotas(STATE))}. Lo que pongas sobre eso va a la deuda que atacas.</p>
+      <input class="input" id="deu-abono-mes" type="text" inputmode="numeric" value="${deudasAbonoMes(STATE) || ""}" placeholder="Ej: 150.000"></div>
+      ${cuotas ? `<p class="text-xs muted">Tus cuotas suman ${fmtCLP(cuotas)}. Lo que pongas sobre eso va a la deuda que atacas.</p>` : ""}
       <button type="button" class="btn btn--primary btn-block mt-16" data-action="deu-abono-mes-ok">Guardar</button>`); return; }
   if (a === "deu-abono-mes-ok") {
     const v = parseNum(val("deu-abono-mes")); if (!(v > 0)) return toast("Escribe cuánto puedes abonar al mes", true);

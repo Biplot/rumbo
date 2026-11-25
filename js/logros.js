@@ -142,8 +142,9 @@ const LOGROS = [
   { id: "en-equipo", icon: "🤝", nombre: "En Equipo", desc: "Logra un objetivo en conjunto con tus amigos", reward: 150, check: s => lg_juntos(s) >= 1 },
   { id: "primera-alcancia", icon: "🐷", nombre: "Primera alcancía", desc: "Llena tu primera alcancía en Finanzas", reward: 60, check: s => typeof alcCumplidas === "function" && alcCumplidas(s) >= 1 },
   // v156 · tus deudas (deudas.js): saldar la primera y, después, quedar sin ninguna
-  { id: "deuda-saldada", icon: "💳", nombre: "Primera deuda saldada", desc: "Salda tu primera deuda en Finanzas", reward: 60, check: s => typeof deudasSaldadas === "function" && deudasSaldadas(s) >= 1 },
-  { id: "sin-deudas", icon: "🕊️", nombre: "Sin deudas", desc: "Salda todas las deudas que anotaste en Finanzas", reward: 150, check: s => typeof deudasSaldadas === "function" && deudasSaldadas(s) >= 1 && deudasVivas(s).length === 0 },
+  // privada: solo en tu vitrina (tus amigos no la ven al visitarte, ni cuenta en tu número público de medallas)
+  { id: "deuda-saldada", icon: "💳", nombre: "Primera deuda saldada", desc: "Salda tu primera deuda en Finanzas", reward: 60, privada: true, check: s => typeof deudasSaldadas === "function" && deudasSaldadas(s) >= 1 },
+  { id: "sin-deudas", icon: "🕊️", nombre: "Sin deudas", desc: "Salda todas las deudas que anotaste en Finanzas", reward: 150, privada: true, check: s => typeof deudasSaldadas === "function" && deudasSaldadas(s) >= 1 && deudasVivas(s).length === 0 },
   // Secretas: se ven como ??? hasta ganarlas
   { id: "buho", icon: "🦉", nombre: "Búho", desc: "Cerraste tu día entre las 23:55 y las 23:59", reward: 77, secreta: true, check: lg_buho },
   { id: "aniversario", icon: "🎂", nombre: "Aniversario", desc: "Cumpliste un año usando Rumbo", reward: 365, secreta: true, check: lg_aniversario },

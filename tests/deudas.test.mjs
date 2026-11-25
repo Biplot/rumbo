@@ -97,4 +97,11 @@ export default async function ({ G, test, assert, clone }) {
     const m = merge(clone(a.deudas), clone(b.deudas));
     assert.equal(m.lista[0].saldada, 0);
   });
+
+  test("privado: las medallas de las deudas no salen en la vitrina que ven tus amigos", () => {
+    const S = nuevo(); S.gamif.badges.push("deuda-saldada", "sin-deudas", "primer-paso");
+    const pub = G("vitrinaPublica")(S);
+    assert.equal(pub.medallas.join(), "primer-paso");
+    assert.ok(G("findBadge")("deuda-saldada").privada && G("findBadge")("sin-deudas").privada);
+  });
 }

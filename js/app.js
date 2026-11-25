@@ -175,7 +175,7 @@ function procesarAtajo() {
 }
 
 /* -------- Introducción (recorrido) para usuarios nuevos; se puede volver a ver -------- */
-const INTRO_VERSION = 82;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
+const INTRO_VERSION = 83;          // sube cuando haya novedades que mostrar a usuarios existentes (ver NOVEDADES)
 let ONB_STEP = 0;
 let ONB_MODE = "nuevo";           // nuevo (termina en el formulario) | repetir (termina en "Listo")
 let ONB_ACTIVE = false;
@@ -563,6 +563,9 @@ const NOVEDADES = {
   ],
   69: [
     ["🦉", "El colegio en invierno", "Una biblioteca nueva en la Tienda: un colegio de magia con nieve en las ventanas y la chimenea encendida. Un búho con bufanda trae cada libro que terminas y, en tu meta, se encienden las luces y el pino."],
+  ],
+  83: [
+    ["⏰", "Tu foco termina con tu tono", "Al enfocarte, elige el «Aviso al terminar» entre los mismos tonos de las alarmas: marimba, la ola, arpa, kalimba, la trompeta del elefante y más (o las dos notas de siempre, o sin sonido). Toca uno para escucharlo. Suena al terminar la sesión y, en ciclos, al terminar cada tramo, también en el ▶ de tus hábitos con tiempo."],
   ],
   82: [
     ["📌", "Más, con lo tuyo arriba", "Arriba están tus secciones, en tu orden. Abajo, en «Descubrir», las demás, en gris y con «+». Una sección aparece sola cuando guardas algo en ella. Con «Ordenar» las mueves o las quitas (también Amigos), sin borrar nada."],

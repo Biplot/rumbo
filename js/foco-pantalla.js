@@ -4,7 +4,7 @@
    La lógica y los datos están en foco.js; con un amigo, en foco-amigos.js.
    ============================================================ */
 let FOCO_TIMER = null;
-const FOCO_UI = { sel: "", min: 25, ritmo: "una", estilo: "anillo", sonido: "", modo: "completa", pre: null, cierre: null, anota: false };
+const FOCO_UI = { sel: "", min: 25, ritmo: "una", estilo: "anillo", sonido: "", modo: "completa", aviso: "marimba", pre: null, cierre: null, anota: false };
 const FOCO_TINTA = { fondo: "#0C0F1E", vacio: "#252C52", ambar: "#FFBE55", indigo: "#8D9BFF", luna: "#F3EDD2", texto: "#EEF0F8", borde: "#39416A" };
 
 /* -------- Los cuatro dibujos del reloj (viewBox 0 0 240 240). f: cuánto pasó del tramo (0 a 1) -------- */
@@ -75,7 +75,46 @@ function focoCallar(seg) {
   setTimeout(() => { nodos.forEach(n => { try { n.stop && n.stop(); } catch (e) {} try { n.disconnect(); } catch (e) {} }); try { master.disconnect(); } catch (e) {} }, ((seg || 2.5) + 0.1) * 1000);
   Object.assign(FOCO_AUDIO, { master: null, nodos: [], v: "" });
 }
-/* Dos notas suaves al cambiar de tramo */
+/* v155 · El aviso al terminar: uno de los tonos de las alarmas (se prepara al empezar, con tu toque, para que el
+   teléfono lo deje sonar después), las dos notas o nada. Suena al terminar cada tramo y la sesión. */
+const FOCO_TONOS = {};   // tono → AudioBuffer ya decodificado
+let FOCO_PRUEBA = null;
+const focoTonoUrl = v => `assets/norte-sonidos/alarma_${v}.mp3`;
+const focoEsTono = v => !!v && v !== "notas" && v !== "nada" && typeof NORTE_SONIDOS !== "undefined" && NORTE_SONIDOS.some(x => x[0] === v);
+function focoCtx() {
+  const ctx = FOCO_AUDIO.ctx = FOCO_AUDIO.ctx || new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === "suspended") ctx.resume();
+  return ctx;
+}
+function focoAvisoPreparar(v) {
+  if (!focoEsTono(v) || FOCO_TONOS[v]) return;
+  try {
+    const ctx = focoCtx();
+    fetch(focoTonoUrl(v)).then(r => r.ok ? r.arrayBuffer() : Promise.reject(new Error("sin tono")))
+      .then(b => new Promise((ok, mal) => ctx.decodeAudioData(b, ok, mal))).then(buf => { FOCO_TONOS[v] = buf; }).catch(() => {});
+  } catch (e) {}
+}
+function focoAvisoSonar(v) {
+  v = v || "notas";
+  if (v === "nada") return;
+  if (!focoEsTono(v)) return focoCampana();
+  try {
+    const ctx = focoCtx(), buf = FOCO_TONOS[v];
+    if (buf && ctx.state === "running") { const s = ctx.createBufferSource(); s.buffer = buf; s.connect(ctx.destination); s.start(); return; }
+    const au = new Audio(focoTonoUrl(v)), p = au.play();
+    if (p && p.catch) p.catch(() => focoCampana());
+  } catch (e) { focoCampana(); }
+}
+/* Al elegirlo, suena una vez (uno a la vez) */
+function focoAvisoProbar(v) {
+  try { if (FOCO_PRUEBA) FOCO_PRUEBA.pause(); } catch (e) {}
+  FOCO_PRUEBA = null;
+  if (v === "notas") return focoCampana();
+  if (!focoEsTono(v)) return;
+  focoAvisoPreparar(v);
+  try { FOCO_PRUEBA = new Audio(focoTonoUrl(v)); const p = FOCO_PRUEBA.play(); if (p && p.catch) p.catch(() => toast("No pude reproducir el sonido. Revisa que el volumen esté encendido.", true)); } catch (e) {}
+}
+/* Dos notas suaves (el aviso de siempre) */
 function focoCampana() {
   try {
     const ctx = FOCO_AUDIO.ctx = FOCO_AUDIO.ctx || new (window.AudioContext || window.webkitAudioContext)(), t0 = ctx.currentTime;
@@ -92,7 +131,7 @@ function focoIcono(i) { return i.bocado ? icoUI("bocado") : i.icon === "🎯" ? 
 function openFoco(pre) {
   const a = focoActiva(); if (a) return mostrarFoco(true);
   const p = focoPref(STATE), hoy = todayISO();
-  Object.assign(FOCO_UI, { min: p.min, ritmo: p.ritmo, estilo: focoEstiloUsable(p.estilo), sonido: focoSonidoUsable(p.sonido), modo: p.modo, pre: pre || null, anota: false });
+  Object.assign(FOCO_UI, { min: p.min, ritmo: p.ritmo, estilo: focoEstiloUsable(p.estilo), sonido: focoSonidoUsable(p.sonido), modo: p.modo, aviso: p.aviso, pre: pre || null, anota: false });
   const grupos = focoDestinos(STATE, hoy);
   let sel = pre && pre.tipo ? pre.tipo + ":" + (pre.ref || "") : "";
   if (sel && !grupos.some(g => g.items.some(i => focoClave(i) === sel))) sel = "";
@@ -117,6 +156,9 @@ function focoElegirHtml(grupos) {
     <div class="field"><label>Ritmo</label><div class="fo-chips" id="fo-ritmo" role="group" aria-label="Ritmo">
       <button type="button" class="fo-chip" data-action="foco-ritmo" data-v="una">Una sesión</button><button type="button" class="fo-chip" data-action="foco-ritmo" data-v="ciclos">Ciclos con descansos</button></div>
       <p class="text-xs muted mt-8" id="fo-ritmo-txt"></p></div>
+    <div class="field"><label>Aviso al terminar</label><div class="fo-chips fo-avisos" id="fo-aviso" role="group" aria-label="Aviso al terminar">${focoAvisos().map(([v, n]) =>
+        `<button type="button" class="fo-chip" data-action="foco-aviso" data-v="${v}">${escapeHtml(n)}</button>`).join("")}</div>
+      <p class="text-xs muted mt-8">Los mismos tonos de las alarmas. Suena al terminar la sesión y, en ciclos, al terminar cada tramo. Toca uno para escucharlo.</p></div>
     <details class="fo-mas"><summary>Reloj, sonido y pantalla</summary>
       <div class="field mt-8"><label>Dibujo del reloj</label><div class="fo-relojes" id="fo-estilo">${FOCO_RELOJES.map(r => { const tuyo = focoTieneCos(r.cos), c = r.cos && COSMETICOS.find(x => x.id === r.cos);
         return `<button type="button" class="fo-reloj${tuyo ? "" : " is-lock"}" data-action="foco-estilo" data-v="${r.v}">${focoDibujoSvg(r.v, 0.4)}<span>${r.n}${tuyo ? "" : `<em>${c ? c.costo : ""} ⭐</em>`}</span></button>`; }).join("")}</div></div>
@@ -139,6 +181,7 @@ function focoElegirPintar() {
   marcar("#fo-estilo .fo-reloj", b => b.dataset.v === FOCO_UI.estilo);
   marcar("#fo-sonido .fo-chip", b => b.dataset.v === FOCO_UI.sonido);
   marcar("#fo-modo .fo-chip", b => b.dataset.v === FOCO_UI.modo);
+  marcar("#fo-aviso .fo-chip", b => b.dataset.v === FOCO_UI.aviso);
   const libre = document.getElementById("fo-libre"); if (libre) libre.hidden = FOCO_UI.sel !== "libre:";
   const rt = document.getElementById("fo-ritmo-txt"); if (rt) rt.textContent = focoRitmoTxt(FOCO_UI.ritmo, FOCO_UI.min);
   const ri = document.getElementById("fo-ritmo"); if (ri) ri.hidden = FOCO_UI.ritmo === "libre";
@@ -150,12 +193,14 @@ function focoEmpezar() {
   let d = FOCO_UI.sel === "libre:" ? null : focoDestinoDe(STATE, FOCO_UI.sel, hoy);
   if (!d) { const t = ((document.getElementById("fo-libre") || {}).value || "").trim(); d = { tipo: "libre", ref: "", titulo: t || "Tiempo de foco" }; }
   const destino = Object.assign({}, d); delete destino.sub; delete destino.min;
-  focoGuardarPref(STATE, { min: FOCO_UI.min, ritmo: FOCO_UI.ritmo, estilo: FOCO_UI.estilo, sonido: FOCO_UI.sonido, modo: FOCO_UI.modo }); saveState();
-  focoArrancar(focoNueva(destino, { ritmo: FOCO_UI.ritmo, min: FOCO_UI.min, modo: FOCO_UI.modo, estilo: FOCO_UI.estilo, sonido: FOCO_UI.sonido }));
+  focoGuardarPref(STATE, { min: FOCO_UI.min, ritmo: FOCO_UI.ritmo, estilo: FOCO_UI.estilo, sonido: FOCO_UI.sonido, modo: FOCO_UI.modo, aviso: FOCO_UI.aviso }); saveState();
+  focoArrancar(focoNueva(destino, { ritmo: FOCO_UI.ritmo, min: FOCO_UI.min, modo: FOCO_UI.modo, estilo: FOCO_UI.estilo, sonido: FOCO_UI.sonido, aviso: FOCO_UI.aviso }));
 }
 function focoArrancar(a) {
   focoGuardarActiva(a); closeModal();
   if (a.sonido) focoSonar(a.sonido);
+  try { focoCtx(); } catch (e) {}   // con tu toque: así el aviso puede sonar al terminar
+  focoAvisoPreparar(a.aviso);
   focoAvisoServidor(a);
   mostrarFoco(a.modo !== "barra");
   try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); } catch (e) {}
@@ -171,6 +216,7 @@ function focoAvisoServidor(a) {
 /* -------- La pantalla de foco -------- */
 function mostrarFoco(grande) {
   const a = focoActiva(); if (!a) return cerrarFoco();
+  focoAvisoPreparar(a.aviso);   // al volver a la app con una sesión en curso
   const r = focoAvanzar(a); if (r.cambio) focoGuardarActiva(a);
   if (r.terminada) return focoTerminar(true);
   if (grande != null) { a.modo = grande ? "completa" : "barra"; focoGuardarActiva(a); }
@@ -229,7 +275,7 @@ function focoTick() {
 /* Terminó un tramo: suena, vibra, avisa y repinta (el descanso trae sus ideas) */
 function focoCambioTramo(a) {
   const t = focoTramoAct(a), desc = t[1] === "d" || t[1] === "l";
-  focoCampana(); if (typeof vibrar === "function") vibrar([60, 80, 60]);
+  focoAvisoSonar(a.aviso); if (typeof vibrar === "function") vibrar([60, 80, 60]);
   focoNotificar(desc ? "Toca un descanso" : "A enfocarse otra vez", desc ? `${t[0]} min de descanso. Después sigues con ${(a.destino && a.destino.titulo) || "lo tuyo"}.` : (a.destino && a.destino.titulo) || "");
   focoAvisoServidor(a);
   mostrarFoco(a.modo === "completa" || desc ? null : false);
@@ -260,7 +306,7 @@ function focoTerminar(completa) {
   const ahora = Date.now(), rec = focoRegistro(a, completa, ahora);
   focoGuardarActiva(null); cerrarFoco(); focoCallar(); focoAvisoServidor(null);
   if (typeof focoSalaAlTerminar === "function") focoSalaAlTerminar(a, completa);
-  if (completa) { focoCampana(); focoNotificar("¡Tiempo!", `Terminaste tu sesión: ${(a.destino && a.destino.titulo) || ""}`); }
+  if (completa) { focoAvisoSonar(a.aviso); if (typeof vibrar === "function") vibrar([60, 80, 60]); focoNotificar("¡Tiempo!", `Terminaste tu sesión: ${(a.destino && a.destino.titulo) || ""}`); }
   if (!rec) { toast(completa ? "Listo" : "Sesión cancelada: fue muy corta para contarla"); rerender(); return; }
   sesionesEnfoque(STATE).push(rec);
   const estrellas = focoDarEstrellas(STATE, rec);
@@ -337,6 +383,7 @@ function focoAccion(a, d, el) {
   if (a === "foco-estilo") { const r = FOCO_RELOJES.find(x => x.v === d.v); if (r && !focoTieneCos(r.cos)) return focoVerEnTienda(r.cos); FOCO_UI.estilo = d.v; return focoElegirPintar(); }
   if (a === "foco-sonido-elegir") { const s = FOCO_SONIDOS.find(x => x.v === d.v); if (s && !focoTieneCos(s.cos)) return focoVerEnTienda(s.cos); FOCO_UI.sonido = d.v; focoSonar(d.v, 4); return focoElegirPintar(); }
   if (a === "foco-modo") { FOCO_UI.modo = d.v; return focoElegirPintar(); }
+  if (a === "foco-aviso") { if (!focoAvisoValido(d.v)) return; FOCO_UI.aviso = d.v; focoAvisoProbar(d.v); return focoElegirPintar(); }
   if (a === "foco-empezar") return focoEmpezar();
   if (a === "foco-ver") return mostrarFoco(true);
   if (a === "foco-barra") return mostrarFoco(false);

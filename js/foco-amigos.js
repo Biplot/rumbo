@@ -106,7 +106,7 @@ async function focoSalaAceptar(id, el) {
 function focoSalaArrancar(s, destino) {
   const p = focoPref(STATE);
   focoArrancar(focoNueva(destino || { tipo: "libre", ref: "", titulo: "Tiempo de foco" }, { ritmo: "una", min: s.min, fin: focoSalaFinLocal(s), sala: s.id, con: focoAmigoNombre(s.otro),
-    estilo: focoEstiloUsable(p.estilo), sonido: focoSonidoUsable(p.sonido), modo: p.modo }));
+    estilo: focoEstiloUsable(p.estilo), sonido: focoSonidoUsable(p.sonido), modo: p.modo, aviso: p.aviso }));
   focoSalaVigilar(20000);
 }
 /* El recuadro del otro en la pantalla de foco */

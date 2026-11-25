@@ -50,8 +50,20 @@ function focoPref(S) {
   return {
     min: FOCO_MINS.includes(+p.min) ? +p.min : 25, ritmo: ["una", "ciclos", "libre"].includes(p.ritmo) ? p.ritmo : "una",
     estilo: FOCO_RELOJES.some(r => r.v === p.estilo) ? p.estilo : "anillo", sonido: FOCO_SONIDOS.some(s => s.v === p.sonido) ? p.sonido : "",
-    modo: p.modo === "barra" ? "barra" : "completa", ts: +p.ts || 0,
+    modo: p.modo === "barra" ? "barra" : "completa", aviso: focoAvisoValido(p.aviso) || focoAvisoInicial(S), ts: +p.ts || 0,
   };
+}
+/* v155 · El aviso al terminar (cada tramo y la sesión): uno de los 11 tonos de las alarmas de Norte
+   (assets/norte-sonidos, los mismos del robot), las dos notas de siempre o nada (solo vibra). */
+function focoAvisos() {
+  return [["notas", "Dos notas"]].concat(typeof NORTE_SONIDOS !== "undefined" ? NORTE_SONIDOS : []).concat([["nada", "Sin sonido"]]);
+}
+function focoAvisoValido(v) { return focoAvisos().some(x => x[0] === v) ? v : null; }
+/* Si ya elegiste el sonido de tus alarmas, parte con ese; si no, la marimba */
+function focoAvisoInicial(S) {
+  S = S || (typeof STATE !== "undefined" ? STATE : null);
+  const n = S && S.settings && S.settings.norte && S.settings.norte.alarmas && S.settings.norte.alarmas.sonido;
+  return (typeof norteSonidoValido === "function" && norteSonidoValido(n)) || (focoAvisoValido("marimba") ? "marimba" : "notas");
 }
 function focoGuardarPref(S, cambios) { const e = focoDatos(S); e.pref = Object.assign({}, focoPref(S), cambios, { ts: Date.now() }); return e.pref; }
 /* Lo que usas tiene que ser tuyo (los de la Tienda): si no, el de fábrica */
@@ -220,7 +232,7 @@ function focoNueva(destino, op, ahora) {
   const ritmo = ["una", "ciclos", "libre"].includes(op.ritmo) ? op.ritmo : "una", min = Math.max(1, Math.min(240, Math.round(+op.min || 25)));
   const tramos = focoTramos(ritmo, min), fin = op.fin && op.fin > ahora ? op.fin : ahora + tramos[0][0] * 60000;
   return { v: 2, id: uid(), fecha: op.fecha || todayISO(), ini: ahora, destino, ritmo, min, tramos, tramo: 0, tIni: ritmo === "libre" ? ahora : fin - tramos[0][0] * 60000,
-    fin: ritmo === "libre" ? null : fin, pausa: false, restante: 0, focoMs: 0, modo: op.modo === "barra" ? "barra" : "completa", estilo: op.estilo || "anillo", sonido: op.sonido || "", sala: op.sala || null, con: op.con || "", pend: 0 };
+    fin: ritmo === "libre" ? null : fin, pausa: false, restante: 0, focoMs: 0, modo: op.modo === "barra" ? "barra" : "completa", estilo: op.estilo || "anillo", sonido: op.sonido || "", aviso: focoAvisoValido(op.aviso) || "notas", sala: op.sala || null, con: op.con || "", pend: 0 };
 }
 /* El registro que queda al terminar (null si fue menos de un minuto) */
 function focoRegistro(a, completa, ahora) {

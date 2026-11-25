@@ -41,7 +41,13 @@ module.exports = async ({ b, ok, errs }) => {
   ok(await p.locator('.fo-op.is-on').getAttribute("data-k") === "habito:hi" && (await p.locator("#fo-min .fo-chip.is-on").innerText()) === "20", "viene elegido el hábito, con sus 20 minutos");
   ok(await p.locator(".fo-op").first().getAttribute("data-k") === "tarea:" + await p.evaluate(() => tareasDelDia("2026-11-19").find(x => x.esSapo).id), "y el primer bocado va primero en la lista");
   await shot(p, "foco-elegir");
+  // v155: el aviso al terminar, con los tonos de las alarmas (parte en la marimba; tocar uno lo elige y lo hace sonar)
+  ok(await p.locator('#fo-aviso .fo-chip').count() === 13 && await p.locator('#fo-aviso .fo-chip.is-on[data-v="marimba"]').count() === 1, "«Aviso al terminar»: los 11 tonos de las alarmas, dos notas o sin sonido (parte en la marimba)");
+  await p.evaluate(() => { window.__probados = []; const o = focoAvisoProbar; focoAvisoProbar = v => { window.__probados.push(v); o(v); }; window.__avisos = []; focoAvisoSonar = v => window.__avisos.push(v); });
+  await p.click('#fo-aviso [data-v="kalimba"]'); await p.waitForTimeout(150);
+  ok(await p.locator('#fo-aviso .fo-chip.is-on[data-v="kalimba"]').count() === 1 && await p.evaluate(() => window.__probados.join()) === "kalimba", "tocar Kalimba la elige y la hace sonar");
   await p.click('[data-action="foco-empezar"]'); await p.waitForTimeout(600);
+  ok(await p.evaluate(() => focoActiva().aviso === "kalimba" && focoPref(STATE).aviso === "kalimba"), "la sesión guarda su aviso y queda para la próxima");
   ok(await p.locator("#foco").isVisible() && /Estudiar inglés/.test(await p.locator(".foco__t").innerText()) && (await p.locator("#fo-num").innerText()) === "20:00", "la pantalla de foco: el hábito y 20:00");
   ok(await p.locator("#foco .foco__ele svg").count() === 1, "con tu elefante acompañándote");
   await shot(p, "foco-pantalla");
@@ -63,6 +69,7 @@ module.exports = async ({ b, ok, errs }) => {
   await hora("10:20:02");
   t = await modal();
   ok(/¡Tiempo! 20 min/.test(t) && /«Estudiar inglés» quedó marcado hoy/.test(t) && /\+5 .{0,3}por la sesión completa/.test(t), "al terminar: el hábito quedó marcado y +5 ⭐");
+  ok(await p.evaluate(() => window.__avisos.join()) === "kalimba", "al terminar suena el aviso elegido: Kalimba");
   ok(await p.evaluate(() => habitDoneDate("hi", new Date())), "el hábito de hoy está hecho");
   await p.click('.fo-cara[data-v="3"]'); await p.fill("#fo-sigue-txt", "Repasar los verbos irregulares"); await p.click('[data-action="foco-cierre-ok"]'); await p.waitForTimeout(300);
   const s1 = await p.evaluate(() => STATE.enfoque.sesiones[0]);

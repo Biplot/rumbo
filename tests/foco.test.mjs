@@ -95,7 +95,7 @@ export default async function ({ G, test, assert, clone }) {
   test("«¿qué sigue?» por destino y las preferencias (lo que no es tuyo vuelve al de fábrica)", () => {
     const S = nuevo(); guardarSigue(S, "tarea:t1", "  revisar las citas  ");
     assert.equal(sigue(S, "tarea:t1"), "revisar las citas"); assert.equal(sigue(S, "tarea:t2"), "");
-    assert.deepEqual(clone(Object.assign(pref(S), { ts: 0 })), { min: 25, ritmo: "una", estilo: "anillo", sonido: "", modo: "completa", ts: 0 });
+    assert.deepEqual(clone(Object.assign(pref(S), { ts: 0 })), { min: 25, ritmo: "una", estilo: "anillo", sonido: "", modo: "completa", aviso: "marimba", ts: 0 });
     assert.equal(estiloUsable("luna", S), "anillo", "la luna sin comprar");
     ledgerRegistrar(S, "compra:foco-luna", -300, 0, "Compra"); assert.equal(estiloUsable("luna", S), "luna");
   });
@@ -154,5 +154,17 @@ export default async function ({ G, test, assert, clone }) {
     assert.deepEqual(clone(sbS.marcados[0]), ["foco_salas", { avisado_invita: true }]);
     assert.equal(rs2.motivo, "ya-avisado");
     assert.equal(mensajeSala({ tipo: "foco-acepta", nombre: "Bruno Díaz", titulo: "Informe" }).title, "Bruno se sumó: parten ahora");
+  });
+
+  test("v155: el aviso al terminar es uno de los tonos de las alarmas (parte con el de tus alarmas, o la marimba)", () => {
+    const S = G("migrate")(G("defaultState")()), pref = G("focoPref"), guardar = G("focoGuardarPref"), valido = G("focoAvisoValido"), nueva = G("focoNueva");
+    assert.equal(pref(S).aviso, "marimba");
+    S.settings.norte = { alarmas: { sonido: "kalimba" } };
+    assert.equal(pref(S).aviso, "kalimba", "si ya elegiste el sonido de tus alarmas, parte con ese");
+    guardar(S, { aviso: "grillos" });
+    assert.equal(pref(S).aviso, "grillos");
+    assert.equal(valido("notas"), "notas"); assert.equal(valido("nada"), "nada"); assert.equal(valido("bocina"), null);
+    assert.equal(nueva({ tipo: "libre", titulo: "x" }, { aviso: "piano" }).aviso, "piano", "la sesión guarda su aviso");
+    assert.equal(nueva({ tipo: "libre", titulo: "x" }, { aviso: "otro" }).aviso, "notas", "uno que no existe vuelve a las dos notas");
   });
 }

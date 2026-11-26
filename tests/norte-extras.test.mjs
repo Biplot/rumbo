@@ -172,4 +172,32 @@ export default async function ({ test, assert }) {
     assert.deepEqual([instruccionesDe(null), instruccionesDe(42), instruccionesDe("   ")], ["", "", ""]);
     assert.doesNotMatch(sistema(null, AHORA, "   "), /«««/);
   });
+
+  /* ---------- Norte-Desk 0.18: lo del robot en la charla (mover una tarea, el diario y la alcancía) ---------- */
+  const pedidos18 = []; let i18 = 0;
+  const resp18 = [
+    { stop_reason: "tool_use", content: [
+      { type: "tool_use", id: "m1", name: "mover_tarea", input: { destino: "manana", tarea: "pagar la luz" } },
+      { type: "tool_use", id: "d1", name: "escribir_diario", input: { texto: "Hoy fue un buen día.\nCaminé con Cami." } },
+      { type: "tool_use", id: "a1", name: "guardar_en_alcancia", input: { monto: 5000 } },
+    ] },
+    { stop_reason: "end_turn", content: [{ type: "text", text: "Listo: la luz pasa a mañana, lo guardé en tu diario y sumé 5 mil al viaje.\n[cara: feliz]" }] },
+  ];
+  const claude18 = { messages: { create: async (p) => { pedidos18.push(JSON.parse(JSON.stringify(p))); return resp18[Math.min(i18++, resp18.length - 1)]; } } };
+  const sb18 = nuevoSb(d => { d.alcancias = { lista: [{ id: "al1", nombre: "Viaje", meta: 100000, aportes: [{ id: "ap", monto: 20000 }] }] }; });
+  sb18.rpc = async () => ({ data: { ok: true }, error: null });
+  const c18 = await atenderCharla({ sb: sb18, body: { accion: "charla", texto: "Pasa la luz a mañana, anota en mi diario que hoy fue un buen día y pon 5 mil en la alcancía" }, autorizacion: "Bearer " + TOKEN, claude: claude18, ahora: AHORA });
+  test("charla 0.18: mueve una tarea por su nombre, escribe en el diario y guarda en la alcancía, por la misma bandeja", () => {
+    assert.equal(c18.status, 200);
+    const nombres = pedidos18[0].tools.map(t => t.name);
+    ["mover_tarea", "escribir_diario", "guardar_en_alcancia"].forEach(n => assert.ok(nombres.includes(n), n + " está para Claude"));
+    assert.deepEqual(c18.cuerpo.hizo.map(h => [h.accion, h.ok]), [["mover_tarea", true], ["diario", true], ["alcancia", true]]);
+    const tipos = sb18.tablas.norte_pendientes.map(r => r.tipo);
+    assert.deepEqual(tipos, ["tarea_mover", "diario", "alcancia"]);
+    const [mov, dia, alc] = sb18.tablas.norte_pendientes.map(r => r.datos);
+    assert.deepEqual([mov.tid, mov.destino], ["t1", "manana"]);
+    assert.equal(dia.texto, "Hoy fue un buen día.\nCaminé con Cami.", "el diario conserva sus líneas");
+    assert.deepEqual([alc.aid, alc.monto], ["al1", 5000]);
+    assert.match(c18.cuerpo.hizo[2].texto, /Guardé \$?5\.000/);
+  });
 }
